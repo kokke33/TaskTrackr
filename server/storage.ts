@@ -41,7 +41,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllWeeklyReports(): Promise<WeeklyReport[]> {
-    return await db.select().from(weeklyReports).orderBy(weeklyReports.createdAt);
+    // 報告期間開始日の降順で並び替え
+    return await db.select().from(weeklyReports).orderBy(desc(weeklyReports.reportPeriodStart));
   }
 
   async updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport> {
