@@ -141,65 +141,28 @@ export default function WeeklyReport() {
               <h2 className="text-xl font-semibold mb-4 pb-2 border-b">1. 基本情報</h2>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="reportYear"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>年</FormLabel>
+                <FormField
+                  control={form.control}
+                  name="reportPeriodStart"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">報告期間</FormLabel>
+                      <div className="flex gap-2 items-center">
                         <FormControl>
-                          <Input type="number" min="2000" max="2100" {...field} />
+                          <Input type="date" {...field} />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="reportMonth"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>月</FormLabel>
+                        <span>～</span>
                         <FormControl>
-                          <Select onValueChange={field.onChange} value={field.value?.toString()}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="月を選択" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Array.from({length: 12}, (_, i) => i + 1).map(month => (
-                                <SelectItem key={month} value={month.toString()}>{month}月</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Input
+                            type="date"
+                            {...form.register("reportPeriodEnd")}
+                          />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="reportWeek"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>週</FormLabel>
-                        <FormControl>
-                          <Select onValueChange={field.onChange} value={field.value?.toString()}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="週を選択" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Array.from({length: 5}, (_, i) => i + 1).map(week => (
-                                <SelectItem key={week} value={week.toString()}>第{week}週</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
