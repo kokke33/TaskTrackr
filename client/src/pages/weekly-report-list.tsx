@@ -27,14 +27,31 @@ export default function WeeklyReportList() {
     );
   }
 
-  // プロジェクトごとにレポートをグループ化
+  // プロジェクトとチームでレポートをグループ化
   const projectGroups = {
-    "PNEC_SMSK": reports?.filter(r => r.projectName === "PNEC_SMSK") ?? [],
-    "INSL_SNSK": reports?.filter(r => r.projectName === "INSL_SNSK") ?? [],
-    "ITCS_SAIG": reports?.filter(r => r.projectName === "ITCS_SAIG") ?? [],
-    "VACC_SSJN": reports?.filter(r => r.projectName === "VACC_SSJN") ?? [],
-    "IIBM_FWAM": reports?.filter(r => r.projectName === "IIBM_FWAM") ?? [],
-    "other": reports?.filter(r => r.projectName === "other") ?? []
+    "PNEC_SMSK": {
+      "チームA": reports?.filter(r => r.projectName === "PNEC_SMSK" && r.teamName === "チームA") ?? [],
+      "チームB": reports?.filter(r => r.projectName === "PNEC_SMSK" && r.teamName === "チームB") ?? [],
+    },
+    "INSL_SNSK": {
+      "チームA": reports?.filter(r => r.projectName === "INSL_SNSK" && r.teamName === "チームA") ?? [],
+      "チームB": reports?.filter(r => r.projectName === "INSL_SNSK" && r.teamName === "チームB") ?? [],
+    },
+    "ITCS_SAIG": {
+      "チームA": reports?.filter(r => r.projectName === "ITCS_SAIG" && r.teamName === "チームA") ?? [],
+      "チームB": reports?.filter(r => r.projectName === "ITCS_SAIG" && r.teamName === "チームB") ?? [],
+    },
+    "VACC_SSJN": {
+      "チームA": reports?.filter(r => r.projectName === "VACC_SSJN" && r.teamName === "チームA") ?? [],
+      "チームB": reports?.filter(r => r.projectName === "VACC_SSJN" && r.teamName === "チームB") ?? [],
+    },
+    "IIBM_FWAM": {
+      "チームA": reports?.filter(r => r.projectName === "IIBM_FWAM" && r.teamName === "チームA") ?? [],
+      "チームB": reports?.filter(r => r.projectName === "IIBM_FWAM" && r.teamName === "チームB") ?? [],
+    },
+    "other": {
+      "その他": reports?.filter(r => r.projectName === "other") ?? []
+    }
   };
 
   const copyToClipboard = (report: WeeklyReport) => {
@@ -181,9 +198,12 @@ export default function WeeklyReportList() {
             <TabsTrigger value="other">その他</TabsTrigger>
           </TabsList>
 
-          {Object.entries(projectGroups).map(([projectId, projectReports]) => (
+          {Object.entries(projectGroups).map(([projectId, teamGroups]) => (
             <TabsContent key={projectId} value={projectId}>
-              {projectReports.length === 0 ? (
+              {Object.entries(teamGroups).map(([teamName, teamReports]) => (
+                <div key={teamName} className="mb-6">
+                  <h3 className="text-lg font-semibold mb-3">{teamName}</h3>
+                  {teamReports.length === 0 ? (
                 <p className="text-center text-muted-foreground">
                   このプロジェクトの報告はまだありません
                 </p>
@@ -227,6 +247,8 @@ export default function WeeklyReportList() {
                   ))}
                 </div>
               )}
+                </div>
+              ))}
             </TabsContent>
           ))}
         </Tabs>
