@@ -107,6 +107,17 @@ export default function WeeklyReport() {
     }
   };
 
+  const copyFromLastReport = () => {
+    // Placeholder:  Replace with actual fetching and setting of data from last report
+    console.log("Copying from last report (placeholder function)");
+    //Example:  Fetch last report data and set defaultValues in the form
+    // fetch('/api/weekly-reports/last')
+    //   .then(res => res.json())
+    //   .then(lastReport => form.reset(lastReport));
+
+  };
+
+
   if (isEditMode && isLoadingReport) {
     return (
       <div className="min-h-screen bg-background">
@@ -138,7 +149,22 @@ export default function WeeklyReport() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {/* 基本情報 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">1. 基本情報</h2>
+              <header className="mb-8">
+                <div className="flex justify-between items-center mb-2">
+                  <h1 className="text-xl font-semibold">
+                    {isEditMode ? "週次報告編集" : "週次報告フォーム"}
+                  </h1>
+                  {!isEditMode && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={copyFromLastReport}
+                    >
+                      前回の報告をコピー
+                    </Button>
+                  )}
+                </div>
+              </header>
 
               <div className="space-y-4">
                 <FormField
@@ -1016,8 +1042,7 @@ export default function WeeklyReport() {
                     )}
                   />
                 )}
-              </div>
-            </div>
+              </div            </div>
 
             {/* その他の懸念事項の後にAI分析結果を表示 */}
             {isEditMode && (
