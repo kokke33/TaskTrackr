@@ -1,11 +1,24 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertWeeklyReportSchema, type WeeklyReport } from "@shared/schema";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -18,13 +31,14 @@ export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
 
-  const { data: existingReport, isLoading: isLoadingReport } = useQuery<WeeklyReport>({
-    queryKey: [`/api/weekly-reports/${id}`],
-    enabled: isEditMode,
-    staleTime: 0,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-  });
+  const { data: existingReport, isLoading: isLoadingReport } =
+    useQuery<WeeklyReport>({
+      queryKey: [`/api/weekly-reports/${id}`],
+      enabled: isEditMode,
+      staleTime: 0,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+    });
 
   const { toast } = useToast();
   const [showOtherProject, setShowOtherProject] = useState(false);
@@ -41,7 +55,7 @@ export default function WeeklyReport() {
       qualityConcerns: "none",
       changes: "no",
       ...existingReport,
-    }
+    },
   });
 
   useEffect(() => {
@@ -58,19 +72,21 @@ export default function WeeklyReport() {
 
     try {
       setIsSubmitting(true); // Set submitting state to true
-      const url = isEditMode ? `/api/weekly-reports/${id}` : '/api/weekly-reports';
-      const method = isEditMode ? 'PUT' : 'POST';
+      const url = isEditMode
+        ? `/api/weekly-reports/${id}`
+        : "/api/weekly-reports";
+      const method = isEditMode ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        throw new Error('送信に失敗しました');
+        throw new Error("送信に失敗しました");
       }
 
       const result = await response.json();
@@ -78,7 +94,9 @@ export default function WeeklyReport() {
       // Success toast
       toast({
         title: isEditMode ? "報告が更新されました" : "報告が送信されました",
-        description: isEditMode ? "週次報告が正常に更新されました。" : "週次報告が正常に送信されました。",
+        description: isEditMode
+          ? "週次報告が正常に更新されました。"
+          : "週次報告が正常に送信されました。",
       });
 
       // AI analysis result handling (updated to use result.aiAnalysis)
@@ -96,10 +114,12 @@ export default function WeeklyReport() {
 
       setLocation(`/reports/${result.id}`);
     } catch (error) {
-      console.error('Error submitting report:', error);
+      console.error("Error submitting report:", error);
       toast({
         title: "エラー",
-        description: isEditMode ? "週次報告の更新に失敗しました。" : "週次報告の送信に失敗しました。",
+        description: isEditMode
+          ? "週次報告の更新に失敗しました。"
+          : "週次報告の送信に失敗しました。",
         variant: "destructive",
       });
     } finally {
@@ -114,9 +134,7 @@ export default function WeeklyReport() {
     // fetch('/api/weekly-reports/last')
     //   .then(res => res.json())
     //   .then(lastReport => form.reset(lastReport));
-
   };
-
 
   if (isEditMode && isLoadingReport) {
     return (
@@ -138,7 +156,9 @@ export default function WeeklyReport() {
               {isEditMode ? "週次報告編集" : "週次報告フォーム"}
             </h1>
             <Link href="/reports">
-              <Button variant="ghost" size="sm">戻る</Button>
+              <Button variant="ghost" size="sm">
+                戻る
+              </Button>
             </Link>
           </div>
         </div>
@@ -175,9 +195,9 @@ export default function WeeklyReport() {
                       <FormLabel className="required">報告期間</FormLabel>
                       <div className="flex gap-2 items-center">
                         <FormControl>
-                          <Input 
-                            type="date" 
-                            {...field} 
+                          <Input
+                            type="date"
+                            {...field}
                             onChange={(e) => {
                               field.onChange(e);
                               const date = new Date(e.target.value);
@@ -185,7 +205,10 @@ export default function WeeklyReport() {
                               const daysUntilFriday = 5 - dayOfWeek;
                               const friday = new Date(date);
                               friday.setDate(date.getDate() + daysUntilFriday);
-                              form.setValue("reportPeriodEnd", friday.toISOString().split('T')[0]);
+                              form.setValue(
+                                "reportPeriodEnd",
+                                friday.toISOString().split("T")[0],
+                              );
                             }}
                           />
                         </FormControl>
@@ -222,15 +245,33 @@ export default function WeeklyReport() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="PNEC_SMSK_保守">PNEC_SMSK_共同損サ_保守</SelectItem>
-                          <SelectItem value="PNEC_SMSK_Stage3">PNEC_SMSK_共同損サ_Stage3</SelectItem>
-                          <SelectItem value="PNEC_SMSK_基盤">PNEC_SMSK_共同損サ_基盤</SelectItem>
-                          <SelectItem value="PNEC_SMSK_性能">PNEC_SMSK_共同損サ_性能</SelectItem>
-                          <SelectItem value="INSL_SNSK">INSL_SNSK新種</SelectItem>
-                          <SelectItem value="ITCS_SAIG">ITCS_SAIG_基幹系保守</SelectItem>
-                          <SelectItem value="VACC_SSJN">VACC_SSJN_未来革新Ⅲ期契約管理</SelectItem>
-                          <SelectItem value="IIBM_FWAM">IIBM_FWAM退職共済</SelectItem>
-                          <SelectItem value="other">その他（直接入力）</SelectItem>
+                          <SelectItem value="PNEC_SMSK_保守">
+                            PNEC_SMSK_共同損サ_保守
+                          </SelectItem>
+                          <SelectItem value="PNEC_SMSK_Stage3">
+                            PNEC_SMSK_共同損サ_Stage3
+                          </SelectItem>
+                          <SelectItem value="PNEC_SMSK_基盤">
+                            PNEC_SMSK_共同損サ_基盤
+                          </SelectItem>
+                          <SelectItem value="PNEC_SMSK_性能">
+                            PNEC_SMSK_共同損サ_性能
+                          </SelectItem>
+                          <SelectItem value="INSL_SNSK">
+                            INSL_SNSK新種
+                          </SelectItem>
+                          <SelectItem value="ITCS_SAIG">
+                            ITCS_SAIG_基幹系保守
+                          </SelectItem>
+                          <SelectItem value="VACC_SSJN">
+                            VACC_SSJN_未来革新Ⅲ期契約管理
+                          </SelectItem>
+                          <SelectItem value="IIBM_FWAM">
+                            IIBM_FWAM退職共済
+                          </SelectItem>
+                          <SelectItem value="other">
+                            その他（直接入力）
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       {showOtherProject && (
@@ -265,7 +306,9 @@ export default function WeeklyReport() {
 
             {/* 今週の作業内容 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">2. 今週の作業内容</h2>
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+                2. 今週の作業内容
+              </h2>
 
               <FormField
                 control={form.control}
@@ -288,7 +331,9 @@ export default function WeeklyReport() {
 
             {/* 進捗状況 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">3. 進捗状況</h2>
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+                3. 進捗状況
+              </h2>
 
               <div className="space-y-4">
                 <FormField
@@ -296,7 +341,9 @@ export default function WeeklyReport() {
                   name="progressRate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="required">進捗率 (0～100%)</FormLabel>
+                      <FormLabel className="required">
+                        進捗率 (0～100%)
+                      </FormLabel>
                       <div className="flex items-center gap-4">
                         <FormControl>
                           <Input
@@ -305,7 +352,9 @@ export default function WeeklyReport() {
                             max="100"
                             className="w-full"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value))
+                            }
                           />
                         </FormControl>
                         <FormControl>
@@ -315,7 +364,9 @@ export default function WeeklyReport() {
                             max="100"
                             className="w-20"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value))
+                            }
                           />
                         </FormControl>
                         <span>%</span>
@@ -330,8 +381,13 @@ export default function WeeklyReport() {
                   name="progressStatus"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="required">計画比の進捗状況</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormLabel className="required">
+                        計画比の進捗状況
+                      </FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="選択してください" />
@@ -339,8 +395,12 @@ export default function WeeklyReport() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="on-schedule">予定通り</SelectItem>
-                          <SelectItem value="slightly-delayed">少し遅れている</SelectItem>
-                          <SelectItem value="severely-delayed">大幅に遅れている</SelectItem>
+                          <SelectItem value="slightly-delayed">
+                            少し遅れている
+                          </SelectItem>
+                          <SelectItem value="severely-delayed">
+                            大幅に遅れている
+                          </SelectItem>
                           <SelectItem value="ahead">前倒しで進行中</SelectItem>
                         </SelectContent>
                       </Select>
@@ -354,7 +414,9 @@ export default function WeeklyReport() {
                   name="delayIssues"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="required">進捗遅延・問題点の有無</FormLabel>
+                      <FormLabel className="required">
+                        進捗遅延・問題点の有無
+                      </FormLabel>
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
@@ -382,7 +444,9 @@ export default function WeeklyReport() {
                     name="delayDetails"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="required">遅延・問題点の詳細</FormLabel>
+                        <FormLabel className="required">
+                          遅延・問題点の詳細
+                        </FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="遅延や問題の詳細、原因、影響範囲などを記述してください"
@@ -400,7 +464,9 @@ export default function WeeklyReport() {
 
             {/* 課題・問題点 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">4. 課題・問題点</h2>
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+                4. 課題・問題点
+              </h2>
               <FormField
                 control={form.control}
                 name="issues"
@@ -422,14 +488,18 @@ export default function WeeklyReport() {
 
             {/* 新たなリスク */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">5. 新たなリスク</h2>
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+                5. 新たなリスク
+              </h2>
               <div className="space-y-4">
                 <FormField
                   control={form.control}
                   name="newRisks"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="required">新たなリスクの有無</FormLabel>
+                      <FormLabel className="required">
+                        新たなリスクの有無
+                      </FormLabel>
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
@@ -458,7 +528,9 @@ export default function WeeklyReport() {
                       name="riskSummary"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="required">リスクの概要</FormLabel>
+                          <FormLabel className="required">
+                            リスクの概要
+                          </FormLabel>
                           <FormControl>
                             <Textarea
                               placeholder="新たに発見されたリスクの概要を記述してください"
@@ -494,8 +566,13 @@ export default function WeeklyReport() {
                       name="riskLevel"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="required">リスクレベル</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormLabel className="required">
+                            リスクレベル
+                          </FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="選択してください" />
@@ -518,15 +595,22 @@ export default function WeeklyReport() {
 
             {/* 品質 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">6. 品質</h2>
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+                6. 品質
+              </h2>
               <div className="space-y-4">
                 <FormField
                   control={form.control}
                   name="qualityConcerns"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="required">品質懸念事項の有無</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormLabel className="required">
+                        品質懸念事項の有無
+                      </FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="選択してください" />
@@ -549,7 +633,9 @@ export default function WeeklyReport() {
                     name="qualityDetails"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="required">品質懸念事項の詳細</FormLabel>
+                        <FormLabel className="required">
+                          品質懸念事項の詳細
+                        </FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="品質に関する懸念事項の詳細を記述してください"
@@ -585,7 +671,9 @@ export default function WeeklyReport() {
 
             {/* 変更管理 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">7. 変更管理</h2>
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+                7. 変更管理
+              </h2>
               <div className="space-y-4">
                 <FormField
                   control={form.control}
@@ -620,7 +708,9 @@ export default function WeeklyReport() {
                     name="changeDetails"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="required">変更内容の詳細</FormLabel>
+                        <FormLabel className="required">
+                          変更内容の詳細
+                        </FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="変更内容、影響範囲、対応状況などを記述してください"
@@ -638,7 +728,9 @@ export default function WeeklyReport() {
 
             {/* 来週の予定 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">8. 来週の予定</h2>
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+                8. 来週の予定
+              </h2>
               <FormField
                 control={form.control}
                 name="nextWeekPlan"
@@ -660,13 +752,17 @@ export default function WeeklyReport() {
 
             {/* 支援・判断要望 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">9. 支援・判断要望</h2>
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+                9. 支援・判断要望
+              </h2>
               <FormField
                 control={form.control}
                 name="supportRequests"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="required">支援・判断の要望事項</FormLabel>
+                    <FormLabel className="required">
+                      支援・判断の要望事項
+                    </FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="必要な支援や判断を仰ぎたい事項を記述してください"
@@ -682,7 +778,9 @@ export default function WeeklyReport() {
 
             {/* その他の懸念事項 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">10. その他の懸念事項</h2>
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+                10. その他の懸念事項
+              </h2>
 
               {/* リソース */}
               <div className="mb-6">
@@ -692,7 +790,10 @@ export default function WeeklyReport() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>リソースに関する懸念</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="選択してください" />
@@ -737,7 +838,10 @@ export default function WeeklyReport() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>顧客に関する懸念</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="選択してください" />
@@ -782,7 +886,10 @@ export default function WeeklyReport() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>環境に関する懸念</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="選択してください" />
@@ -827,7 +934,10 @@ export default function WeeklyReport() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>コストに関する懸念</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="選択してください" />
@@ -872,7 +982,10 @@ export default function WeeklyReport() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>知識・スキルに関する懸念</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="選択してください" />
@@ -917,7 +1030,10 @@ export default function WeeklyReport() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>教育に関する懸念</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="選択してください" />
@@ -962,7 +1078,10 @@ export default function WeeklyReport() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>緊急課題に関する懸念</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="選択してください" />
@@ -1007,7 +1126,10 @@ export default function WeeklyReport() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>営業チャンス・顧客ニーズ</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="選択してください" />
@@ -1039,17 +1161,22 @@ export default function WeeklyReport() {
                         </FormControl>
                         <FormMessage />
                       </FormItem>
-                    )}                  />
+                    )}
+                  />
                 )}
               </div>
+            </div>
 
             {/* その他の懸念事項の後にAI分析結果を表示 */}
             {isEditMode && (
               <Card className="mt-8">
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold mb-4 pb-2 border-b">■ AI分析結果</h2>
+                  <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+                    ■ AI分析結果
+                  </h2>
                   <div className="whitespace-pre-wrap text-sm">
-                    {analysisResult || "報告を更新すると、AIによる分析結果が表示されます。"}
+                    {analysisResult ||
+                      "報告を更新すると、AIによる分析結果が表示されます。"}
                   </div>
                 </CardContent>
               </Card>
@@ -1064,7 +1191,7 @@ export default function WeeklyReport() {
                 disabled={isSubmitting} // Disable button while submitting
               >
                 <Send className="h-4 w-4" />
-                {isSubmitting ? "送信中..." : (isEditMode ? "更新" : "送信")}
+                {isSubmitting ? "送信中..." : isEditMode ? "更新" : "送信"}
               </Button>
             </div>
           </form>
