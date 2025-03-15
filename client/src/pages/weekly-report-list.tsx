@@ -169,7 +169,7 @@ export default function WeeklyReportList() {
           </Link>
         </header>
 
-        <Tabs defaultValue="project-a" className="w-full">
+        <Tabs defaultValue={new URLSearchParams(window.location.search).get('project') || "project-a"} className="w-full">
           <TabsList className="w-full justify-start mb-4">
             <TabsTrigger value="project-a">プロジェクトA</TabsTrigger>
             <TabsTrigger value="project-b">プロジェクトB</TabsTrigger>
