@@ -68,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const finalReport = await storage.getWeeklyReport(id);
       res.json(finalReport);
     } catch (error) {
-      console.error('Error updating weekly report:', error);
+      console.error("Error updating weekly report:", error);
       res.status(400).json({ message: "Failed to update weekly report" });
     }
   });
@@ -77,14 +77,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function analyzeWeeklyReport(report: any) {
     try {
       const prompt = `
-あなたはプロジェクトマネージャーのアシスタントです。以下の週次報告の内容を分析し、改善点や注意点を指摘してください。
+あなたはプロジェクトマネージャーのアシスタントです。
+以下の週次報告の内容を分析し、改善点や注意点を指摘してください。
 
 プロジェクト名: ${report.projectName}
 進捗率: ${report.progressRate}%
 進捗状況: ${report.progressStatus}
 作業内容: ${report.weeklyTasks}
 課題・問題点: ${report.issues}
-新たなリスク: ${report.newRisks === 'yes' ? report.riskSummary : 'なし'}
+新たなリスク: ${report.newRisks === "yes" ? report.riskSummary : "なし"}
 品質懸念事項: ${report.qualityConcerns}
 来週の予定: ${report.nextWeekPlan}
 
@@ -97,7 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 簡潔に重要なポイントのみ指摘してください。`;
 
       // 環境変数からモデルを取得するか、デフォルト値を使用
-      const aiModel = process.env.OPENAI_MODEL || "gpt-4o";
+      const aiModel = process.env.OPENAI_MODEL || "gpt-4o-mini";
       console.log(`Using AI model: ${aiModel}`);
 
       const completion = await openai.chat.completions.create({
@@ -107,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       return completion.choices[0].message.content;
     } catch (error) {
-      console.error('OpenAI API error:', error);
+      console.error("OpenAI API error:", error);
       return "AI分析中にエラーが発生しました。";
     }
   }

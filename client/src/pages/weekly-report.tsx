@@ -30,6 +30,7 @@ export default function WeeklyReport() {
   const [showOtherProject, setShowOtherProject] = useState(false);
   const [, setLocation] = useLocation();
   const [analysisResult, setAnalysisResult] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false); // Added state for submission
 
   const form = useForm<WeeklyReport>({
     resolver: zodResolver(insertWeeklyReportSchema),
@@ -53,7 +54,10 @@ export default function WeeklyReport() {
   }, [existingReport, form, isEditMode]);
 
   const onSubmit = async (data: WeeklyReport) => {
+    if (isSubmitting) return; // Already submitting, prevent duplicate submission
+
     try {
+      setIsSubmitting(true); // Set submitting state to true
       const url = isEditMode ? `/api/weekly-reports/${id}` : '/api/weekly-reports';
       const method = isEditMode ? 'PUT' : 'POST';
 
@@ -71,35 +75,35 @@ export default function WeeklyReport() {
 
       const result = await response.json();
 
-      // 更新成功のトースト通知
+      // Success toast
       toast({
         title: isEditMode ? "報告が更新されました" : "報告が送信されました",
         description: isEditMode ? "週次報告が正常に更新されました。" : "週次報告が正常に送信されました。",
       });
 
-      // AI分析結果があればセットして表示
-      if (result.analysis) {
-        setAnalysisResult(result.analysis);
-        // AI分析結果のトースト通知（自動で消えない）
+      // AI analysis result handling (updated to use result.aiAnalysis)
+      if (result.aiAnalysis) {
         toast({
           title: "AI分析結果が更新されました",
           description: (
             <div className="whitespace-pre-wrap text-sm">
-              {result.analysis}
+              {result.aiAnalysis}
             </div>
           ),
-          duration: null, // 自動で消えない
+          duration: null,
         });
       }
 
-      // 成功後に一覧画面へ遷移
       setLocation("/reports");
     } catch (error) {
+      console.error('Error submitting report:', error);
       toast({
         title: "エラー",
         description: isEditMode ? "週次報告の更新に失敗しました。" : "週次報告の送信に失敗しました。",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false); // Reset submitting state regardless of success or failure
     }
   };
 
@@ -115,7 +119,7 @@ export default function WeeklyReport() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* ヘッダー部分 */}
+      {/* Header */}
       <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
           <div className="flex h-14 items-center justify-between">
@@ -1015,9 +1019,10 @@ export default function WeeklyReport() {
                 type="submit"
                 className="shadow-lg hover:shadow-xl transition-shadow duration-200 flex items-center gap-2"
                 size="lg"
+                disabled={isSubmitting} // Disable button while submitting
               >
                 <Send className="h-4 w-4" />
-                {isEditMode ? "更新を送信" : "報告を送信"}
+                {isSubmitting ? "送信中..." : (isEditMode ? "更新" : "送信")}
               </Button>
             </div>
           </form>
