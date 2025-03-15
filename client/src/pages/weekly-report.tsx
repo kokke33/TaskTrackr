@@ -7,26 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Send, FileText } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Send } from "lucide-react";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
 
-  // 編集モードの場合、既存のデータを取得
   const { data: existingReport, isLoading: isLoadingReport } = useQuery<WeeklyReport>({
     queryKey: [`/api/weekly-reports/${id}`],
     enabled: isEditMode,
@@ -38,7 +28,6 @@ export default function WeeklyReport() {
   const { toast } = useToast();
   const [showOtherProject, setShowOtherProject] = useState(false);
   const [, setLocation] = useLocation();
-  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
 
   const form = useForm<WeeklyReport>({
     resolver: zodResolver(insertWeeklyReportSchema),
@@ -52,7 +41,6 @@ export default function WeeklyReport() {
     }
   });
 
-  // 既存のデータが読み込まれたら、フォームの値を更新
   useEffect(() => {
     if (isEditMode && existingReport) {
       Object.entries(existingReport).forEach(([key, value]) => {
@@ -87,13 +75,11 @@ export default function WeeklyReport() {
         description: isEditMode ? "週次報告が正常に更新されました。" : "週次報告が正常に送信されました。",
       });
 
-      // AI分析結果を保存し、トースト通知を表示
+      // AI分析結果がある場合はトースト通知で表示（手動で閉じるまで表示）
       if (result.analysis) {
-        setAnalysisResult(result.analysis);
-        // トースト通知（自動非表示なし）
         toast({
-          title: "AI分析結果が更新されました",
-          description: "右上のAI分析ボタンから確認できます",
+          title: "AI分析結果",
+          description: result.analysis,
           duration: null, // 自動で消えない
         });
       }
@@ -121,40 +107,16 @@ export default function WeeklyReport() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* ヘッダー部分を修正 */}
+      {/* ヘッダー部分 */}
       <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
           <div className="flex h-14 items-center justify-between">
-            <div className="flex items-center gap-4">
-              <ThemeToggle />
-              <h1 className="text-xl font-semibold hidden md:block">
-                {isEditMode ? "週次報告編集" : "週次報告フォーム"}
-              </h1>
-            </div>
-            <div className="flex items-center gap-2 md:gap-4">
-              {analysisResult && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex items-center gap-1 md:gap-2">
-                      <FileText className="h-4 w-4" />
-                      <span className="hidden md:inline">AI分析結果</span>
-                      <span className="md:hidden">AI分析</span>
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>AI分析結果</DialogTitle>
-                      <DialogDescription className="whitespace-pre-wrap">
-                        {analysisResult}
-                      </DialogDescription>
-                    </DialogHeader>
-                  </DialogContent>
-                </Dialog>
-              )}
-              <Link href="/reports">
-                <Button variant="ghost" size="sm">戻る</Button>
-              </Link>
-            </div>
+            <h1 className="text-xl font-semibold">
+              {isEditMode ? "週次報告編集" : "週次報告フォーム"}
+            </h1>
+            <Link href="/reports">
+              <Button variant="ghost" size="sm">戻る</Button>
+            </Link>
           </div>
         </div>
       </div>
