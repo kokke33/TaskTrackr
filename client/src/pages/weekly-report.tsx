@@ -1039,8 +1039,7 @@ export default function WeeklyReport() {
                         </FormControl>
                         <FormMessage />
                       </FormItem>
-                    )}
-                  />
+                    )}                  />
                 )}
               </div>
 
@@ -1071,5 +1070,6 @@ export default function WeeklyReport() {
           </form>
         </Form>
       </div>
+    </div>
   );
 }
