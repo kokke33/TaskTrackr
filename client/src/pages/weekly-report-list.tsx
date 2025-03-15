@@ -33,9 +33,106 @@ export default function WeeklyReportList() {
   };
 
   const copyToClipboard = (report: WeeklyReport) => {
+    const progressStatusMap = {
+      'on-schedule': '予定通り',
+      'slightly-delayed': '少し遅れている',
+      'severely-delayed': '大幅に遅れている',
+      'ahead': '前倒しで進行中'
+    };
+
+    const qualityConcernsMap = {
+      'none': 'なし',
+      'minor': '軽微な懸念あり',
+      'major': '重大な懸念あり'
+    };
+
+    const riskLevelMap = {
+      'high': '高',
+      'medium': '中',
+      'low': '低'
+    };
+
+    const csvHeaders = [
+      "報告期間開始",
+      "報告期間終了",
+      "プロジェクト名",
+      "報告者名",
+      "今週の作業内容",
+      "進捗率",
+      "進捗状況",
+      "遅延・問題点の有無",
+      "遅延・問題点の詳細",
+      "課題・問題点",
+      "新たなリスクの有無",
+      "リスクの概要",
+      "リスク対策",
+      "リスクレベル",
+      "品質懸念事項の有無",
+      "品質懸念事項の詳細",
+      "テスト進捗状況",
+      "変更の有無",
+      "変更内容の詳細",
+      "来週の作業予定",
+      "支援・判断の要望事項",
+      "リソースに関する懸念",
+      "リソースの詳細",
+      "顧客に関する懸念",
+      "顧客の詳細",
+      "環境に関する懸念",
+      "環境の詳細",
+      "コストに関する懸念",
+      "コストの詳細",
+      "知識・スキルに関する懸念",
+      "知識・スキルの詳細",
+      "教育に関する懸念",
+      "教育の詳細",
+      "緊急課題に関する懸念",
+      "緊急課題の詳細",
+      "営業チャンス・顧客ニーズ",
+      "営業チャンス・顧客ニーズの詳細"
+    ].join(",");
+
     const csvData = [
-      "報告期間開始,報告期間終了,プロジェクト名,報告者名,進捗率,進捗状況",
-      `${report.reportPeriodStart},${report.reportPeriodEnd},${report.projectName === "other" ? report.otherProject : report.projectName},${report.reporterName},${report.progressRate}%,${report.progressStatus}`
+      csvHeaders,
+      [
+        report.reportPeriodStart,
+        report.reportPeriodEnd,
+        report.projectName === "other" ? report.otherProject : report.projectName,
+        report.reporterName,
+        report.weeklyTasks || "",
+        `${report.progressRate}%`,
+        progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus,
+        report.delayIssues === "yes" ? "あり" : "なし",
+        report.delayDetails || "",
+        report.issues || "",
+        report.newRisks === "yes" ? "あり" : "なし",
+        report.riskSummary || "",
+        report.riskCountermeasures || "",
+        report.riskLevel ? riskLevelMap[report.riskLevel as keyof typeof riskLevelMap] : "",
+        qualityConcernsMap[report.qualityConcerns as keyof typeof qualityConcernsMap] || "",
+        report.qualityDetails || "",
+        report.testProgress || "",
+        report.changes === "yes" ? "あり" : "なし",
+        report.changeDetails || "",
+        report.nextWeekPlan || "",
+        report.supportRequests || "",
+        report.resourceConcerns === "exists" ? "あり" : "なし",
+        report.resourceDetails || "",
+        report.customerIssues === "exists" ? "あり" : "なし",
+        report.customerDetails || "",
+        report.environmentIssues === "exists" ? "あり" : "なし",
+        report.environmentDetails || "",
+        report.costIssues === "exists" ? "あり" : "なし",
+        report.costDetails || "",
+        report.knowledgeIssues === "exists" ? "あり" : "なし",
+        report.knowledgeDetails || "",
+        report.trainingIssues === "exists" ? "あり" : "なし",
+        report.trainingDetails || "",
+        report.urgentIssues === "exists" ? "あり" : "なし",
+        report.urgentDetails || "",
+        report.businessOpportunities === "exists" ? "あり" : "なし",
+        report.businessDetails || ""
+      ].join(",")
     ].join("\n");
 
     navigator.clipboard.writeText(csvData).then(() => {
