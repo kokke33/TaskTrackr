@@ -1071,6 +1071,5 @@ export default function WeeklyReport() {
           </form>
         </Form>
       </div>
-    </div>
   );
 }
