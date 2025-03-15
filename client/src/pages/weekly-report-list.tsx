@@ -29,32 +29,32 @@ export default function WeeklyReportList() {
 
   // プロジェクトごとにレポートをグループ化
   const projectGroups = {
-    "PNEC_SMSK": reports?.filter(r => r.projectName === "PNEC_SMSK") ?? [],
-    "INSL_SNSK": reports?.filter(r => r.projectName === "INSL_SNSK") ?? [],
-    "ITCS_SAIG": reports?.filter(r => r.projectName === "ITCS_SAIG") ?? [],
-    "VACC_SSJN": reports?.filter(r => r.projectName === "VACC_SSJN") ?? [],
-    "IIBM_FWAM": reports?.filter(r => r.projectName === "IIBM_FWAM") ?? [],
-    "other": reports?.filter(r => r.projectName === "other") ?? []
+    PNEC_SMSK: reports?.filter((r) => r.projectName === "PNEC_SMSK") ?? [],
+    INSL_SNSK: reports?.filter((r) => r.projectName === "INSL_SNSK") ?? [],
+    ITCS_SAIG: reports?.filter((r) => r.projectName === "ITCS_SAIG") ?? [],
+    VACC_SSJN: reports?.filter((r) => r.projectName === "VACC_SSJN") ?? [],
+    IIBM_FWAM: reports?.filter((r) => r.projectName === "IIBM_FWAM") ?? [],
+    other: reports?.filter((r) => r.projectName === "other") ?? [],
   };
 
   const copyToClipboard = (report: WeeklyReport) => {
     const progressStatusMap = {
-      'on-schedule': '予定通り',
-      'slightly-delayed': '少し遅れている',
-      'severely-delayed': '大幅に遅れている',
-      'ahead': '前倒しで進行中'
+      "on-schedule": "予定通り",
+      "slightly-delayed": "少し遅れている",
+      "severely-delayed": "大幅に遅れている",
+      ahead: "前倒しで進行中",
     };
 
     const qualityConcernsMap = {
-      'none': 'なし',
-      'minor': '軽微な懸念あり',
-      'major': '重大な懸念あり'
+      none: "なし",
+      minor: "軽微な懸念あり",
+      major: "重大な懸念あり",
     };
 
     const riskLevelMap = {
-      'high': '高',
-      'medium': '中',
-      'low': '低'
+      high: "高",
+      medium: "中",
+      low: "低",
     };
 
     const csvHeaders = [
@@ -94,7 +94,7 @@ export default function WeeklyReportList() {
       "緊急課題に関する懸念",
       "緊急課題の詳細",
       "営業チャンス・顧客ニーズ",
-      "営業チャンス・顧客ニーズの詳細"
+      "営業チャンス・顧客ニーズの詳細",
     ].join(",");
 
     const csvData = [
@@ -102,19 +102,27 @@ export default function WeeklyReportList() {
       [
         report.reportPeriodStart,
         report.reportPeriodEnd,
-        report.projectName === "other" ? report.otherProject : report.projectName,
+        report.projectName === "other"
+          ? report.otherProject
+          : report.projectName,
         report.reporterName,
         report.weeklyTasks || "",
         `${report.progressRate}%`,
-        progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus,
+        progressStatusMap[
+          report.progressStatus as keyof typeof progressStatusMap
+        ] || report.progressStatus,
         report.delayIssues === "yes" ? "あり" : "なし",
         report.delayDetails || "",
         report.issues || "",
         report.newRisks === "yes" ? "あり" : "なし",
         report.riskSummary || "",
         report.riskCountermeasures || "",
-        report.riskLevel ? riskLevelMap[report.riskLevel as keyof typeof riskLevelMap] : "",
-        qualityConcernsMap[report.qualityConcerns as keyof typeof qualityConcernsMap] || "",
+        report.riskLevel
+          ? riskLevelMap[report.riskLevel as keyof typeof riskLevelMap]
+          : "",
+        qualityConcernsMap[
+          report.qualityConcerns as keyof typeof qualityConcernsMap
+        ] || "",
         report.qualityDetails || "",
         report.testProgress || "",
         report.changes === "yes" ? "あり" : "なし",
@@ -136,22 +144,25 @@ export default function WeeklyReportList() {
         report.urgentIssues === "exists" ? "あり" : "なし",
         report.urgentDetails || "",
         report.businessOpportunities === "exists" ? "あり" : "なし",
-        report.businessDetails || ""
-      ].join(",")
+        report.businessDetails || "",
+      ].join(","),
     ].join("\n");
 
-    navigator.clipboard.writeText(csvData).then(() => {
-      toast({
-        title: "コピー完了",
-        description: "報告内容をCSV形式でクリップボードにコピーしました。",
+    navigator.clipboard
+      .writeText(csvData)
+      .then(() => {
+        toast({
+          title: "コピー完了",
+          description: "報告内容をCSV形式でクリップボードにコピーしました。",
+        });
+      })
+      .catch(() => {
+        toast({
+          title: "エラー",
+          description: "クリップボードへのコピーに失敗しました。",
+          variant: "destructive",
+        });
       });
-    }).catch(() => {
-      toast({
-        title: "エラー",
-        description: "クリップボードへのコピーに失敗しました。",
-        variant: "destructive",
-      });
-    });
   };
 
   return (
@@ -162,16 +173,28 @@ export default function WeeklyReportList() {
         <header className="mb-8">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-primary">週次報告一覧</h1>
-            <Link href="/report/new" className="text-sm text-muted-foreground hover:text-primary">
+            <Link
+              href="/report/new"
+              className="text-sm text-muted-foreground hover:text-primary"
+            >
               新規報告作成
             </Link>
           </div>
-          <Link href="/" className="text-sm text-muted-foreground hover:text-primary">
+          <Link
+            href="/"
+            className="text-sm text-muted-foreground hover:text-primary"
+          >
             ホームに戻る
           </Link>
         </header>
 
-        <Tabs defaultValue={new URLSearchParams(window.location.search).get('project') || "project-a"} className="w-full">
+        <Tabs
+          defaultValue={
+            new URLSearchParams(window.location.search).get("project") ||
+            "project-a"
+          }
+          className="w-full"
+        >
           <TabsList className="w-full justify-start mb-4">
             <TabsTrigger value="PNEC_SMSK">PNEC_SMSK</TabsTrigger>
             <TabsTrigger value="INSL_SNSK">INSL_SNSK</TabsTrigger>
@@ -196,16 +219,25 @@ export default function WeeklyReportList() {
                           <Link href={`/reports/${report.id}`}>
                             <div>
                               <p className="font-semibold">
-                                {report.projectName === "other" ? report.otherProject : report.projectName}
+                                {report.projectName === "other"
+                                  ? report.otherProject
+                                  : report.projectName}
                               </p>
-                              <p className="text-sm text-muted-foreground">{report.reporterName}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {report.reporterName}
+                              </p>
                             </div>
                           </Link>
                           <div className="flex flex-col items-end gap-2">
                             <div className="text-right">
                               <p className="text-sm">
-                                {new Date(report.reportPeriodStart).toLocaleDateString()} ～{" "}
-                                {new Date(report.reportPeriodEnd).toLocaleDateString()}
+                                {new Date(
+                                  report.reportPeriodStart,
+                                ).toLocaleDateString()}{" "}
+                                ～{" "}
+                                {new Date(
+                                  report.reportPeriodEnd,
+                                ).toLocaleDateString()}
                               </p>
                               <p className="text-sm text-muted-foreground">
                                 進捗率: {report.progressRate}%
