@@ -10,6 +10,7 @@ export interface IStorage {
   getWeeklyReport(id: number): Promise<WeeklyReport | undefined>;
   getAllWeeklyReports(): Promise<WeeklyReport[]>;
   updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport>;
+  updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -46,6 +47,15 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(weeklyReports)
       .set(report)
+      .where(eq(weeklyReports.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport> {
+    const [updated] = await db
+      .update(weeklyReports)
+      .set({ aiAnalysis: analysis })
       .where(eq(weeklyReports.id, id))
       .returning();
     return updated;

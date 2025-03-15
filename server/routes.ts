@@ -13,7 +13,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const weeklyReport = insertWeeklyReportSchema.parse(req.body);
       const createdReport = await storage.createWeeklyReport(weeklyReport);
-      res.json(createdReport);
+
+      // 新規作成時もAI分析を行い、保存する
+      const analysis = await analyzeWeeklyReport(createdReport);
+      await storage.updateAIAnalysis(createdReport.id, analysis);
+
+      const updatedReport = await storage.getWeeklyReport(createdReport.id);
+      res.json(updatedReport);
     } catch (error) {
       res.status(400).json({ message: "Invalid weekly report data" });
     }
@@ -41,7 +47,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 週次報告の更新エンドポイントを追加
   app.put("/api/weekly-reports/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -55,10 +60,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedData = insertWeeklyReportSchema.parse(req.body);
       const updatedReport = await storage.updateWeeklyReport(id, updatedData);
 
-      // AI分析を実行
+      // AI分析を実行し、保存
       const analysis = await analyzeWeeklyReport(updatedReport);
+      await storage.updateAIAnalysis(id, analysis);
 
-      res.json({ report: updatedReport, analysis });
+      // 更新後のレポートを取得して返す
+      const finalReport = await storage.getWeeklyReport(id);
+      res.json(finalReport);
     } catch (error) {
       console.error('Error updating weekly report:', error);
       res.status(400).json({ message: "Failed to update weekly report" });

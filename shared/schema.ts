@@ -48,6 +48,7 @@ export const weeklyReports = pgTable("weekly_reports", {
   urgentDetails: text("urgent_details"),
   businessOpportunities: text("business_opportunities"),
   businessDetails: text("business_details"),
+  aiAnalysis: text("ai_analysis"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -59,6 +60,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const insertWeeklyReportSchema = createInsertSchema(weeklyReports).omit({
   id: true,
   createdAt: true,
+  aiAnalysis: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

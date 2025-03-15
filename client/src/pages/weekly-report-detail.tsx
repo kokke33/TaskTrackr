@@ -260,6 +260,17 @@ export default function WeeklyReportDetail() {
               </div>
             </CardContent>
           </Card>
+
+          {report.aiAnalysis && (
+            <Card>
+              <CardContent className="p-6">
+                <h2 className="text-xl font-semibold mb-4 pb-2 border-b">■ AI分析結果</h2>
+                <div className="whitespace-pre-wrap">
+                  {report.aiAnalysis}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
