@@ -204,16 +204,17 @@ export default function WeeklyReport() {
             {/* 基本情報 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
               <header className="mb-8">
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex flex-col gap-4 mb-2">
                   <h1 className="text-xl font-semibold">
                     {isEditMode ? "週次報告編集" : "週次報告フォーム"}
                   </h1>
-                  {!isEditMode && (
+                  {selectedProject && selectedProject !== "other" && (
                     <Button
                       type="button"
                       variant="outline"
+                      size="sm"
                       onClick={copyFromLastReport}
-                      disabled={!selectedProject || selectedProject === "other" || isLoadingLatest}
+                      className="w-fit"
                     >
                       前回の報告をコピー
                     </Button>
