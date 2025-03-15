@@ -34,8 +34,7 @@ export default function WeeklyReportList() {
     "ITCS_SAIG": reports?.filter(r => r.projectName === "ITCS_SAIG") ?? [],
     "VACC_SSJN": reports?.filter(r => r.projectName === "VACC_SSJN") ?? [],
     "IIBM_FWAM": reports?.filter(r => r.projectName === "IIBM_FWAM") ?? [],
-    "other": reports?.filter(r => r.projectName === "other") ?? []": reports?.filter(r => r.projectName === "project-c") ?? [],
-    "other": reports?.filter(r => r.projectName === "other") ?? [],
+    "other": reports?.filter(r => r.projectName === "other") ?? []
   };
 
   const copyToClipboard = (report: WeeklyReport) => {
