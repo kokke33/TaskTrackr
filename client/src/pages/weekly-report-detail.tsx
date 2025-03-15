@@ -10,6 +10,9 @@ export default function WeeklyReportDetail() {
   const { id } = useParams<{ id: string }>();
   const { data: report, isLoading } = useQuery<WeeklyReport>({
     queryKey: [`/api/weekly-reports/${id}`],
+    staleTime: 0, // 常にデータを古いとみなす
+    refetchOnMount: true, // コンポーネントマウント時に再取得
+    refetchOnWindowFocus: true, // ウィンドウフォーカス時に再取得
   });
 
   if (isLoading) {
