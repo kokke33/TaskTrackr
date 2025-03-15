@@ -183,11 +183,11 @@ export default function WeeklyReport() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="PNEC_SMSK">PNEC_SMSK・SADS_共同損サシステム再構築対応</SelectItem>
-                          <SelectItem value="INSL_SNSK">INSL_SNSK新種</SelectItem>
-                          <SelectItem value="ITCS_SAIG">ITCS_SAIG_基幹系保守</SelectItem>
-                          <SelectItem value="VACC_SSJN">VACC_SSJN_未来革新Ⅲ期契約管理</SelectItem>
-                          <SelectItem value="IIBM_FWAM">IIBM_FWAM退職共済</SelectItem>
+                          <SelectItem value="project-a">PNEC_SMSK・SADS_共同損サシステム再構築対応</SelectItem>
+                          <SelectItem value="project-b">INSL_SNSK新種</SelectItem>
+                          <SelectItem value="project-c">ITCS_SAIG_基幹系保守</SelectItem>
+                          <SelectItem value="project-d">VACC_SSJN_未来革新Ⅲ期契約管理</SelectItem>
+                          <SelectItem value="project-e">IIBM_FWAM退職共済</SelectItem>
                           <SelectItem value="other">その他（直接入力）</SelectItem>
                         </SelectContent>
                       </Select>
