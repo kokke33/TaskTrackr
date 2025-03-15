@@ -48,7 +48,7 @@ export default function WeeklyReport() {
       newRisks: "no",
       qualityConcerns: "none",
       changes: "no",
-      ...existingReport, // 編集モードの場合、既存のデータで初期化
+      ...existingReport,
     }
   });
 
@@ -88,7 +88,7 @@ export default function WeeklyReport() {
         description: isEditMode ? "週次報告が正常に更新されました。" : "週次報告が正常に送信されました。",
       });
 
-      // AI分析結果を保存
+      // AI分析結果を保存し、トースト通知を表示
       if (result.analysis) {
         setAnalysisResult(result.analysis);
         // トースト通知（自動非表示なし）
