@@ -13,7 +13,6 @@ export const weeklyReports = pgTable("weekly_reports", {
   reportPeriodStart: date("report_period_start").notNull(),
   reportPeriodEnd: date("report_period_end").notNull(),
   projectName: text("project_name").notNull(),
-  teamName: text("team_name").notNull(),
   otherProject: text("other_project"),
   reporterName: text("reporter_name").notNull(),
   weeklyTasks: text("weekly_tasks").notNull(),
