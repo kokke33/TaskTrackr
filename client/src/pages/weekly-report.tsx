@@ -1042,7 +1042,7 @@ export default function WeeklyReport() {
                     )}
                   />
                 )}
-              </div            </div>
+              </div>
 
             {/* その他の懸念事項の後にAI分析結果を表示 */}
             {isEditMode && (
