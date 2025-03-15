@@ -21,6 +21,9 @@ export default function WeeklyReport() {
   const { data: existingReport, isLoading: isLoadingReport } = useQuery<WeeklyReport>({
     queryKey: [`/api/weekly-reports/${id}`],
     enabled: isEditMode,
+    staleTime: 0, // 常にデータを古いとみなす
+    refetchOnMount: true, // コンポーネントマウント時に再取得
+    refetchOnWindowFocus: true, // ウィンドウフォーカス時に再取得
   });
 
   const { toast } = useToast();
