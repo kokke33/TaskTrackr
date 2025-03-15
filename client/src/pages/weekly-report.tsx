@@ -26,18 +26,33 @@ export default function WeeklyReport() {
     }
   });
 
-  const onSubmit = (data: WeeklyReportFormData) => {
-    console.log(data);
-    toast({
-      title: "報告が送信されました",
-      description: "週次報告が正常に送信されました。",
-    });
+  const onSubmit = async (data: WeeklyReportFormData) => {
+    try {
+      await fetch('/api/weekly-reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      toast({
+        title: "報告が送信されました",
+        description: "週次報告が正常に送信されました。",
+      });
+    } catch (error) {
+      toast({
+        title: "エラー",
+        description: "週次報告の送信に失敗しました。",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <ThemeToggle />
-      
+
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <header className="mb-8 text-center">
           <h1 className="text-3xl font-bold mb-2 text-primary">週次報告フォーム</h1>
@@ -51,7 +66,7 @@ export default function WeeklyReport() {
             {/* 基本情報 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
               <h2 className="text-xl font-semibold mb-4 pb-2 border-b">1. 基本情報</h2>
-              
+
               <div className="space-y-4">
                 <FormField
                   control={form.control}
@@ -65,8 +80,8 @@ export default function WeeklyReport() {
                         </FormControl>
                         <span>～</span>
                         <FormControl>
-                          <Input 
-                            type="date" 
+                          <Input
+                            type="date"
                             {...form.register("reportPeriodEnd")}
                           />
                         </FormControl>
@@ -82,7 +97,7 @@ export default function WeeklyReport() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="required">担当現場名</FormLabel>
-                      <Select 
+                      <Select
                         onValueChange={(value) => {
                           field.onChange(value);
                           setShowOtherProject(value === "other");
@@ -134,7 +149,7 @@ export default function WeeklyReport() {
             {/* 今週の作業内容 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
               <h2 className="text-xl font-semibold mb-4 pb-2 border-b">2. 今週の作業内容</h2>
-              
+
               <FormField
                 control={form.control}
                 name="weeklyTasks"
@@ -142,7 +157,7 @@ export default function WeeklyReport() {
                   <FormItem>
                     <FormLabel className="required">今週の作業内容</FormLabel>
                     <FormControl>
-                      <Textarea 
+                      <Textarea
                         placeholder="作業項目、計画との差異、遅延理由、リスク評価などを記述してください"
                         className="h-32"
                         {...field}
@@ -157,7 +172,7 @@ export default function WeeklyReport() {
             {/* 進捗状況 */}
             <div className="p-6 bg-card rounded-lg shadow-sm">
               <h2 className="text-xl font-semibold mb-4 pb-2 border-b">3. 進捗状況</h2>
-              
+
               <div className="space-y-4">
                 <FormField
                   control={form.control}
@@ -167,7 +182,7 @@ export default function WeeklyReport() {
                       <FormLabel className="required">進捗率 (0～100%)</FormLabel>
                       <div className="flex items-center gap-4">
                         <FormControl>
-                          <Input 
+                          <Input
                             type="range"
                             min="0"
                             max="100"
@@ -267,8 +282,8 @@ export default function WeeklyReport() {
             </div>
 
             {/* Submit Button */}
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full"
               size="lg"
             >
