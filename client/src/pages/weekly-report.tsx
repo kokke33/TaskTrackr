@@ -74,7 +74,7 @@ export default function WeeklyReport() {
       }
 
       const result = await response.json();
-      setLocation(`/reports?project=${data.projectName}`);
+      setLocation(`/reports/${result.id}`);
 
       // Success toast
       toast({
