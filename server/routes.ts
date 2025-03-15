@@ -96,9 +96,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 簡潔に重要なポイントのみ指摘してください。`;
 
+      // 環境変数からモデルを取得するか、デフォルト値を使用
+      const aiModel = process.env.OPENAI_MODEL || "gpt-4";
+      console.log(`Using AI model: ${aiModel}`);
+
       const completion = await openai.chat.completions.create({
         messages: [{ role: "user", content: prompt }],
-        model: "gpt-3.5-turbo",
+        model: aiModel,
       });
 
       return completion.choices[0].message.content;
