@@ -281,6 +281,653 @@ export default function WeeklyReport() {
               </div>
             </div>
 
+            {/* 課題・問題点 */}
+            <div className="p-6 bg-card rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">4. 課題・問題点</h2>
+              <FormField
+                control={form.control}
+                name="issues"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="required">課題・問題点</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="現在直面している課題や問題点を記述してください"
+                        className="h-24"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* 新たなリスク */}
+            <div className="p-6 bg-card rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">5. 新たなリスク</h2>
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="newRisks"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">新たなリスクの有無</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex gap-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="yes" id="risk-yes" />
+                            <label htmlFor="risk-yes">あり</label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="no" id="risk-no" />
+                            <label htmlFor="risk-no">なし</label>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("newRisks") === "yes" && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="riskSummary"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="required">リスクの概要</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="新たに発見されたリスクの概要を記述してください"
+                              className="h-24"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="riskCountermeasures"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="required">対策</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="リスクに対する対策を記述してください"
+                              className="h-24"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="riskLevel"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="required">リスクレベル</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="選択してください" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="high">高</SelectItem>
+                              <SelectItem value="medium">中</SelectItem>
+                              <SelectItem value="low">低</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* 品質 */}
+            <div className="p-6 bg-card rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">6. 品質</h2>
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="qualityConcerns"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">品質懸念事項の有無</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">なし</SelectItem>
+                          <SelectItem value="minor">軽微な懸念あり</SelectItem>
+                          <SelectItem value="major">重大な懸念あり</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("qualityConcerns") !== "none" && (
+                  <FormField
+                    control={form.control}
+                    name="qualityDetails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="required">品質懸念事項の詳細</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="品質に関する懸念事項の詳細を記述してください"
+                            className="h-24"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="testProgress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>テスト進捗状況</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="テストの進捗状況を記述してください"
+                          className="h-24"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* 変更管理 */}
+            <div className="p-6 bg-card rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">7. 変更管理</h2>
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="changes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">変更の有無</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex gap-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="yes" id="changes-yes" />
+                            <label htmlFor="changes-yes">あり</label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="no" id="changes-no" />
+                            <label htmlFor="changes-no">なし</label>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("changes") === "yes" && (
+                  <FormField
+                    control={form.control}
+                    name="changeDetails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="required">変更内容の詳細</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="変更内容、影響範囲、対応状況などを記述してください"
+                            className="h-24"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* 来週の予定 */}
+            <div className="p-6 bg-card rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">8. 来週の予定</h2>
+              <FormField
+                control={form.control}
+                name="nextWeekPlan"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="required">来週の作業予定</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="来週予定している作業内容を記述してください"
+                        className="h-32"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* 支援・判断要望 */}
+            <div className="p-6 bg-card rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">9. 支援・判断要望</h2>
+              <FormField
+                control={form.control}
+                name="supportRequests"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="required">支援・判断の要望事項</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="必要な支援や判断を仰ぎたい事項を記述してください"
+                        className="h-32"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* その他の懸念事項 */}
+            <div className="p-6 bg-card rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">10. その他の懸念事項</h2>
+
+              {/* リソース */}
+              <div className="mb-6">
+                <FormField
+                  control={form.control}
+                  name="resourceConcerns"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>リソースに関する懸念</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">なし</SelectItem>
+                          <SelectItem value="exists">あり</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("resourceConcerns") === "exists" && (
+                  <FormField
+                    control={form.control}
+                    name="resourceDetails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>詳細</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="リソースに関する懸念事項の詳細を記述してください"
+                            className="h-24"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* 顧客 */}
+              <div className="mb-6">
+                <FormField
+                  control={form.control}
+                  name="customerIssues"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>顧客に関する懸念</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">なし</SelectItem>
+                          <SelectItem value="exists">あり</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("customerIssues") === "exists" && (
+                  <FormField
+                    control={form.control}
+                    name="customerDetails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>詳細</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="顧客に関する懸念事項の詳細を記述してください"
+                            className="h-24"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* 環境 */}
+              <div className="mb-6">
+                <FormField
+                  control={form.control}
+                  name="environmentIssues"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>環境に関する懸念</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">なし</SelectItem>
+                          <SelectItem value="exists">あり</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("environmentIssues") === "exists" && (
+                  <FormField
+                    control={form.control}
+                    name="environmentDetails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>詳細</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="環境に関する懸念事項の詳細を記述してください"
+                            className="h-24"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* コスト */}
+              <div className="mb-6">
+                <FormField
+                  control={form.control}
+                  name="costIssues"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>コストに関する懸念</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">なし</SelectItem>
+                          <SelectItem value="exists">あり</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("costIssues") === "exists" && (
+                  <FormField
+                    control={form.control}
+                    name="costDetails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>詳細</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="コストに関する懸念事項の詳細を記述してください"
+                            className="h-24"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* 知識・スキル */}
+              <div className="mb-6">
+                <FormField
+                  control={form.control}
+                  name="knowledgeIssues"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>知識・スキルに関する懸念</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">なし</SelectItem>
+                          <SelectItem value="exists">あり</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("knowledgeIssues") === "exists" && (
+                  <FormField
+                    control={form.control}
+                    name="knowledgeDetails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>詳細</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="知識・スキルに関する懸念事項の詳細を記述してください"
+                            className="h-24"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* 教育 */}
+              <div className="mb-6">
+                <FormField
+                  control={form.control}
+                  name="trainingIssues"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>教育に関する懸念</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">なし</SelectItem>
+                          <SelectItem value="exists">あり</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("trainingIssues") === "exists" && (
+                  <FormField
+                    control={form.control}
+                    name="trainingDetails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>詳細</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="教育に関する懸念事項の詳細を記述してください"
+                            className="h-24"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* 緊急課題 */}
+              <div className="mb-6">
+                <FormField
+                  control={form.control}
+                  name="urgentIssues"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>緊急課題に関する懸念</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">なし</SelectItem>
+                          <SelectItem value="exists">あり</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("urgentIssues") === "exists" && (
+                  <FormField
+                    control={form.control}
+                    name="urgentDetails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>詳細</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="緊急課題に関する懸念事項の詳細を記述してください"
+                            className="h-24"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* 営業チャンス・顧客ニーズ */}
+              <div className="mb-6">
+                <FormField
+                  control={form.control}
+                  name="businessOpportunities"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>営業チャンス・顧客ニーズ</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">なし</SelectItem>
+                          <SelectItem value="exists">あり</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("businessOpportunities") === "exists" && (
+                  <FormField
+                    control={form.control}
+                    name="businessDetails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>詳細</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="営業チャンス・顧客ニーズの詳細を記述してください"
+                            className="h-24"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+            </div>
+
             {/* Submit Button */}
             <Button
               type="submit"
