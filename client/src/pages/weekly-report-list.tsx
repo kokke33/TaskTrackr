@@ -198,16 +198,34 @@ export default function WeeklyReportList() {
           }
           className="w-full"
         >
-          <TabsList className="w-full justify-start mb-4 flex flex-wrap gap-2">
-            <TabsTrigger value="PNEC_SMSK_保守">PNEC_SMSK_保守</TabsTrigger>
-            <TabsTrigger value="PNEC_SMSK_Stage3">PNEC_SMSK_Stage3</TabsTrigger>
-            <TabsTrigger value="PNEC_SMSK_基盤">PNEC_SMSK_基盤</TabsTrigger>
-            <TabsTrigger value="PNEC_SMSK_性能">PNEC_SMSK_性能</TabsTrigger>
-            <TabsTrigger value="INSL_SNSK">INSL_SNSK</TabsTrigger>
-            <TabsTrigger value="ITCS_SAIG">ITCS_SAIG</TabsTrigger>
-            <TabsTrigger value="VACC_SSJN">VACC_SSJN</TabsTrigger>
-            <TabsTrigger value="IIBM_FWAM">IIBM_FWAM</TabsTrigger>
-            <TabsTrigger value="other">その他</TabsTrigger>
+          <TabsList className="w-full justify-start mb-4 flex flex-wrap gap-2 p-2">
+            <Link href="?project=PNEC_SMSK_保守" className="no-underline">
+              <TabsTrigger value="PNEC_SMSK_保守">PNEC_SMSK_保守</TabsTrigger>
+            </Link>
+            <Link href="?project=PNEC_SMSK_Stage3" className="no-underline">
+              <TabsTrigger value="PNEC_SMSK_Stage3">PNEC_SMSK_Stage3</TabsTrigger>
+            </Link>
+            <Link href="?project=PNEC_SMSK_基盤" className="no-underline">
+              <TabsTrigger value="PNEC_SMSK_基盤">PNEC_SMSK_基盤</TabsTrigger>
+            </Link>
+            <Link href="?project=PNEC_SMSK_性能" className="no-underline">
+              <TabsTrigger value="PNEC_SMSK_性能">PNEC_SMSK_性能</TabsTrigger>
+            </Link>
+            <Link href="?project=INSL_SNSK" className="no-underline">
+              <TabsTrigger value="INSL_SNSK">INSL_SNSK</TabsTrigger>
+            </Link>
+            <Link href="?project=ITCS_SAIG" className="no-underline">
+              <TabsTrigger value="ITCS_SAIG">ITCS_SAIG</TabsTrigger>
+            </Link>
+            <Link href="?project=VACC_SSJN" className="no-underline">
+              <TabsTrigger value="VACC_SSJN">VACC_SSJN</TabsTrigger>
+            </Link>
+            <Link href="?project=IIBM_FWAM" className="no-underline">
+              <TabsTrigger value="IIBM_FWAM">IIBM_FWAM</TabsTrigger>
+            </Link>
+            <Link href="?project=other" className="no-underline">
+              <TabsTrigger value="other">その他</TabsTrigger>
+            </Link>
           </TabsList>
 
           {Object.entries(projectGroups).map(([projectId, projectReports]) => (
