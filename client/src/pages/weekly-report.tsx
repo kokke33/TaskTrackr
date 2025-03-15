@@ -149,13 +149,26 @@ export default function WeeklyReport() {
                       <FormLabel className="required">報告期間</FormLabel>
                       <div className="flex gap-2 items-center">
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Input 
+                            type="date" 
+                            {...field} 
+                            onChange={(e) => {
+                              field.onChange(e);
+                              const date = new Date(e.target.value);
+                              const dayOfWeek = date.getDay();
+                              const daysUntilFriday = 5 - dayOfWeek;
+                              const friday = new Date(date);
+                              friday.setDate(date.getDate() + daysUntilFriday);
+                              form.setValue("reportPeriodEnd", friday.toISOString().split('T')[0]);
+                            }}
+                          />
                         </FormControl>
                         <span>～</span>
                         <FormControl>
                           <Input
                             type="date"
                             {...form.register("reportPeriodEnd")}
+                            disabled
                           />
                         </FormControl>
                       </div>
