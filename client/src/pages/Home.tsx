@@ -10,9 +10,9 @@ export default function Home() {
       
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto text-center">
-          <h1 className="text-4xl font-bold text-primary mb-4">週次報告システム</h1>
+          <h1 className="text-4xl font-bold text-primary mb-4">週次報告</h1>
           <p className="text-muted-foreground mb-8">
-            プロジェクトの週次進捗を簡単に報告・管理できるシステムです
+            ss7-1
           </p>
 
           <div className="grid gap-4 md:grid-cols-2">
