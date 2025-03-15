@@ -35,8 +35,6 @@ export default function WeeklyReportList() {
     "VACC_SSJN": reports?.filter(r => r.projectName === "VACC_SSJN") ?? [],
     "IIBM_FWAM": reports?.filter(r => r.projectName === "IIBM_FWAM") ?? [],
     "other": reports?.filter(r => r.projectName === "other") ?? []
-  };M": reports?.filter(r => r.projectName === "IIBM_FWAM") ?? [],
-    "other": reports?.filter(r => r.projectName === "other") ?? []
   };
 
   const copyToClipboard = (report: WeeklyReport) => {
@@ -197,12 +195,9 @@ export default function WeeklyReportList() {
                         <div className="flex justify-between items-start">
                           <Link href={`/reports/${report.id}`}>
                             <div>
-                              <h3 className="text-lg font-semibold">
+                              <p className="font-semibold">
                                 {report.projectName === "other" ? report.otherProject : report.projectName}
-                                <span className="ml-2 text-sm text-muted-foreground">
-                                  ({report.teamName})
-                                </span>
-                              </h3>
+                              </p>
                               <p className="text-sm text-muted-foreground">{report.reporterName}</p>
                             </div>
                           </Link>

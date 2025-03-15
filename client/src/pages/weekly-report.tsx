@@ -204,27 +204,6 @@ export default function WeeklyReport() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="teamName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>担当チーム *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="チームを選択" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="team_a">チームA</SelectItem>
-                          <SelectItem value="team_b">チームB</SelectItem>
-                          <SelectItem value="team_c">チームC</SelectItem>
-                          <SelectItem value="team_d">チームD</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}

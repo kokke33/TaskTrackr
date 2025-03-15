@@ -40,12 +40,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllWeeklyReports(): Promise<WeeklyReport[]> {
-    try {
-      return await db.select().from(weeklyReports).orderBy(desc(weeklyReports.id));
-    } catch (error) {
-      console.error('Error fetching weekly reports:', error);
-      throw error;
-    }
+    return await db.select().from(weeklyReports).orderBy(weeklyReports.createdAt);
   }
 
   async updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport> {
