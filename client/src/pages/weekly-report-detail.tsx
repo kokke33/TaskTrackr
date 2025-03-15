@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
+
 
 export default function WeeklyReportDetail() {
   const { id } = useParams<{ id: string }>();
@@ -265,8 +267,8 @@ export default function WeeklyReportDetail() {
             <Card>
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4 pb-2 border-b">■ AI分析結果</h2>
-                <div className="whitespace-pre-wrap">
-                  {report.aiAnalysis}
+                <div className="prose prose-sm max-w-none">
+                  <ReactMarkdown>{report.aiAnalysis}</ReactMarkdown>
                 </div>
               </CardContent>
             </Card>
