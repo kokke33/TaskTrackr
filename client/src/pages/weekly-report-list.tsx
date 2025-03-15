@@ -4,8 +4,12 @@ import { WeeklyReport } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function WeeklyReportList() {
+  const { toast } = useToast();
   const { data: reports, isLoading } = useQuery<WeeklyReport[]>({
     queryKey: ["/api/weekly-reports"],
   });
@@ -26,6 +30,26 @@ export default function WeeklyReportList() {
     "project-b": reports?.filter(r => r.projectName === "project-b") ?? [],
     "project-c": reports?.filter(r => r.projectName === "project-c") ?? [],
     "other": reports?.filter(r => r.projectName === "other") ?? [],
+  };
+
+  const copyToClipboard = (report: WeeklyReport) => {
+    const csvData = [
+      "報告期間開始,報告期間終了,プロジェクト名,報告者名,進捗率,進捗状況",
+      `${report.reportPeriodStart},${report.reportPeriodEnd},${report.projectName === "other" ? report.otherProject : report.projectName},${report.reporterName},${report.progressRate}%,${report.progressStatus}`
+    ].join("\n");
+
+    navigator.clipboard.writeText(csvData).then(() => {
+      toast({
+        title: "コピー完了",
+        description: "報告内容をCSV形式でクリップボードにコピーしました。",
+      });
+    }).catch(() => {
+      toast({
+        title: "エラー",
+        description: "クリップボードへのコピーに失敗しました。",
+        variant: "destructive",
+      });
+    });
   };
 
   return (
@@ -64,14 +88,16 @@ export default function WeeklyReportList() {
                   {projectReports.map((report) => (
                     <Card key={report.id} className="hover:bg-accent/5">
                       <CardContent className="p-4">
-                        <Link href={`/reports/${report.id}`}>
-                          <div className="flex justify-between items-start">
+                        <div className="flex justify-between items-start">
+                          <Link href={`/reports/${report.id}`}>
                             <div>
                               <p className="font-semibold">
                                 {report.projectName === "other" ? report.otherProject : report.projectName}
                               </p>
                               <p className="text-sm text-muted-foreground">{report.reporterName}</p>
                             </div>
+                          </Link>
+                          <div className="flex flex-col items-end gap-2">
                             <div className="text-right">
                               <p className="text-sm">
                                 {new Date(report.reportPeriodStart).toLocaleDateString()} ～{" "}
@@ -81,8 +107,17 @@ export default function WeeklyReportList() {
                                 進捗率: {report.progressRate}%
                               </p>
                             </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-2"
+                              onClick={() => copyToClipboard(report)}
+                            >
+                              <Copy className="h-4 w-4" />
+                              CSVコピー
+                            </Button>
                           </div>
-                        </Link>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
