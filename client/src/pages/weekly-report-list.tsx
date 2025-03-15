@@ -12,6 +12,9 @@ export default function WeeklyReportList() {
   const { toast } = useToast();
   const { data: reports, isLoading } = useQuery<WeeklyReport[]>({
     queryKey: ["/api/weekly-reports"],
+    staleTime: 0, // 常にデータを古いとみなす
+    refetchOnMount: true, // コンポーネントマウント時に再取得
+    refetchOnWindowFocus: true, // ウィンドウフォーカス時に再取得
   });
 
   if (isLoading) {
