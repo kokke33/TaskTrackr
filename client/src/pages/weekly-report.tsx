@@ -127,9 +127,59 @@ export default function WeeklyReport() {
     }
   };
 
-  const copyFromLastReport = () => {
-    // Placeholder:  Replace with actual fetching and setting of data from last report
-    console.log("Copying from last report (placeholder function)");
+  const copyFromLastReport = async () => {
+    try {
+      const response = await fetch('/api/weekly-reports');
+      const reports = await response.json();
+      
+      // 最新の報告を取得
+      const lastReport = reports
+        .sort((a: WeeklyReport, b: WeeklyReport) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+
+      if (lastReport) {
+        // コピーする項目を選択
+        const {
+          projectName,
+          otherProject,
+          reporterName,
+          weeklyTasks,
+          progressRate,
+          progressStatus,
+          qualityConcerns,
+          testProgress,
+        } = lastReport;
+
+        // フォームに値をセット
+        form.reset({
+          ...form.getValues(),
+          projectName,
+          otherProject,
+          reporterName,
+          weeklyTasks,
+          progressRate,
+          progressStatus,
+          qualityConcerns,
+          testProgress,
+        });
+
+        setShowOtherProject(projectName === "other");
+
+        toast({
+          title: "前回の報告をコピーしました",
+          description: "必要に応じて内容を編集してください。",
+        });
+      }
+    } catch (error) {
+      console.error("Error copying from last report:", error);
+      toast({
+        title: "エラー",
+        description: "前回の報告のコピーに失敗しました。",
+        variant: "destructive",
+      });
+    }
+  };n)");
     //Example:  Fetch last report data and set defaultValues in the form
     // fetch('/api/weekly-reports/last')
     //   .then(res => res.json())
