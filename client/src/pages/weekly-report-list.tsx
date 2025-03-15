@@ -29,9 +29,12 @@ export default function WeeklyReportList() {
 
   // プロジェクトごとにレポートをグループ化
   const projectGroups = {
-    "project-a": reports?.filter(r => r.projectName === "project-a") ?? [],
-    "project-b": reports?.filter(r => r.projectName === "project-b") ?? [],
-    "project-c": reports?.filter(r => r.projectName === "project-c") ?? [],
+    "PNEC_SMSK": reports?.filter(r => r.projectName === "PNEC_SMSK") ?? [],
+    "INSL_SNSK": reports?.filter(r => r.projectName === "INSL_SNSK") ?? [],
+    "ITCS_SAIG": reports?.filter(r => r.projectName === "ITCS_SAIG") ?? [],
+    "VACC_SSJN": reports?.filter(r => r.projectName === "VACC_SSJN") ?? [],
+    "IIBM_FWAM": reports?.filter(r => r.projectName === "IIBM_FWAM") ?? [],
+    "other": reports?.filter(r => r.projectName === "other") ?? []": reports?.filter(r => r.projectName === "project-c") ?? [],
     "other": reports?.filter(r => r.projectName === "other") ?? [],
   };
 
@@ -171,9 +174,11 @@ export default function WeeklyReportList() {
 
         <Tabs defaultValue={new URLSearchParams(window.location.search).get('project') || "project-a"} className="w-full">
           <TabsList className="w-full justify-start mb-4">
-            <TabsTrigger value="project-a">プロジェクトA</TabsTrigger>
-            <TabsTrigger value="project-b">プロジェクトB</TabsTrigger>
-            <TabsTrigger value="project-c">プロジェクトC</TabsTrigger>
+            <TabsTrigger value="PNEC_SMSK">PNEC_SMSK</TabsTrigger>
+            <TabsTrigger value="INSL_SNSK">INSL_SNSK</TabsTrigger>
+            <TabsTrigger value="ITCS_SAIG">ITCS_SAIG</TabsTrigger>
+            <TabsTrigger value="VACC_SSJN">VACC_SSJN</TabsTrigger>
+            <TabsTrigger value="IIBM_FWAM">IIBM_FWAM</TabsTrigger>
             <TabsTrigger value="other">その他</TabsTrigger>
           </TabsList>
 
