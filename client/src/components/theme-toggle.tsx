@@ -21,7 +21,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={toggleTheme}
-      className="fixed top-4 right-4 [&:fullscreen]:hidden"
+      className="fixed top-4 right-4 [:fullscreen_&]:hidden"
     >
       {theme === "light" ? (
         <Sun className="h-5 w-5" />
