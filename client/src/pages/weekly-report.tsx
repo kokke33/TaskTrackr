@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Send } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,7 @@ export default function WeeklyReport() {
   const { toast } = useToast();
   const [showOtherProject, setShowOtherProject] = useState(false);
   const [, setLocation] = useLocation();
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
 
   const form = useForm<WeeklyReport>({
     resolver: zodResolver(insertWeeklyReportSchema),
@@ -75,11 +77,17 @@ export default function WeeklyReport() {
         description: isEditMode ? "週次報告が正常に更新されました。" : "週次報告が正常に送信されました。",
       });
 
-      // AI分析結果がある場合はトースト通知で表示（手動で閉じるまで表示）
+      // AI分析結果を保存
       if (result.analysis) {
+        setAnalysisResult(result.analysis);
+        // トースト通知（自動で消えない）
         toast({
           title: "AI分析結果",
-          description: result.analysis,
+          description: (
+            <div className="whitespace-pre-wrap">
+              {result.analysis}
+            </div>
+          ),
           duration: null, // 自動で消えない
         });
       }
@@ -988,6 +996,18 @@ export default function WeeklyReport() {
                 )}
               </div>
             </div>
+
+            {/* その他の懸念事項の後にAI分析結果を表示 */}
+            {analysisResult && (
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-semibold mb-4 pb-2 border-b">■ AI分析結果</h2>
+                  <div className="whitespace-pre-wrap">
+                    {analysisResult}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Submit Button */}
             <div className="sticky bottom-8 right-8 float-right z-50">
