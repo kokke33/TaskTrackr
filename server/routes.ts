@@ -5,7 +5,7 @@ import { insertWeeklyReportSchema } from "@shared/schema";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || "",
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -76,6 +76,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI分析用の関数
   async function analyzeWeeklyReport(report: any) {
     try {
+      if (!process.env.OPENAI_API_KEY) {
+        return "OpenAI API キーが設定されていません。デプロイメント設定でAPIキーを追加してください。";
+      }
       const prompt = `
 あなたはプロジェクトマネージャーのアシスタントです。
 現場リーダーが記載した以下の週次報告の内容を分析し、改善点や注意点を指摘してください。
