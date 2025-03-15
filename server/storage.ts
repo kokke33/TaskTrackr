@@ -9,6 +9,7 @@ export interface IStorage {
   createWeeklyReport(report: InsertWeeklyReport): Promise<WeeklyReport>;
   getWeeklyReport(id: number): Promise<WeeklyReport | undefined>;
   getAllWeeklyReports(): Promise<WeeklyReport[]>;
+  updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -39,6 +40,15 @@ export class DatabaseStorage implements IStorage {
 
   async getAllWeeklyReports(): Promise<WeeklyReport[]> {
     return await db.select().from(weeklyReports).orderBy(weeklyReports.createdAt);
+  }
+
+  async updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport> {
+    const [updated] = await db
+      .update(weeklyReports)
+      .set(report)
+      .where(eq(weeklyReports.id, id))
+      .returning();
+    return updated;
   }
 }
 
