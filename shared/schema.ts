@@ -10,8 +10,9 @@ export const users = pgTable("users", {
 
 export const weeklyReports = pgTable("weekly_reports", {
   id: serial("id").primaryKey(),
-  reportPeriodStart: date("report_period_start").notNull(),
-  reportPeriodEnd: date("report_period_end").notNull(),
+  reportYear: integer("report_year").notNull(),
+  reportMonth: integer("report_month").notNull(),
+  reportWeek: integer("report_week").notNull(), // 第何週目か（1-5）
   projectName: text("project_name").notNull(),
   otherProject: text("other_project"),
   reporterName: text("reporter_name").notNull(),

@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 export const weeklyReportSchema = z.object({
-  reportPeriodStart: z.string().min(1, "開始日を選択してください"),
-  reportPeriodEnd: z.string().min(1, "終了日を選択してください"),
+  reportYear: z.number().min(2000).max(2100),
+  reportMonth: z.number().min(1).max(12),
+  reportWeek: z.number().min(1).max(5),
   projectName: z.string().min(1, "プロジェクトを選択してください"),
   otherProject: z.string().optional(),
   reporterName: z.string().min(1, "報告者名を入力してください"),
