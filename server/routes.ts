@@ -9,6 +9,22 @@ const openai = new OpenAI({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // 新しいエンドポイント: プロジェクト名に基づいて最新のレポートを取得
+  app.get("/api/weekly-reports/latest/:projectName", async (req, res) => {
+    try {
+      const { projectName } = req.params;
+      const reports = await storage.getLatestReportByProject(projectName);
+      if (!reports) {
+        res.status(404).json({ message: "No reports found for this project" });
+        return;
+      }
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching latest report:", error);
+      res.status(500).json({ message: "Failed to fetch latest report" });
+    }
+  });
+
   app.post("/api/weekly-reports", async (req, res) => {
     try {
       const weeklyReport = insertWeeklyReportSchema.parse(req.body);
@@ -16,7 +32,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 新規作成時もAI分析を行い、保存する
       const analysis = await analyzeWeeklyReport(createdReport);
-      await storage.updateAIAnalysis(createdReport.id, analysis);
+      if (analysis) {
+        await storage.updateAIAnalysis(createdReport.id, analysis);
+      }
 
       const updatedReport = await storage.getWeeklyReport(createdReport.id);
       res.json(updatedReport);

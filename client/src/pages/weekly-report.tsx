@@ -25,7 +25,6 @@ import { useState, useEffect } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Send } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
@@ -43,8 +42,14 @@ export default function WeeklyReport() {
   const { toast } = useToast();
   const [showOtherProject, setShowOtherProject] = useState(false);
   const [, setLocation] = useLocation();
-  const [analysisResult, setAnalysisResult] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false); // Added state for submission
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<string>("");
+
+  // 前回の報告を取得するためのクエリ
+  const { data: latestReport, isLoading: isLoadingLatest } = useQuery<WeeklyReport>({
+    queryKey: [`/api/weekly-reports/latest/${selectedProject}`],
+    enabled: !!selectedProject && selectedProject !== "other",
+  });
 
   const form = useForm<WeeklyReport>({
     resolver: zodResolver(insertWeeklyReportSchema),
@@ -54,6 +59,14 @@ export default function WeeklyReport() {
       newRisks: "no",
       qualityConcerns: "none",
       changes: "no",
+      resourceConcerns: "none",
+      customerIssues: "none",
+      environmentIssues: "none",
+      costIssues: "none",
+      knowledgeIssues: "none",
+      trainingIssues: "none",
+      urgentIssues: "none",
+      businessOpportunities: "none",
       ...existingReport,
     },
   });
@@ -61,17 +74,18 @@ export default function WeeklyReport() {
   useEffect(() => {
     if (isEditMode && existingReport) {
       Object.entries(existingReport).forEach(([key, value]) => {
-        form.setValue(key as keyof WeeklyReport, value);
+        form.setValue(key as keyof WeeklyReport, value || "");
       });
       setShowOtherProject(existingReport.projectName === "other");
+      setSelectedProject(existingReport.projectName);
     }
   }, [existingReport, form, isEditMode]);
 
   const onSubmit = async (data: WeeklyReport) => {
-    if (isSubmitting) return; // Already submitting, prevent duplicate submission
+    if (isSubmitting) return;
 
     try {
-      setIsSubmitting(true); // Set submitting state to true
+      setIsSubmitting(true);
       const url = isEditMode
         ? `/api/weekly-reports/${id}`
         : "/api/weekly-reports";
@@ -91,7 +105,6 @@ export default function WeeklyReport() {
 
       const result = await response.json();
 
-      // Success toast
       toast({
         title: isEditMode ? "報告が更新されました" : "報告が送信されました",
         description: isEditMode
@@ -99,7 +112,6 @@ export default function WeeklyReport() {
           : "週次報告が正常に送信されました。",
       });
 
-      // AI analysis result handling (updated to use result.aiAnalysis)
       if (result.aiAnalysis) {
         toast({
           title: "AI分析結果が更新されました",
@@ -123,17 +135,38 @@ export default function WeeklyReport() {
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false); // Reset submitting state regardless of success or failure
+      setIsSubmitting(false);
     }
   };
 
-  const copyFromLastReport = () => {
-    // Placeholder:  Replace with actual fetching and setting of data from last report
-    console.log("Copying from last report (placeholder function)");
-    //Example:  Fetch last report data and set defaultValues in the form
-    // fetch('/api/weekly-reports/last')
-    //   .then(res => res.json())
-    //   .then(lastReport => form.reset(lastReport));
+  const copyFromLastReport = async () => {
+    if (!selectedProject || selectedProject === "other" || !latestReport) {
+      return;
+    }
+
+    // 前回の報告から値をコピー
+    const fieldsToExclude = ["id", "createdAt", "reportPeriodStart", "reportPeriodEnd"];
+    Object.entries(latestReport).forEach(([key, value]) => {
+      if (!fieldsToExclude.includes(key)) {
+        form.setValue(key as keyof WeeklyReport, value || "");
+      }
+    });
+
+    // 現在の日付に基づいて報告期間を設定
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - dayOfWeek + 1);
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+
+    form.setValue("reportPeriodStart", monday.toISOString().split("T")[0]);
+    form.setValue("reportPeriodEnd", friday.toISOString().split("T")[0]);
+
+    toast({
+      title: "前回の報告をコピーしました",
+      description: "報告内容を確認・編集してください。",
+    });
   };
 
   if (isEditMode && isLoadingReport) {
@@ -179,6 +212,7 @@ export default function WeeklyReport() {
                       type="button"
                       variant="outline"
                       onClick={copyFromLastReport}
+                      disabled={!selectedProject || selectedProject === "other" || isLoadingLatest}
                     >
                       前回の報告をコピー
                     </Button>
@@ -236,6 +270,7 @@ export default function WeeklyReport() {
                         onValueChange={(value) => {
                           field.onChange(value);
                           setShowOtherProject(value === "other");
+                          setSelectedProject(value);
                         }}
                         defaultValue={field.value}
                       >
@@ -1070,7 +1105,6 @@ export default function WeeklyReport() {
                 )}
               </div>
 
-              {/* 緊急課題 */}
               <div className="mb-6">
                 <FormField
                   control={form.control}
@@ -1182,13 +1216,11 @@ export default function WeeklyReport() {
               </Card>
             )}
 
-            {/* 送信ボタン */}
-            <div className="sticky bottom-8 right-8 float-right z-50">
+            <div className="flex justify-end mt-8">
               <Button
                 type="submit"
-                className="shadow-lg hover:shadow-xl transition-shadow duration-200 flex items-center gap-2"
-                size="lg"
-                disabled={isSubmitting} // Disable button while submitting
+                className="flex items-center gap-2"
+                disabled={isSubmitting}
               >
                 <Send className="h-4 w-4" />
                 {isSubmitting ? "送信中..." : isEditMode ? "更新" : "送信"}

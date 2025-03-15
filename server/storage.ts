@@ -1,6 +1,6 @@
 import { users, weeklyReports, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -11,6 +11,7 @@ export interface IStorage {
   getAllWeeklyReports(): Promise<WeeklyReport[]>;
   updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport>;
   updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport>;
+  getLatestReportByProject(projectName: string): Promise<WeeklyReport | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -59,6 +60,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(weeklyReports.id, id))
       .returning();
     return updated;
+  }
+
+  async getLatestReportByProject(projectName: string): Promise<WeeklyReport | undefined> {
+    const [report] = await db
+      .select()
+      .from(weeklyReports)
+      .where(eq(weeklyReports.projectName, projectName))
+      .orderBy(desc(weeklyReports.reportPeriodEnd))
+      .limit(1);
+
+    return report;
   }
 }
 
