@@ -74,7 +74,6 @@ export default function WeeklyReport() {
       }
 
       const result = await response.json();
-      setLocation(`/reports/${result.id}`);
 
       // Success toast
       toast({
@@ -95,7 +94,7 @@ export default function WeeklyReport() {
         });
       }
 
-      setLocation("/reports");
+      setLocation(`/reports/${result.id}`);
     } catch (error) {
       console.error('Error submitting report:', error);
       toast({
