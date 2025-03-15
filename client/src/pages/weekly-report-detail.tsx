@@ -15,6 +15,31 @@ export default function WeeklyReportDetail() {
     refetchOnWindowFocus: true, // ウィンドウフォーカス時に再取得
   });
 
+  // ステータスの日本語マッピング
+  const progressStatusMap = {
+    'on-schedule': '予定通り',
+    'slightly-delayed': '少し遅れている',
+    'severely-delayed': '大幅に遅れている',
+    'ahead': '前倒しで進行中'
+  };
+
+  const qualityConcernsMap = {
+    'none': 'なし',
+    'minor': '軽微な懸念あり',
+    'major': '重大な懸念あり'
+  };
+
+  const riskLevelMap = {
+    'high': '高',
+    'medium': '中',
+    'low': '低'
+  };
+
+  const binaryStatusMap = {
+    'exists': 'あり',
+    'none': 'なし'
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -113,7 +138,7 @@ export default function WeeklyReportDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">進捗状況</p>
-                  <p>{report.progressStatus}</p>
+                  <p>{progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus}</p>
                 </div>
                 {report.delayIssues === "yes" && renderSection("遅延・問題点の詳細", report.delayDetails)}
               </div>
@@ -136,7 +161,7 @@ export default function WeeklyReportDetail() {
                   {renderSection("対策", report.riskCountermeasures)}
                   <div>
                     <p className="text-sm text-muted-foreground">リスクレベル</p>
-                    <p>{report.riskLevel}</p>
+                    <p>{riskLevelMap[report.riskLevel as keyof typeof riskLevelMap] || report.riskLevel}</p>
                   </div>
                 </div>
               </CardContent>
@@ -149,7 +174,7 @@ export default function WeeklyReportDetail() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-muted-foreground">品質懸念事項の有無</p>
-                  <p>{report.qualityConcerns}</p>
+                  <p>{qualityConcernsMap[report.qualityConcerns as keyof typeof qualityConcernsMap] || report.qualityConcerns}</p>
                 </div>
                 {report.qualityConcerns !== "none" && renderSection("品質懸念事項の詳細", report.qualityDetails)}
                 {renderSection("テスト進捗状況", report.testProgress)}
