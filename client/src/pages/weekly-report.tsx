@@ -1105,14 +1105,12 @@ export default function WeeklyReport() {
                   />
                 )}
               </div>
-
               <div className="mb-6">
                 <FormField
                   control={form.control}
                   name="urgentIssues"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>緊急課題に関する懸念</FormLabel>
+                    <FormItem>                    <FormLabel>緊急課題に関する懸念</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
@@ -1138,10 +1136,10 @@ export default function WeeklyReport() {
                     name="urgentDetails"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>詳細</FormLabel>
+                        <FormLabel className="required">詳細</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="緊急課題に関する懸念事項の詳細を記述してください"
+                            placeholder="緊急課題の詳細を記述してください"
                             className="h-24"
                             {...field}
                           />
@@ -1203,15 +1201,14 @@ export default function WeeklyReport() {
             </div>
 
             {/* その他の懸念事項の後にAI分析結果を表示 */}
-            {isEditMode && (
-              <Card className="mt-8">
+            {isEditMode && existingReport?.aiAnalysis && (
+              <Card>
                 <CardContent className="p-6">
                   <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
                     ■ AI分析結果
                   </h2>
                   <div className="whitespace-pre-wrap text-sm">
-                    {analysisResult ||
-                      "報告を更新すると、AIによる分析結果が表示されます。"}
+                    {existingReport.aiAnalysis}
                   </div>
                 </CardContent>
               </Card>
