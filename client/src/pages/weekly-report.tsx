@@ -183,7 +183,10 @@ export default function WeeklyReport() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="PNEC_SMSK">PNEC_SMSK・SADS_共同損サシステム再構築対応</SelectItem>
+                          <SelectItem value="PNEC_SMSK_保守">PNEC_SMSK_共同損サ_保守</SelectItem>
+                          <SelectItem value="PNEC_SMSK_Stage3">PNEC_SMSK_共同損サ_Stage3</SelectItem>
+                          <SelectItem value="PNEC_SMSK_基盤">PNEC_SMSK_共同損サ_基盤</SelectItem>
+                          <SelectItem value="PNEC_SMSK_性能">PNEC_SMSK_共同損サ_性能</SelectItem>
                           <SelectItem value="INSL_SNSK">INSL_SNSK新種</SelectItem>
                           <SelectItem value="ITCS_SAIG">ITCS_SAIG_基幹系保守</SelectItem>
                           <SelectItem value="VACC_SSJN">VACC_SSJN_未来革新Ⅲ期契約管理</SelectItem>

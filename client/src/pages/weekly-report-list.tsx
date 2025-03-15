@@ -29,7 +29,10 @@ export default function WeeklyReportList() {
 
   // プロジェクトごとにレポートをグループ化
   const projectGroups = {
-    PNEC_SMSK: reports?.filter((r) => r.projectName === "PNEC_SMSK") ?? [],
+    PNEC_SMSK_保守: reports?.filter((r) => r.projectName === "PNEC_SMSK_保守") ?? [],
+    PNEC_SMSK_Stage3: reports?.filter((r) => r.projectName === "PNEC_SMSK_Stage3") ?? [],
+    PNEC_SMSK_基盤: reports?.filter((r) => r.projectName === "PNEC_SMSK_基盤") ?? [],
+    PNEC_SMSK_性能: reports?.filter((r) => r.projectName === "PNEC_SMSK_性能") ?? [],
     INSL_SNSK: reports?.filter((r) => r.projectName === "INSL_SNSK") ?? [],
     ITCS_SAIG: reports?.filter((r) => r.projectName === "ITCS_SAIG") ?? [],
     VACC_SSJN: reports?.filter((r) => r.projectName === "VACC_SSJN") ?? [],
@@ -196,7 +199,10 @@ export default function WeeklyReportList() {
           className="w-full"
         >
           <TabsList className="w-full justify-start mb-4">
-            <TabsTrigger value="PNEC_SMSK">PNEC_SMSK</TabsTrigger>
+            <TabsTrigger value="PNEC_SMSK_保守">PNEC_SMSK_保守</TabsTrigger>
+            <TabsTrigger value="PNEC_SMSK_Stage3">PNEC_SMSK_Stage3</TabsTrigger>
+            <TabsTrigger value="PNEC_SMSK_基盤">PNEC_SMSK_基盤</TabsTrigger>
+            <TabsTrigger value="PNEC_SMSK_性能">PNEC_SMSK_性能</TabsTrigger>
             <TabsTrigger value="INSL_SNSK">INSL_SNSK</TabsTrigger>
             <TabsTrigger value="ITCS_SAIG">ITCS_SAIG</TabsTrigger>
             <TabsTrigger value="VACC_SSJN">VACC_SSJN</TabsTrigger>
