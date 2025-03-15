@@ -78,7 +78,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const prompt = `
 あなたはプロジェクトマネージャーのアシスタントです。
-以下の週次報告の内容を分析し、改善点や注意点を指摘してください。
+現場リーダーが記載した以下の週次報告の内容を分析し、改善点や注意点を指摘してください。
+プロジェクトマネージャが確認する前の事前確認として非常に重要なチェックです。
+的確に指摘を行い、プロジェクトマネージャが確認する際にプロジェクトの状況を把握できるよう
+にするものです。
 
 プロジェクト名: ${report.projectName}
 進捗率: ${report.progressRate}%
@@ -95,7 +98,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 3. 対策や解決策は明確か
 4. 追加で記載すべき重要な情報はないか
 
-簡潔に重要なポイントのみ指摘してください。`;
+簡潔に重要なポイントのみ指摘してください。
+`;
 
       // 環境変数からモデルを取得するか、デフォルト値を使用
       const aiModel = process.env.OPENAI_MODEL || "gpt-4o-mini";
