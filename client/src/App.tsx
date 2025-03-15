@@ -13,6 +13,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/report/new" component={WeeklyReport} />
+      <Route path="/report/edit/:id" component={WeeklyReport} />
       <Route path="/reports" component={WeeklyReportList} />
       <Route path="/reports/:id" component={WeeklyReportDetail} />
       <Route component={NotFound} />

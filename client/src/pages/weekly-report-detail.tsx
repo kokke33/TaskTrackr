@@ -4,6 +4,7 @@ import { WeeklyReport } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { Edit } from "lucide-react";
 
 export default function WeeklyReportDetail() {
   const { id } = useParams<{ id: string }>();
@@ -49,14 +50,22 @@ export default function WeeklyReportDetail() {
   return (
     <div className="min-h-screen bg-background">
       <ThemeToggle />
-      
+
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <header className="mb-8">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-primary">週次報告詳細</h1>
-            <Link href="/reports">
-              <Button variant="outline">一覧に戻る</Button>
-            </Link>
+            <div className="flex gap-4">
+              <Link href={`/report/edit/${id}`}>
+                <Button className="flex items-center gap-2">
+                  <Edit className="h-4 w-4" />
+                  編集
+                </Button>
+              </Link>
+              <Link href="/reports">
+                <Button variant="outline">一覧に戻る</Button>
+              </Link>
+            </div>
           </div>
         </header>
 

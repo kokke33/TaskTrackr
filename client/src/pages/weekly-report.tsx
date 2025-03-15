@@ -9,10 +9,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
-import { useLocation, Link } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation, Link, useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import type { WeeklyReport } from "@/types/weekly-report";
+
 
 export default function WeeklyReport() {
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = !!id;
+
+  // 編集モードの場合、既存のデータを取得
+  const { data: existingReport, isLoading: isLoadingReport } = useQuery<WeeklyReport>({
+    queryKey: [`/api/weekly-reports/${id}`],
+    enabled: isEditMode,
+  });
+
   const { toast } = useToast();
   const [showOtherProject, setShowOtherProject] = useState(false);
   const [, setLocation] = useLocation();
@@ -25,13 +37,27 @@ export default function WeeklyReport() {
       newRisks: "no",
       qualityConcerns: "none",
       changes: "no",
+      ...existingReport, // 編集モードの場合、既存のデータで初期化
     }
   });
 
+  // 既存のデータが読み込まれたら、フォームの値を更新
+  useEffect(() => {
+    if (isEditMode && existingReport) {
+      Object.entries(existingReport).forEach(([key, value]) => {
+        form.setValue(key as any, value);
+      });
+      setShowOtherProject(existingReport.projectName === "other");
+    }
+  }, [existingReport, form, isEditMode]);
+
   const onSubmit = async (data: WeeklyReportFormData) => {
     try {
-      const response = await fetch('/api/weekly-reports', {
-        method: 'POST',
+      const url = isEditMode ? `/api/weekly-reports/${id}` : '/api/weekly-reports';
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -43,20 +69,30 @@ export default function WeeklyReport() {
       }
 
       toast({
-        title: "報告が送信されました",
-        description: "週次報告が正常に送信されました。",
+        title: isEditMode ? "報告が更新されました" : "報告が送信されました",
+        description: isEditMode ? "週次報告が正常に更新されました。" : "週次報告が正常に送信されました。",
       });
 
-      // 送信成功後に一覧画面へ遷移
+      // 成功後に一覧画面へ遷移
       setLocation("/reports");
     } catch (error) {
       toast({
         title: "エラー",
-        description: "週次報告の送信に失敗しました。",
+        description: isEditMode ? "週次報告の更新に失敗しました。" : "週次報告の送信に失敗しました。",
         variant: "destructive",
       });
     }
   };
+
+  if (isEditMode && isLoadingReport) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-center">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -64,7 +100,9 @@ export default function WeeklyReport() {
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <header className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2 text-primary">週次報告フォーム</h1>
+          <h1 className="text-3xl font-bold mb-2 text-primary">
+            {isEditMode ? "週次報告編集" : "週次報告フォーム"}
+          </h1>
           <p className="text-muted-foreground mb-4">
             プロジェクトの週次進捗を報告するためのフォームです。必須項目には<span className="text-destructive">*</span>が付いています。
           </p>
@@ -951,7 +989,7 @@ export default function WeeklyReport() {
               className="w-full"
               size="lg"
             >
-              報告を送信
+              {isEditMode ? "更新を送信" : "報告を送信"}
             </Button>
           </form>
         </Form>
