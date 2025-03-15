@@ -53,6 +53,7 @@ export default function WeeklyReport() {
     }
   }, [existingReport, form, isEditMode]);
 
+  // onSubmit関数を更新して、AI分析結果を表示するように修正
   const onSubmit = async (data: WeeklyReport) => {
     try {
       const url = isEditMode ? `/api/weekly-reports/${id}` : '/api/weekly-reports';
@@ -70,10 +71,24 @@ export default function WeeklyReport() {
         throw new Error('送信に失敗しました');
       }
 
+      const result = await response.json();
+
+      // 更新成功のトースト通知
       toast({
         title: isEditMode ? "報告が更新されました" : "報告が送信されました",
         description: isEditMode ? "週次報告が正常に更新されました。" : "週次報告が正常に送信されました。",
       });
+
+      // AI分析結果がある場合は表示
+      if (result.analysis) {
+        setTimeout(() => {
+          toast({
+            title: "AI分析結果",
+            description: result.analysis,
+            duration: 10000, // 10秒間表示
+          });
+        }, 1000); // 更新完了トーストの後に表示
+      }
 
       // 成功後に一覧画面へ遷移
       setLocation("/reports");
