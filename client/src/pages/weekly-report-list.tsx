@@ -195,9 +195,12 @@ export default function WeeklyReportList() {
                         <div className="flex justify-between items-start">
                           <Link href={`/reports/${report.id}`}>
                             <div>
-                              <p className="font-semibold">
+                              <h3 className="text-lg font-semibold">
                                 {report.projectName === "other" ? report.otherProject : report.projectName}
-                              </p>
+                                <span className="ml-2 text-sm text-muted-foreground">
+                                  ({report.teamName})
+                                </span>
+                              </h3>
                               <p className="text-sm text-muted-foreground">{report.reporterName}</p>
                             </div>
                           </Link>
