@@ -10,10 +10,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useLocation, Link } from "wouter";
 
 export default function WeeklyReport() {
   const { toast } = useToast();
   const [showOtherProject, setShowOtherProject] = useState(false);
+  const [, setLocation] = useLocation();
 
   const form = useForm<WeeklyReportFormData>({
     resolver: zodResolver(weeklyReportSchema),
@@ -28,7 +30,7 @@ export default function WeeklyReport() {
 
   const onSubmit = async (data: WeeklyReportFormData) => {
     try {
-      await fetch('/api/weekly-reports', {
+      const response = await fetch('/api/weekly-reports', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,10 +38,17 @@ export default function WeeklyReport() {
         body: JSON.stringify(data),
       });
 
+      if (!response.ok) {
+        throw new Error('送信に失敗しました');
+      }
+
       toast({
         title: "報告が送信されました",
         description: "週次報告が正常に送信されました。",
       });
+
+      // 送信成功後に一覧画面へ遷移
+      setLocation("/reports");
     } catch (error) {
       toast({
         title: "エラー",
@@ -59,6 +68,9 @@ export default function WeeklyReport() {
           <p className="text-muted-foreground">
             プロジェクトの週次進捗を報告するためのフォームです。必須項目には<span className="text-destructive">*</span>が付いています。
           </p>
+          <Link href="/reports" className="text-sm text-primary hover:underline mt-2 inline-block">
+            週次報告一覧を表示
+          </Link>
         </header>
 
         <Form {...form}>
