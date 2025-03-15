@@ -190,6 +190,7 @@ export default function WeeklyReport() {
     //   .then(lastReport => form.reset(lastReport));
   };
 
+  const WeeklyReport = () => {
   if (isEditMode && isLoadingReport) {
     return (
       <div className="min-h-screen bg-background">
