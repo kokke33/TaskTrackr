@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { Send } from "lucide-react";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
@@ -985,13 +986,16 @@ export default function WeeklyReport() {
             </div>
 
             {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-            >
-              {isEditMode ? "更新を送信" : "報告を送信"}
-            </Button>
+            <div className="sticky bottom-8 right-8 float-right z-50">
+              <Button
+                type="submit"
+                className="shadow-lg hover:shadow-xl transition-shadow duration-200 flex items-center gap-2"
+                size="lg"
+              >
+                <Send className="h-4 w-4" />
+                {isEditMode ? "更新を送信" : "報告を送信"}
+              </Button>
+            </div>
           </form>
         </Form>
       </div>
