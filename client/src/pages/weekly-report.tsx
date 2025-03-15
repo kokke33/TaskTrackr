@@ -71,6 +71,9 @@ export default function WeeklyReport() {
           <Link href="/reports" className="text-sm text-primary hover:underline mt-2 inline-block">
             週次報告一覧を表示
           </Link>
+          <Link href="/" className="text-sm text-primary hover:underline mt-2 inline-block">
+            ホームに戻る
+          </Link>
         </header>
 
         <Form {...form}>
