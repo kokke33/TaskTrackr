@@ -198,7 +198,7 @@ export default function WeeklyReportList() {
           }
           className="w-full"
         >
-          <TabsList className="w-full justify-start mb-4 flex flex-wrap gap-2">
+          <TabsList className="w-full min-h-fit justify-start mb-4 flex flex-wrap gap-2 p-4">
             <TabsTrigger value="PNEC_SMSK_保守">PNEC_SMSK_保守</TabsTrigger>
             <TabsTrigger value="PNEC_SMSK_Stage3">PNEC_SMSK_Stage3</TabsTrigger>
             <TabsTrigger value="PNEC_SMSK_基盤">PNEC_SMSK_基盤</TabsTrigger>
