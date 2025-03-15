@@ -12,7 +12,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Send } from "lucide-react";
+import { Send, FileText } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
@@ -22,14 +30,15 @@ export default function WeeklyReport() {
   const { data: existingReport, isLoading: isLoadingReport } = useQuery<WeeklyReport>({
     queryKey: [`/api/weekly-reports/${id}`],
     enabled: isEditMode,
-    staleTime: 0, // 常にデータを古いとみなす
-    refetchOnMount: true, // コンポーネントマウント時に再取得
-    refetchOnWindowFocus: true, // ウィンドウフォーカス時に再取得
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const { toast } = useToast();
   const [showOtherProject, setShowOtherProject] = useState(false);
   const [, setLocation] = useLocation();
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
 
   const form = useForm<WeeklyReport>({
     resolver: zodResolver(insertWeeklyReportSchema),
@@ -79,15 +88,15 @@ export default function WeeklyReport() {
         description: isEditMode ? "週次報告が正常に更新されました。" : "週次報告が正常に送信されました。",
       });
 
-      // AI分析結果がある場合は表示
+      // AI分析結果を保存
       if (result.analysis) {
-        setTimeout(() => {
-          toast({
-            title: "AI分析結果",
-            description: result.analysis,
-            duration: 10000, // 10秒間表示
-          });
-        }, 1000); // 更新完了トーストの後に表示
+        setAnalysisResult(result.analysis);
+        // トースト通知（自動非表示なし）
+        toast({
+          title: "AI分析結果が更新されました",
+          description: "右上のAI分析ボタンから確認できます",
+          duration: null, // 自動で消えない
+        });
       }
 
       // 成功後に一覧画面へ遷移
@@ -113,26 +122,45 @@ export default function WeeklyReport() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <ThemeToggle />
+      <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center">
+          <div className="mr-4 flex">
+            <ThemeToggle />
+          </div>
+          <div className="flex flex-1 items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold">
+                {isEditMode ? "週次報告編集" : "週次報告フォーム"}
+              </h1>
+            </div>
+            <div className="flex items-center gap-4">
+              {analysisResult && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      AI分析結果
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>AI分析結果</DialogTitle>
+                      <DialogDescription className="whitespace-pre-wrap">
+                        {analysisResult}
+                      </DialogDescription>
+                    </DialogHeader>
+                  </DialogContent>
+                </Dialog>
+              )}
+              <Link href="/reports" className="text-sm text-muted-foreground hover:text-primary">
+                一覧に戻る
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <header className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2 text-primary">
-            {isEditMode ? "週次報告編集" : "週次報告フォーム"}
-          </h1>
-          <p className="text-muted-foreground mb-4">
-            プロジェクトの週次進捗を報告するためのフォームです。必須項目には<span className="text-destructive">*</span>が付いています。
-          </p>
-          <div className="flex flex-col gap-2 mb-6">
-            <Link href="/reports" className="text-sm text-primary hover:underline">
-              週次報告一覧を表示
-            </Link>
-            <Link href="/" className="text-sm text-primary hover:underline">
-              ホームに戻る
-            </Link>
-          </div>
-        </header>
-
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {/* 基本情報 */}
