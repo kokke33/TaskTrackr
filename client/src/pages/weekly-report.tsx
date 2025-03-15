@@ -29,7 +29,7 @@ export default function WeeklyReport() {
   const { toast } = useToast();
   const [showOtherProject, setShowOtherProject] = useState(false);
   const [, setLocation] = useLocation();
-  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<string>("");
 
   const form = useForm<WeeklyReport>({
     resolver: zodResolver(insertWeeklyReportSchema),
@@ -77,14 +77,14 @@ export default function WeeklyReport() {
         description: isEditMode ? "週次報告が正常に更新されました。" : "週次報告が正常に送信されました。",
       });
 
-      // AI分析結果を保存
+      // AI分析結果があればセットして表示
       if (result.analysis) {
         setAnalysisResult(result.analysis);
-        // トースト通知（自動で消えない）
+        // AI分析結果のトースト通知（自動で消えない）
         toast({
-          title: "AI分析結果",
+          title: "AI分析結果が更新されました",
           description: (
-            <div className="whitespace-pre-wrap">
+            <div className="whitespace-pre-wrap text-sm">
               {result.analysis}
             </div>
           ),
@@ -998,18 +998,18 @@ export default function WeeklyReport() {
             </div>
 
             {/* その他の懸念事項の後にAI分析結果を表示 */}
-            {analysisResult && (
-              <Card>
+            {isEditMode && (
+              <Card className="mt-8">
                 <CardContent className="p-6">
                   <h2 className="text-xl font-semibold mb-4 pb-2 border-b">■ AI分析結果</h2>
-                  <div className="whitespace-pre-wrap">
-                    {analysisResult}
+                  <div className="whitespace-pre-wrap text-sm">
+                    {analysisResult || "報告を更新すると、AIによる分析結果が表示されます。"}
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Submit Button */}
+            {/* 送信ボタン */}
             <div className="sticky bottom-8 right-8 float-right z-50">
               <Button
                 type="submit"
