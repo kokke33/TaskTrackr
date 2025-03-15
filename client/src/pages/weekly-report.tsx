@@ -62,7 +62,6 @@ export default function WeeklyReport() {
     }
   }, [existingReport, form, isEditMode]);
 
-  // onSubmit関数を更新して、AI分析結果を表示するように修正
   const onSubmit = async (data: WeeklyReport) => {
     try {
       const url = isEditMode ? `/api/weekly-reports/${id}` : '/api/weekly-reports';
@@ -122,24 +121,24 @@ export default function WeeklyReport() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* ヘッダー部分を修正 */}
       <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center">
-          <div className="mr-4 flex">
-            <ThemeToggle />
-          </div>
-          <div className="flex flex-1 items-center justify-between">
-            <div>
-              <h1 className="text-xl font-semibold">
+        <div className="container mx-auto px-4">
+          <div className="flex h-14 items-center justify-between">
+            <div className="flex items-center gap-4">
+              <ThemeToggle />
+              <h1 className="text-xl font-semibold hidden md:block">
                 {isEditMode ? "週次報告編集" : "週次報告フォーム"}
               </h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               {analysisResult && (
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" className="flex items-center gap-1 md:gap-2">
                       <FileText className="h-4 w-4" />
-                      AI分析結果
+                      <span className="hidden md:inline">AI分析結果</span>
+                      <span className="md:hidden">AI分析</span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -152,8 +151,8 @@ export default function WeeklyReport() {
                   </DialogContent>
                 </Dialog>
               )}
-              <Link href="/reports" className="text-sm text-muted-foreground hover:text-primary">
-                一覧に戻る
+              <Link href="/reports">
+                <Button variant="ghost" size="sm">戻る</Button>
               </Link>
             </div>
           </div>
