@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>週次報告フォーム</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        'primary-dark': '#4A49B8',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .required::after {
+            content: "*";
+            color: #e53e3e;
+            margin-left: 0.25rem;
+        }
+        
+        .form-section {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .collapse {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .expand {
+            max-height: 2000px;
+            opacity: 1;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: 2px solid #5D5CDE;
+            outline-offset: 1px;
+        }
+
+        /* Dark mode styles */
+        .dark input, .dark select, .dark textarea {
+            background-color: #2d2d2d;
+            color: #f3f4f6;
+            border-color: #4b5563;
+        }
+
+        .dark input:focus, .dark select:focus, .dark textarea:focus {
+            outline: 2px solid #6665e7;
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold mb-2 text-primary dark:text-primary">週次報告フォーム</h1>
+            <p class="text-gray-600 dark:text-gray-400">プロジェクトの週次進捗を報告するためのフォームです。必須項目には<span class="text-red-600">*</span>が付いています。</p>
+        </header>
+
+        <form id="weeklyReportForm" class="space-y-8">
+            <!-- 1. 基本情報 -->
+            <section class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">1. 基本情報</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="reportPeriod" class="block mb-1 font-medium required">報告期間</label>
+                        <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+                            <input type="date" id="reportPeriodStart" class="p-2 border border-gray-300 rounded text-base" required>
+                            <span class="mx-2">～</span>
+                            <input type="date" id="reportPeriodEnd" class="p-2 border border-gray-300 rounded text-base" required>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">例: 2023年4月1日～2023年4月7日</p>
+                    </div>
+
+                    <div>
+                        <label for="projectName" class="block mb-1 font-medium required">担当現場名</label>
+                        <select id="projectName" class="w-full p-2 border border-gray-300 rounded text-base" required>
+                            <option value="" disabled selected>選択してください</option>
+                            <option value="project-a">プロジェクトA</option>
+                            <option value="project-b">プロジェクトB</option>
+                            <option value="project-c">プロジェクトC</option>
+                            <option value="other">その他（直接入力）</option>
+                        </select>
+                        <div id="otherProjectContainer" class="mt-2 hidden">
+                            <input type="text" id="otherProject" class="w-full p-2 border border-gray-300 rounded text-base" placeholder="担当現場名を入力">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="reporterName" class="block mb-1 font-medium required">報告者氏名</label>
+                        <input type="text" id="reporterName" class="w-full p-2 border border-gray-300 rounded text-base" required placeholder="例: 山田太郎">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 今週の作業内容 -->
+            <section class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">2. 今週の作業内容</h2>
+                <div>
+                    <label for="weeklyTasks" class="block mb-1 font-medium required">今週の作業内容</label>
+                    <textarea id="weeklyTasks" class="w-full p-3 border border-gray-300 rounded h-32 text-base" required placeholder="作業項目、計画との差異、遅延理由、リスク評価などを記述してください"></textarea>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">例: 1. 要件定義ドキュメントの作成（完了）
+2. データベース設計（80%完了、来週継続）
+3. 画面モックアップ作成（未着手、要件確定待ち）</p>
+                </div>
+            </section>
+
+            <!-- 3. 進捗状況 -->
+            <section class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">3. 進捗状況</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="progressRate" class="block mb-1 font-medium required">進捗率 (0～100%)</label>
+                        <div class="flex items-center gap-4">
+                            <input type="range" id="progressRateSlider" min="0" max="100" value="50" class="w-full">
+                            <input type="number" id="progressRate" min="0" max="100" value="50" class="w-20 p-2 border border-gray-300 rounded text-base" required>
+                            <span>%</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="progressStatus" class="block mb-1 font-medium required">計画比の進捗状況</label>
+                        <select id="progressStatus" class="w-full p-2 border border-gray-300 rounded text-base" required>
+                            <option value="" disabled selected>選択してください</option>
+                            <option value="on-schedule">予定通り</option>
+                            <option value="slightly-delayed">少し遅れている</option>
+                            <option value="severely-delayed">大幅に遅れている</option>
+                            <option value="ahead">前倒しで進行中</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block mb-1 font-medium required">進捗遅延・問題点の有無</label>
+                        <div class="flex gap-4 items-center">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="delayIssues" value="yes" class="mr-2" required>
+                                <span>あり</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="delayIssues" value="no" class="mr-2">
+                                <span>なし</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="delayDetailsSection" class="form-section collapse">
+                        <label for="delayDetails" class="block mb-1 font-medium required">遅延・問題点の詳細</label>
+                        <textarea id="delayDetails" class="w-full p-3 border border-gray-300 rounded h-24 text-base" placeholder="遅延や問題の詳細、原因、影響範囲などを記述してください"></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. 課題・問題点 -->
+            <section class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">4. 課題・問題点</h2>
+                <div>
+                    <label for="issues" class="block mb-1 font-medium required">課題・問題点</label>
+                    <textarea id="issues" class="w-full p-3 border border-gray-300 rounded h-32 text-base" required placeholder="課題内容や深刻度、対応状況などを記入してください。課題がない場合は「なし」と記入してください。"></textarea>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">例: 1. サーバー環境の構築が遅延（深刻度：中）- インフラ担当と調整中、来週解消見込み
+2. クライアントからの要件変更が多発（深刻度：高）- スコープ・スケジュール見直しの検討が必要</p>
+                </div>
+            </section>
+
+            <!-- 5. リスク管理 -->
+            <section class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">5. リスク管理</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block mb-1 font-medium required">新たに認識したリスクの有無</label>
+                        <div class="flex gap-4 items-center">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="newRisks" value="yes" class="mr-2" required>
+                                <span>あり</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="newRisks" value="no" class="mr-2">
+                                <span>なし</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="riskDetailsSection" class="form-section collapse space-y-4">
+                        <div>
+                            <label for="riskSummary" class="block mb-1 font-medium required">リスクの概要</label>
+                            <textarea id="riskSummary" class="w-full p-3 border border-gray-300 rounded h-20 text-base" placeholder="新たに認識したリスクの内容を記述してください"></textarea>
+                        </div>
+                        <div>
+                            <label for="riskCountermeasures" class="block mb-1 font-medium required">対策・対応方針</label>
+                            <textarea id="riskCountermeasures" class="w-full p-3 border border-gray-300 rounded h-20 text-base" placeholder="リスクに対する対策や対応方針を記述してください"></textarea>
+                        </div>
+                        <div>
+                            <label for="riskLevel" class="block mb-1 font-medium required">リスク評価</label>
+                            <select id="riskLevel" class="w-full p-2 border border-gray-300 rounded text-base">
+                                <option value="" disabled selected>選択してください</option>
+                                <option value="high">高</option>
+                                <option value="medium">中</option>
+                                <option value="low">低</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. 品質管理状況 -->
+            <section class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">6. 品質管理状況</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="qualityConcerns" class="block mb-1 font-medium required">品質懸念事項の有無</label>
+                        <select id="qualityConcerns" class="w-full p-2 border border-gray-300 rounded text-base" required>
+                            <option value="" disabled selected>選択してください</option>
+                            <option value="none">なし</option>
+                            <option value="minor">一部影響あり</option>
+                            <option value="major">重大な影響あり</option>
+                        </select>
+                    </div>
+
+                    <div id="qualityDetailsSection" class="form-section collapse">
+                        <label for="qualityDetails" class="block mb-1 font-medium required">品質懸念事項の詳細</label>
+                        <textarea id="qualityDetails" class="w-full p-3 border border-gray-300 rounded h-24 text-base" placeholder="発生バグ、障害内容、影響度などを記述してください"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="testProgress" class="block mb-1 font-medium">テスト進捗やバグ件数等</label>
+                        <textarea id="testProgress" class="w-full p-3 border border-gray-300 rounded h-20 text-base" placeholder="テスト進捗状況やバグ件数などを記述してください（任意）"></textarea>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">例: テスト消化率: 45%、検出バグ数: 12件（致命的: 0件、重度: 2件、中度: 5件、軽度: 5件）</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. 変更管理状況 -->
+            <section class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">7. 変更管理状況</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block mb-1 font-medium required">変更の有無</label>
+                        <div class="flex gap-4 items-center">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="changes" value="yes" class="mr-2" required>
+                                <span>あり</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="changes" value="no" class="mr-2">
+                                <span>なし</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="changeDetailsSection" class="form-section collapse">
+                        <label for="changeDetails" class="block mb-1 font-medium required">変更の詳細</label>
+                        <textarea id="changeDetails" class="w-full p-3 border border-gray-300 rounded h-24 text-base" placeholder="変更理由、影響範囲、リスク評価などを記述してください"></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 8. 来週の作業予定 -->
+            <section class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">8. 来週の作業予定</h2>
+                <div>
+                    <label for="nextWeekPlan" class="block mb-1 font-medium required">来週の作業予定</label>
+                    <textarea id="nextWeekPlan" class="w-full p-3 border border-gray-300 rounded h-32 text-base" required placeholder="来週予定している作業項目、目標などを記述してください"></textarea>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">例: 1. データベース設計の完了（～火曜日）
+2. APIドキュメントの作成（水～金曜日）
+3. フロントエンド開発環境のセットアップ（木・金曜日）</p>
+                </div>
+            </section>
+
+            <!-- 9. 支援・判断の要望事項 -->
+            <section class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">9. 支援・判断の要望事項</h2>
+                <div>
+                    <label for="supportRequests" class="block mb-1 font-medium required">支援・判断の要望事項</label>
+                    <textarea id="supportRequests" class="w-full p-3 border border-gray-300 rounded h-24 text-base" required placeholder="支援・判断を要望する事項を記述してください。なければ「なし」と記入してください。"></textarea>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">例: 1. サーバー容量の増設について決裁のご対応をお願いいたします
+2. 技術的な課題解決のため、DBスペシャリストのアサインをご検討ください</p>
+                </div>
+            </section>
+
+            <!-- 10～17. 状況に変化や問題がある時のみ記載する項目 -->
+            <section class="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">追加報告事項（必要な場合のみ）</h2>
+                <p class="mb-4 text-gray-600 dark:text-gray-400">以下の項目は状況に変化や問題がある時のみ記載してください。</p>
+                
+                <div class="space-y-6">
+                    <!-- 10. チーム・メンバー状況 -->
+                    <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
+                        <h3 class="text-lg font-medium mb-2">10. チーム・メンバー状況</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block mb-1 font-medium">人的リソースに懸念はあるか</label>
+                                <div class="flex gap-4 items-center">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="resourceConcerns" value="yes" class="mr-2">
+                                        <span>はい</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="resourceConcerns" value="no" class="mr-2" checked>
+                                        <span>いいえ</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="resourceDetailsSection" class="form-section collapse">
+                                <label for="resourceDetails" class="block mb-1 font-medium required">人的リソースの懸念詳細</label>
+                                <textarea id="resourceDetails" class="w-full p-3 border border-gray-300 rounded h-20 text-base" placeholder="人的リソースに関する懸念の詳細を記述してください"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 11. 顧客対応状況 -->
+                    <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
+                        <h3 class="text-lg font-medium mb-2">11. 顧客対応状況</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block mb-1 font-medium">顧客からの指摘、不満、追加要望などはあるか</label>
+                                <div class="flex gap-4 items-center">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="customerIssues" value="yes" class="mr-2">
+                                        <span>はい</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="customerIssues" value="no" class="mr-2" checked>
+                                        <span>いいえ</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="customerDetailsSection" class="form-section collapse">
+                                <label for="customerDetails" class="block mb-1 font-medium required">顧客対応の詳細</label>
+                                <textarea id="customerDetails" class="w-full p-3 border border-gray-300 rounded h-20 text-base" placeholder="顧客からの指摘、不満、追加要望などの詳細を記述してください"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 12. 環境管理状況 -->
+                    <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
+                        <h3 class="text-lg font-medium mb-2">12. 環境管理状況</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block mb-1 font-medium">開発環境やインフラに新たな課題はあるか</label>
+                                <div class="flex gap-4 items-center">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="environmentIssues" value="yes" class="mr-2">
+                                        <span>はい</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="environmentIssues" value="no" class="mr-2" checked>
+                                        <span>いいえ</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="environmentDetailsSection" class="form-section collapse">
+                                <label for="environmentDetails" class="block mb-1 font-medium required">環境管理の課題詳細</label>
+                                <textarea id="environmentDetails" class="w-full p-3 border border-gray-300 rounded h-20 text-base" placeholder="開発環境やインフラに関する新たな課題の詳細を記述してください"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 13. コスト管理状況 -->
+                    <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
+                        <h3 class="text-lg font-medium mb-2">13. コスト管理状況</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block mb-1 font-medium">予算や工数の想定外消費はあるか</label>
+                                <div class="flex gap-4 items-center">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="costIssues" value="yes" class="mr-2">
+                                        <span>はい</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="costIssues" value="no" class="mr-2" checked>
+                                        <span>いいえ</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="costDetailsSection" class="form-section collapse">
+                                <label for="costDetails" class="block mb-1 font-medium required">コスト管理の詳細</label>
+                                <textarea id="costDetails" class="w-full p-3 border border-gray-300 rounded h-20 text-base" placeholder="予算や工数の想定外消費に関する詳細を記述してください"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 14. ナレッジ共有・属人化防止状況 -->
+                    <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
+                        <h3 class="text-lg font-medium mb-2">14. ナレッジ共有・属人化防止状況</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block mb-1 font-medium">共有不足や引継ぎで問題があるか</label>
+                                <div class="flex gap-4 items-center">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="knowledgeIssues" value="yes" class="mr-2">
+                                        <span>はい</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="knowledgeIssues" value="no" class="mr-2" checked>
+                                        <span>いいえ</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="knowledgeDetailsSection" class="form-section collapse">
+                                <label for="knowledgeDetails" class="block mb-1 font-medium required">ナレッジ共有の問題詳細</label>
+                                <textarea id="knowledgeDetails" class="w-full p-3 border border-gray-300 rounded h-20 text-base" placeholder="共有不足や引継ぎに関する問題の詳細を記述してください"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 15. メンバー育成状況 -->
+                    <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
+                        <h3 class="text-lg font-medium mb-2">15. メンバー育成状況</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block mb-1 font-medium">育成面・スキル不足で懸念はあるか</label>
+                                <div class="flex gap-4 items-center">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="trainingIssues" value="yes" class="mr-2">
+                                        <span>はい</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="trainingIssues" value="no" class="mr-2" checked>
+                                        <span>いいえ</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="trainingDetailsSection" class="form-section collapse">
+                                <label for="trainingDetails" class="block mb-1 font-medium required">メンバー育成の懸念詳細</label>
+                                <textarea id="trainingDetails" class="w-full p-3 border border-gray-300 rounded h-20 text-base" placeholder="育成面・スキル不足に関する懸念の詳細を記述してください"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 16. 特記事項・緊急事項 -->
+                    <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
+                        <h3 class="text-lg font-medium mb-2">16. 特記事項・緊急事項</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block mb-1 font-medium">特別なトラブルや緊急対応があったか</label>
+                                <div class="flex gap-4 items-center">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="urgentIssues" value="yes" class="mr-2">
+                                        <span>はい</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="urgentIssues" value="no" class="mr-2" checked>
+                                        <span>いいえ</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="urgentDetailsSection" class="form-section collapse">
+                                <label for="urgentDetails" class="block mb-1 font-medium required">特記・緊急事項の詳細</label>
+                                <textarea id="urgentDetails" class="w-full p-3 border border-gray-300 rounded h-20 text-base" placeholder="特別なトラブルや緊急対応の詳細を記述してください"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 17. 営業チャンス・顧客ニーズ -->
+                    <div>
+                        <h3 class="text-lg font-medium mb-2">17. 営業チャンス・顧客ニーズ</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block mb-1 font-medium">新たな要望や追加サービス提案などはあるか</label>
+                                <div class="flex gap-4 items-center">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="businessOpportunities" value="yes" class="mr-2">
+                                        <span>はい</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="businessOpportunities" value="no" class="mr-2" checked>
+                                        <span>いいえ</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="businessDetailsSection" class="form-section collapse">
+                                <label for="businessDetails" class="block mb-1 font-medium required">営業チャンス・顧客ニーズの詳細</label>
+                                <textarea id="businessDetails" class="w-full p-3 border border-gray-300 rounded h-20 text-base" placeholder="新たな要望や追加サービス提案などの詳細を記述してください"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 送信ボタン -->
+            <div class="flex justify-center">
+                <button type="submit" id="submitBtn" class="px-6 py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded shadow-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 dark:focus:ring-opacity-70">
+                    報告を送信する
+                </button>
+            </div>
+        </form>
+
+        <!-- 送信成功メッセージ（最初は非表示） -->
+        <div id="successMessage" class="hidden mt-8 p-4 bg-green-100 text-green-800 rounded-lg text-center">
+            <h3 class="text-xl font-bold mb-2">週次報告が正常に送信されました</h3>
+            <p>ご報告ありがとうございます。管理者によって確認されます。</p>
+            <button id="resetBtn" class="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
+                新しい報告を作成する
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ダークモード検出
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // 今日の日付をデフォルトにセット
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const oneWeekAgo = new Date(today);
+            oneWeekAgo.setDate(today.getDate() - 7);
+            
+            const formatDate = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+            
+            document.getElementById('reportPeriodStart').value = formatDate(oneWeekAgo);
+            document.getElementById('reportPeriodEnd').value = formatDate(today);
+            
+            // プログレスバーと数値入力の同期
+            const progressRateSlider = document.getElementById('progressRateSlider');
+            const progressRate = document.getElementById('progressRate');
+            
+            progressRateSlider.addEventListener('input', function() {
+                progressRate.value = this.value;
+            });
+            
+            progressRate.addEventListener('input', function() {
+                progressRateSlider.value = this.value;
+            });
+        });
+
+        // 「その他」の現場名入力欄の表示/非表示
+        document.getElementById('projectName').addEventListener('change', function() {
+            const otherContainer = document.getElementById('otherProjectContainer');
+            const otherProject = document.getElementById('otherProject');
+            
+            if (this.value === 'other') {
+                otherContainer.classList.remove('hidden');
+                otherProject.required = true;
+            } else {
+                otherContainer.classList.add('hidden');
+                otherProject.required = false;
+            }
+        });
+
+        // 条件分岐の設定
+        // 進捗遅延・問題点
+        document.querySelectorAll('input[name="delayIssues"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const detailsSection = document.getElementById('delayDetailsSection');
+                const details = document.getElementById('delayDetails');
+                
+                if (this.value === 'yes') {
+                    detailsSection.classList.remove('collapse');
+                    detailsSection.classList.add('expand');
+                    details.required = true;
+                } else {
+                    detailsSection.classList.remove('expand');
+                    detailsSection.classList.add('collapse');
+                    details.required = false;
+                }
+            });
+        });
+
+        // リスク管理
+        document.querySelectorAll('input[name="newRisks"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const detailsSection = document.getElementById('riskDetailsSection');
+                const summary = document.getElementById('riskSummary');
+                const countermeasures = document.getElementById('riskCountermeasures');
+                const level = document.getElementById('riskLevel');
+                
+                if (this.value === 'yes') {
+                    detailsSection.classList.remove('collapse');
+                    detailsSection.classList.add('expand');
+                    summary.required = true;
+                    countermeasures.required = true;
+                    level.required = true;
+                } else {
+                    detailsSection.classList.remove('expand');
+                    detailsSection.classList.add('collapse');
+                    summary.required = false;
+                    countermeasures.required = false;
+                    level.required = false;
+                }
+            });
+        });
+
+        // 品質管理状況
+        document.getElementById('qualityConcerns').addEventListener('change', function() {
+            const detailsSection = document.getElementById('qualityDetailsSection');
+            const details = document.getElementById('qualityDetails');
+            
+            if (this.value === 'minor' || this.value === 'major') {
+                detailsSection.classList.remove('collapse');
+                detailsSection.classList.add('expand');
+                details.required = true;
+            } else {
+                detailsSection.classList.remove('expand');
+                detailsSection.classList.add('collapse');
+                details.required = false;
+            }
+        });
+
+        // 変更管理状況
+        document.querySelectorAll('input[name="changes"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const detailsSection = document.getElementById('changeDetailsSection');
+                const details = document.getElementById('changeDetails');
+                
+                if (this.value === 'yes') {
+                    detailsSection.classList.remove('collapse');
+                    detailsSection.classList.add('expand');
+                    details.required = true;
+                } else {
+                    detailsSection.classList.remove('expand');
+                    detailsSection.classList.add('collapse');
+                    details.required = false;
+                }
+            });
+        });
+
+        // 追加報告事項の条件分岐
+        const conditionalSections = [
+            { name: 'resourceConcerns', section: 'resourceDetailsSection', field: 'resourceDetails' },
+            { name: 'customerIssues', section: 'customerDetailsSection', field: 'customerDetails' },
+            { name: 'environmentIssues', section: 'environmentDetailsSection', field: 'environmentDetails' },
+            { name: 'costIssues', section: 'costDetailsSection', field: 'costDetails' },
+            { name: 'knowledgeIssues', section: 'knowledgeDetailsSection', field: 'knowledgeDetails' },
+            { name: 'trainingIssues', section: 'trainingDetailsSection', field: 'trainingDetails' },
+            { name: 'urgentIssues', section: 'urgentDetailsSection', field: 'urgentDetails' },
+            { name: 'businessOpportunities', section: 'businessDetailsSection', field: 'businessDetails' }
+        ];
+
+        conditionalSections.forEach(item => {
+            document.querySelectorAll(`input[name="${item.name}"]`).forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const section = document.getElementById(item.section);
+                    const field = document.getElementById(item.field);
+                    
+                    if (this.value === 'yes') {
+                        section.classList.remove('collapse');
+                        section.classList.add('expand');
+                        field.required = true;
+                    } else {
+                        section.classList.remove('expand');
+                        section.classList.add('collapse');
+                        field.required = false;
+                    }
+                });
+            });
+        });
+
+        // フォーム送信処理
+        document.getElementById('weeklyReportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // ここで本来はデータをサーバーに送信する処理を行う
+            // 模擬的に処理成功のメッセージを表示
+            document.getElementById('weeklyReportForm').classList.add('hidden');
+            document.getElementById('successMessage').classList.remove('hidden');
+            
+            // ページの先頭にスクロール
+            window.scrollTo(0, 0);
+        });
+
+        // リセットボタン
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            // フォームをリセット
+            document.getElementById('weeklyReportForm').reset();
+            
+            // 条件分岐で表示されていた詳細欄を全て非表示に
+            document.querySelectorAll('.form-section').forEach(section => {
+                section.classList.remove('expand');
+                section.classList.add('collapse');
+            });
+            
+            // 必須項目のrequired属性をリセット
+            document.querySelectorAll('textarea').forEach(textarea => {
+                if (!textarea.id.match(/^(weeklyTasks|issues|nextWeekPlan|supportRequests)$/)) {
+                    textarea.required = false;
+                }
+            });
+            
+            // 「その他」の現場名入力欄を非表示
+            document.getElementById('otherProjectContainer').classList.add('hidden');
+            document.getElementById('otherProject').required = false;
+            
+            // 今日の日付をデフォルトにセット
+            const today = new Date();
+            const oneWeekAgo = new Date(today);
+            oneWeekAgo.setDate(today.getDate() - 7);
+            
+            const formatDate = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+            
+            document.getElementById('reportPeriodStart').value = formatDate(oneWeekAgo);
+            document.getElementById('reportPeriodEnd').value = formatDate(today);
+            
+            // フォームを表示、成功メッセージを非表示に
+            document.getElementById('weeklyReportForm').classList.remove('hidden');
+            document.getElementById('successMessage').classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
