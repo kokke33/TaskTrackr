@@ -65,15 +65,17 @@ export default function WeeklyReport() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <header className="mb-8 text-center">
           <h1 className="text-3xl font-bold mb-2 text-primary">週次報告フォーム</h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             プロジェクトの週次進捗を報告するためのフォームです。必須項目には<span className="text-destructive">*</span>が付いています。
           </p>
-          <Link href="/reports" className="text-sm text-primary hover:underline mt-2 inline-block">
-            週次報告一覧を表示
-          </Link>
-          <Link href="/" className="text-sm text-primary hover:underline mt-2 inline-block">
-            ホームに戻る
-          </Link>
+          <div className="flex flex-col gap-2 mb-6">
+            <Link href="/reports" className="text-sm text-primary hover:underline">
+              週次報告一覧を表示
+            </Link>
+            <Link href="/" className="text-sm text-primary hover:underline">
+              ホームに戻る
+            </Link>
+          </div>
         </header>
 
         <Form {...form}>
