@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { weeklyReportSchema, type WeeklyReportFormData } from "@/lib/validations/weekly-report";
+import { insertWeeklyReportSchema, type WeeklyReport } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import type { WeeklyReport } from "@/types/weekly-report";
-
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
@@ -29,8 +27,8 @@ export default function WeeklyReport() {
   const [showOtherProject, setShowOtherProject] = useState(false);
   const [, setLocation] = useLocation();
 
-  const form = useForm<WeeklyReportFormData>({
-    resolver: zodResolver(weeklyReportSchema),
+  const form = useForm<WeeklyReport>({
+    resolver: zodResolver(insertWeeklyReportSchema),
     defaultValues: {
       progressRate: 0,
       delayIssues: "no",
@@ -45,13 +43,13 @@ export default function WeeklyReport() {
   useEffect(() => {
     if (isEditMode && existingReport) {
       Object.entries(existingReport).forEach(([key, value]) => {
-        form.setValue(key as any, value);
+        form.setValue(key as keyof WeeklyReport, value);
       });
       setShowOtherProject(existingReport.projectName === "other");
     }
   }, [existingReport, form, isEditMode]);
 
-  const onSubmit = async (data: WeeklyReportFormData) => {
+  const onSubmit = async (data: WeeklyReport) => {
     try {
       const url = isEditMode ? `/api/weekly-reports/${id}` : '/api/weekly-reports';
       const method = isEditMode ? 'PUT' : 'POST';
