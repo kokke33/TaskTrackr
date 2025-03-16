@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useEffect } from "react";
 
 export default function CaseForm() {
   const { id } = useParams<{ id: string }>();
@@ -40,11 +41,22 @@ export default function CaseForm() {
   const form = useForm<InsertCase>({
     resolver: zodResolver(insertCaseSchema),
     defaultValues: {
-      projectName: existingCase?.projectName || "",
-      caseName: existingCase?.caseName || "",
-      description: existingCase?.description || "",
+      projectName: "",
+      caseName: "",
+      description: "",
     },
   });
+
+  // existingCaseが変更されたときにフォームを更新
+  useEffect(() => {
+    if (existingCase) {
+      form.reset({
+        projectName: existingCase.projectName,
+        caseName: existingCase.caseName,
+        description: existingCase.description || "",
+      });
+    }
+  }, [existingCase, form]);
 
   const mutation = useMutation({
     mutationFn: async (data: InsertCase) => {
@@ -111,6 +123,7 @@ export default function CaseForm() {
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
+                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
