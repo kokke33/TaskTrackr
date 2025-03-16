@@ -1,4 +1,4 @@
-import { users, cases, weeklyReports, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase } from "@shared/schema";
+import { cases, weeklyReports, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -26,21 +26,7 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // ユーザー関連のメソッドは変更なし
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
-  }
+  
 
   // 案件関連のメソッド
   async createCase(caseData: InsertCase): Promise<Case> {
