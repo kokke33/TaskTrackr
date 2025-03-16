@@ -6,6 +6,8 @@ import Home from "@/pages/Home";
 import WeeklyReport from "@/pages/weekly-report";
 import WeeklyReportList from "@/pages/weekly-report-list";
 import WeeklyReportDetail from "@/pages/weekly-report-detail";
+import CaseList from "@/pages/cases";
+import CaseForm from "@/pages/case-form";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +18,9 @@ function Router() {
       <Route path="/report/edit/:id" component={WeeklyReport} />
       <Route path="/reports" component={WeeklyReportList} />
       <Route path="/reports/:id" component={WeeklyReportDetail} />
+      <Route path="/cases" component={CaseList} />
+      <Route path="/case/new" component={CaseForm} />
+      <Route path="/case/edit/:id" component={CaseForm} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { WeeklyReport } from "@shared/schema";
+import { WeeklyReport, Case } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,14 +10,19 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function WeeklyReportList() {
   const { toast } = useToast();
-  const { data: reports, isLoading } = useQuery<WeeklyReport[]>({
+  const { data: reports, isLoading: isLoadingReports } = useQuery<WeeklyReport[]>({
     queryKey: ["/api/weekly-reports"],
-    staleTime: 0, // 常にデータを古いとみなす
-    refetchOnMount: true, // コンポーネントマウント時に再取得
-    refetchOnWindowFocus: true, // ウィンドウフォーカス時に再取得
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
-  if (isLoading) {
+  const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
+    queryKey: ["/api/cases"],
+    staleTime: 0,
+  });
+
+  if (isLoadingReports || isLoadingCases) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
@@ -27,20 +32,24 @@ export default function WeeklyReportList() {
     );
   }
 
+  // 案件情報をIDでマップ化
+  const caseMap = new Map(cases?.map(case_ => [case_.id, case_]));
+
   // プロジェクトごとにレポートをグループ化
-  const projectGroups = {
-    PNEC_SMSK_保守: reports?.filter((r) => r.projectName === "PNEC_SMSK_保守") ?? [],
-    PNEC_SMSK_Stage3: reports?.filter((r) => r.projectName === "PNEC_SMSK_Stage3") ?? [],
-    PNEC_SMSK_基盤: reports?.filter((r) => r.projectName === "PNEC_SMSK_基盤") ?? [],
-    PNEC_SMSK_性能: reports?.filter((r) => r.projectName === "PNEC_SMSK_性能") ?? [],
-    INSL_SNSK: reports?.filter((r) => r.projectName === "INSL_SNSK") ?? [],
-    ITCS_SAIG: reports?.filter((r) => r.projectName === "ITCS_SAIG") ?? [],
-    VACC_SSJN: reports?.filter((r) => r.projectName === "VACC_SSJN") ?? [],
-    IIBM_FWAM: reports?.filter((r) => r.projectName === "IIBM_FWAM") ?? [],
-    other: reports?.filter((r) => r.projectName === "other") ?? [],
-  };
+  const projectGroups = cases?.reduce((acc, case_) => {
+    const reports_ = reports?.filter(r => r.caseId === case_.id) ?? [];
+    const projectName = case_.projectName;
+    if (!acc[projectName]) {
+      acc[projectName] = [];
+    }
+    acc[projectName].push(...reports_);
+    return acc;
+  }, {} as Record<string, WeeklyReport[]>) ?? {};
 
   const copyToClipboard = (report: WeeklyReport) => {
+    const case_ = caseMap.get(report.caseId);
+    if (!case_) return;
+
     const progressStatusMap = {
       "on-schedule": "予定通り",
       "slightly-delayed": "少し遅れている",
@@ -64,6 +73,7 @@ export default function WeeklyReportList() {
       "報告期間開始",
       "報告期間終了",
       "プロジェクト名",
+      "案件名",
       "報告者名",
       "今週の作業内容",
       "進捗率",
@@ -105,9 +115,8 @@ export default function WeeklyReportList() {
       [
         report.reportPeriodStart,
         report.reportPeriodEnd,
-        report.projectName === "other"
-          ? report.otherProject
-          : report.projectName,
+        case_.projectName,
+        case_.caseName,
         report.reporterName,
         report.weeklyTasks || "",
         `${report.progressRate}%`,
@@ -194,75 +203,74 @@ export default function WeeklyReportList() {
         <Tabs
           defaultValue={
             new URLSearchParams(window.location.search).get("project") ||
-            "project-a"
+            Object.keys(projectGroups)[0]
           }
           className="w-full"
         >
           <TabsList className="w-full min-h-fit justify-start mb-4 flex flex-wrap gap-2 p-4">
-            <TabsTrigger value="PNEC_SMSK_保守">PNEC_SMSK_保守</TabsTrigger>
-            <TabsTrigger value="PNEC_SMSK_Stage3">PNEC_SMSK_Stage3</TabsTrigger>
-            <TabsTrigger value="PNEC_SMSK_基盤">PNEC_SMSK_基盤</TabsTrigger>
-            <TabsTrigger value="PNEC_SMSK_性能">PNEC_SMSK_性能</TabsTrigger>
-            <TabsTrigger value="INSL_SNSK">INSL_SNSK</TabsTrigger>
-            <TabsTrigger value="ITCS_SAIG">ITCS_SAIG</TabsTrigger>
-            <TabsTrigger value="VACC_SSJN">VACC_SSJN</TabsTrigger>
-            <TabsTrigger value="IIBM_FWAM">IIBM_FWAM</TabsTrigger>
-            <TabsTrigger value="other">その他</TabsTrigger>
+            {Object.keys(projectGroups).map((projectName) => (
+              <TabsTrigger key={projectName} value={projectName}>
+                {projectName}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
-          {Object.entries(projectGroups).map(([projectId, projectReports]) => (
-            <TabsContent key={projectId} value={projectId}>
+          {Object.entries(projectGroups).map(([projectName, projectReports]) => (
+            <TabsContent key={projectName} value={projectName}>
               {projectReports.length === 0 ? (
                 <p className="text-center text-muted-foreground">
                   このプロジェクトの報告はまだありません
                 </p>
               ) : (
                 <div className="grid gap-4">
-                  {projectReports.map((report) => (
-                    <Card key={report.id} className="hover:bg-accent/5">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <Link href={`/reports/${report.id}`}>
-                            <div>
-                              <p className="font-semibold">
-                                {report.projectName === "other"
-                                  ? report.otherProject
-                                  : report.projectName}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {report.reporterName}
-                              </p>
+                  {projectReports.map((report) => {
+                    const case_ = caseMap.get(report.caseId);
+                    if (!case_) return null;
+
+                    return (
+                      <Card key={report.id} className="hover:bg-accent/5">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <Link href={`/reports/${report.id}`}>
+                              <div>
+                                <p className="font-semibold">
+                                  {case_.caseName}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {report.reporterName}
+                                </p>
+                              </div>
+                            </Link>
+                            <div className="flex flex-col items-end gap-2">
+                              <div className="text-right">
+                                <p className="text-sm">
+                                  {new Date(
+                                    report.reportPeriodStart,
+                                  ).toLocaleDateString()}{" "}
+                                  ～{" "}
+                                  {new Date(
+                                    report.reportPeriodEnd,
+                                  ).toLocaleDateString()}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  進捗率: {report.progressRate}%
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-2"
+                                onClick={() => copyToClipboard(report)}
+                              >
+                                <Copy className="h-4 w-4" />
+                                CSVコピー
+                              </Button>
                             </div>
-                          </Link>
-                          <div className="flex flex-col items-end gap-2">
-                            <div className="text-right">
-                              <p className="text-sm">
-                                {new Date(
-                                  report.reportPeriodStart,
-                                ).toLocaleDateString()}{" "}
-                                ～{" "}
-                                {new Date(
-                                  report.reportPeriodEnd,
-                                ).toLocaleDateString()}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                進捗率: {report.progressRate}%
-                              </p>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2"
-                              onClick={() => copyToClipboard(report)}
-                            >
-                              <Copy className="h-4 w-4" />
-                              CSVコピー
-                            </Button>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </TabsContent>

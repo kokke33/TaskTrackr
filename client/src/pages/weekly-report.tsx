@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertWeeklyReportSchema, type WeeklyReport } from "@shared/schema";
+import { insertWeeklyReportSchema, type WeeklyReport, type Case } from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -25,36 +25,38 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Send } from "lucide-react";
+import { Send, Plus } from "lucide-react";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
 
-  const { data: existingReport, isLoading: isLoadingReport } =
-    useQuery<WeeklyReport>({
-      queryKey: [`/api/weekly-reports/${id}`],
-      enabled: isEditMode,
-      staleTime: 0,
-      refetchOnMount: true,
-      refetchOnWindowFocus: true,
-    });
+  const { data: existingReport, isLoading: isLoadingReport } = useQuery<WeeklyReport>({
+    queryKey: [`/api/weekly-reports/${id}`],
+    enabled: isEditMode,
+  });
+
+  // 案件一覧を取得
+  const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
+    queryKey: ["/api/cases"],
+    staleTime: 0,
+  });
 
   const { toast } = useToast();
-  const [showOtherProject, setShowOtherProject] = useState(false);
+  const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<string>("");
 
-  // 前回の報告を取得するためのクエリ
+  // 選択された案件の最新の報告を取得
   const { data: latestReport, isLoading: isLoadingLatest } = useQuery<WeeklyReport>({
-    queryKey: [`/api/weekly-reports/latest/${selectedProject}`],
-    enabled: !!selectedProject && selectedProject !== "other",
+    queryKey: [`/api/weekly-reports/latest/${selectedCaseId}`],
+    enabled: !!selectedCaseId,
   });
 
   const form = useForm<WeeklyReport>({
     resolver: zodResolver(insertWeeklyReportSchema),
     defaultValues: {
+      caseId: 0,
       progressRate: 0,
       delayIssues: "no",
       newRisks: "no",
@@ -68,7 +70,29 @@ export default function WeeklyReport() {
       trainingIssues: "none",
       urgentIssues: "none",
       businessOpportunities: "none",
-      ...existingReport,
+      reportPeriodStart: "",
+      reportPeriodEnd: "",
+      reporterName: "",
+      weeklyTasks: "",
+      progressStatus: "",
+      issues: "",
+      nextWeekPlan: "",
+      supportRequests: "",
+      delayDetails: "",
+      riskSummary: "",
+      riskCountermeasures: "",
+      riskLevel: "",
+      qualityDetails: "",
+      testProgress: "",
+      changeDetails: "",
+      resourceDetails: "",
+      customerDetails: "",
+      environmentDetails: "",
+      costDetails: "",
+      knowledgeDetails: "",
+      trainingDetails: "",
+      urgentDetails: "",
+      businessDetails: "",
     },
   });
 
@@ -77,8 +101,7 @@ export default function WeeklyReport() {
       Object.entries(existingReport).forEach(([key, value]) => {
         form.setValue(key as keyof WeeklyReport, value || "");
       });
-      setShowOtherProject(existingReport.projectName === "other");
-      setSelectedProject(existingReport.projectName);
+      setSelectedCaseId(existingReport.caseId);
     }
   }, [existingReport, form, isEditMode]);
 
@@ -87,9 +110,7 @@ export default function WeeklyReport() {
 
     try {
       setIsSubmitting(true);
-      const url = isEditMode
-        ? `/api/weekly-reports/${id}`
-        : "/api/weekly-reports";
+      const url = isEditMode ? `/api/weekly-reports/${id}` : "/api/weekly-reports";
       const method = isEditMode ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -141,7 +162,7 @@ export default function WeeklyReport() {
   };
 
   const copyFromLastReport = async () => {
-    if (!selectedProject || selectedProject === "other" || !latestReport) {
+    if (!selectedCaseId || !latestReport) {
       return;
     }
 
@@ -170,7 +191,7 @@ export default function WeeklyReport() {
     });
   };
 
-  if (isEditMode && isLoadingReport) {
+  if ((isEditMode && isLoadingReport) || isLoadingCases) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
@@ -180,8 +201,18 @@ export default function WeeklyReport() {
     );
   }
 
+  // 案件をプロジェクトごとにグループ化
+  const groupedCases = cases?.reduce((acc, currentCase) => {
+    const projectName = currentCase.projectName;
+    if (!acc[projectName]) {
+      acc[projectName] = [];
+    }
+    acc[projectName].push(currentCase);
+    return acc;
+  }, {} as Record<string, Case[]>) ?? {};
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
@@ -208,7 +239,7 @@ export default function WeeklyReport() {
                   <h1 className="text-xl font-semibold">
                     {isEditMode ? "週次報告編集" : "週次報告フォーム"}
                   </h1>
-                  {selectedProject && selectedProject !== "other" && (
+                  {selectedCaseId && (
                     <Button
                       type="button"
                       variant="outline"
@@ -264,62 +295,45 @@ export default function WeeklyReport() {
 
                 <FormField
                   control={form.control}
-                  name="projectName"
+                  name="caseId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="required">担当現場名</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          setShowOtherProject(value === "other");
-                          setSelectedProject(value);
-                        }}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="選択してください" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="PNEC_SMSK_保守">
-                            PNEC_SMSK_共同損サ_保守
-                          </SelectItem>
-                          <SelectItem value="PNEC_SMSK_Stage3">
-                            PNEC_SMSK_共同損サ_Stage3
-                          </SelectItem>
-                          <SelectItem value="PNEC_SMSK_基盤">
-                            PNEC_SMSK_共同損サ_基盤
-                          </SelectItem>
-                          <SelectItem value="PNEC_SMSK_性能">
-                            PNEC_SMSK_共同損サ_性能
-                          </SelectItem>
-                          <SelectItem value="INSL_SNSK">
-                            INSL_SNSK新種
-                          </SelectItem>
-                          <SelectItem value="ITCS_SAIG">
-                            ITCS_SAIG_基幹系保守
-                          </SelectItem>
-                          <SelectItem value="VACC_SSJN">
-                            VACC_SSJN_未来革新Ⅲ期契約管理
-                          </SelectItem>
-                          <SelectItem value="IIBM_FWAM">
-                            IIBM_FWAM退職共済
-                          </SelectItem>
-                          <SelectItem value="other">
-                            その他（直接入力）
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {showOtherProject && (
-                        <FormControl>
-                          <Input
-                            {...form.register("otherProject")}
-                            placeholder="担当現場名を入力"
-                            className="mt-2"
-                          />
-                        </FormControl>
-                      )}
+                      <FormLabel className="required">案件</FormLabel>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          onValueChange={(value) => {
+                            const caseId = parseInt(value);
+                            field.onChange(caseId);
+                            setSelectedCaseId(caseId);
+                          }}
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="選択してください" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Object.entries(groupedCases).map(([projectName, projectCases]) => (
+                              <div key={projectName}>
+                                <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                                  {projectName}
+                                </div>
+                                {projectCases.map((case_) => (
+                                  <SelectItem key={case_.id} value={case_.id.toString()}>
+                                    {case_.caseName}
+                                  </SelectItem>
+                                ))}
+                              </div>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Link href="/case/new">
+                          <Button variant="outline" size="icon" type="button">
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1092,10 +1106,10 @@ export default function WeeklyReport() {
                     name="trainingDetails"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>詳細</FormLabel>
+                        <FormLabel className="required">教育に関する懸念の詳細</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="教育に関する懸念事項の詳細を記述してください"
+                            placeholder="教育に関する懸念の詳細を記述してください"
                             className="h-24"
                             {...field}
                           />
@@ -1111,7 +1125,8 @@ export default function WeeklyReport() {
                   control={form.control}
                   name="urgentIssues"
                   render={({ field }) => (
-                    <FormItem>                    <FormLabel>緊急課題に関する懸念</FormLabel>
+                    <FormItem>
+                      <FormLabel>緊急課題に関する懸念</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}

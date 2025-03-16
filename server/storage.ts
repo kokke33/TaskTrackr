@@ -1,20 +1,31 @@
-import { users, weeklyReports, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport } from "@shared/schema";
+import { users, cases, weeklyReports, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
+  // ユーザー関連
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+
+  // 案件関連
+  createCase(caseData: InsertCase): Promise<Case>;
+  getCase(id: number): Promise<Case | undefined>;
+  getAllCases(): Promise<Case[]>;
+  getCasesByProject(projectName: string): Promise<Case[]>;
+
+  // 週次報告関連
   createWeeklyReport(report: InsertWeeklyReport): Promise<WeeklyReport>;
   getWeeklyReport(id: number): Promise<WeeklyReport | undefined>;
   getAllWeeklyReports(): Promise<WeeklyReport[]>;
   updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport>;
   updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport>;
-  getLatestReportByProject(projectName: string): Promise<WeeklyReport | undefined>;
+  getLatestReportByCase(caseId: number): Promise<WeeklyReport | undefined>;
+  getWeeklyReportsByCase(caseId: number): Promise<WeeklyReport[]>;
 }
 
 export class DatabaseStorage implements IStorage {
+  // ユーザー関連のメソッドは変更なし
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -30,6 +41,30 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  // 案件関連の新しいメソッド
+  async createCase(caseData: InsertCase): Promise<Case> {
+    const [newCase] = await db.insert(cases).values(caseData).returning();
+    return newCase;
+  }
+
+  async getCase(id: number): Promise<Case | undefined> {
+    const [foundCase] = await db.select().from(cases).where(eq(cases.id, id));
+    return foundCase;
+  }
+
+  async getAllCases(): Promise<Case[]> {
+    return await db.select().from(cases).orderBy(desc(cases.createdAt));
+  }
+
+  async getCasesByProject(projectName: string): Promise<Case[]> {
+    return await db
+      .select()
+      .from(cases)
+      .where(eq(cases.projectName, projectName))
+      .orderBy(desc(cases.createdAt));
+  }
+
+  // 週次報告関連のメソッド（更新）
   async createWeeklyReport(report: InsertWeeklyReport): Promise<WeeklyReport> {
     const [weeklyReport] = await db.insert(weeklyReports).values(report).returning();
     return weeklyReport;
@@ -41,7 +76,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllWeeklyReports(): Promise<WeeklyReport[]> {
-    // 報告期間開始日の降順で並び替え
     return await db.select().from(weeklyReports).orderBy(desc(weeklyReports.reportPeriodStart));
   }
 
@@ -63,15 +97,23 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async getLatestReportByProject(projectName: string): Promise<WeeklyReport | undefined> {
+  async getLatestReportByCase(caseId: number): Promise<WeeklyReport | undefined> {
     const [report] = await db
       .select()
       .from(weeklyReports)
-      .where(eq(weeklyReports.projectName, projectName))
+      .where(eq(weeklyReports.caseId, caseId))
       .orderBy(desc(weeklyReports.reportPeriodEnd))
       .limit(1);
 
     return report;
+  }
+
+  async getWeeklyReportsByCase(caseId: number): Promise<WeeklyReport[]> {
+    return await db
+      .select()
+      .from(weeklyReports)
+      .where(eq(weeklyReports.caseId, caseId))
+      .orderBy(desc(weeklyReports.reportPeriodStart));
   }
 }
 
