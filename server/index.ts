@@ -4,45 +4,21 @@ import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import passport from "passport";
 import { createInitialUsers } from "./auth";
-import { pool } from "./db";
-import cors from 'cors';
-
-// connectPgSimpleを削除
 
 const app = express();
-app.set('trust proxy', 1); // プロキシ環境での信頼設定を追加
-
-const isProduction = process.env.NODE_ENV === "production";
-
-// CORS設定
-const corsOptions = {
-  origin: isProduction 
-    ? ['https://task-trackr-kokke33.replit.app', /\.replit\.app$/]
-    : ['http://localhost:5000', 'http://localhost:3000'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-};
-app.use(cors(corsOptions));
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// セッション設定 - メモリストア使用（デフォルト）
+// セッション設定
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "your-session-secret",
+    secret: "your-session-secret",
     resave: false,
-    saveUninitialized: true,
-    proxy: true,
+    saveUninitialized: false,
     cookie: {
-      secure: isProduction, // HTTPSの場合はtrueに
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
-      sameSite: isProduction ? 'none' : 'lax',
-      domain: isProduction ? undefined : undefined // ドメイン設定を削除
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000, // 24時間
     },
-    name: 'sid',
   })
 );
 
@@ -55,13 +31,7 @@ createInitialUsers().catch((error) => {
   console.error("Failed to create initial users:", error);
 });
 
-// デバッグ用のログミドルウェア
 app.use((req, res, next) => {
-  // セッション情報のログ
-  console.log('Session ID:', req.sessionID);
-  console.log('Is Authenticated:', req.isAuthenticated());
-  console.log('Session:', req.session);
-
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;

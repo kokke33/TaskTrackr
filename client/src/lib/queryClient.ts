@@ -1,39 +1,12 @@
+import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-import { QueryClient } from "@tanstack/react-query";
-
-// カスタムフェッチ関数
-async function customFetch(queryKey: string[]) {
-  try {
-    const url = queryKey[0];
-    console.log('Fetching URL:', url);
-
-    const res = await fetch(url, {
-      credentials: 'include', // 常にクッキーを送信
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    });
-
-    // レスポンスのデバッグログ
-    console.log('Query response:', {
-      url: queryKey[0],
-      status: res.status,
-      statusText: res.statusText,
-    });
-
-    if (!res.ok) {
-      throw new Error(`API request failed with status ${res.status}`);
-    }
-
-    return res.json();
-  } catch (error) {
-    console.error('API request error:', error);
-    throw error;
+async function throwIfResNotOk(res: Response) {
+  if (!res.ok) {
+    const text = (await res.text()) || res.statusText;
+    throw new Error(`${res.status}: ${text}`);
   }
 }
 
-// 他のコンポーネントから使用されるapiRequest関数
 export async function apiRequest(
   url: string,
   options: {
@@ -41,44 +14,46 @@ export async function apiRequest(
     data?: unknown;
   }
 ): Promise<Response> {
-  console.log('Sending request to:', url, {
-    method: options.method,
-    credentials: 'include',
-    headers: options.data ? { "Content-Type": "application/json" } : {},
-  });
-
   const res = await fetch(url, {
     method: options.method,
-    headers: {
-      ...options.data ? { "Content-Type": "application/json" } : {},
-      "Accept": "application/json",
-      "Cache-Control": "no-cache",
-    },
+    headers: options.data ? { "Content-Type": "application/json" } : {},
     body: options.data ? JSON.stringify(options.data) : undefined,
-    credentials: "include", // 常にクレデンシャルを含める
+    credentials: "include",
   });
 
-  // レスポンスのデバッグログ
-  console.log('Response from:', url, {
-    status: res.status,
-    statusText: res.statusText,
-    headers: Object.fromEntries(res.headers.entries()),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText);
-    throw new Error(`${res.status}: ${text}`);
-  }
-  
+  await throwIfResNotOk(res);
   return res;
 }
+
+type UnauthorizedBehavior = "returnNull" | "throw";
+export const getQueryFn: <T>(options: {
+  on401: UnauthorizedBehavior;
+}) => QueryFunction<T> =
+  ({ on401: unauthorizedBehavior }) =>
+  async ({ queryKey }) => {
+    const res = await fetch(queryKey[0] as string, {
+      credentials: "include",
+    });
+
+    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      return null;
+    }
+
+    await throwIfResNotOk(res);
+    return await res.json();
+  };
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: ({ queryKey }) => customFetch(queryKey as string[]),
-      retry: 1,
-      staleTime: 60 * 1000,
+      queryFn: getQueryFn({ on401: "throw" }),
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+      staleTime: Infinity,
+      retry: false,
+    },
+    mutations: {
+      retry: false,
     },
   },
 });

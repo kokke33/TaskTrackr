@@ -5,32 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useAuth } from "@/lib/auth";
 
 export default function CaseList() {
-  const { isAuthenticated } = useAuth();
-
   const { data: cases, isLoading } = useQuery<Case[]>({
     queryKey: ["/api/cases"],
     staleTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    enabled: isAuthenticated, // 認証済みの場合のみクエリを実行
   });
-
-  if (!isAuthenticated) {
-    return null; // 未認証の場合は何も表示しない
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <p className="text-center">読み込み中...</p>
-        </div>
-      </div>
-    );
-  }
 
   // プロジェクト名でグループ化
   const groupedCases = cases?.reduce((acc, currentCase) => {
@@ -41,6 +23,16 @@ export default function CaseList() {
     acc[projectName].push(currentCase);
     return acc;
   }, {} as Record<string, Case[]>) ?? {};
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-center">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
