@@ -1,0 +1,80 @@
+2025-03-16 16:31:14.92
+d89e82a1
+System
+starting up user application
+2025-03-16 16:31:15.09
+d89e82a1
+System
+forwarding local port 5000 to external port 80
+2025-03-16 16:31:16.48
+d89e82a1
+User
+Warning: connect.session() MemoryStore is not
+2025-03-16 16:31:16.48
+d89e82a1
+User
+designed for a production environment, as it will leak
+2025-03-16 16:31:16.48
+d89e82a1
+User
+memory, and will not scale past a single process.
+2025-03-16 16:31:16.59
+d89e82a1
+User
+7:31:16 AM [express] serving on port 5000
+2025-03-16 16:33:31.05
+d89e82a1
+User
+7:33:31 AM [express] GET /api/cases 401 in 5ms :: {"message":"認証が必要です"}
+2025-03-16 16:33:31.06
+d89e82a1
+User
+7:33:31 AM [express] GET /api/weekly-reports 401 in 2ms :: {"message":"認証が必要です"}
+2025-03-16 16:33:32.44
+d89e82a1
+User
+7:33:32 AM [express] GET /api/cases 401 in 1ms :: {"message":"認証が必要です"}
+2025-03-16 16:33:32.44
+d89e82a1
+User
+7:33:32 AM [express] GET /api/weekly-reports 401 in 0ms :: {"message":"認証が必要です"}
+2025-03-16 16:33:33.52
+d89e82a1
+User
+7:33:33 AM [express] GET /api/cases 401 in 2ms :: {"message":"認証が必要です"}
+2025-03-16 16:33:33.53
+d89e82a1
+User
+7:33:33 AM [express] GET /api/weekly-reports 401 in 1ms :: {"message":"認証が必要です"}
+2025-03-16 16:33:33.54
+d89e82a1
+User
+7:33:33 AM [express] GET /api/check-auth 401 in 1ms :: {"authenticated":false}
+2025-03-16 16:33:36.06
+d89e82a1
+User
+7:33:36 AM [express] POST /api/login 200 in 232ms :: {"message":"ログイン成功"}
+2025-03-16 16:33:38.25
+d89e82a1
+User
+7:33:38 AM [express] GET /api/weekly-reports 401 in 2ms :: {"message":"認証が必要です"}
+2025-03-16 16:33:38.25
+d89e82a1
+User
+7:33:38 AM [express] GET /api/cases 401 in 1ms :: {"message":"認証が必要です"}
+2025-03-16 16:33:58.05
+a3bd2f32
+System
+system: received signal terminated
+2025-03-16 16:33:58.05
+a3bd2f32
+System
+command finished with error [sh -c NODE_ENV=production node dist/index.js]: signal: terminated
+2025-03-16 16:33:58.06
+a3bd2f32
+System
+main done, exiting
+2025-03-16 16:34:42.41
+d89e82a1
+User
+7:34:42 AM [express] GET /api/cases 401 in 1ms :: {"message":"認証が必要です"}
