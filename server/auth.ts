@@ -82,8 +82,17 @@ export async function createInitialUsers() {
 
 // 認証ミドルウェア
 export function isAuthenticated(req: any, res: any, next: any) {
+  console.log("isAuthenticated middleware - session:", req.session);
+  console.log("isAuthenticated middleware - user:", req.user);
+  console.log("isAuthenticated middleware - isAuthenticated:", req.isAuthenticated());
+  
   if (req.isAuthenticated()) {
     return next();
   }
-  res.status(401).json({ message: "認証が必要です" });
+  
+  // 本番環境でも開発環境でも統一したエラーレスポンス
+  res.status(401).json({ 
+    authenticated: false,
+    message: "認証が必要です。ログインしてください。" 
+  });
 }

@@ -16,11 +16,12 @@ const PostgresqlStore = connectPgSimple(session);
 
 // CORS設定
 const corsOptions = {
-  origin: true, // すべてのオリジンを許可
+  origin: isProduction 
+    ? ['https://task-trackr-kokke33.replit.app', /\.replit\.app$/]
+    : ['http://localhost:5000', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['*'], // すべてのヘッダーを許可
-  exposedHeaders: ['*'], // すべてのヘッダーを公開
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
 };
 app.use(cors(corsOptions));
 
@@ -37,14 +38,14 @@ app.use(
     }),
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // セッションの初期化をtrueに変更
     proxy: true,
     cookie: {
-      secure: isProduction,
+      secure: isProduction, // HTTPSの場合はtrueに
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
-      sameSite: isProduction ? 'none' : 'lax',
-      domain: isProduction ? '.replit.app' : undefined
+      sameSite: 'none', // cross-site cookieを許可
+      domain: isProduction ? undefined : undefined // ドメイン設定を削除
     },
     name: 'sid',
   })

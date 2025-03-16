@@ -23,10 +23,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/check-auth", (req, res) => {
+    console.log("Authentication check - session:", req.session);
+    console.log("Authentication check - isAuthenticated:", req.isAuthenticated());
+
     if (req.isAuthenticated()) {
-      res.json({ authenticated: true });
+      res.json({ 
+        authenticated: true,
+        user: req.user 
+      });
     } else {
-      res.status(401).json({ authenticated: false });
+      // 401ではなく200を返し、認証状態を伝える
+      res.json({ 
+        authenticated: false,
+        message: "認証されていません。ログインしてください。" 
+      });
     }
   });
 
