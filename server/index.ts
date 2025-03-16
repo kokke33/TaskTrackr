@@ -4,21 +4,34 @@ import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import passport from "passport";
 import { createInitialUsers } from "./auth";
+import { pool } from "./db";
+import connectPgSimple from "connect-pg-simple";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+const isProduction = process.env.NODE_ENV === "production";
+const PostgresqlStore = connectPgSimple(session);
+
 // セッション設定
 app.use(
   session({
-    secret: "your-session-secret",
+    store: new PostgresqlStore({
+      pool,
+      tableName: 'session',
+      createTableIfMissing: true
+    }),
+    secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: isProduction,
+      httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24時間
+      sameSite: isProduction ? 'strict' : 'lax'
     },
+    name: 'sid', // デフォルトのconnect.sidを変更
   })
 );
 
