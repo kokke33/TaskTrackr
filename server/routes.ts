@@ -197,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return "OpenAI API キーが設定されていません。デプロイメント設定でAPIキーを追加してください。";
       }
 
-      const projectInfo = relatedCase ?
+      const projectInfo = relatedCase ? 
         `プロジェクト名: ${relatedCase.projectName}\n案件名: ${relatedCase.caseName}` :
         "プロジェクト情報が取得できませんでした";
 
