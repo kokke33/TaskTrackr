@@ -61,12 +61,6 @@ export const getQueryFn: <T>(options: {
       },
     });
 
-    // 401エラーの場合、ログインページにリダイレクト
-    if (res.status === 401) {
-      window.location.href = '/login';
-      return null;
-    }
-
     // レスポンスのデバッグログ
     console.log('Query response:', {
       url: queryKey[0],

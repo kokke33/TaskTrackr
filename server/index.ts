@@ -40,11 +40,11 @@ app.use(
     saveUninitialized: false,
     proxy: true,
     cookie: {
-      secure: true,
+      secure: isProduction,
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
-      sameSite: 'none',
-      domain: '.replit.app'
+      sameSite: isProduction ? 'none' : 'lax',
+      domain: isProduction ? '.replit.app' : undefined
     },
     name: 'sid',
   })
