@@ -57,8 +57,15 @@ export const getQueryFn: <T>(options: {
       headers: {
         "Accept": "application/json",
         "Cache-Control": "no-cache",
+        "Content-Type": "application/json",
       },
     });
+
+    // 401エラーの場合、ログインページにリダイレクト
+    if (res.status === 401) {
+      window.location.href = '/login';
+      return null;
+    }
 
     // レスポンスのデバッグログ
     console.log('Query response:', {
