@@ -13,6 +13,7 @@ export interface IStorage {
   getCase(id: number): Promise<Case | undefined>;
   getAllCases(): Promise<Case[]>;
   getCasesByProject(projectName: string): Promise<Case[]>;
+  updateCase(id: number, caseData: InsertCase): Promise<Case>;
 
   // 週次報告関連
   createWeeklyReport(report: InsertWeeklyReport): Promise<WeeklyReport>;
@@ -41,7 +42,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  // 案件関連の新しいメソッド
+  // 案件関連のメソッド
   async createCase(caseData: InsertCase): Promise<Case> {
     const [newCase] = await db.insert(cases).values(caseData).returning();
     return newCase;
@@ -64,7 +65,16 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(cases.createdAt));
   }
 
-  // 週次報告関連のメソッド（更新）
+  async updateCase(id: number, caseData: InsertCase): Promise<Case> {
+    const [updated] = await db
+      .update(cases)
+      .set(caseData)
+      .where(eq(cases.id, id))
+      .returning();
+    return updated;
+  }
+
+  // 週次報告関連のメソッド（既存のコード）
   async createWeeklyReport(report: InsertWeeklyReport): Promise<WeeklyReport> {
     const [weeklyReport] = await db.insert(weeklyReports).values(report).returning();
     return weeklyReport;

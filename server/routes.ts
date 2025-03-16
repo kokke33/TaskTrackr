@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertWeeklyReportSchema } from "@shared/schema";
+import { insertWeeklyReportSchema, insertCaseSchema } from "@shared/schema";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -9,11 +9,65 @@ const openai = new OpenAI({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // 新しいエンドポイント: プロジェクト名に基づいて最新のレポートを取得
+  // 案件関連のエンドポイント
+  app.post("/api/cases", async (req, res) => {
+    try {
+      const caseData = insertCaseSchema.parse(req.body);
+      const newCase = await storage.createCase(caseData);
+      res.json(newCase);
+    } catch (error) {
+      console.error("Error creating case:", error);
+      res.status(400).json({ message: "Invalid case data" });
+    }
+  });
+
+  app.get("/api/cases", async (_req, res) => {
+    try {
+      const cases = await storage.getAllCases();
+      res.json(cases);
+    } catch (error) {
+      console.error("Error fetching cases:", error);
+      res.status(500).json({ message: "Failed to fetch cases" });
+    }
+  });
+
+  app.get("/api/cases/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const foundCase = await storage.getCase(id);
+      if (!foundCase) {
+        res.status(404).json({ message: "Case not found" });
+        return;
+      }
+      res.json(foundCase);
+    } catch (error) {
+      console.error("Error fetching case:", error);
+      res.status(500).json({ message: "Failed to fetch case" });
+    }
+  });
+
+  app.put("/api/cases/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existingCase = await storage.getCase(id);
+      if (!existingCase) {
+        res.status(404).json({ message: "Case not found" });
+        return;
+      }
+      const caseData = insertCaseSchema.parse(req.body);
+      const updatedCase = await storage.updateCase(id, caseData);
+      res.json(updatedCase);
+    } catch (error) {
+      console.error("Error updating case:", error);
+      res.status(400).json({ message: "Failed to update case" });
+    }
+  });
+
+  // 週次報告関連のエンドポイント（既存のコード）
   app.get("/api/weekly-reports/latest/:projectName", async (req, res) => {
     try {
       const { projectName } = req.params;
-      const reports = await storage.getLatestReportByProject(projectName);
+      const reports = await storage.getLatestReportByCase(parseInt(projectName));
       if (!reports) {
         res.status(404).json({ message: "No reports found for this project" });
         return;
@@ -28,14 +82,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/weekly-reports", async (req, res) => {
     try {
       const data = { ...req.body };
-      // 報告者氏名の空白文字を削除
       if (data.reporterName) {
         data.reporterName = data.reporterName.replace(/\s+/g, '');
       }
       const weeklyReport = insertWeeklyReportSchema.parse(data);
       const createdReport = await storage.createWeeklyReport(weeklyReport);
 
-      // 新規作成時もAI分析を行い、保存する
       const analysis = await analyzeWeeklyReport(createdReport);
       if (analysis) {
         await storage.updateAIAnalysis(createdReport.id, analysis);
@@ -81,18 +133,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const data = { ...req.body };
-      // 報告者氏名の空白文字を削除
       if (data.reporterName) {
         data.reporterName = data.reporterName.replace(/\s+/g, '');
       }
       const updatedData = insertWeeklyReportSchema.parse(data);
       const updatedReport = await storage.updateWeeklyReport(id, updatedData);
 
-      // AI分析を実行し、保存
       const analysis = await analyzeWeeklyReport(updatedReport);
       await storage.updateAIAnalysis(id, analysis);
 
-      // 更新後のレポートを取得して返す
       const finalReport = await storage.getWeeklyReport(id);
       res.json(finalReport);
     } catch (error) {
@@ -101,7 +150,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI分析用の関数
   async function analyzeWeeklyReport(report: any) {
     try {
       if (!process.env.OPENAI_API_KEY) {
@@ -132,7 +180,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 簡潔に重要なポイントのみ指摘してください。
 `;
 
-      // 環境変数からモデルを取得するか、デフォルト値を使用
       const aiModel = process.env.OPENAI_MODEL || "gpt-4o-mini";
       console.log(`Using AI model: ${aiModel}`);
 
