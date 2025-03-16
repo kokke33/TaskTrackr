@@ -1,13 +1,13 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ClipboardEdit, List, Briefcase } from "lucide-react";
+import { ClipboardEdit, List } from "lucide-react";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <ThemeToggle />
-
+      
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto text-center">
           <h1 className="text-4xl font-bold text-primary mb-4">週次報告</h1>
@@ -15,7 +15,7 @@ export default function Home() {
             ss7-1
           </p>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <Link href="/report/new">
               <Button
                 variant="outline"
@@ -38,19 +38,6 @@ export default function Home() {
                 <div>
                   <div className="font-semibold">報告一覧</div>
                   <div className="text-sm text-muted-foreground">提出済みの報告を確認する</div>
-                </div>
-              </Button>
-            </Link>
-
-            <Link href="/cases">
-              <Button
-                variant="outline"
-                className="w-full h-32 text-left flex flex-col items-center justify-center gap-2"
-              >
-                <Briefcase className="h-8 w-8" />
-                <div>
-                  <div className="font-semibold">案件一覧</div>
-                  <div className="text-sm text-muted-foreground">案件情報を管理する</div>
                 </div>
               </Button>
             </Link>

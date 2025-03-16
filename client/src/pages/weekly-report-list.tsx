@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Copy } from "lucide-react";
+import { Copy, List } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function WeeklyReportList() {
@@ -185,12 +185,21 @@ export default function WeeklyReportList() {
         <header className="mb-8">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-primary">週次報告一覧</h1>
-            <Link
-              href="/report/new"
-              className="text-sm text-muted-foreground hover:text-primary"
-            >
-              新規報告作成
-            </Link>
+            <div className="flex gap-4">
+              <Link
+                href="/report/new"
+                className="text-sm text-muted-foreground hover:text-primary"
+              >
+                新規報告作成
+              </Link>
+              <Link
+                href="/cases"
+                className="text-sm text-muted-foreground hover:text-primary flex items-center gap-2"
+              >
+                <List className="h-4 w-4" />
+                案件一覧
+              </Link>
+            </div>
           </div>
           <Link
             href="/"
