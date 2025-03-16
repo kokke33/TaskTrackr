@@ -3,11 +3,6 @@ import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
-  // ユーザー関連
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-
   // 案件関連
   createCase(caseData: InsertCase): Promise<Case>;
   getCase(id: number): Promise<Case | undefined>;
@@ -26,8 +21,6 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  
-
   // 案件関連のメソッド
   async createCase(caseData: InsertCase): Promise<Case> {
     const [newCase] = await db.insert(cases).values(caseData).returning();
@@ -60,7 +53,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  // 週次報告関連のメソッド（既存のコード）
+  // 週次報告関連のメソッド
   async createWeeklyReport(report: InsertWeeklyReport): Promise<WeeklyReport> {
     const [weeklyReport] = await db.insert(weeklyReports).values(report).returning();
     return weeklyReport;
