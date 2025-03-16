@@ -5,14 +5,14 @@ import session from "express-session";
 import passport from "passport";
 import { createInitialUsers } from "./auth";
 import { pool } from "./db";
-import connectPgSimple from "connect-pg-simple";
 import cors from 'cors';
+
+// connectPgSimpleを削除
 
 const app = express();
 app.set('trust proxy', 1); // プロキシ環境での信頼設定を追加
 
 const isProduction = process.env.NODE_ENV === "production";
-const PostgresqlStore = connectPgSimple(session);
 
 // CORS設定
 const corsOptions = {
@@ -28,23 +28,18 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// セッション設定
+// セッション設定 - メモリストア使用（デフォルト）
 app.use(
   session({
-    store: new PostgresqlStore({
-      pool,
-      tableName: 'session',
-      createTableIfMissing: true
-    }),
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
-    saveUninitialized: true, // セッションの初期化をtrueに変更
+    saveUninitialized: true,
     proxy: true,
     cookie: {
       secure: isProduction, // HTTPSの場合はtrueに
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
-      sameSite: 'none', // cross-site cookieを許可
+      sameSite: isProduction ? 'none' : 'lax',
       domain: isProduction ? undefined : undefined // ドメイン設定を削除
     },
     name: 'sid',
