@@ -9,6 +9,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// プロキシの設定
+app.set('trust proxy', 1);
+
 // セッション設定
 import pgSession from "connect-pg-simple";
 const PostgresStore = pgSession(session);
@@ -26,8 +29,12 @@ app.use(
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 24時間
+      httpOnly: true,
+      domain: process.env.NODE_ENV === "production" ? ".replit.app" : undefined
     },
+    proxy: true
   })
 );
 
@@ -40,10 +47,18 @@ createInitialUsers().catch((error) => {
   console.error("Failed to create initial users:", error);
 });
 
+// ログミドルウェア
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  // デバッグ用のログ追加
+  if (process.env.NODE_ENV === "production") {
+    console.log(`Session ID: ${req.sessionID}`);
+    console.log(`Is Authenticated: ${req.isAuthenticated()}`);
+    console.log(`Cookie Settings:`, req.session?.cookie);
+  }
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
