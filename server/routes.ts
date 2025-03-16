@@ -26,11 +26,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (req.isAuthenticated()) {
       res.json({ authenticated: true });
     } else {
-      res.status(401).json({ authenticated: false });
+      res.status(401).json({ 
+        authenticated: false,
+        message: "認証されていません。再度ログインしてください。"
+      });
     }
   });
 
-  // 以下のエンドポイントに認証ミドルウェアを適用
+  // 認証が必要なエンドポイントにミドルウェアを適用
   app.use("/api/cases", isAuthenticated);
   app.use("/api/weekly-reports", isAuthenticated);
 
@@ -42,7 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(newCase);
     } catch (error) {
       console.error("Error creating case:", error);
-      res.status(400).json({ message: "Invalid case data" });
+      res.status(400).json({ message: "無効なケースデータです" });
     }
   });
 

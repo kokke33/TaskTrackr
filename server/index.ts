@@ -32,6 +32,7 @@ app.use(
         connectionString: process.env.DATABASE_URL,
       },
       createTableIfMissing: true,
+      tableName: 'session' // セッションテーブル名を明示的に指定
     }),
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
@@ -42,7 +43,8 @@ app.use(
       maxAge: 24 * 60 * 60 * 1000, // 24時間
       httpOnly: true
     },
-    proxy: true
+    proxy: true,
+    name: 'sessionId' // クッキー名を明示的に指定
   })
 );
 
@@ -55,17 +57,24 @@ createInitialUsers().catch((error) => {
   console.error("Failed to create initial users:", error);
 });
 
-// デバッグ用のログミドルウェア
+// セッションデバッグミドルウェア
 app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-
-  // セッション情報のログ
-  console.log(`Request path: ${path}`);
+  // 詳細なセッション情報のログ
+  console.log('=== Session Debug Info ===');
+  console.log(`Request Path: ${req.path}`);
   console.log(`Session ID: ${req.sessionID}`);
   console.log(`Is Authenticated: ${req.isAuthenticated()}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`Cookie Settings:`, req.session?.cookie);
+  console.log(`Request Headers:`, {
+    origin: req.headers.origin,
+    cookie: req.headers.cookie,
+    'user-agent': req.headers['user-agent']
+  });
+  console.log('========================');
 
+  // パフォーマンス測定
+  const start = Date.now();
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
@@ -76,16 +85,14 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+    if (req.path.startsWith("/api")) {
+      let logLine = `${req.method} ${req.path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
-
       log(logLine);
     }
   });
@@ -93,16 +100,21 @@ app.use((req, res, next) => {
   next();
 });
 
+// エラーハンドリングの強化
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Application Error:', err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+
+  res.status(status).json({ 
+    message,
+    status,
+    timestamp: new Date().toISOString()
+  });
+});
+
 (async () => {
   const server = await registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
 
   if (app.get("env") === "development") {
     await setupVite(app, server);
@@ -116,6 +128,6 @@ app.use((req, res, next) => {
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`Server is running on port ${port} in ${app.get("env")} mode`);
   });
 })();

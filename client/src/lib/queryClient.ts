@@ -18,7 +18,7 @@ export async function apiRequest(
     method: options.method,
     headers: options.data ? { "Content-Type": "application/json" } : {},
     body: options.data ? JSON.stringify(options.data) : undefined,
-    credentials: "include",
+    credentials: "include",  // 常にクレデンシャルを送信
   });
 
   await throwIfResNotOk(res);
@@ -32,7 +32,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
+      credentials: "include",  // 常にクレデンシャルを送信
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -50,7 +50,13 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
-      retry: false,
+      retry: (failureCount, error) => {
+        // 認証エラーの場合はリトライしない
+        if (error instanceof Error && error.message.startsWith("401:")) {
+          return false;
+        }
+        return failureCount < 3;  // その他のエラーは3回までリトライ
+      },
     },
     mutations: {
       retry: false,
