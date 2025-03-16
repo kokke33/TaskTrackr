@@ -21,71 +21,57 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { useLocation, Link, useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function CaseForm() {
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const { data: existingCase, isLoading: isLoadingCase } = useQuery({
     queryKey: [`/api/cases/${id}`],
     enabled: isEditMode,
   });
 
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const form = useForm<InsertCase>({
     resolver: zodResolver(insertCaseSchema),
     defaultValues: {
-      projectName: "",
-      caseName: "",
-      description: "",
+      projectName: existingCase?.projectName || "",
+      caseName: existingCase?.caseName || "",
+      description: existingCase?.description || "",
     },
   });
 
-  const onSubmit = async (data: InsertCase) => {
-    if (isSubmitting) return;
-
-    try {
-      setIsSubmitting(true);
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const url = `${baseUrl}${isEditMode ? `/api/cases/${id}` : "/api/cases"}`;
+  const mutation = useMutation({
+    mutationFn: async (data: InsertCase) => {
+      const endpoint = isEditMode ? `/api/cases/${id}` : "/api/cases";
       const method = isEditMode ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error("送信に失敗しました");
-      }
-
-      await response.json();
-
+      return apiRequest(endpoint, { method, data });
+    },
+    onSuccess: () => {
       toast({
         title: isEditMode ? "案件が更新されました" : "案件が作成されました",
         description: "案件情報が正常に保存されました。",
       });
-
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       setLocation("/cases");
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error("Error submitting case:", error);
       toast({
         title: "エラー",
         description: isEditMode ? "案件の更新に失敗しました。" : "案件の作成に失敗しました。",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
-    }
+    },
+  });
+
+  const onSubmit = async (data: InsertCase) => {
+    mutation.mutate(data);
   };
 
   if (isEditMode && isLoadingCase) {
@@ -188,6 +174,7 @@ export default function CaseForm() {
                           placeholder="案件の説明を入力してください"
                           className="h-32"
                           {...field}
+                          value={field.value || ""}
                         />
                       </FormControl>
                       <FormMessage />
@@ -198,10 +185,10 @@ export default function CaseForm() {
                 <div className="flex justify-end">
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={mutation.isPending}
                     className="w-full sm:w-auto"
                   >
-                    {isSubmitting
+                    {mutation.isPending
                       ? "送信中..."
                       : isEditMode
                       ? "更新する"
