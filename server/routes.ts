@@ -27,7 +27,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/weekly-reports", async (req, res) => {
     try {
-      const weeklyReport = insertWeeklyReportSchema.parse(req.body);
+      const data = { ...req.body };
+      // 報告者氏名の空白文字を削除
+      if (data.reporterName) {
+        data.reporterName = data.reporterName.replace(/\s+/g, '');
+      }
+      const weeklyReport = insertWeeklyReportSchema.parse(data);
       const createdReport = await storage.createWeeklyReport(weeklyReport);
 
       // 新規作成時もAI分析を行い、保存する
@@ -75,7 +80,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      const updatedData = insertWeeklyReportSchema.parse(req.body);
+      const data = { ...req.body };
+      // 報告者氏名の空白文字を削除
+      if (data.reporterName) {
+        data.reporterName = data.reporterName.replace(/\s+/g, '');
+      }
+      const updatedData = insertWeeklyReportSchema.parse(data);
       const updatedReport = await storage.updateWeeklyReport(id, updatedData);
 
       // AI分析を実行し、保存
