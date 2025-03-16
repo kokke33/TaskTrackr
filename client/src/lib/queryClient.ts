@@ -14,11 +14,29 @@ export async function apiRequest(
     data?: unknown;
   }
 ): Promise<Response> {
+  // デバッグ用のログ
+  console.log('Sending request to:', url, {
+    method: options.method,
+    credentials: 'include',
+    headers: options.data ? { "Content-Type": "application/json" } : {},
+  });
+
   const res = await fetch(url, {
     method: options.method,
-    headers: options.data ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...options.data ? { "Content-Type": "application/json" } : {},
+      "Accept": "application/json",
+      "Cache-Control": "no-cache",
+    },
     body: options.data ? JSON.stringify(options.data) : undefined,
-    credentials: "include",
+    credentials: "include", // 常にクレデンシャルを含める
+  });
+
+  // レスポンスのデバッグログ
+  console.log('Response from:', url, {
+    status: res.status,
+    statusText: res.statusText,
+    headers: Object.fromEntries(res.headers.entries()),
   });
 
   await throwIfResNotOk(res);
@@ -31,8 +49,22 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // デバッグ用のログ
+    console.log('Executing query:', queryKey[0]);
+
     const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
+      credentials: "include", // 常にクレデンシャルを含める
+      headers: {
+        "Accept": "application/json",
+        "Cache-Control": "no-cache",
+      },
+    });
+
+    // レスポンスのデバッグログ
+    console.log('Query response:', {
+      url: queryKey[0],
+      status: res.status,
+      statusText: res.statusText,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -48,12 +80,12 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      refetchOnWindowFocus: true, // ウィンドウにフォーカスが戻った時に再取得
+      retry: 1, // エラー時に1回だけリトライ
+      staleTime: 30000, // 30秒間はキャッシュを使用
     },
     mutations: {
-      retry: false,
+      retry: 1, // エラー時に1回だけリトライ
     },
   },
 });

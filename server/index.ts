@@ -6,14 +6,27 @@ import passport from "passport";
 import { createInitialUsers } from "./auth";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
+import cors from 'cors';
 
 const app = express();
 app.set('trust proxy', 1); // プロキシ環境での信頼設定を追加
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 
 const isProduction = process.env.NODE_ENV === "production";
 const PostgresqlStore = connectPgSimple(session);
+
+// CORS設定
+const corsOptions = {
+  origin: isProduction 
+    ? /\.replit\.app$/
+    : 'http://localhost:5000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use(cors(corsOptions));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 // セッション設定
 app.use(
@@ -47,7 +60,13 @@ createInitialUsers().catch((error) => {
   console.error("Failed to create initial users:", error);
 });
 
+// デバッグ用のログミドルウェア
 app.use((req, res, next) => {
+  // セッション情報のログ
+  console.log('Session ID:', req.sessionID);
+  console.log('Is Authenticated:', req.isAuthenticated());
+  console.log('Session:', req.session);
+
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
