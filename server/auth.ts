@@ -86,7 +86,11 @@ export function isAuthenticated(req: any, res: any, next: any) {
   console.log("isAuthenticated middleware - user:", req.user);
   console.log("isAuthenticated middleware - isAuthenticated:", req.isAuthenticated());
   
-  if (req.isAuthenticated()) {
+  // 開発モードの場合は認証をバイパス
+  const isDevMode = process.env.NODE_ENV !== "production";
+  const bypassAuth = isDevMode && process.env.BYPASS_AUTH === "true";
+  
+  if (req.isAuthenticated() || bypassAuth) {
     return next();
   }
   
