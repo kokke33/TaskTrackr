@@ -10,7 +10,11 @@ passport.use(
   new LocalStrategy(async (username, password, done) => {
     try {
       const [user] = await db
-        .select()
+        .select({
+          id: users.id,
+          username: users.username,
+          password: users.password,
+        })
         .from(users)
         .where(eq(users.username, username));
 
@@ -36,7 +40,13 @@ passport.serializeUser((user: any, done) => {
 
 passport.deserializeUser(async (id: number, done) => {
   try {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await db
+      .select({
+        id: users.id,
+        username: users.username,
+      })
+      .from(users)
+      .where(eq(users.id, id));
     done(null, user);
   } catch (error) {
     done(error);
@@ -52,7 +62,7 @@ export async function createInitialUsers() {
 
     for (const user of initialUsers) {
       const [existingUser] = await db
-        .select()
+        .select({ id: users.id })
         .from(users)
         .where(eq(users.username, user.username));
 
