@@ -8,6 +8,7 @@ import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
 
 const app = express();
+app.set('trust proxy', 1); // プロキシ環境での信頼設定を追加
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -25,11 +26,13 @@ app.use(
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
     saveUninitialized: false,
+    proxy: true, // プロキシ設定を追加
     cookie: {
       secure: isProduction,
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24時間
-      sameSite: isProduction ? 'strict' : 'lax'
+      sameSite: isProduction ? 'none' : 'lax', // HTTPS環境でのクロスサイト設定
+      domain: isProduction ? '.replit.app' : undefined // 本番環境でのドメイン設定
     },
     name: 'sid', // デフォルトのconnect.sidを変更
   })
