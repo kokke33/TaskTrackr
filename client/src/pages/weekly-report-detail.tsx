@@ -113,7 +113,7 @@ export default function WeeklyReportDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">担当現場名</p>
-                  <p>{report.projectName === "other" ? report.otherProject : report.projectName}</p>
+                  <p>{report.projectName} - {report.caseName}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">報告者名</p>

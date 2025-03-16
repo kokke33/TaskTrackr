@@ -84,19 +84,7 @@ export const insertWeeklyReportSchema = createInsertSchema(weeklyReports).omit({
 export type InsertCase = z.infer<typeof insertCaseSchema>;
 export type Case = typeof cases.$inferSelect;
 export type InsertWeeklyReport = z.infer<typeof insertWeeklyReportSchema>;
-export type WeeklyReport = typeof weeklyReports.$inferSelect;
-
-// ユーザー関連のスキーマは変更なし
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export type WeeklyReport = typeof weeklyReports.$inferSelect & {
+  projectName?: string;
+  caseName?: string;
+};

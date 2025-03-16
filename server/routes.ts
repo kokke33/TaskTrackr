@@ -63,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 週次報告関連のエンドポイント（既存のコード）
+  // 週次報告関連のエンドポイント
   app.get("/api/weekly-reports/latest/:projectName", async (req, res) => {
     try {
       const { projectName } = req.params;
@@ -88,7 +88,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const weeklyReport = insertWeeklyReportSchema.parse(data);
       const createdReport = await storage.createWeeklyReport(weeklyReport);
 
-      const analysis = await analyzeWeeklyReport(createdReport);
+      // 関連する案件情報を取得
+      const relatedCase = await storage.getCase(createdReport.caseId);
+      const analysis = await analyzeWeeklyReport(createdReport, relatedCase);
       if (analysis) {
         await storage.updateAIAnalysis(createdReport.id, analysis);
       }
@@ -116,7 +118,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(404).json({ message: "Weekly report not found" });
         return;
       }
-      res.json(report);
+
+      // 関連する案件情報を取得して週次報告に含める
+      const relatedCase = await storage.getCase(report.caseId);
+      if (relatedCase) {
+        const reportWithCase = {
+          ...report,
+          projectName: relatedCase.projectName,
+          caseName: relatedCase.caseName,
+        };
+        res.json(reportWithCase);
+      } else {
+        res.json(report);
+      }
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch weekly report" });
     }
@@ -139,7 +153,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedData = insertWeeklyReportSchema.parse(data);
       const updatedReport = await storage.updateWeeklyReport(id, updatedData);
 
-      const analysis = await analyzeWeeklyReport(updatedReport);
+      // 関連する案件情報を取得
+      const relatedCase = await storage.getCase(updatedReport.caseId);
+      const analysis = await analyzeWeeklyReport(updatedReport, relatedCase);
       await storage.updateAIAnalysis(id, analysis);
 
       const finalReport = await storage.getWeeklyReport(id);
@@ -150,11 +166,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  async function analyzeWeeklyReport(report: any) {
+  async function analyzeWeeklyReport(report: any, relatedCase: any) {
     try {
       if (!process.env.OPENAI_API_KEY) {
         return "OpenAI API キーが設定されていません。デプロイメント設定でAPIキーを追加してください。";
       }
+
+      const projectInfo = relatedCase ? 
+        `プロジェクト名: ${relatedCase.projectName}\n案件名: ${relatedCase.caseName}` :
+        "プロジェクト情報が取得できませんでした";
+
       const prompt = `
 あなたはプロジェクトマネージャーのアシスタントです。
 現場リーダーが記載した以下の週次報告の内容を分析し、改善点や注意点を指摘してください。
@@ -162,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 的確に指摘を行い、プロジェクトマネージャが確認する際にプロジェクトの状況を把握できるよう
 にするものです。
 
-プロジェクト名: ${report.projectName}
+${projectInfo}
 進捗率: ${report.progressRate}%
 進捗状況: ${report.progressStatus}
 作業内容: ${report.weeklyTasks}
