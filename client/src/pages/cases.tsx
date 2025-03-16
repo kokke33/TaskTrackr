@@ -5,24 +5,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 export default function CaseList() {
+  const { isAuthenticated } = useAuth();
+
   const { data: cases, isLoading } = useQuery<Case[]>({
     queryKey: ["/api/cases"],
     staleTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    enabled: isAuthenticated, // 認証済みの場合のみクエリを実行
   });
 
-  // プロジェクト名でグループ化
-  const groupedCases = cases?.reduce((acc, currentCase) => {
-    const projectName = currentCase.projectName;
-    if (!acc[projectName]) {
-      acc[projectName] = [];
-    }
-    acc[projectName].push(currentCase);
-    return acc;
-  }, {} as Record<string, Case[]>) ?? {};
+  if (!isAuthenticated) {
+    return null; // 未認証の場合は何も表示しない
+  }
 
   if (isLoading) {
     return (
@@ -33,6 +31,16 @@ export default function CaseList() {
       </div>
     );
   }
+
+  // プロジェクト名でグループ化
+  const groupedCases = cases?.reduce((acc, currentCase) => {
+    const projectName = currentCase.projectName;
+    if (!acc[projectName]) {
+      acc[projectName] = [];
+    }
+    acc[projectName].push(currentCase);
+    return acc;
+  }, {} as Record<string, Case[]>) ?? {};
 
   return (
     <div className="min-h-screen bg-background">
