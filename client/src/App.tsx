@@ -12,18 +12,31 @@ import CaseList from "@/pages/cases";
 import CaseForm from "@/pages/case-form";
 import NotFound from "@/pages/not-found";
 
+function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any>, path?: string }) {
+  const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLocation('/login');
+    }
+  }, [isAuthenticated, setLocation]);
+
+  return isAuthenticated ? <Component {...rest} /> : null;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
-      <Route path="/" component={Home} />
-      <Route path="/report/new" component={WeeklyReport} />
-      <Route path="/report/edit/:id" component={WeeklyReport} />
-      <Route path="/reports" component={WeeklyReportList} />
-      <Route path="/reports/:id" component={WeeklyReportDetail} />
-      <Route path="/cases" component={CaseList} />
-      <Route path="/case/new" component={CaseForm} />
-      <Route path="/case/edit/:id" component={CaseForm} />
+      <Route path="/" component={(props) => <ProtectedRoute component={Home} {...props} />} />
+      <Route path="/report/new" component={(props) => <ProtectedRoute component={WeeklyReport} {...props} />} />
+      <Route path="/report/edit/:id" component={(props) => <ProtectedRoute component={WeeklyReport} {...props} />} />
+      <Route path="/reports" component={(props) => <ProtectedRoute component={WeeklyReportList} {...props} />} />
+      <Route path="/reports/:id" component={(props) => <ProtectedRoute component={WeeklyReportDetail} {...props} />} />
+      <Route path="/cases" component={(props) => <ProtectedRoute component={CaseList} {...props} />} />
+      <Route path="/case/new" component={(props) => <ProtectedRoute component={CaseForm} {...props} />} />
+      <Route path="/case/edit/:id" component={(props) => <ProtectedRoute component={CaseForm} {...props} />} />
       <Route component={NotFound} />
     </Switch>
   );
