@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
@@ -9,8 +10,13 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// プロキシの設定
-app.set('trust proxy', 1);
+// CORS 設定（全オリジン許可）
+app.use(cors({
+  origin: "*", // すべてのオリジンを許可
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true // クッキーを使用する場合
+}));
 
 // セッション設定
 import pgSession from "connect-pg-simple";
@@ -29,12 +35,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 24時間
-      httpOnly: true,
-      domain: process.env.NODE_ENV === "production" ? ".replit.app" : undefined
     },
-    proxy: true
   })
 );
 
@@ -47,18 +49,10 @@ createInitialUsers().catch((error) => {
   console.error("Failed to create initial users:", error);
 });
 
-// ログミドルウェア
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  // デバッグ用のログ追加
-  if (process.env.NODE_ENV === "production") {
-    console.log(`Session ID: ${req.sessionID}`);
-    console.log(`Is Authenticated: ${req.isAuthenticated()}`);
-    console.log(`Cookie Settings:`, req.session?.cookie);
-  }
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
