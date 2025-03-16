@@ -10,12 +10,15 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// CORS 設定（全オリジン許可）
+// プロキシの設定
+app.set('trust proxy', 1);
+
+// CORS設定の更新
 app.use(cors({
-  origin: "*", // すべてのオリジンを許可
+  origin: true, // 本番環境ではReplitのドメインに自動的に制限される
+  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true // クッキーを使用する場合
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 // セッション設定
@@ -35,8 +38,11 @@ app.use(
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 24時間
+      httpOnly: true
     },
+    proxy: true
   })
 );
 
@@ -49,9 +55,17 @@ createInitialUsers().catch((error) => {
   console.error("Failed to create initial users:", error);
 });
 
+// デバッグ用のログミドルウェア
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+
+  // セッション情報のログ
+  console.log(`Request path: ${path}`);
+  console.log(`Session ID: ${req.sessionID}`);
+  console.log(`Is Authenticated: ${req.isAuthenticated()}`);
+  console.log(`Cookie Settings:`, req.session?.cookie);
+
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;

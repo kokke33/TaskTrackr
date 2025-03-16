@@ -19,7 +19,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch("/api/logout", { method: "POST" });
+      await fetch("/api/logout", { 
+        method: "POST",
+        credentials: 'include'
+      });
       setIsAuthenticated(false);
       setLocation("/login");
     } catch (error) {
@@ -31,7 +34,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const response = await fetch("/api/check-auth");
+        const response = await fetch("/api/check-auth", {
+          credentials: 'include'
+        });
         if (response.ok) {
           setIsAuthenticated(true);
         } else {
