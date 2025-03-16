@@ -10,6 +10,14 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+// 進捗状況の日本語マッピング
+const progressStatusMap = {
+  'on-schedule': '予定通り',
+  'slightly-delayed': '少し遅れている',
+  'severely-delayed': '大幅に遅れている',
+  'ahead': '前倒しで進行中'
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // 認証関連のエンドポイント
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
@@ -89,15 +97,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // 週次報告関連のエンドポイント
-  app.get("/api/weekly-reports/latest/:projectName", async (req, res) => {
+  app.get("/api/weekly-reports/latest/:caseId", async (req, res) => {
     try {
-      const { projectName } = req.params;
-      const reports = await storage.getLatestReportByCase(parseInt(projectName));
-      if (!reports) {
-        res.status(404).json({ message: "No reports found for this project" });
+      const { caseId } = req.params;
+      const report = await storage.getLatestReportByCase(parseInt(caseId));
+      if (!report) {
+        res.status(404).json({ message: "No reports found for this case" });
         return;
       }
-      res.json(reports);
+
+      // 進捗状況を日本語に変換
+      const reportWithJapanese = {
+        ...report,
+        progressStatus: progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus
+      };
+
+      res.json(reportWithJapanese);
     } catch (error) {
       console.error("Error fetching latest report:", error);
       res.status(500).json({ message: "Failed to fetch latest report" });
@@ -120,8 +135,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateAIAnalysis(createdReport.id, analysis);
       }
 
+      // 進捗状況を日本語に変換
       const updatedReport = await storage.getWeeklyReport(createdReport.id);
-      res.json(updatedReport);
+      const reportWithJapanese = {
+        ...updatedReport,
+        progressStatus: progressStatusMap[updatedReport.progressStatus as keyof typeof progressStatusMap] || updatedReport.progressStatus
+      };
+
+      res.json(reportWithJapanese);
     } catch (error) {
       res.status(400).json({ message: "Invalid weekly report data" });
     }
@@ -130,7 +151,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/weekly-reports", async (_req, res) => {
     try {
       const reports = await storage.getAllWeeklyReports();
-      res.json(reports);
+      // 進捗状況を日本語に変換
+      const reportsWithJapanese = reports.map(report => ({
+        ...report,
+        progressStatus: progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus
+      }));
+      res.json(reportsWithJapanese);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch weekly reports" });
     }
@@ -146,15 +172,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 関連する案件情報を取得して週次報告に含める
       const relatedCase = await storage.getCase(report.caseId);
+
+      // 進捗状況を日本語に変換
+      const reportWithJapanese = {
+        ...report,
+        progressStatus: progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus
+      };
+
       if (relatedCase) {
         const reportWithCase = {
-          ...report,
+          ...reportWithJapanese,
           projectName: relatedCase.projectName,
           caseName: relatedCase.caseName,
         };
         res.json(reportWithCase);
       } else {
-        res.json(report);
+        res.json(reportWithJapanese);
       }
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch weekly report" });
@@ -184,7 +217,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateAIAnalysis(id, analysis);
 
       const finalReport = await storage.getWeeklyReport(id);
-      res.json(finalReport);
+      // 進捗状況を日本語に変換
+      const reportWithJapanese = {
+        ...finalReport,
+        progressStatus: progressStatusMap[finalReport.progressStatus as keyof typeof progressStatusMap] || finalReport.progressStatus
+      };
+
+      res.json(reportWithJapanese);
     } catch (error) {
       console.error("Error updating weekly report:", error);
       res.status(400).json({ message: "Failed to update weekly report" });
@@ -210,7 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 ${projectInfo}
 進捗率: ${report.progressRate}%
-進捗状況: ${report.progressStatus}
+進捗状況: ${progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus}
 作業内容: ${report.weeklyTasks}
 課題・問題点: ${report.issues}
 新たなリスク: ${report.newRisks === "yes" ? report.riskSummary : "なし"}
@@ -226,12 +265,9 @@ ${projectInfo}
 簡潔に重要なポイントのみ指摘してください。
 `;
 
-      const aiModel = process.env.OPENAI_MODEL || "gpt-4o-mini";
-      console.log(`Using AI model: ${aiModel}`);
-
       const completion = await openai.chat.completions.create({
         messages: [{ role: "user", content: prompt }],
-        model: aiModel,
+        model: process.env.OPENAI_MODEL || "gpt-4",
       });
 
       return completion.choices[0].message.content;

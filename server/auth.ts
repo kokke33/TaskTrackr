@@ -55,6 +55,7 @@ passport.deserializeUser(async (id: number, done) => {
 
 // 初期ユーザーの作成
 export async function createInitialUsers() {
+
   try {
     const initialUsers = [
       { username: "ss7-1", password: "ss7-1weeklyreport" },
