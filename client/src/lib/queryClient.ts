@@ -1,3 +1,4 @@
+
 import { QueryClient } from "@tanstack/react-query";
 
 // カスタムフェッチ関数
@@ -30,6 +31,46 @@ async function customFetch(queryKey: string[]) {
     console.error('API request error:', error);
     throw error;
   }
+}
+
+// 他のコンポーネントから使用されるapiRequest関数
+export async function apiRequest(
+  url: string,
+  options: {
+    method: string;
+    data?: unknown;
+  }
+): Promise<Response> {
+  console.log('Sending request to:', url, {
+    method: options.method,
+    credentials: 'include',
+    headers: options.data ? { "Content-Type": "application/json" } : {},
+  });
+
+  const res = await fetch(url, {
+    method: options.method,
+    headers: {
+      ...options.data ? { "Content-Type": "application/json" } : {},
+      "Accept": "application/json",
+      "Cache-Control": "no-cache",
+    },
+    body: options.data ? JSON.stringify(options.data) : undefined,
+    credentials: "include", // 常にクレデンシャルを含める
+  });
+
+  // レスポンスのデバッグログ
+  console.log('Response from:', url, {
+    status: res.status,
+    statusText: res.statusText,
+    headers: Object.fromEntries(res.headers.entries()),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`${res.status}: ${text}`);
+  }
+  
+  return res;
 }
 
 export const queryClient = new QueryClient({
