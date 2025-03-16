@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Copy, List, Plus } from "lucide-react";
+import { Copy, List } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function WeeklyReportList() {
@@ -13,6 +13,8 @@ export default function WeeklyReportList() {
   const { data: reports, isLoading: isLoadingReports } = useQuery<WeeklyReport[]>({
     queryKey: ["/api/weekly-reports"],
     staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
@@ -181,34 +183,37 @@ export default function WeeklyReportList() {
 
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-primary">週次報告一覧</h1>
-            <div className="flex items-center gap-4">
-              <Link href="/report/new">
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  新規報告作成
-                </Button>
+            <div className="flex gap-4">
+              <Link
+                href="/report/new"
+                className="text-sm text-muted-foreground hover:text-primary"
+              >
+                新規報告作成
               </Link>
-              <Link href="/cases">
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <List className="h-4 w-4" />
-                  案件一覧
-                </Button>
+              <Link
+                href="/cases"
+                className="text-sm text-muted-foreground hover:text-primary flex items-center gap-2"
+              >
+                <List className="h-4 w-4" />
+                案件一覧
               </Link>
             </div>
           </div>
-          <div className="flex justify-start">
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                ホームに戻る
-              </Button>
-            </Link>
-          </div>
+          <Link
+            href="/"
+            className="text-sm text-muted-foreground hover:text-primary"
+          >
+            ホームに戻る
+          </Link>
         </header>
 
         <Tabs
-          defaultValue={Object.keys(projectGroups)[0]}
+          defaultValue={
+            new URLSearchParams(window.location.search).get("project") ||
+            Object.keys(projectGroups)[0]
+          }
           className="w-full"
         >
           <TabsList className="w-full min-h-fit justify-start mb-4 flex flex-wrap gap-2 p-4">
@@ -248,8 +253,13 @@ export default function WeeklyReportList() {
                             <div className="flex flex-col items-end gap-2">
                               <div className="text-right">
                                 <p className="text-sm">
-                                  {new Date(report.reportPeriodStart).toLocaleDateString()} ～{" "}
-                                  {new Date(report.reportPeriodEnd).toLocaleDateString()}
+                                  {new Date(
+                                    report.reportPeriodStart,
+                                  ).toLocaleDateString()}{" "}
+                                  ～{" "}
+                                  {new Date(
+                                    report.reportPeriodEnd,
+                                  ).toLocaleDateString()}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
                                   進捗率: {report.progressRate}%
