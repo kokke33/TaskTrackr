@@ -10,9 +10,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // セッション設定
+import pgSession from "connect-pg-simple";
+const PostgresStore = pgSession(session);
+
 app.use(
   session({
-    secret: "your-session-secret",
+    store: new PostgresStore({
+      conObject: {
+        connectionString: process.env.DATABASE_URL,
+      },
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
