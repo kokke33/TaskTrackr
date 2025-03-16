@@ -38,15 +38,15 @@ app.use(
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
     saveUninitialized: false,
-    proxy: true, // プロキシ設定を追加
+    proxy: true,
     cookie: {
-      secure: isProduction,
+      secure: true,
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24時間
-      sameSite: isProduction ? 'none' : 'lax', // HTTPS環境でのクロスサイト設定
-      domain: isProduction ? '.replit.app' : undefined // 本番環境でのドメイン設定
+      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: 'none',
+      domain: '.replit.app'
     },
-    name: 'sid', // デフォルトのconnect.sidを変更
+    name: 'sid',
   })
 );
 
