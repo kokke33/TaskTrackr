@@ -16,13 +16,11 @@ const PostgresqlStore = connectPgSimple(session);
 
 // CORS設定
 const corsOptions = {
-  origin: isProduction 
-    ? /\.replit\.app$/
-    : 'http://localhost:5000',
+  origin: true, // すべてのオリジンを許可
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Cache-Control'],
-  exposedHeaders: ['Set-Cookie'],
+  allowedHeaders: ['*'], // すべてのヘッダーを許可
+  exposedHeaders: ['*'], // すべてのヘッダーを公開
 };
 app.use(cors(corsOptions));
 
