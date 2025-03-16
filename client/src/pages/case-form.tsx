@@ -52,7 +52,8 @@ export default function CaseForm() {
 
     try {
       setIsSubmitting(true);
-      const url = isEditMode ? `/api/cases/${id}` : "/api/cases";
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const url = `${baseUrl}${isEditMode ? `/api/cases/${id}` : "/api/cases"}`;
       const method = isEditMode ? "PUT" : "POST";
 
       const response = await fetch(url, {
