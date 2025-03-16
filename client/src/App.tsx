@@ -2,6 +2,8 @@ import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "./lib/auth";
+import Login from "@/pages/login";
 import Home from "@/pages/Home";
 import WeeklyReport from "@/pages/weekly-report";
 import WeeklyReportList from "@/pages/weekly-report-list";
@@ -13,6 +15,7 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <Switch>
+      <Route path="/login" component={Login} />
       <Route path="/" component={Home} />
       <Route path="/report/new" component={WeeklyReport} />
       <Route path="/report/edit/:id" component={WeeklyReport} />
@@ -29,8 +32,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <AuthProvider>
+        <Router />
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

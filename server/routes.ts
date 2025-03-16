@@ -3,12 +3,37 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertWeeklyReportSchema, insertCaseSchema } from "@shared/schema";
 import OpenAI from "openai";
+import passport from "passport";
+import { isAuthenticated } from "./auth";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // 認証関連のエンドポイント
+  app.post("/api/login", passport.authenticate("local"), (req, res) => {
+    res.json({ message: "ログイン成功" });
+  });
+
+  app.post("/api/logout", (req, res) => {
+    req.logout(() => {
+      res.json({ message: "ログアウト成功" });
+    });
+  });
+
+  app.get("/api/check-auth", (req, res) => {
+    if (req.isAuthenticated()) {
+      res.json({ authenticated: true });
+    } else {
+      res.status(401).json({ authenticated: false });
+    }
+  });
+
+  // 以下のエンドポイントに認証ミドルウェアを適用
+  app.use("/api/cases", isAuthenticated);
+  app.use("/api/weekly-reports", isAuthenticated);
+
   // 案件関連のエンドポイント
   app.post("/api/cases", async (req, res) => {
     try {
