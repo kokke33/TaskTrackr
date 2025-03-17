@@ -7,7 +7,7 @@ import passport from "passport";
 import { isAuthenticated } from "./auth";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -26,9 +26,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (req.isAuthenticated()) {
       res.json({ authenticated: true });
     } else {
-      res.status(401).json({ 
+      res.status(401).json({
         authenticated: false,
-        message: "認証されていません。再度ログインしてください。"
+        message: "認証されていません。再度ログインしてください。",
       });
     }
   });
@@ -95,7 +95,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/weekly-reports/latest/:projectName", async (req, res) => {
     try {
       const { projectName } = req.params;
-      const reports = await storage.getLatestReportByCase(parseInt(projectName));
+      const reports = await storage.getLatestReportByCase(
+        parseInt(projectName),
+      );
       if (!reports) {
         res.status(404).json({ message: "No reports found for this project" });
         return;
@@ -111,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const data = { ...req.body };
       if (data.reporterName) {
-        data.reporterName = data.reporterName.replace(/\s+/g, '');
+        data.reporterName = data.reporterName.replace(/\s+/g, "");
       }
       const weeklyReport = insertWeeklyReportSchema.parse(data);
       const createdReport = await storage.createWeeklyReport(weeklyReport);
@@ -176,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const data = { ...req.body };
       if (data.reporterName) {
-        data.reporterName = data.reporterName.replace(/\s+/g, '');
+        data.reporterName = data.reporterName.replace(/\s+/g, "");
       }
       const updatedData = insertWeeklyReportSchema.parse(data);
       const updatedReport = await storage.updateWeeklyReport(id, updatedData);
@@ -200,33 +202,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return "OpenAI API キーが設定されていません。デプロイメント設定でAPIキーを追加してください。";
       }
 
-      const projectInfo = relatedCase ? 
-        `プロジェクト名: ${relatedCase.projectName}\n案件名: ${relatedCase.caseName}` :
-        "プロジェクト情報が取得できませんでした";
+      const projectInfo = relatedCase
+        ? `プロジェクト名: ${relatedCase.projectName}\n案件名: ${relatedCase.caseName}`
+        : "プロジェクト情報が取得できませんでした";
 
       const prompt = `
-あなたはプロジェクトマネージャーのアシスタントです。
-現場リーダーが記載した以下の週次報告の内容を分析し、改善点や注意点を指摘してください。
-プロジェクトマネージャが確認する前の事前確認として非常に重要なチェックです。
-的確に指摘を行い、プロジェクトマネージャが確認する際にプロジェクトの状況を把握できるよう
-にするものです。
+今日の天気
 
-${projectInfo}
-進捗率: ${report.progressRate}%
-進捗状況: ${report.progressStatus}
-作業内容: ${report.weeklyTasks}
-課題・問題点: ${report.issues}
-新たなリスク: ${report.newRisks === "yes" ? report.riskSummary : "なし"}
-品質懸念事項: ${report.qualityConcerns}
-来週の予定: ${report.nextWeekPlan}
-
-以下の観点で分析してください：
-1. 報告の詳細度は十分か
-2. リスクや課題の記載は具体的か
-3. 対策や解決策は明確か
-4. 追加で記載すべき重要な情報はないか
-
-簡潔に重要なポイントのみ指摘してください。
 `;
 
       const aiModel = process.env.OPENAI_MODEL || "gpt-4o-mini";
