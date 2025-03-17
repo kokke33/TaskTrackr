@@ -76,7 +76,9 @@ export default function CaseForm() {
       console.error("Error submitting case:", error);
       toast({
         title: "エラー",
-        description: isEditMode ? "案件の更新に失敗しました。" : "案件の作成に失敗しました。",
+        description: isEditMode
+          ? "案件の更新に失敗しました。"
+          : "案件の作成に失敗しました。",
         variant: "destructive",
       });
     },
@@ -113,7 +115,10 @@ export default function CaseForm() {
         <Card>
           <CardContent className="p-6">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
                 <FormField
                   control={form.control}
                   name="projectName"
@@ -154,6 +159,9 @@ export default function CaseForm() {
                           </SelectItem>
                           <SelectItem value="IIBM_FWAM">
                             IIBM_FWAM退職共済
+                          </SelectItem>
+                          <SelectItem value="SAMPLE_PRJ">
+                            サンプルプロジェクト
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -204,8 +212,8 @@ export default function CaseForm() {
                     {mutation.isPending
                       ? "送信中..."
                       : isEditMode
-                      ? "更新する"
-                      : "作成する"}
+                        ? "更新する"
+                        : "作成する"}
                   </Button>
                 </div>
               </form>
