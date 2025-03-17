@@ -207,8 +207,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : "プロジェクト情報が取得できませんでした";
 
       const prompt = `
-今日の天気
+あなたはプロジェクトマネージャーのアシスタントです。
+現場リーダーが記載した以下の週次報告の内容を分析し、改善点や注意点を指摘してください。
+プロジェクトマネージャが確認する前の事前確認として非常に重要なチェックです。
+的確に指摘を行い、プロジェクトマネージャが確認する際にプロジェクトの状況を把握できるよう
+にするものです。
 
+${projectInfo}
+進捗率: ${report.progressRate}%
+進捗状況: ${report.progressStatus}
+作業内容: ${report.weeklyTasks}
+課題・問題点: ${report.issues}
+新たなリスク: ${report.newRisks === "yes" ? report.riskSummary : "なし"}
+品質懸念事項: ${report.qualityConcerns}
+品質懸念詳細: ${report.qualityDetails || "なし"}
+顧客懸念: ${report.customerIssues === "exists" ? report.customerDetails : "なし"}
+知識・スキル懸念: ${report.knowledgeIssues === "exists" ? report.knowledgeDetails : "なし"}
+教育懸念: ${report.trainingIssues === "exists" ? report.trainingDetails : "なし"}
+コスト懸念: ${report.costIssues === "exists" ? report.costDetails : "なし"}
+緊急課題: ${report.urgentIssues === "exists" ? report.urgentDetails : "なし"}
+ビジネスチャンス: ${report.businessOpportunities === "exists" ? report.businessDetails : "なし"}
+来週の予定: ${report.nextWeekPlan}
+
+以下の観点で分析してください：
+1. 報告の詳細度は十分か
+2. リスクや課題の記載は具体的か
+3. 対策や解決策は明確か
+4. 追加で記載すべき重要な情報はないか
+
+簡潔に重要なポイントのみ指摘してください。
 `;
 
       const aiModel = process.env.OPENAI_MODEL || "gpt-4o-mini";
