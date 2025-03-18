@@ -371,6 +371,7 @@ export default function WeeklyReport() {
                       <Textarea
                         placeholder="作業項目、計画との差異、遅延理由、リスク評価などを記述してください"
                         {...field}
+                        key={field.value} // Added key prop here as per instruction
                       />
                     </FormControl>
                     <FormMessage />
@@ -1111,8 +1112,7 @@ export default function WeeklyReport() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>緊急課題に関する懸念</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
+                      <Select                        onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
