@@ -370,7 +370,6 @@ export default function WeeklyReport() {
                     <FormControl>
                       <Textarea
                         placeholder="作業項目、計画との差異、遅延理由、リスク評価などを記述してください"
-                        className="h-32"
                         {...field}
                       />
                     </FormControl>
@@ -501,7 +500,6 @@ export default function WeeklyReport() {
                         <FormControl>
                           <Textarea
                             placeholder="遅延や問題の詳細、原因、影響範囲などを記述してください"
-                            className="h-24"
                             {...field}
                           />
                         </FormControl>
@@ -527,7 +525,6 @@ export default function WeeklyReport() {
                     <FormControl>
                       <Textarea
                         placeholder="現在直面している課題や問題点を記述してください"
-                        className="h-24"
                         {...field}
                       />
                     </FormControl>
@@ -585,7 +582,6 @@ export default function WeeklyReport() {
                           <FormControl>
                             <Textarea
                               placeholder="新たに発見されたリスクの概要を記述してください"
-                              className="h-24"
                               {...field}
                             />
                           </FormControl>
@@ -603,7 +599,6 @@ export default function WeeklyReport() {
                           <FormControl>
                             <Textarea
                               placeholder="リスクに対する対策を記述してください"
-                              className="h-24"
                               {...field}
                             />
                           </FormControl>
@@ -690,7 +685,6 @@ export default function WeeklyReport() {
                         <FormControl>
                           <Textarea
                             placeholder="品質に関する懸念事項の詳細を記述してください"
-                            className="h-24"
                             {...field}
                           />
                         </FormControl>
@@ -709,7 +703,6 @@ export default function WeeklyReport() {
                       <FormControl>
                         <Textarea
                           placeholder="テストの進捗状況を記述してください"
-                          className="h-24"
                           {...field}
                         />
                       </FormControl>
@@ -765,7 +758,6 @@ export default function WeeklyReport() {
                         <FormControl>
                           <Textarea
                             placeholder="変更内容、影響範囲、対応状況などを記述してください"
-                            className="h-24"
                             {...field}
                           />
                         </FormControl>
@@ -791,7 +783,6 @@ export default function WeeklyReport() {
                     <FormControl>
                       <Textarea
                         placeholder="来週予定している作業内容を記述してください"
-                        className="h-32"
                         {...field}
                       />
                     </FormControl>
@@ -817,7 +808,6 @@ export default function WeeklyReport() {
                     <FormControl>
                       <Textarea
                         placeholder="必要な支援や判断を仰ぎたい事項を記述してください"
-                        className="h-32"
                         {...field}
                       />
                     </FormControl>
@@ -870,7 +860,6 @@ export default function WeeklyReport() {
                         <FormControl>
                           <Textarea
                             placeholder="リソースに関する懸念事項の詳細を記述してください"
-                            className="h-24"
                             {...field}
                           />
                         </FormControl>
@@ -918,7 +907,6 @@ export default function WeeklyReport() {
                         <FormControl>
                           <Textarea
                             placeholder="顧客に関する懸念事項の詳細を記述してください"
-                            className="h-24"
                             {...field}
                           />
                         </FormControl>
@@ -966,7 +954,6 @@ export default function WeeklyReport() {
                         <FormControl>
                           <Textarea
                             placeholder="環境に関する懸念事項の詳細を記述してください"
-                            className="h-24"
                             {...field}
                           />
                         </FormControl>
@@ -1014,7 +1001,6 @@ export default function WeeklyReport() {
                         <FormControl>
                           <Textarea
                             placeholder="コストに関する懸念事項の詳細を記述してください"
-                            className="h-24"
                             {...field}
                           />
                         </FormControl>
@@ -1062,7 +1048,6 @@ export default function WeeklyReport() {
                         <FormControl>
                           <Textarea
                             placeholder="知識・スキルに関する懸念事項の詳細を記述してください"
-                            className="h-24"
                             {...field}
                           />
                         </FormControl>
@@ -1110,7 +1095,6 @@ export default function WeeklyReport() {
                         <FormControl>
                           <Textarea
                             placeholder="教育に関する懸念の詳細を記述してください"
-                            className="h-24"
                             {...field}
                           />
                         </FormControl>
@@ -1156,7 +1140,6 @@ export default function WeeklyReport() {
                         <FormControl>
                           <Textarea
                             placeholder="緊急課題の詳細を記述してください"
-                            className="h-24"
                             {...field}
                           />
                         </FormControl>
@@ -1204,7 +1187,6 @@ export default function WeeklyReport() {
                         <FormControl>
                           <Textarea
                             placeholder="営業チャンス・顧客ニーズの詳細を記述してください"
-                            className="h-24"
                             {...field}
                           />
                         </FormControl>
