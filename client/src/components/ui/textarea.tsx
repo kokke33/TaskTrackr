@@ -18,11 +18,16 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         };
         
         textarea.addEventListener('input', adjustHeight);
-        adjustHeight(); // 初期値のサイズ調整
-
-        return () => textarea.removeEventListener('input', adjustHeight);
+        
+        // 初期値のサイズ調整（値の変更を待ってから実行）
+        const initialAdjustment = setTimeout(adjustHeight, 0);
+        
+        return () => {
+          clearTimeout(initialAdjustment);
+          textarea.removeEventListener('input', adjustHeight);
+        };
       }
-    }, []);
+    }, [props.value]);
 
     return (
       <textarea
