@@ -268,13 +268,11 @@ export default function WeeklyReport() {
                             onChange={(e) => {
                               field.onChange(e);
                               const date = new Date(e.target.value);
-                              const dayOfWeek = date.getDay();
-                              const daysUntilFriday = 5 - dayOfWeek;
-                              const friday = new Date(date);
-                              friday.setDate(date.getDate() + daysUntilFriday);
+                              const endDate = new Date(date);
+                              endDate.setDate(date.getDate() + 7);
                               form.setValue(
                                 "reportPeriodEnd",
-                                friday.toISOString().split("T")[0],
+                                endDate.toISOString().split("T")[0],
                               );
                             }}
                           />
