@@ -14,7 +14,9 @@ export default function Home() {
           <p className="text-muted-foreground mb-8">
             ss7-1
           </p>
-
+          <p className="text-muted-foreground mb-8">
+            <span style={{ color: 'red' }}>週次報告は「週ごとに」新規作成してください。</span>
+          </p>
           <div className="grid gap-4 md:grid-cols-2">
             <Link href="/report/new">
               <Button
