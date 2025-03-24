@@ -4,16 +4,8 @@ import { WeeklyReport } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Edit, ChevronRight } from "lucide-react";
+import { Edit } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
-import { 
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbSeparator,
-  BreadcrumbPage
-} from "@/components/ui/breadcrumb";
 
 
 export default function WeeklyReportDetail() {
@@ -105,26 +97,6 @@ export default function WeeklyReportDetail() {
               </Link>
             </div>
           </div>
-          
-          {/* パンくずナビゲーション */}
-          <Breadcrumb className="mt-4">
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/reports">
-                  プロジェクト選択
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>
-                  {report.projectName} - {report.caseName}
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <p className="text-xs text-muted-foreground mt-1">
-            案件選択後は上部にパンくずナビが表示され、プロジェクト選択に戻れます
-          </p>
         </header>
 
         <div className="space-y-6">
