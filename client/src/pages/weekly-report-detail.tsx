@@ -4,8 +4,16 @@ import { WeeklyReport } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
+import { Edit, Home, Briefcase, FileText, ChevronRight } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
+import { 
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator
+} from "@/components/ui/breadcrumb";
 
 
 export default function WeeklyReportDetail() {
@@ -97,6 +105,56 @@ export default function WeeklyReportDetail() {
               </Link>
             </div>
           </div>
+          
+          {/* パンくずリスト */}
+          <Breadcrumb className="mt-4">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/">
+                    <span className="flex items-center gap-1">
+                      <Home className="h-3.5 w-3.5" />
+                      ホーム
+                    </span>
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              
+              <BreadcrumbSeparator />
+              
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/cases">
+                    <span className="flex items-center gap-1">
+                      <Briefcase className="h-3.5 w-3.5" />
+                      案件一覧
+                    </span>
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              
+              <BreadcrumbSeparator />
+              
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href={`/reports?caseId=${report.caseId}`}>
+                    <span className="flex items-center gap-1">
+                      <FileText className="h-3.5 w-3.5" />
+                      {report.projectName} - {report.caseName}の報告一覧
+                    </span>
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              
+              <BreadcrumbSeparator />
+              
+              <BreadcrumbItem>
+                <BreadcrumbPage>
+                  週次報告詳細（{new Date(report.reportPeriodStart).toLocaleDateString()} ～ {new Date(report.reportPeriodEnd).toLocaleDateString()}）
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </header>
 
         <div className="space-y-6">
