@@ -140,6 +140,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch weekly reports" });
     }
   });
+  
+  app.get("/api/weekly-reports/by-case/:caseId", async (req, res) => {
+    try {
+      const caseId = parseInt(req.params.caseId);
+      const reports = await storage.getWeeklyReportsByCase(caseId);
+      res.json(reports);
+    } catch (error) {
+      res.status(500).json({ message: "週次報告の取得に失敗しました" });
+    }
+  });
 
   app.get("/api/weekly-reports/:id", async (req, res) => {
     try {
