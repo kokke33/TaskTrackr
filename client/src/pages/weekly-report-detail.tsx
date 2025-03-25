@@ -100,7 +100,7 @@ export default function WeeklyReportDetail() {
                   編集
                 </Button>
               </Link>
-              <Link href="/reports">
+              <Link href={`/reports?projectName=${encodeURIComponent(report.projectName || '')}&caseId=${report.caseId || ''}`}>
                 <Button variant="outline">一覧に戻る</Button>
               </Link>
             </div>
@@ -124,23 +124,10 @@ export default function WeeklyReportDetail() {
               
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href="/cases">
-                    <span className="flex items-center gap-1">
-                      <Briefcase className="h-3.5 w-3.5" />
-                      案件一覧
-                    </span>
-                  </Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              
-              <BreadcrumbSeparator />
-              
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href={`/reports?caseId=${report.caseId}`}>
+                  <Link href={`/reports?projectName=${encodeURIComponent(report.projectName || '')}&caseId=${report.caseId || ''}`}>
                     <span className="flex items-center gap-1">
                       <FileText className="h-3.5 w-3.5" />
-                      {report.projectName} - {report.caseName}の報告一覧
+                      週次報告一覧
                     </span>
                   </Link>
                 </BreadcrumbLink>
