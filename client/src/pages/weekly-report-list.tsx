@@ -11,23 +11,26 @@ import { useState, useEffect } from "react";
 
 export default function WeeklyReportList() {
   const { toast } = useToast();
-  const [locationPath, locationSearch] = useLocation();
+  const [location] = useLocation();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [selectedCase, setSelectedCase] = useState<number | null>(null);
   
   // URLパラメータから初期値を設定
   useEffect(() => {
-    if (locationSearch) {
-      // URLSearchParamsはブラウザのみで動作するため、クライアントサイドのみで実行
+    // ブラウザの場合のみURLSearchParamsを使用
+    if (typeof window !== 'undefined') {
       try {
-        const searchParams = new URLSearchParams(locationSearch);
+        // URLから直接クエリパラメータを取得
+        const url = new URL(window.location.href);
+        const projectNameParam = url.searchParams.get('projectName');
+        const caseIdParam = url.searchParams.get('caseId');
         
-        const projectNameParam = searchParams.get('projectName');
+        console.log('URL Params:', { projectNameParam, caseIdParam });
+        
         if (projectNameParam) {
           setSelectedProject(decodeURIComponent(projectNameParam));
         }
         
-        const caseIdParam = searchParams.get('caseId');
         if (caseIdParam) {
           const caseId = parseInt(caseIdParam);
           if (!isNaN(caseId)) {
@@ -38,7 +41,7 @@ export default function WeeklyReportList() {
         console.error('Error parsing URL parameters:', err);
       }
     }
-  }, [locationSearch]);
+  }, [location]); // locationを依存配列に入れて、URLが変わったときに再実行
   
   // すべての週次報告を取得
   const { data: reports, isLoading: isLoadingReports } = useQuery<WeeklyReport[]>({

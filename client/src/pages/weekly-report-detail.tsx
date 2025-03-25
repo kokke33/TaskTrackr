@@ -24,6 +24,13 @@ export default function WeeklyReportDetail() {
     refetchOnMount: true, // コンポーネントマウント時に再取得
     refetchOnWindowFocus: true, // ウィンドウフォーカス時に再取得
   });
+  
+  // 案件情報を取得
+  const { data: cases } = useQuery<any[]>({
+    queryKey: ['/api/cases'],
+    staleTime: 0,
+    enabled: !!report, // レポートが取得できたら案件情報も取得
+  });
 
   // ステータスの日本語マッピング
   const progressStatusMap = {
@@ -74,6 +81,16 @@ export default function WeeklyReportDetail() {
       </div>
     );
   }
+  
+  // 関連する案件情報を取得
+  const relatedCase = cases?.find(c => c.id === report.caseId);
+  const projectName = relatedCase?.projectName || report.projectName;
+  
+  console.log('Report and Case info:', { 
+    reportProjectName: report.projectName,
+    caseId: report.caseId,
+    foundProjectName: projectName 
+  });
 
   const renderSection = (title: string, content: string | null | undefined) => {
     if (!content) return null;
@@ -100,7 +117,7 @@ export default function WeeklyReportDetail() {
                   編集
                 </Button>
               </Link>
-              <Link href={`/reports?projectName=${encodeURIComponent(report.projectName || '')}&caseId=${report.caseId || ''}`}>
+              <Link href={`/reports?projectName=${encodeURIComponent(projectName || '')}&caseId=${report.caseId || ''}`}>
                 <Button variant="outline">一覧に戻る</Button>
               </Link>
             </div>
@@ -124,7 +141,7 @@ export default function WeeklyReportDetail() {
               
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href={`/reports?projectName=${encodeURIComponent(report.projectName || '')}&caseId=${report.caseId || ''}`}>
+                  <Link href={`/reports?projectName=${encodeURIComponent(projectName || '')}&caseId=${report.caseId || ''}`}>
                     <span className="flex items-center gap-1">
                       <FileText className="h-3.5 w-3.5" />
                       週次報告一覧
