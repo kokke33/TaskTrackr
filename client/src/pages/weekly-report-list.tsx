@@ -75,8 +75,9 @@ export default function WeeklyReportList() {
   // 案件情報をIDでマップ化
   const caseMap = new Map(cases?.map(case_ => [case_.id, case_]));
 
-  // プロジェクト名でユニークなリストを作成
-  const projectNames = Array.from(new Set(cases?.map(case_ => case_.projectName) || []));
+  // プロジェクト名でユニークなリストを作成し、アルファベット順にソート
+  const projectNames = Array.from(new Set(cases?.map(case_ => case_.projectName) || []))
+    .sort((a, b) => a.localeCompare(b, 'ja'));
   
   // プロジェクトごとに案件をグループ化
   const projectCasesMap = cases?.reduce((acc, case_) => {
