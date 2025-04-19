@@ -140,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch weekly reports" });
     }
   });
-  
+
   app.get("/api/weekly-reports/by-case/:caseId", async (req, res) => {
     try {
       const caseId = parseInt(req.params.caseId);
@@ -208,7 +208,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  async function analyzeWeeklyReport(report: any, relatedCase: any): Promise<string> {
+  async function analyzeWeeklyReport(
+    report: any,
+    relatedCase: any,
+  ): Promise<string> {
     try {
       if (!process.env.OPENAI_API_KEY) {
         return "OpenAI API キーが設定されていません。デプロイメント設定でAPIキーを追加してください。";
@@ -217,19 +220,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 過去の報告を取得
       const pastReports = await storage.getWeeklyReportsByCase(report.caseId);
       console.log(`取得した過去の報告数: ${pastReports.length}`);
-      
+
       // 現在の報告を除外して過去の報告を取得
-      const previousReports = pastReports.filter(pr => pr.id !== report.id);
-      console.log(`現在の報告ID: ${report.id}, 比較対象となる過去の報告数: ${previousReports.length}`);
-      
+      const previousReports = pastReports.filter((pr) => pr.id !== report.id);
+      console.log(
+        `現在の報告ID: ${report.id}, 比較対象となる過去の報告数: ${previousReports.length}`,
+      );
+
       // 直近の過去の報告（レポート日付の降順でソート済みなので最初の要素を使用）
-      const previousReport = previousReports.length > 0 ? previousReports[0] : null;
-      console.log(`直近の過去の報告ID: ${previousReport?.id || 'なし'}`);
-      
+      const previousReport =
+        previousReports.length > 0 ? previousReports[0] : null;
+      console.log(`直近の過去の報告ID: ${previousReport?.id || "なし"}`);
+
       if (previousReport) {
-        console.log(`直近の報告期間: ${previousReport.reportPeriodStart} 〜 ${previousReport.reportPeriodEnd}`);
+        console.log(
+          `直近の報告期間: ${previousReport.reportPeriodStart} 〜 ${previousReport.reportPeriodEnd}`,
+        );
       }
-      
+
       const projectInfo = relatedCase
         ? `プロジェクト名: ${relatedCase.projectName}\n案件名: ${relatedCase.caseName}`
         : "プロジェクト情報が取得できませんでした";
@@ -288,21 +296,24 @@ ${previousReportInfo}
 `;
 
       // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      const aiModel = process.env.OPENAI_MODEL || "gpt-4o";
+      const aiModel = process.env.OPENAI_MODEL || "gpt-4.1-mini";
       console.log(`Using AI model: ${aiModel}`);
 
       const completion = await openai.chat.completions.create({
         messages: [
-          { 
-            role: "system", 
-            content: "あなたはプロジェクトマネージャーのアシスタントです。週次報告を詳細に分析し、改善点や注意点を明確に指摘できます。前回の報告と今回の報告を比較し、変化や傾向を把握します。" 
+          {
+            role: "system",
+            content:
+              "あなたはプロジェクトマネージャーのアシスタントです。週次報告を詳細に分析し、改善点や注意点を明確に指摘できます。前回の報告と今回の報告を比較し、変化や傾向を把握します。",
           },
-          { role: "user", content: prompt }
+          { role: "user", content: prompt },
         ],
         model: aiModel,
       });
 
-      return completion.choices[0].message.content;
+      // 内容を確実に文字列として返す
+      const content = completion.choices[0].message.content;
+      return content !== null && content !== undefined ? content : "";
     } catch (error) {
       console.error("OpenAI API error:", error);
       return "AI分析中にエラーが発生しました。";

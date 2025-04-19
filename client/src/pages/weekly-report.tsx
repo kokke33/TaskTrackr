@@ -134,18 +134,6 @@ export default function WeeklyReport() {
           : "週次報告が正常に送信されました。",
       });
 
-      if (result.aiAnalysis) {
-        toast({
-          title: "AI分析結果が更新されました",
-          description: (
-            <div className="whitespace-pre-wrap text-sm">
-              {result.aiAnalysis}
-            </div>
-          ),
-          duration: null,
-        });
-      }
-
       setLocation(`/reports/${result.id}`);
     } catch (error) {
       console.error("Error submitting report:", error);
