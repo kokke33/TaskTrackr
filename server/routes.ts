@@ -248,7 +248,7 @@ ${projectInfo}
 簡潔に重要なポイントのみ指摘してください。
 `;
 
-      const aiModel = process.env.OPENAI_MODEL || "gpt-4o-mini";
+      const aiModel = process.env.OPENAI_MODEL || "gpt-4.1-mini";
       console.log(`Using AI model: ${aiModel}`);
 
       const completion = await openai.chat.completions.create({
