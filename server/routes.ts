@@ -196,7 +196,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 関連する案件情報を取得
       const relatedCase = await storage.getCase(updatedReport.caseId);
       const analysis = await analyzeWeeklyReport(updatedReport, relatedCase);
-      await storage.updateAIAnalysis(id, analysis);
+      if (analysis) {
+        await storage.updateAIAnalysis(id, analysis);
+      }
 
       const finalReport = await storage.getWeeklyReport(id);
       res.json(finalReport);
@@ -206,24 +208,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  async function analyzeWeeklyReport(report: any, relatedCase: any) {
+  async function analyzeWeeklyReport(report: any, relatedCase: any): Promise<string> {
     try {
       if (!process.env.OPENAI_API_KEY) {
         return "OpenAI API キーが設定されていません。デプロイメント設定でAPIキーを追加してください。";
       }
 
+      // 過去の報告を取得
+      const pastReports = await storage.getWeeklyReportsByCase(report.caseId);
+      console.log(`取得した過去の報告数: ${pastReports.length}`);
+      
+      // 現在の報告を除外して過去の報告を取得
+      const previousReports = pastReports.filter(pr => pr.id !== report.id);
+      console.log(`現在の報告ID: ${report.id}, 比較対象となる過去の報告数: ${previousReports.length}`);
+      
+      // 直近の過去の報告（レポート日付の降順でソート済みなので最初の要素を使用）
+      const previousReport = previousReports.length > 0 ? previousReports[0] : null;
+      console.log(`直近の過去の報告ID: ${previousReport?.id || 'なし'}`);
+      
+      if (previousReport) {
+        console.log(`直近の報告期間: ${previousReport.reportPeriodStart} 〜 ${previousReport.reportPeriodEnd}`);
+      }
+      
       const projectInfo = relatedCase
         ? `プロジェクト名: ${relatedCase.projectName}\n案件名: ${relatedCase.caseName}`
         : "プロジェクト情報が取得できませんでした";
+
+      // 過去の報告がある場合、比較情報を追加
+      let previousReportInfo = "";
+      if (previousReport) {
+        previousReportInfo = `
+【前回の報告内容】
+報告期間: ${previousReport.reportPeriodStart} 〜 ${previousReport.reportPeriodEnd}
+進捗率: ${previousReport.progressRate}%
+進捗状況: ${previousReport.progressStatus}
+作業内容: ${previousReport.weeklyTasks}
+課題・問題点: ${previousReport.issues}
+新たなリスク: ${previousReport.newRisks === "yes" ? previousReport.riskSummary : "なし"}
+来週の予定（前回）: ${previousReport.nextWeekPlan}
+`;
+      }
 
       const prompt = `
 あなたはプロジェクトマネージャーのアシスタントです。
 現場リーダーが記載した以下の週次報告の内容を分析し、改善点や注意点を指摘してください。
 プロジェクトマネージャが確認する前の事前確認として非常に重要なチェックです。
-的確に指摘を行い、プロジェクトマネージャが確認する際にプロジェクトの状況を把握できるよう
-にするものです。
+的確に指摘を行い、プロジェクトマネージャが確認する際にプロジェクトの状況を把握できるようにするものです。
 
 ${projectInfo}
+
+【今回の報告内容】
+報告期間: ${report.reportPeriodStart} 〜 ${report.reportPeriodEnd}
 進捗率: ${report.progressRate}%
 進捗状況: ${report.progressStatus}
 作業内容: ${report.weeklyTasks}
@@ -239,20 +274,31 @@ ${projectInfo}
 ビジネスチャンス: ${report.businessOpportunities === "exists" ? report.businessDetails : "なし"}
 来週の予定: ${report.nextWeekPlan}
 
+${previousReportInfo}
+
 以下の観点で分析してください：
 1. 報告の詳細度は十分か
 2. リスクや課題の記載は具体的か
 3. 対策や解決策は明確か
 4. 追加で記載すべき重要な情報はないか
+5. ${previousReport ? "前回の報告と比較して、進捗や課題に変化があるか" : "過去の報告がないため、初回の報告として評価"}
+6. ${previousReport ? "前回の「来週の予定」と今回の「作業内容」に整合性があるか" : ""}
 
-簡潔に重要なポイントのみ指摘してください。
+簡潔に重要なポイントのみ指摘してください。特に前回からの変化や、前回予定していた作業との差異がある場合は具体的に言及してください。
 `;
 
-      const aiModel = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      const aiModel = process.env.OPENAI_MODEL || "gpt-4o";
       console.log(`Using AI model: ${aiModel}`);
 
       const completion = await openai.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          { 
+            role: "system", 
+            content: "あなたはプロジェクトマネージャーのアシスタントです。週次報告を詳細に分析し、改善点や注意点を明確に指摘できます。前回の報告と今回の報告を比較し、変化や傾向を把握します。" 
+          },
+          { role: "user", content: prompt }
+        ],
         model: aiModel,
       });
 
