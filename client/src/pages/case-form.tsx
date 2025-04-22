@@ -8,11 +8,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -44,6 +46,7 @@ export default function CaseForm() {
       projectName: "",
       caseName: "",
       description: "",
+      isDeleted: false,
     },
   });
 
@@ -54,6 +57,7 @@ export default function CaseForm() {
         projectName: existingCase.projectName,
         caseName: existingCase.caseName,
         description: existingCase.description || "",
+        isDeleted: existingCase.isDeleted || false,
       });
     }
   }, [existingCase, form]);
@@ -202,6 +206,29 @@ export default function CaseForm() {
                     </FormItem>
                   )}
                 />
+
+                {isEditMode && (
+                  <FormField
+                    control={form.control}
+                    name="isDeleted"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>削除フラグ</FormLabel>
+                          <FormDescription>
+                            この案件を削除対象としてマークします。削除フラグが付いた案件は週次報告一覧に表示されなくなります。
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <div className="flex justify-end">
                   <Button

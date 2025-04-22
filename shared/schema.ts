@@ -17,6 +17,7 @@ export const cases = pgTable("cases", {
   projectName: text("project_name").notNull(),
   caseName: text("case_name").notNull(),
   description: text("description"),
+  isDeleted: boolean("is_deleted").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
