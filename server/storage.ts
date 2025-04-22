@@ -1,6 +1,6 @@
 import { cases, weeklyReports, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, isNull, inArray } from "drizzle-orm";
+import { eq, desc, and, isNull, inArray, or, ne, sql } from "drizzle-orm";
 
 export interface IStorage {
   // 案件関連
@@ -72,31 +72,59 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllWeeklyReports(): Promise<WeeklyReport[]> {
-    // 削除されていない案件の週次報告のみを取得
-    // まず削除されていない案件のIDを取得
-    const activeCases = await db
-      .select({ id: cases.id })
-      .from(cases)
-      .where(eq(cases.isDeleted, false));
-    
-    const activeCaseIds = activeCases.map(c => c.id);
-    
-    if (activeCaseIds.length === 0) {
-      return [];
-    }
-    
-    // 削除されていない案件に関する週次報告のみを取得
-    const reports = await db
-      .select()
+    // JOINを使って削除されていない案件の週次報告のみを取得
+    const result = await db
+      .select({
+        id: weeklyReports.id,
+        reportPeriodStart: weeklyReports.reportPeriodStart,
+        reportPeriodEnd: weeklyReports.reportPeriodEnd,
+        caseId: weeklyReports.caseId,
+        reporterName: weeklyReports.reporterName,
+        weeklyTasks: weeklyReports.weeklyTasks,
+        progressRate: weeklyReports.progressRate,
+        progressStatus: weeklyReports.progressStatus,
+        delayIssues: weeklyReports.delayIssues,
+        delayDetails: weeklyReports.delayDetails,
+        issues: weeklyReports.issues,
+        newRisks: weeklyReports.newRisks,
+        riskSummary: weeklyReports.riskSummary,
+        riskCountermeasures: weeklyReports.riskCountermeasures,
+        riskLevel: weeklyReports.riskLevel,
+        qualityConcerns: weeklyReports.qualityConcerns,
+        qualityDetails: weeklyReports.qualityDetails,
+        testProgress: weeklyReports.testProgress,
+        changes: weeklyReports.changes,
+        changeDetails: weeklyReports.changeDetails,
+        nextWeekPlan: weeklyReports.nextWeekPlan,
+        supportRequests: weeklyReports.supportRequests,
+        resourceConcerns: weeklyReports.resourceConcerns,
+        resourceDetails: weeklyReports.resourceDetails,
+        customerIssues: weeklyReports.customerIssues,
+        customerDetails: weeklyReports.customerDetails,
+        environmentIssues: weeklyReports.environmentIssues,
+        environmentDetails: weeklyReports.environmentDetails,
+        costIssues: weeklyReports.costIssues,
+        costDetails: weeklyReports.costDetails,
+        knowledgeIssues: weeklyReports.knowledgeIssues,
+        knowledgeDetails: weeklyReports.knowledgeDetails,
+        trainingIssues: weeklyReports.trainingIssues,
+        trainingDetails: weeklyReports.trainingDetails,
+        urgentIssues: weeklyReports.urgentIssues,
+        urgentDetails: weeklyReports.urgentDetails,
+        businessOpportunities: weeklyReports.businessOpportunities,
+        businessDetails: weeklyReports.businessDetails,
+        aiAnalysis: weeklyReports.aiAnalysis,
+        createdAt: weeklyReports.createdAt,
+        // 検索と表示のための案件のプロパティ
+        projectName: cases.projectName,
+        caseName: cases.caseName
+      })
       .from(weeklyReports)
-      .where(
-        activeCaseIds.length === 1 
-          ? eq(weeklyReports.caseId, activeCaseIds[0])
-          : inArray(weeklyReports.caseId, activeCaseIds)
-      )
+      .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+      .where(eq(cases.isDeleted, false))
       .orderBy(desc(weeklyReports.reportPeriodStart));
     
-    return reports;
+    return result as unknown as WeeklyReport[];
   }
 
   async updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport> {
@@ -118,6 +146,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLatestReportByCase(caseId: number): Promise<WeeklyReport | undefined> {
+    // 事前に案件が削除済みかチェック
+    const [caseInfo] = await db
+      .select()
+      .from(cases)
+      .where(eq(cases.id, caseId));
+    
+    // 削除済みの案件の場合はundefinedを返す
+    if (caseInfo && caseInfo.isDeleted) {
+      return undefined;
+    }
+    
     const [report] = await db
       .select()
       .from(weeklyReports)
@@ -129,6 +168,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWeeklyReportsByCase(caseId: number): Promise<WeeklyReport[]> {
+    // 事前に案件が削除済みかチェック
+    const [caseInfo] = await db
+      .select()
+      .from(cases)
+      .where(eq(cases.id, caseId));
+    
+    // 削除済みの案件の場合は空の配列を返す
+    if (caseInfo && caseInfo.isDeleted) {
+      return [];
+    }
+
     return await db
       .select()
       .from(weeklyReports)

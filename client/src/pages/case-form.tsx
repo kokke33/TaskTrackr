@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertCaseSchema, type InsertCase } from "@shared/schema";
+import { insertCaseSchema, type InsertCase, type Case } from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -35,7 +35,7 @@ export default function CaseForm() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  const { data: existingCase, isLoading: isLoadingCase } = useQuery({
+  const { data: existingCase, isLoading: isLoadingCase } = useQuery<Case>({
     queryKey: [`/api/cases/${id}`],
     enabled: isEditMode,
   });
@@ -52,13 +52,12 @@ export default function CaseForm() {
 
   // existingCaseが変更されたときにフォームを更新
   useEffect(() => {
-    if (existingCase) {
-      const { projectName, caseName, description, isDeleted } = existingCase;
+    if (existingCase && 'projectName' in existingCase && 'caseName' in existingCase) {
       form.reset({
-        projectName,
-        caseName,
-        description: description || "",
-        isDeleted: isDeleted || false,
+        projectName: existingCase.projectName,
+        caseName: existingCase.caseName,
+        description: existingCase.description || "",
+        isDeleted: existingCase.isDeleted || false,
       });
     }
   }, [existingCase, form]);
