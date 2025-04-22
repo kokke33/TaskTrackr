@@ -1,6 +1,6 @@
 import { cases, weeklyReports, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, isNull, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // 案件関連
@@ -33,14 +33,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllCases(): Promise<Case[]> {
-    return await db.select().from(cases).orderBy(desc(cases.createdAt));
+    return await db
+      .select()
+      .from(cases)
+      .where(eq(cases.isDeleted, false))
+      .orderBy(desc(cases.createdAt));
   }
 
   async getCasesByProject(projectName: string): Promise<Case[]> {
     return await db
       .select()
       .from(cases)
-      .where(eq(cases.projectName, projectName))
+      .where(and(
+        eq(cases.projectName, projectName),
+        eq(cases.isDeleted, false)
+      ))
       .orderBy(desc(cases.createdAt));
   }
 
@@ -65,7 +72,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllWeeklyReports(): Promise<WeeklyReport[]> {
-    return await db.select().from(weeklyReports).orderBy(desc(weeklyReports.reportPeriodStart));
+    // 削除されていない案件の週次報告のみを取得
+    // まず削除されていない案件のIDを取得
+    const activeCases = await db
+      .select({ id: cases.id })
+      .from(cases)
+      .where(eq(cases.isDeleted, false));
+    
+    const activeCaseIds = activeCases.map(c => c.id);
+    
+    if (activeCaseIds.length === 0) {
+      return [];
+    }
+    
+    // 削除されていない案件に関する週次報告のみを取得
+    const reports = await db
+      .select()
+      .from(weeklyReports)
+      .where(
+        activeCaseIds.length === 1 
+          ? eq(weeklyReports.caseId, activeCaseIds[0])
+          : inArray(weeklyReports.caseId, activeCaseIds)
+      )
+      .orderBy(desc(weeklyReports.reportPeriodStart));
+    
+    return reports;
   }
 
   async updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport> {

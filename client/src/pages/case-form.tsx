@@ -53,11 +53,12 @@ export default function CaseForm() {
   // existingCaseが変更されたときにフォームを更新
   useEffect(() => {
     if (existingCase) {
+      const { projectName, caseName, description, isDeleted } = existingCase;
       form.reset({
-        projectName: existingCase.projectName,
-        caseName: existingCase.caseName,
-        description: existingCase.description || "",
-        isDeleted: existingCase.isDeleted || false,
+        projectName,
+        caseName,
+        description: description || "",
+        isDeleted: isDeleted || false,
       });
     }
   }, [existingCase, form]);
