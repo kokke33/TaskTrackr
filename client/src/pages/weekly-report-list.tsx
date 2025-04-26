@@ -19,6 +19,18 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import ReactMarkdown from 'react-markdown';
 
+// レスポンスの型定義
+type MonthlySummaryResponse = {
+  projectName: string;
+  period: {
+    start: string;
+    end: string;
+  };
+  summary: string;
+  reportCount: number;
+  caseCount: number;
+};
+
 export default function WeeklyReportList() {
   const { toast } = useToast();
   const [location] = useLocation();
@@ -27,6 +39,36 @@ export default function WeeklyReportList() {
   const [monthlySummary, setMonthlySummary] = useState<string>("");
   const [summaryDialogOpen, setSummaryDialogOpen] = useState<boolean>(false);
   const [monthlySummaryPeriod, setMonthlySummaryPeriod] = useState<{start: string, end: string} | null>(null);
+  
+  // 月次サマリーを生成するmutation
+  const monthlySummaryMutation = useMutation<MonthlySummaryResponse, Error, string>({
+    mutationFn: async (projectName: string) => {
+      return apiRequest<MonthlySummaryResponse>(
+        `/api/monthly-summary/${encodeURIComponent(projectName)}`, 
+        { method: "GET" }
+      );
+    },
+    onSuccess: (data) => {
+      setMonthlySummary(data.summary);
+      if (data.period) {
+        setMonthlySummaryPeriod(data.period);
+      }
+      setSummaryDialogOpen(true);
+      
+      toast({
+        title: "月次報告書の生成が完了しました",
+        description: `${data.reportCount}件の週次報告から作成しました`,
+      });
+    },
+    onError: (error) => {
+      console.error("Error generating monthly summary:", error);
+      toast({
+        title: "エラー",
+        description: "月次報告書の生成に失敗しました",
+        variant: "destructive",
+      });
+    }
+  });
   
   // URLパラメータから初期値を設定
   useEffect(() => {
@@ -253,48 +295,6 @@ export default function WeeklyReportList() {
   const resetCaseSelection = () => {
     setSelectedCase(null);
   };
-  
-  // レスポンスの型定義
-  type MonthlySummaryResponse = {
-    projectName: string;
-    period: {
-      start: string;
-      end: string;
-    };
-    summary: string;
-    reportCount: number;
-    caseCount: number;
-  };
-  
-  // 月次サマリーを生成するmutation
-  const monthlySummaryMutation = useMutation({
-    mutationFn: async (projectName: string) => {
-      return apiRequest<MonthlySummaryResponse>(
-        `/api/monthly-summary/${encodeURIComponent(projectName)}`, 
-        { method: "GET" }
-      );
-    },
-    onSuccess: (data: MonthlySummaryResponse) => {
-      setMonthlySummary(data.summary);
-      if (data.period) {
-        setMonthlySummaryPeriod(data.period);
-      }
-      setSummaryDialogOpen(true);
-      
-      toast({
-        title: "月次報告書の生成が完了しました",
-        description: `${data.reportCount}件の週次報告から作成しました`,
-      });
-    },
-    onError: (error) => {
-      console.error("Error generating monthly summary:", error);
-      toast({
-        title: "エラー",
-        description: "月次報告書の生成に失敗しました",
-        variant: "destructive",
-      });
-    }
-  });
   
   // 月次サマリーを生成する処理
   const generateMonthlySummary = (projectName: string) => {
