@@ -121,7 +121,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/monthly-summary/:projectName", async (req, res) => {
     try {
       const { projectName } = req.params;
-      const { startDate: startDateQuery, endDate: endDateQuery } = req.query;
+      const { startDate: startDateQuery, endDate: endDateQuery, caseId } = req.query;
+      
+      // デバッグ用にクエリパラメータをログ出力
+      console.log("月次報告生成クエリパラメータ:", {
+        projectName,
+        startDateQuery,
+        endDateQuery,
+        caseId: req.query.caseId
+      });
       
       // クエリパラメータから日付を取得、なければデフォルトで直近1か月を使用
       let endDate = new Date();
@@ -146,8 +154,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      // 全ての案件に対して直近1か月の週次報告を取得
-      const caseIds = projectCases.map(c => c.id);
+      // 選択された案件IDsがある場合はフィルタリング
+      let filteredCases = projectCases;
+      
+      // caseIdパラメータ（複数可能）を処理
+      if (caseId) {
+        // caseIdを配列として処理
+        const selectedCaseIds = Array.isArray(caseId) 
+          ? caseId.map(id => parseInt(id.toString(), 10))
+          : [parseInt(caseId.toString(), 10)];
+        
+        console.log("選択された案件IDs:", selectedCaseIds);
+        
+        filteredCases = projectCases.filter(c => selectedCaseIds.includes(c.id));
+        
+        // 選択案件がない場合はエラー
+        if (filteredCases.length === 0) {
+          res.status(404).json({ message: "選択された案件が見つかりません" });
+          return;
+        }
+      }
+      
+      // 選択された案件から週次報告を取得
+      const caseIds = filteredCases.map(c => c.id);
       const lastMonthReports = [];
       
       for (const caseId of caseIds) {
