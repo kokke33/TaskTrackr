@@ -17,6 +17,7 @@ import {
   DialogClose 
 } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
+import ReactMarkdown from 'react-markdown';
 
 export default function WeeklyReportList() {
   const { toast } = useToast();
@@ -253,12 +254,27 @@ export default function WeeklyReportList() {
     setSelectedCase(null);
   };
   
+  // レスポンスの型定義
+  type MonthlySummaryResponse = {
+    projectName: string;
+    period: {
+      start: string;
+      end: string;
+    };
+    summary: string;
+    reportCount: number;
+    caseCount: number;
+  };
+  
   // 月次サマリーを生成するmutation
   const monthlySummaryMutation = useMutation({
     mutationFn: async (projectName: string) => {
-      return apiRequest(`/api/monthly-summary/${encodeURIComponent(projectName)}`, { method: "GET" });
+      return apiRequest<MonthlySummaryResponse>(
+        `/api/monthly-summary/${encodeURIComponent(projectName)}`, 
+        { method: "GET" }
+      );
     },
-    onSuccess: (data) => {
+    onSuccess: (data: MonthlySummaryResponse) => {
       setMonthlySummary(data.summary);
       if (data.period) {
         setMonthlySummaryPeriod(data.period);
@@ -482,6 +498,50 @@ export default function WeeklyReportList() {
           </div>
         )}
       </div>
+      
+      {/* 月次報告書ダイアログ */}
+      <Dialog open={summaryDialogOpen} onOpenChange={setSummaryDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedProject && `${selectedProject}の月次状況報告書`}
+            </DialogTitle>
+            <DialogDescription>
+              {monthlySummaryPeriod && (
+                <span>
+                  期間: {monthlySummaryPeriod.start} 〜 {monthlySummaryPeriod.end}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4 p-4 border rounded-lg bg-muted/30">
+            {monthlySummary ? (
+              <div className="prose prose-sm dark:prose-invert max-w-full">
+                <ReactMarkdown>{monthlySummary}</ReactMarkdown>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              onClick={copyMonthlySummaryToClipboard}
+              disabled={!monthlySummary}
+              className="flex items-center gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              コピー
+            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">閉じる</Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
