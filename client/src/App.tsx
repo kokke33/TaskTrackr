@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./lib/auth";
+import { ProtectedRoute } from "./lib/protected-route";
 import Login from "@/pages/login";
 import Home from "@/pages/Home";
 import WeeklyReport from "@/pages/weekly-report";
@@ -16,14 +17,14 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
-      <Route path="/" component={Home} />
-      <Route path="/report/new" component={WeeklyReport} />
-      <Route path="/report/edit/:id" component={WeeklyReport} />
-      <Route path="/reports" component={WeeklyReportList} />
-      <Route path="/reports/:id" component={WeeklyReportDetail} />
-      <Route path="/cases" component={CaseList} />
-      <Route path="/case/new" component={CaseForm} />
-      <Route path="/case/edit/:id" component={CaseForm} />
+      <ProtectedRoute path="/" component={Home} />
+      <ProtectedRoute path="/report/new" component={WeeklyReport} />
+      <ProtectedRoute path="/report/edit/:id" component={WeeklyReport} />
+      <ProtectedRoute path="/reports" component={WeeklyReportList} />
+      <ProtectedRoute path="/reports/:id" component={WeeklyReportDetail} />
+      <ProtectedRoute path="/cases" component={CaseList} />
+      <ProtectedRoute path="/case/new" component={CaseForm} />
+      <ProtectedRoute path="/case/edit/:id" component={CaseForm} />
       <Route component={NotFound} />
     </Switch>
   );

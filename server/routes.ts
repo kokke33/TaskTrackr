@@ -13,7 +13,11 @@ const openai = new OpenAI({
 export async function registerRoutes(app: Express): Promise<Server> {
   // 認証関連のエンドポイント
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.json({ message: "ログイン成功" });
+    // ユーザー情報と成功メッセージを返す
+    res.json({ 
+      message: "ログイン成功",
+      user: req.user
+    });
   });
 
   app.post("/api/logout", (req, res) => {
