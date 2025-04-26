@@ -572,7 +572,7 @@ export default function WeeklyReportList() {
             </div>
           </div>
           
-          <DialogFooter>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4">
             <Button
               variant="outline"
               onClick={() => setDateDialogOpen(false)}
@@ -585,7 +585,7 @@ export default function WeeklyReportList() {
             >
               この期間で生成
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
       
