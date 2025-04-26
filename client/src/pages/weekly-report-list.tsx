@@ -555,6 +555,7 @@ export default function WeeklyReportList() {
                   mode="single"
                   selected={startDate}
                   onSelect={setStartDate}
+                  defaultMonth={startDate}
                   className="border rounded-md mx-auto"
                 />
               </div>
