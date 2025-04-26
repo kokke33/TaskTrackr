@@ -47,26 +47,19 @@ export default function Login() {
 
   const onSubmit = async (data: LoginForm) => {
     try {
-      const response = await apiRequest("/api/login", {
+      const responseData = await apiRequest("/api/login", {
         method: "POST",
         data,
       });
       
-      if (response.ok) {
-        const responseData = await response.json();
-        
-        // 認証状態を更新
-        login();
-        
-        toast({
-          title: "ログイン成功",
-          description: `${responseData.user?.username}さん、ようこそ！`,
-        });
-        setLocation("/");
-      } else {
-        const error = await response.json();
-        throw new Error(error.message || "ログインに失敗しました");
-      }
+      // 認証状態を更新
+      login();
+      
+      toast({
+        title: "ログイン成功",
+        description: `${responseData.user?.username || ''}さん、ようこそ！`,
+      });
+      setLocation("/");
     } catch (error) {
       toast({
         title: "エラー",

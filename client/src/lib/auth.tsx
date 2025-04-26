@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "./queryClient";
 
 // ユーザー情報の型
 interface User {
@@ -29,9 +30,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch("/api/logout", { 
-        method: "POST",
-        credentials: 'include'
+      await apiRequest("/api/logout", { 
+        method: "POST"
       });
       setIsAuthenticated(false);
       setUser(null);
@@ -55,27 +55,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const response = await fetch("/api/check-auth", {
-          credentials: 'include'
+        const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
+          method: "GET"
         });
         
-        if (response.ok) {
-          const data = await response.json();
-          setIsAuthenticated(true);
-          setUser(data.user || null);
-        } else {
-          setIsAuthenticated(false);
-          setUser(null);
-          
-          // ログインページ以外にいる場合はリダイレクト
-          if (window.location.pathname !== "/login") {
-            setLocation("/login");
-          }
-        }
+        setIsAuthenticated(true);
+        setUser(data.user || null);
       } catch (error) {
         console.error("Auth check failed:", error);
         setIsAuthenticated(false);
         setUser(null);
+        
+        // ログインページ以外にいる場合はリダイレクト
+        if (window.location.pathname !== "/login") {
+          setLocation("/login");
+        }
       }
     }
 
