@@ -28,7 +28,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/check-auth", (req, res) => {
     if (req.isAuthenticated()) {
-      res.json({ authenticated: true });
+      res.json({ 
+        authenticated: true,
+        user: req.user
+      });
     } else {
       res.status(401).json({
         authenticated: false,

@@ -1,8 +1,16 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+
+// ユーザー情報の型
+interface User {
+  id: number;
+  username: string;
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  user: User | null;
   login: () => void;
   logout: () => void;
 }
@@ -11,7 +19,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const login = () => {
     setIsAuthenticated(true);
@@ -24,9 +34,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         credentials: 'include'
       });
       setIsAuthenticated(false);
+      setUser(null);
       setLocation("/login");
+      
+      toast({
+        title: "ログアウト成功",
+        description: "正常にログアウトしました。",
+      });
     } catch (error) {
       console.error("Logout failed:", error);
+      toast({
+        title: "エラー",
+        description: "ログアウトに失敗しました。",
+        variant: "destructive",
+      });
     }
   };
 
@@ -37,10 +58,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const response = await fetch("/api/check-auth", {
           credentials: 'include'
         });
+        
         if (response.ok) {
+          const data = await response.json();
           setIsAuthenticated(true);
+          setUser(data.user || null);
         } else {
           setIsAuthenticated(false);
+          setUser(null);
+          
+          // ログインページ以外にいる場合はリダイレクト
           if (window.location.pathname !== "/login") {
             setLocation("/login");
           }
@@ -48,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error("Auth check failed:", error);
         setIsAuthenticated(false);
+        setUser(null);
       }
     }
 
@@ -55,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [setLocation]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

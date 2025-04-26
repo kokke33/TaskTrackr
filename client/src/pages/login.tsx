@@ -53,12 +53,14 @@ export default function Login() {
       });
       
       if (response.ok) {
+        const responseData = await response.json();
+        
         // 認証状態を更新
         login();
         
         toast({
           title: "ログイン成功",
-          description: "ダッシュボードへ移動します。",
+          description: `${responseData.user?.username}さん、ようこそ！`,
         });
         setLocation("/");
       } else {
