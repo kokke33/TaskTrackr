@@ -42,14 +42,8 @@ export default function WeeklyReportList() {
   const [summaryDialogOpen, setSummaryDialogOpen] = useState<boolean>(false);
   const [dateDialogOpen, setDateDialogOpen] = useState<boolean>(false);
   const [monthlySummaryPeriod, setMonthlySummaryPeriod] = useState<{start: string, end: string} | null>(null);
-  const [startDate, setStartDate] = useState<Date | undefined>(
-    () => {
-      const date = new Date();
-      date.setMonth(date.getMonth() - 1);
-      return date;
-    }
-  );
-  const [endDate, setEndDate] = useState<Date | undefined>(new Date());
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [tempProjectName, setTempProjectName] = useState<string>("");
   
   // 月次サマリーを生成するmutation
@@ -319,6 +313,14 @@ export default function WeeklyReportList() {
   
   // 月次サマリー生成のための日付選択ダイアログを表示
   const showDateDialog = (projectName: string) => {
+    // 日付を1ヶ月前に初期化
+    const end = new Date();
+    const start = new Date();
+    start.setMonth(start.getMonth() - 1);
+    
+    // 日付を設定
+    setEndDate(end);
+    setStartDate(start);
     setTempProjectName(projectName);
     setDateDialogOpen(true);
   };
@@ -566,6 +568,7 @@ export default function WeeklyReportList() {
                   mode="single"
                   selected={endDate}
                   onSelect={setEndDate}
+                  defaultMonth={endDate}
                   className="border rounded-md mx-auto"
                   disabled={(date) => 
                     startDate ? date < startDate : false
