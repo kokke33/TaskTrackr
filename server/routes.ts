@@ -121,7 +121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/monthly-summary/:projectName", async (req, res) => {
     try {
       const { projectName } = req.params;
-      const { startDate: startDateQuery, endDate: endDateQuery } = req.query;
+      const { startDate: startDateQuery, endDate: endDateQuery, caseId } = req.query;
       
       // クエリパラメータから日付を取得、なければデフォルトで直近1か月を使用
       let endDate = new Date();
@@ -146,14 +146,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      // 全ての案件に対して直近1か月の週次報告を取得
-      const caseIds = projectCases.map(c => c.id);
+      // 選択された案件IDがある場合はフィルタリング
+      let targetCaseIds: number[] = [];
+      
+      if (caseId) {
+        // 複数の案件IDが渡される場合は配列として処理
+        if (Array.isArray(caseId)) {
+          targetCaseIds = caseId.map(id => parseInt(id.toString())).filter(id => !isNaN(id));
+        } else {
+          // 単一の案件IDの場合
+          const parsedId = parseInt(caseId.toString());
+          if (!isNaN(parsedId)) {
+            targetCaseIds = [parsedId];
+          }
+        }
+        
+        // 対象の案件がプロジェクトに含まれるものだけに絞る
+        const projectCaseIds = projectCases.map(c => c.id);
+        targetCaseIds = targetCaseIds.filter(id => projectCaseIds.includes(id));
+      }
+      
+      // 対象の案件IDがない場合は全ての案件を対象にする
+      if (targetCaseIds.length === 0) {
+        targetCaseIds = projectCases.map(c => c.id);
+      }
+      
+      // 対象案件に対して週次報告を取得
       const lastMonthReports = [];
       
-      for (const caseId of caseIds) {
+      for (const caseId of targetCaseIds) {
         const reports = await storage.getWeeklyReportsByCase(caseId);
         
-        // 日付でフィルタリング（直近1か月のものだけ）
+        // 日付でフィルタリング（指定期間のものだけ）
         const filteredReports = reports.filter(report => {
           const reportDate = new Date(report.reportPeriodEnd);
           return reportDate >= startDate && reportDate <= endDate;
@@ -194,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/monthly-summary-input/:projectName", async (req, res) => {
     try {
       const { projectName } = req.params;
-      const { startDate: startDateQuery, endDate: endDateQuery } = req.query;
+      const { startDate: startDateQuery, endDate: endDateQuery, caseId } = req.query;
       
       // クエリパラメータから日付を取得、なければデフォルトで直近1か月を使用
       let endDate = new Date();
@@ -219,11 +243,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      // 全ての案件に対して指定期間の週次報告を取得
-      const caseIds = projectCases.map(c => c.id);
+      // 選択された案件IDがある場合はフィルタリング
+      let targetCaseIds: number[] = [];
+      
+      if (caseId) {
+        // 複数の案件IDが渡される場合は配列として処理
+        if (Array.isArray(caseId)) {
+          targetCaseIds = caseId.map(id => parseInt(id.toString())).filter(id => !isNaN(id));
+        } else {
+          // 単一の案件IDの場合
+          const parsedId = parseInt(caseId.toString());
+          if (!isNaN(parsedId)) {
+            targetCaseIds = [parsedId];
+          }
+        }
+        
+        // 対象の案件がプロジェクトに含まれるものだけに絞る
+        const projectCaseIds = projectCases.map(c => c.id);
+        targetCaseIds = targetCaseIds.filter(id => projectCaseIds.includes(id));
+      }
+      
+      // 対象の案件IDがない場合は全ての案件を対象にする
+      if (targetCaseIds.length === 0) {
+        targetCaseIds = projectCases.map(c => c.id);
+      }
+      
+      // 対象案件に対して週次報告を取得
       const periodReports = [];
       
-      for (const caseId of caseIds) {
+      for (const caseId of targetCaseIds) {
         const reports = await storage.getWeeklyReportsByCase(caseId);
         
         // 日付でフィルタリング
