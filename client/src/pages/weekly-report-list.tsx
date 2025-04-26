@@ -45,6 +45,37 @@ export default function WeeklyReportList() {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [tempProjectName, setTempProjectName] = useState<string>("");
+  const [promptData, setPromptData] = useState<string>("");
+  
+  // 月次サマリー入力データを取得するmutation
+  const monthlySummaryInputMutation = useMutation<{prompt: string}, Error, { projectName: string, startDate?: string, endDate?: string }>({
+    mutationFn: async ({ projectName, startDate, endDate }) => {
+      let url = `/api/monthly-summary-input/${encodeURIComponent(projectName)}`;
+      
+      // クエリパラメータを追加
+      const params = new URLSearchParams();
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      // クエリパラメータがある場合は追加
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      return apiRequest<{prompt: string}>(url, { method: "GET" });
+    },
+    onSuccess: (data) => {
+      setPromptData(data.prompt);
+    },
+    onError: (error) => {
+      console.error("Error retrieving monthly summary input data:", error);
+      toast({
+        title: "エラー",
+        description: "月次報告書の入力データの取得に失敗しました",
+        variant: "destructive",
+      });
+    }
+  });
   
   // 月次サマリーを生成するmutation
   const monthlySummaryMutation = useMutation<MonthlySummaryResponse, Error, { projectName: string, startDate?: string, endDate?: string }>({
@@ -350,6 +381,47 @@ export default function WeeklyReportList() {
     });
   };
   
+  // 選択された期間のインプットデータを取得してコピー
+  const getAndCopyInputData = () => {
+    if (!tempProjectName || !startDate || !endDate) return;
+    
+    // yyyy-MM-dd形式にフォーマット
+    const formatDate = (date: Date) => {
+      return date.toISOString().split('T')[0];
+    };
+    
+    toast({
+      title: "入力データを取得中",
+      description: "インプットデータの準備中です...",
+    });
+    
+    // インプットデータを取得
+    monthlySummaryInputMutation.mutate({
+      projectName: tempProjectName,
+      startDate: formatDate(startDate),
+      endDate: formatDate(endDate)
+    }, {
+      onSuccess: (data) => {
+        // 成功したらクリップボードにコピー
+        navigator.clipboard
+          .writeText(data.prompt)
+          .then(() => {
+            toast({
+              title: "コピー完了",
+              description: "月次報告書の生成に使用するインプットデータをクリップボードにコピーしました。",
+            });
+          })
+          .catch(() => {
+            toast({
+              title: "エラー",
+              description: "クリップボードへのコピーに失敗しました。",
+              variant: "destructive",
+            });
+          });
+      }
+    });
+  };
+  
   // 月次サマリーをクリップボードにコピーする処理
   const copyMonthlySummaryToClipboard = () => {
     if (!monthlySummary) return;
@@ -578,19 +650,42 @@ export default function WeeklyReportList() {
             </div>
           </div>
           
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4">
+          <div className="flex flex-row flex-wrap justify-between items-center gap-2 mt-4">
             <Button
               variant="outline"
-              onClick={() => setDateDialogOpen(false)}
+              onClick={getAndCopyInputData}
+              disabled={!startDate || !endDate || monthlySummaryInputMutation.isPending}
+              className="flex items-center gap-2"
             >
-              キャンセル
+              {monthlySummaryInputMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+              {monthlySummaryInputMutation.isPending 
+                ? "コピー中..." 
+                : "インプットデータをコピー"}
             </Button>
-            <Button 
-              onClick={generateMonthlySummaryWithDates}
-              disabled={!startDate || !endDate}
-            >
-              この期間で生成
-            </Button>
+            
+            <div className="flex flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setDateDialogOpen(false)}
+              >
+                キャンセル
+              </Button>
+              <Button 
+                onClick={generateMonthlySummaryWithDates}
+                disabled={!startDate || !endDate || monthlySummaryMutation.isPending}
+              >
+                {monthlySummaryMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                {monthlySummaryMutation.isPending 
+                  ? "生成中..." 
+                  : "この期間で生成"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
