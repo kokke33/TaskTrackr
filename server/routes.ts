@@ -113,11 +113,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/monthly-summary/:projectName", async (req, res) => {
     try {
       const { projectName } = req.params;
+      const { startDate: startDateQuery, endDate: endDateQuery } = req.query;
       
-      // 現在の日付から1か月前までの日付を取得
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setMonth(startDate.getMonth() - 1);
+      // クエリパラメータから日付を取得、なければデフォルトで直近1か月を使用
+      let endDate = new Date();
+      let startDate = new Date();
+      
+      if (endDateQuery && typeof endDateQuery === 'string') {
+        endDate = new Date(endDateQuery);
+      }
+      
+      if (startDateQuery && typeof startDateQuery === 'string') {
+        startDate = new Date(startDateQuery);
+      } else {
+        // デフォルトで直近1か月
+        startDate.setMonth(startDate.getMonth() - 1);
+      }
       
       // プロジェクト名に紐づく案件を全て取得
       const projectCases = await storage.getCasesByProject(projectName);
@@ -144,7 +155,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (lastMonthReports.length === 0) {
-        res.status(404).json({ message: "直近1か月の週次報告が見つかりません" });
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+        res.status(404).json({ 
+          message: `指定された期間(${startDateStr}～${endDateStr})の週次報告が見つかりません` 
+        });
         return;
       }
       
@@ -295,12 +310,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // プロンプト作成
       let prompt = `
-以下のデータをもとに、プロジェクト「${projectName}」の直近1ヶ月の月次状況報告書を作成してください。
+以下のデータをもとに、プロジェクト「${projectName}」の指定された期間の月次状況報告書を作成してください。
 報告書は、経営層やプロジェクト責任者が全体状況を把握できるよう、簡潔かつ要点を押さえた内容にしてください。
 
 【プロジェクト】 ${projectName}
 
-【対象期間】 ${new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0]} 〜 ${new Date().toISOString().split('T')[0]}
+【対象期間】 ${startDate.toISOString().split('T')[0]} 〜 ${endDate.toISOString().split('T')[0]}
 
 【プロジェクト内の案件と週次報告データ】
 `;

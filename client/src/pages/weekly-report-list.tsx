@@ -41,12 +41,21 @@ export default function WeeklyReportList() {
   const [monthlySummaryPeriod, setMonthlySummaryPeriod] = useState<{start: string, end: string} | null>(null);
   
   // 月次サマリーを生成するmutation
-  const monthlySummaryMutation = useMutation<MonthlySummaryResponse, Error, string>({
-    mutationFn: async (projectName: string) => {
-      return apiRequest<MonthlySummaryResponse>(
-        `/api/monthly-summary/${encodeURIComponent(projectName)}`, 
-        { method: "GET" }
-      );
+  const monthlySummaryMutation = useMutation<MonthlySummaryResponse, Error, { projectName: string, startDate?: string, endDate?: string }>({
+    mutationFn: async ({ projectName, startDate, endDate }) => {
+      let url = `/api/monthly-summary/${encodeURIComponent(projectName)}`;
+      
+      // クエリパラメータを追加
+      const params = new URLSearchParams();
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      // クエリパラメータがある場合は追加
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      return apiRequest<MonthlySummaryResponse>(url, { method: "GET" });
     },
     onSuccess: (data) => {
       setMonthlySummary(data.summary);
