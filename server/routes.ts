@@ -181,6 +181,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "月次報告書の生成に失敗しました" });
     }
   });
+  
+  // 月次レポート生成のためのインプットデータを取得するAPIエンドポイント
+  app.get("/api/monthly-summary-input/:projectName", async (req, res) => {
+    try {
+      const { projectName } = req.params;
+      const { startDate: startDateQuery, endDate: endDateQuery } = req.query;
+      
+      // クエリパラメータから日付を取得、なければデフォルトで直近1か月を使用
+      let endDate = new Date();
+      let startDate = new Date();
+      
+      if (endDateQuery && typeof endDateQuery === 'string') {
+        endDate = new Date(endDateQuery);
+      }
+      
+      if (startDateQuery && typeof startDateQuery === 'string') {
+        startDate = new Date(startDateQuery);
+      } else {
+        // デフォルトで直近1か月
+        startDate.setMonth(startDate.getMonth() - 1);
+      }
+      
+      // プロジェクト名に紐づく案件を全て取得
+      const projectCases = await storage.getCasesByProject(projectName);
+      
+      if (projectCases.length === 0) {
+        res.status(404).json({ message: "プロジェクトに関連する案件が見つかりません" });
+        return;
+      }
+      
+      // 全ての案件に対して指定期間の週次報告を取得
+      const caseIds = projectCases.map(c => c.id);
+      const periodReports = [];
+      
+      for (const caseId of caseIds) {
+        const reports = await storage.getWeeklyReportsByCase(caseId);
+        
+        // 日付でフィルタリング
+        const filteredReports = reports.filter(report => {
+          const reportDate = new Date(report.reportPeriodEnd);
+          return reportDate >= startDate && reportDate <= endDate;
+        });
+        
+        periodReports.push(...filteredReports);
+      }
+      
+      // 案件をID基準のマップとして整理
+      const caseMap: Record<number, { caseName: string; description: string | null; reports: any[] }> = {};
+      
+      projectCases.forEach(case_ => {
+        caseMap[case_.id] = {
+          caseName: case_.caseName,
+          description: case_.description,
+          reports: []
+        };
+      });
+      
+      // 週次報告を案件ごとに整理
+      periodReports.forEach(report => {
+        if (caseMap[report.caseId]) {
+          caseMap[report.caseId].reports.push(report);
+        }
+      });
+      
+      // AIプロンプト用のデータ構成
+      let prompt = `
+以下のデータをもとに、プロジェクト「${projectName}」の指定された期間の月次状況報告書を作成してください。
+報告書は、経営層やプロジェクト責任者が全体状況を把握できるよう、簡潔かつ要点を押さえた内容にしてください。
+
+【プロジェクト】 ${projectName}
+
+【対象期間】 ${startDate.toISOString().split('T')[0]} 〜 ${endDate.toISOString().split('T')[0]}
+
+【プロジェクト内の案件と週次報告データ】
+`;
+      
+      // 各案件の情報をプロンプトに追加
+      Object.values(caseMap).forEach((caseInfo) => {
+        prompt += `
+■ 案件: ${caseInfo.caseName}
+${caseInfo.description ? `説明: ${caseInfo.description}` : ""}
+報告数: ${caseInfo.reports.length}件
+
+`;
+        
+        // 各案件の報告内容をプロンプトに追加
+        if (caseInfo.reports.length > 0) {
+          // 日付順にソート
+          caseInfo.reports.sort((a: any, b: any) => 
+            new Date(a.reportPeriodEnd).getTime() - new Date(b.reportPeriodEnd).getTime()
+          );
+          
+          // 最大5件までの報告を表示
+          const displayReports = caseInfo.reports.slice(-5);
+          
+          displayReports.forEach((report: any) => {
+            prompt += `
+報告期間: ${report.reportPeriodStart} 〜 ${report.reportPeriodEnd}
+報告者: ${report.reporterName}
+進捗率: ${report.progressRate}%
+進捗状況: ${report.progressStatus}
+作業内容: ${report.weeklyTasks}
+課題・問題点: ${report.issues}
+リスク: ${report.newRisks === "yes" ? report.riskSummary : "なし"}
+品質懸念: ${report.qualityConcerns !== "none" ? report.qualityDetails : "なし"}
+来週予定: ${report.nextWeekPlan}
+---
+`;
+          });
+        }
+      });
+      
+      prompt += `
+以上のデータを元に、以下の観点で月次状況報告書を作成してください：
+
+1. 全体進捗状況のサマリー
+2. 主な成果と完了項目
+3. 直面している課題やリスク、その対応策
+4. 各案件ごとの状況概要（現状と予定）
+5. 品質状況のまとめ
+6. 今後のスケジュールと目標
+7. 経営層に伝えるべきその他重要事項
+
+最終的なレポートは経営層向けに簡潔にまとめ、プロジェクト全体の健全性と今後の見通しが明確に伝わるように作成してください。
+Markdown形式で作成し、適切な見出しを使って整理してください。
+`;
+      
+      res.json({ 
+        projectName,
+        period: {
+          start: startDate.toISOString().split('T')[0],
+          end: endDate.toISOString().split('T')[0],
+        },
+        prompt: prompt,
+        reportCount: periodReports.length,
+        caseCount: projectCases.length
+      });
+    } catch (error) {
+      console.error("Error retrieving monthly summary input data:", error);
+      res.status(500).json({ message: "月次報告書の入力データの取得に失敗しました" });
+    }
+  });
 
   app.post("/api/weekly-reports", async (req, res) => {
     try {
@@ -372,7 +514,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 `;
 
       // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      const aiModel = "gpt-4o";
+      const aiModel = "gpt-4.1-mini";
       console.log(`Using AI model for monthly summary: ${aiModel}`);
       
       const completion = await openai.chat.completions.create({
