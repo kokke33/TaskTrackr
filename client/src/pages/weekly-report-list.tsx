@@ -7,15 +7,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Copy, List, Plus, ChevronRight, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogClose 
+  DialogClose,
+  DialogFooter
 } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
 import { apiRequest } from "@/lib/queryClient";
 import ReactMarkdown from 'react-markdown';
 
@@ -38,7 +40,17 @@ export default function WeeklyReportList() {
   const [selectedCase, setSelectedCase] = useState<number | null>(null);
   const [monthlySummary, setMonthlySummary] = useState<string>("");
   const [summaryDialogOpen, setSummaryDialogOpen] = useState<boolean>(false);
+  const [dateDialogOpen, setDateDialogOpen] = useState<boolean>(false);
   const [monthlySummaryPeriod, setMonthlySummaryPeriod] = useState<{start: string, end: string} | null>(null);
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    () => {
+      const date = new Date();
+      date.setMonth(date.getMonth() - 1);
+      return date;
+    }
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(new Date());
+  const [tempProjectName, setTempProjectName] = useState<string>("");
   
   // 月次サマリーを生成するmutation
   const monthlySummaryMutation = useMutation<MonthlySummaryResponse, Error, { projectName: string, startDate?: string, endDate?: string }>({
@@ -305,19 +317,35 @@ export default function WeeklyReportList() {
     setSelectedCase(null);
   };
   
-  // 月次サマリーを生成する処理
-  const generateMonthlySummary = (projectName: string) => {
-    if (!projectName) return;
+  // 月次サマリー生成のための日付選択ダイアログを表示
+  const showDateDialog = (projectName: string) => {
+    setTempProjectName(projectName);
+    setDateDialogOpen(true);
+  };
+  
+  // 選択された期間で月次サマリーを生成
+  const generateMonthlySummaryWithDates = () => {
+    if (!tempProjectName || !startDate || !endDate) return;
     
     setMonthlySummary("");
     setMonthlySummaryPeriod(null);
+    setDateDialogOpen(false);
     
     toast({
       title: "月次報告書を生成中",
       description: "OpenAI APIを使って処理中です。しばらくお待ちください...",
     });
     
-    monthlySummaryMutation.mutate(projectName);
+    // yyyy-MM-dd形式にフォーマット
+    const formatDate = (date: Date) => {
+      return date.toISOString().split('T')[0];
+    };
+    
+    monthlySummaryMutation.mutate({
+      projectName: tempProjectName,
+      startDate: formatDate(startDate),
+      endDate: formatDate(endDate)
+    });
   };
   
   // 月次サマリーをクリップボードにコピーする処理
@@ -412,7 +440,7 @@ export default function WeeklyReportList() {
                 <div className="mb-6 flex justify-between items-center">
                   <h2 className="text-xl font-semibold">{projectName}の案件一覧</h2>
                   <Button
-                    onClick={() => generateMonthlySummary(projectName)}
+                    onClick={() => showDateDialog(projectName)}
                     disabled={monthlySummaryMutation.isPending}
                     className="flex items-center gap-2"
                   >
@@ -508,12 +536,65 @@ export default function WeeklyReportList() {
         )}
       </div>
       
+      {/* 期間選択ダイアログ */}
+      <Dialog open={dateDialogOpen} onOpenChange={setDateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>期間を指定</DialogTitle>
+            <DialogDescription>
+              月次報告書を生成する期間を選択してください。
+              デフォルトでは直近1ヶ月が選択されています。
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col space-y-4 py-4">
+            <div className="flex flex-col space-y-2">
+              <div className="font-medium">開始日</div>
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={setStartDate}
+                className="border rounded-md"
+              />
+            </div>
+            
+            <div className="flex flex-col space-y-2">
+              <div className="font-medium">終了日</div>
+              <Calendar
+                mode="single"
+                selected={endDate}
+                onSelect={setEndDate}
+                className="border rounded-md"
+                disabled={(date) => 
+                  startDate ? date < startDate : false
+                }
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDateDialogOpen(false)}
+            >
+              キャンセル
+            </Button>
+            <Button 
+              onClick={generateMonthlySummaryWithDates}
+              disabled={!startDate || !endDate}
+            >
+              この期間で生成
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* 月次報告書ダイアログ */}
       <Dialog open={summaryDialogOpen} onOpenChange={setSummaryDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {selectedProject && `${selectedProject}の月次状況報告書`}
+              {tempProjectName && `${tempProjectName}の月次状況報告書`}
             </DialogTitle>
             <DialogDescription>
               {monthlySummaryPeriod && (

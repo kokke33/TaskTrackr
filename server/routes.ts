@@ -315,7 +315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 【プロジェクト】 ${projectName}
 
-【対象期間】 ${startDate.toISOString().split('T')[0]} 〜 ${endDate.toISOString().split('T')[0]}
+【対象期間】 ${reports.length > 0 ? new Date(reports[0].reportPeriodStart).toISOString().split('T')[0] : ""} 〜 ${reports.length > 0 ? new Date(reports[reports.length - 1].reportPeriodEnd).toISOString().split('T')[0] : ""}
 
 【プロジェクト内の案件と週次報告データ】
 `;
