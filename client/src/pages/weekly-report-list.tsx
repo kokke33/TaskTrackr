@@ -166,7 +166,7 @@ export default function WeeklyReportList() {
   if (isLoadingReports || isLoadingCases || (selectedCase !== null && isLoadingCaseReports)) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
           <p className="text-center">読み込み中...</p>
         </div>
       </div>
@@ -447,7 +447,7 @@ export default function WeeklyReportList() {
     <div className="min-h-screen bg-background">
       <ThemeToggle />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
         <header className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-3xl font-bold text-primary">週次報告一覧</h1>
