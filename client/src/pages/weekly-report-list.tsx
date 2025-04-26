@@ -120,9 +120,14 @@ export default function WeeklyReportList() {
       }
       setSummaryDialogOpen(true);
       
+      // 選択された案件数に関する情報を追加
+      const selectedMsg = selectedCaseIds.length > 0 
+        ? `選択された${selectedCaseIds.length}件の案件の` 
+        : "";
+      
       toast({
         title: "月次報告書の生成が完了しました",
-        description: `${data.reportCount}件の週次報告から作成しました`,
+        description: `${selectedMsg}${data.reportCount}件の週次報告から作成しました`,
       });
     },
     onError: (error) => {
@@ -452,20 +457,37 @@ export default function WeeklyReportList() {
       description: "インプットデータの準備中です...",
     });
     
-    // インプットデータを取得
-    monthlySummaryInputMutation.mutate({
+    // 選択された案件IDsがある場合のみ含める
+    const params: {
+      projectName: string, 
+      startDate: string, 
+      endDate: string,
+      caseIds?: number[]
+    } = {
       projectName: tempProjectName,
       startDate: formatDate(startDate),
       endDate: formatDate(endDate)
-    }, {
+    };
+    
+    // 案件が選択されている場合は追加
+    if (selectedCaseIds.length > 0) {
+      params.caseIds = selectedCaseIds;
+    }
+    
+    // インプットデータを取得
+    monthlySummaryInputMutation.mutate(params, {
       onSuccess: (data) => {
         // 成功したらクリップボードにコピー
         navigator.clipboard
           .writeText(data.prompt)
           .then(() => {
+            const selectedMsg = selectedCaseIds.length > 0 
+              ? `（選択された${selectedCaseIds.length}件の案件が対象）` 
+              : "";
+            
             toast({
               title: "コピー完了",
-              description: "月次報告書の生成に使用するインプットデータをクリップボードにコピーしました。",
+              description: `月次報告書の生成に使用するインプットデータをクリップボードにコピーしました。${selectedMsg}`,
             });
           })
           .catch(() => {
