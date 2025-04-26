@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Plus, AlertCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function CaseList() {
-  const [showDeleted, setShowDeleted] = useState(true);
+  const [showDeleted, setShowDeleted] = useState(false);
   
-  const { data: cases, isLoading } = useQuery<Case[]>({
+  const { data: cases, isLoading, refetch } = useQuery<Case[]>({
     queryKey: ["/api/cases"],
     queryFn: async () => {
       const url = `/api/cases?includeDeleted=${showDeleted}`;
@@ -28,6 +28,11 @@ export default function CaseList() {
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
+  
+  // showDeletedが変更されたらデータを再取得する
+  useEffect(() => {
+    refetch();
+  }, [showDeleted, refetch]);
 
   // プロジェクト名でグループ化
   const groupedCases = cases?.reduce((acc, currentCase) => {
