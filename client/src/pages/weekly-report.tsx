@@ -408,6 +408,16 @@ export default function WeeklyReport() {
                         </FormControl>
                         <span>%</span>
                       </div>
+                      <div className="text-sm text-muted-foreground mt-2">
+                        <p className="mb-1">進捗率の計算方法の例:</p>
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li>マイルストーンベース: 達成したマイルストーン ÷ 全マイルストーン数</li>
+                          <li>タスクベース: 完了したタスク数 ÷ 全タスク数</li>
+                          <li>工数ベース: 消費した工数 ÷ 計画工数</li>
+                          <li>成果物ベース: 完成した成果物の割合</li>
+                        </ul>
+                        <p className="mt-2">※ 一貫した計算方法を使用することで、週ごとの比較が容易になります。</p>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -431,16 +441,19 @@ export default function WeeklyReport() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="on-schedule">予定通り</SelectItem>
+                          <SelectItem value="on-schedule">予定通り（計画の±5%以内）</SelectItem>
                           <SelectItem value="slightly-delayed">
-                            少し遅れている
+                            少し遅れている（計画より5〜15%遅延）
                           </SelectItem>
                           <SelectItem value="severely-delayed">
-                            大幅に遅れている
+                            大幅に遅れている（計画より15%以上遅延）
                           </SelectItem>
-                          <SelectItem value="ahead">前倒しで進行中</SelectItem>
+                          <SelectItem value="ahead">前倒しで進行中（計画より5%以上前倒し）</SelectItem>
                         </SelectContent>
                       </Select>
+                      <div className="text-sm text-muted-foreground mt-2">
+                        進捗状況は、計画工数や計画タスク数との比較、または主要なマイルストーンの達成予定日との比較に基づいて評価してください。
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
