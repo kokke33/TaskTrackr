@@ -1,19 +1,31 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { WeeklyReport, Case } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Copy, List, Plus, ChevronRight } from "lucide-react";
+import { Copy, List, Plus, ChevronRight, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogClose 
+} from "@/components/ui/dialog";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function WeeklyReportList() {
   const { toast } = useToast();
   const [location] = useLocation();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [selectedCase, setSelectedCase] = useState<number | null>(null);
+  const [monthlySummary, setMonthlySummary] = useState<string>("");
+  const [summaryDialogOpen, setSummaryDialogOpen] = useState<boolean>(false);
+  const [monthlySummaryPeriod, setMonthlySummaryPeriod] = useState<{start: string, end: string} | null>(null);
   
   // URLパラメータから初期値を設定
   useEffect(() => {
@@ -240,6 +252,69 @@ export default function WeeklyReportList() {
   const resetCaseSelection = () => {
     setSelectedCase(null);
   };
+  
+  // 月次サマリーを生成するmutation
+  const monthlySummaryMutation = useMutation({
+    mutationFn: async (projectName: string) => {
+      return apiRequest(`/api/monthly-summary/${encodeURIComponent(projectName)}`, { method: "GET" });
+    },
+    onSuccess: (data) => {
+      setMonthlySummary(data.summary);
+      if (data.period) {
+        setMonthlySummaryPeriod(data.period);
+      }
+      setSummaryDialogOpen(true);
+      
+      toast({
+        title: "月次報告書の生成が完了しました",
+        description: `${data.reportCount}件の週次報告から作成しました`,
+      });
+    },
+    onError: (error) => {
+      console.error("Error generating monthly summary:", error);
+      toast({
+        title: "エラー",
+        description: "月次報告書の生成に失敗しました",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // 月次サマリーを生成する処理
+  const generateMonthlySummary = (projectName: string) => {
+    if (!projectName) return;
+    
+    setMonthlySummary("");
+    setMonthlySummaryPeriod(null);
+    
+    toast({
+      title: "月次報告書を生成中",
+      description: "OpenAI APIを使って処理中です。しばらくお待ちください...",
+    });
+    
+    monthlySummaryMutation.mutate(projectName);
+  };
+  
+  // 月次サマリーをクリップボードにコピーする処理
+  const copyMonthlySummaryToClipboard = () => {
+    if (!monthlySummary) return;
+    
+    navigator.clipboard
+      .writeText(monthlySummary)
+      .then(() => {
+        toast({
+          title: "コピー完了",
+          description: "月次報告書をクリップボードにコピーしました。",
+        });
+      })
+      .catch(() => {
+        toast({
+          title: "エラー",
+          description: "クリップボードへのコピーに失敗しました。",
+          variant: "destructive",
+        });
+      });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -309,6 +384,23 @@ export default function WeeklyReportList() {
             {/* プロジェクト内の案件一覧 */}
             {projectNames.map((projectName) => (
               <TabsContent key={projectName} value={projectName}>
+                <div className="mb-6 flex justify-between items-center">
+                  <h2 className="text-xl font-semibold">{projectName}の案件一覧</h2>
+                  <Button
+                    onClick={() => generateMonthlySummary(projectName)}
+                    disabled={monthlySummaryMutation.isPending}
+                    className="flex items-center gap-2"
+                  >
+                    {monthlySummaryMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileText className="h-4 w-4" />
+                    )}
+                    {monthlySummaryMutation.isPending 
+                      ? "生成中..." 
+                      : "月次状況報告書を生成"}
+                  </Button>
+                </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {projectCasesMap[projectName]?.map((case_) => (
                     <Card 

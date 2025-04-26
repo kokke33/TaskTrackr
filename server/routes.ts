@@ -108,6 +108,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch latest report" });
     }
   });
+  
+  // プロジェクト別月次報告書を生成するエンドポイント
+  app.get("/api/monthly-summary/:projectName", async (req, res) => {
+    try {
+      const { projectName } = req.params;
+      
+      // 現在の日付から1か月前までの日付を取得
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 1);
+      
+      // プロジェクト名に紐づく案件を全て取得
+      const projectCases = await storage.getCasesByProject(projectName);
+      
+      if (projectCases.length === 0) {
+        res.status(404).json({ message: "プロジェクトに関連する案件が見つかりません" });
+        return;
+      }
+      
+      // 全ての案件に対して直近1か月の週次報告を取得
+      const caseIds = projectCases.map(c => c.id);
+      const lastMonthReports = [];
+      
+      for (const caseId of caseIds) {
+        const reports = await storage.getWeeklyReportsByCase(caseId);
+        
+        // 日付でフィルタリング（直近1か月のものだけ）
+        const filteredReports = reports.filter(report => {
+          const reportDate = new Date(report.reportPeriodEnd);
+          return reportDate >= startDate && reportDate <= endDate;
+        });
+        
+        lastMonthReports.push(...filteredReports);
+      }
+      
+      if (lastMonthReports.length === 0) {
+        res.status(404).json({ message: "直近1か月の週次報告が見つかりません" });
+        return;
+      }
+      
+      // OpenAIを使用して月次レポートを生成
+      const summary = await generateMonthlySummary(projectName, lastMonthReports, projectCases);
+      
+      res.json({ 
+        projectName,
+        period: {
+          start: startDate.toISOString().split('T')[0],
+          end: endDate.toISOString().split('T')[0],
+        },
+        summary,
+        reportCount: lastMonthReports.length,
+        caseCount: projectCases.length
+      });
+    } catch (error) {
+      console.error("Error generating monthly summary:", error);
+      res.status(500).json({ message: "月次報告書の生成に失敗しました" });
+    }
+  });
 
   app.post("/api/weekly-reports", async (req, res) => {
     try {
@@ -208,6 +266,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  async function generateMonthlySummary(
+    projectName: string,
+    reports: any[],
+    cases: any[]
+  ): Promise<string> {
+    try {
+      if (!process.env.OPENAI_API_KEY) {
+        return "OpenAI API キーが設定されていません。デプロイメント設定でAPIキーを追加してください。";
+      }
+
+      // 各案件と報告を整理
+      const caseMap: Record<number, { caseName: string; description: string | null; reports: any[] }> = {};
+      cases.forEach(c => {
+        caseMap[c.id] = {
+          caseName: c.caseName,
+          description: c.description,
+          reports: []
+        };
+      });
+
+      // 週次報告を案件ごとに整理
+      reports.forEach(report => {
+        if (caseMap[report.caseId]) {
+          caseMap[report.caseId].reports.push(report);
+        }
+      });
+
+      // プロンプト作成
+      let prompt = `
+以下のデータをもとに、プロジェクト「${projectName}」の直近1ヶ月の月次状況報告書を作成してください。
+報告書は、経営層やプロジェクト責任者が全体状況を把握できるよう、簡潔かつ要点を押さえた内容にしてください。
+
+【プロジェクト】 ${projectName}
+
+【対象期間】 ${new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0]} 〜 ${new Date().toISOString().split('T')[0]}
+
+【プロジェクト内の案件と週次報告データ】
+`;
+
+      // 各案件の情報をプロンプトに追加
+      Object.values(caseMap).forEach((caseInfo) => {
+        prompt += `
+■ 案件: ${caseInfo.caseName}
+${caseInfo.description ? `説明: ${caseInfo.description}` : ""}
+報告数: ${caseInfo.reports.length}件
+
+`;
+
+        // 各案件の報告内容をプロンプトに追加
+        if (caseInfo.reports.length > 0) {
+          // 日付順にソート
+          caseInfo.reports.sort((a: any, b: any) => 
+            new Date(a.reportPeriodEnd).getTime() - new Date(b.reportPeriodEnd).getTime()
+          );
+          
+          // 最大5件までの報告を表示
+          const displayReports = caseInfo.reports.slice(-5);
+          
+          displayReports.forEach((report: any) => {
+            prompt += `
+報告期間: ${report.reportPeriodStart} 〜 ${report.reportPeriodEnd}
+報告者: ${report.reporterName}
+進捗率: ${report.progressRate}%
+進捗状況: ${report.progressStatus}
+作業内容: ${report.weeklyTasks}
+課題・問題点: ${report.issues}
+リスク: ${report.newRisks === "yes" ? report.riskSummary : "なし"}
+品質懸念: ${report.qualityConcerns !== "none" ? report.qualityDetails : "なし"}
+来週予定: ${report.nextWeekPlan}
+---
+`;
+          });
+        }
+      });
+
+      prompt += `
+以上のデータを元に、以下の観点で月次状況報告書を作成してください：
+
+1. 全体進捗状況のサマリー
+2. 主な成果と完了項目
+3. 直面している課題やリスク、その対応策
+4. 各案件ごとの状況概要（現状と予定）
+5. 品質状況のまとめ
+6. 今後のスケジュールと目標
+7. 経営層に伝えるべきその他重要事項
+
+最終的なレポートは経営層向けに簡潔にまとめ、プロジェクト全体の健全性と今後の見通しが明確に伝わるように作成してください。
+Markdown形式で作成し、適切な見出しを使って整理してください。
+`;
+
+      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      const aiModel = "gpt-4o";
+      console.log(`Using AI model for monthly summary: ${aiModel}`);
+      
+      const completion = await openai.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: "あなたは経営層向けのプロジェクト状況報告書を作成する専門家です。複数の週次報告から重要な情報を抽出し、簡潔で要点を押さえた月次報告書を作成します。報告書は経営判断に必要な情報が過不足なく含まれるよう心がけてください。"
+          },
+          { role: "user", content: prompt }
+        ],
+        model: aiModel,
+      });
+
+      // 内容を確実に文字列として返す
+      const content = completion.choices[0].message.content;
+      return content !== null && content !== undefined ? content : "";
+    } catch (error) {
+      console.error("OpenAI API error:", error);
+      return "月次レポート生成中にエラーが発生しました。";
+    }
+  }
+  
   async function analyzeWeeklyReport(
     report: any,
     relatedCase: any,
