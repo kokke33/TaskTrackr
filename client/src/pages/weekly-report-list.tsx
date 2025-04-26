@@ -54,16 +54,22 @@ export default function WeeklyReportList() {
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [tempProjectName, setTempProjectName] = useState<string>("");
   const [promptData, setPromptData] = useState<string>("");
+  const [selectedCaseIds, setSelectedCaseIds] = useState<number[]>([]);
   
   // 月次サマリー入力データを取得するmutation
-  const monthlySummaryInputMutation = useMutation<{prompt: string}, Error, { projectName: string, startDate?: string, endDate?: string }>({
-    mutationFn: async ({ projectName, startDate, endDate }) => {
+  const monthlySummaryInputMutation = useMutation<{prompt: string}, Error, { projectName: string, startDate?: string, endDate?: string, caseIds?: number[] }>({
+    mutationFn: async ({ projectName, startDate, endDate, caseIds }) => {
       let url = `/api/monthly-summary-input/${encodeURIComponent(projectName)}`;
       
       // クエリパラメータを追加
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
+      
+      // 選択された案件IDsがある場合は追加
+      if (caseIds && caseIds.length > 0) {
+        caseIds.forEach(id => params.append('caseId', id.toString()));
+      }
       
       // クエリパラメータがある場合は追加
       if (params.toString()) {
@@ -86,14 +92,19 @@ export default function WeeklyReportList() {
   });
   
   // 月次サマリーを生成するmutation
-  const monthlySummaryMutation = useMutation<MonthlySummaryResponse, Error, { projectName: string, startDate?: string, endDate?: string }>({
-    mutationFn: async ({ projectName, startDate, endDate }) => {
+  const monthlySummaryMutation = useMutation<MonthlySummaryResponse, Error, { projectName: string, startDate?: string, endDate?: string, caseIds?: number[] }>({
+    mutationFn: async ({ projectName, startDate, endDate, caseIds }) => {
       let url = `/api/monthly-summary/${encodeURIComponent(projectName)}`;
       
       // クエリパラメータを追加
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
+      
+      // 選択された案件IDsがある場合は追加
+      if (caseIds && caseIds.length > 0) {
+        caseIds.forEach(id => params.append('caseId', id.toString()));
+      }
       
       // クエリパラメータがある場合は追加
       if (params.toString()) {
@@ -361,7 +372,32 @@ export default function WeeklyReportList() {
     setEndDate(end);
     setStartDate(start);
     setTempProjectName(projectName);
+    // 案件選択をリセット
+    setSelectedCaseIds([]);
     setDateDialogOpen(true);
+  };
+  
+  // 案件の選択状態を切り替える処理
+  const toggleCaseSelection = (caseId: number) => {
+    setSelectedCaseIds(prev => 
+      prev.includes(caseId)
+        ? prev.filter(id => id !== caseId)
+        : [...prev, caseId]
+    );
+  };
+  
+  // すべての案件を選択/選択解除する処理
+  const toggleAllCases = (projectName: string, select: boolean) => {
+    if (select) {
+      // プロジェクト内のすべての案件IDを取得して選択
+      const allProjectCaseIds = (projectCasesMap[projectName] || [])
+        .filter(case_ => !case_.isDeleted)
+        .map(case_ => case_.id);
+      setSelectedCaseIds(allProjectCaseIds);
+    } else {
+      // 選択解除
+      setSelectedCaseIds([]);
+    }
   };
   
   // 選択された期間で月次サマリーを生成
@@ -382,11 +418,24 @@ export default function WeeklyReportList() {
       return date.toISOString().split('T')[0];
     };
     
-    monthlySummaryMutation.mutate({
+    // 選択された案件IDsがある場合のみ含める
+    const params: {
+      projectName: string, 
+      startDate: string, 
+      endDate: string,
+      caseIds?: number[]
+    } = {
       projectName: tempProjectName,
       startDate: formatDate(startDate),
       endDate: formatDate(endDate)
-    });
+    };
+    
+    // 案件が選択されている場合は追加
+    if (selectedCaseIds.length > 0) {
+      params.caseIds = selectedCaseIds;
+    }
+    
+    monthlySummaryMutation.mutate(params);
   };
   
   // 選択された期間のインプットデータを取得してコピー
@@ -672,14 +721,15 @@ export default function WeeklyReportList() {
       <Dialog open={dateDialogOpen} onOpenChange={setDateDialogOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>期間を指定</DialogTitle>
+            <DialogTitle>期間と対象案件を指定</DialogTitle>
             <DialogDescription>
-              月次報告書を生成する期間を選択してください。
-              デフォルトでは直近1ヶ月が選択されています。
+              月次報告書を生成する期間と対象案件を選択してください。
+              デフォルトでは直近1ヶ月と全案件が選択されています。
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex flex-col space-y-4 py-4">
+          <div className="flex flex-col space-y-6 py-4">
+            {/* カレンダー部分 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
               <div className="flex flex-col space-y-2">
                 <div className="font-medium">開始日</div>
@@ -704,6 +754,60 @@ export default function WeeklyReportList() {
                     startDate ? date < startDate : false
                   }
                 />
+              </div>
+            </div>
+            
+            {/* 案件選択部分 */}
+            <div className="space-y-4 border rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="font-medium">処理対象の案件</div>
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => toggleAllCases(tempProjectName, true)}
+                  >
+                    すべて選択
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => toggleAllCases(tempProjectName, false)}
+                  >
+                    選択解除
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2">
+                {projectCasesMap[tempProjectName]?.map((case_) => (
+                  <div 
+                    key={case_.id} 
+                    className="flex items-center space-x-2 hover:bg-accent/10 rounded-md p-2"
+                    onClick={() => toggleCaseSelection(case_.id)}
+                  >
+                    <input 
+                      type="checkbox" 
+                      id={`case-${case_.id}`}
+                      checked={selectedCaseIds.includes(case_.id)}
+                      onChange={() => toggleCaseSelection(case_.id)}
+                      className="h-4 w-4"
+                    />
+                    <label 
+                      htmlFor={`case-${case_.id}`} 
+                      className="flex-grow cursor-pointer truncate"
+                      title={case_.caseName}
+                    >
+                      {case_.caseName}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="text-sm text-muted-foreground">
+                {selectedCaseIds.length === 0 
+                  ? "案件が選択されていません。全案件が対象になります。" 
+                  : `${selectedCaseIds.length}件の案件が選択されています`}
               </div>
             </div>
           </div>
@@ -741,7 +845,7 @@ export default function WeeklyReportList() {
                 ) : null}
                 {monthlySummaryMutation.isPending 
                   ? "生成中..." 
-                  : "この期間で生成"}
+                  : "この設定で生成"}
               </Button>
             </div>
           </div>
