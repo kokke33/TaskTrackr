@@ -5,7 +5,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Copy, List, Plus, ChevronRight, FileText, Loader2 } from "lucide-react";
+import { Copy, List, Plus, ChevronRight, FileText, Loader2, Home, Briefcase } from "lucide-react";
+import { 
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator
+} from "@/components/ui/breadcrumb";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
 import { 
@@ -475,23 +483,73 @@ export default function WeeklyReportList() {
           </div>
         </header>
 
-        {/* ナビゲーションパンくず */}
-        {selectedCase !== null && (
-          <div className="flex items-center gap-2 mb-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={resetCaseSelection}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              {selectedProject}
-            </Button>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">
-              {caseMap.get(selectedCase)?.caseName}
-            </span>
-          </div>
-        )}
+        {/* パンくずリスト - 常に表示 */}
+        <Breadcrumb className="mt-2 mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/">
+                  <span className="flex items-center gap-1">
+                    <Home className="h-3.5 w-3.5" />
+                    ホーム
+                  </span>
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            
+            <BreadcrumbSeparator />
+            
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/cases">
+                  <span className="flex items-center gap-1">
+                    <Briefcase className="h-3.5 w-3.5" />
+                    案件一覧
+                  </span>
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            
+            {selectedCase === null ? (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>
+                    <span className="flex items-center gap-1">
+                      <FileText className="h-3.5 w-3.5" />
+                      週次報告一覧
+                    </span>
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </>
+            ) : (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={resetCaseSelection}
+                      className="flex items-center gap-1 h-auto p-0"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      週次報告一覧
+                    </Button>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                
+                <BreadcrumbSeparator />
+                
+                <BreadcrumbItem>
+                  <BreadcrumbPage>
+                    {caseMap.get(selectedCase)?.caseName}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </>
+            )}
+          </BreadcrumbList>
+        </Breadcrumb>
 
         {/* プロジェクト選択タブ - 案件が選択されていない場合のみ表示 */}
         {selectedCase === null && (
