@@ -76,6 +76,10 @@ export default function WeeklyReportList() {
         url += `?${params.toString()}`;
       }
       
+      // デバッグ：リクエストURLを出力
+      console.log("インプットデータ取得リクエストURL:", url);
+      console.log("選択された案件IDs:", caseIds);
+      
       return apiRequest<{prompt: string}>(url, { method: "GET" });
     },
     onSuccess: (data) => {
@@ -110,6 +114,10 @@ export default function WeeklyReportList() {
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
+      
+      // デバッグ：リクエストURLを出力
+      console.log("月次サマリー生成リクエストURL:", url);
+      console.log("選択された案件IDs:", caseIds);
       
       return apiRequest<MonthlySummaryResponse>(url, { method: "GET" });
     },
@@ -472,6 +480,8 @@ export default function WeeklyReportList() {
     // 案件が選択されている場合は追加
     if (selectedCaseIds.length > 0) {
       params.caseIds = selectedCaseIds;
+      // デバッグ用：選択された案件IDsを表示
+      console.log("インプットデータの選択案件IDs:", selectedCaseIds);
     }
     
     // インプットデータを取得
