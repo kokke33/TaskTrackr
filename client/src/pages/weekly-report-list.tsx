@@ -538,7 +538,7 @@ export default function WeeklyReportList() {
       
       {/* 期間選択ダイアログ */}
       <Dialog open={dateDialogOpen} onOpenChange={setDateDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>期間を指定</DialogTitle>
             <DialogDescription>
@@ -548,27 +548,29 @@ export default function WeeklyReportList() {
           </DialogHeader>
           
           <div className="flex flex-col space-y-4 py-4">
-            <div className="flex flex-col space-y-2">
-              <div className="font-medium">開始日</div>
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={setStartDate}
-                className="border rounded-md"
-              />
-            </div>
-            
-            <div className="flex flex-col space-y-2">
-              <div className="font-medium">終了日</div>
-              <Calendar
-                mode="single"
-                selected={endDate}
-                onSelect={setEndDate}
-                className="border rounded-md"
-                disabled={(date) => 
-                  startDate ? date < startDate : false
-                }
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+              <div className="flex flex-col space-y-2">
+                <div className="font-medium">開始日</div>
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  className="border rounded-md mx-auto"
+                />
+              </div>
+              
+              <div className="flex flex-col space-y-2">
+                <div className="font-medium">終了日</div>
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  className="border rounded-md mx-auto"
+                  disabled={(date) => 
+                    startDate ? date < startDate : false
+                  }
+                />
+              </div>
             </div>
           </div>
           
