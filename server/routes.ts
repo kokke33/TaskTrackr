@@ -56,9 +56,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/cases", async (_req, res) => {
+  app.get("/api/cases", async (req, res) => {
     try {
-      const cases = await storage.getAllCases();
+      const includeDeleted = req.query.includeDeleted === 'true';
+      const cases = await storage.getAllCases(includeDeleted);
       res.json(cases);
     } catch (error) {
       console.error("Error fetching cases:", error);

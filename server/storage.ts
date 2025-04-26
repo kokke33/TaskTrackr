@@ -32,12 +32,14 @@ export class DatabaseStorage implements IStorage {
     return foundCase;
   }
 
-  async getAllCases(): Promise<Case[]> {
-    return await db
-      .select()
-      .from(cases)
-      .where(eq(cases.isDeleted, false))
-      .orderBy(desc(cases.createdAt));
+  async getAllCases(includeDeleted: boolean = false): Promise<Case[]> {
+    const query = db.select().from(cases);
+    
+    if (!includeDeleted) {
+      query.where(eq(cases.isDeleted, false));
+    }
+    
+    return await query.orderBy(desc(cases.createdAt));
   }
 
   async getCasesByProject(projectName: string): Promise<Case[]> {
