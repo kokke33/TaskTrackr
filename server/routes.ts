@@ -98,6 +98,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: "Failed to update case" });
     }
   });
+  
+  // マイルストーン更新専用の簡易エンドポイント
+  app.patch("/api/cases/:id/milestone", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existingCase = await storage.getCase(id);
+      if (!existingCase) {
+        res.status(404).json({ message: "案件が見つかりません" });
+        return;
+      }
+      
+      const { milestone } = req.body;
+      if (milestone === undefined) {
+        res.status(400).json({ message: "マイルストーン情報が含まれていません" });
+        return;
+      }
+      
+      // 既存のデータを保持しつつマイルストーンのみ更新
+      const updatedCase = await storage.updateCase(id, {
+        ...existingCase,
+        milestone
+      });
+      
+      res.json(updatedCase);
+    } catch (error) {
+      console.error("Error updating milestone:", error);
+      res.status(400).json({ message: "マイルストーンの更新に失敗しました" });
+    }
+  });
 
   // 週次報告関連のエンドポイント
   app.get("/api/weekly-reports/latest/:projectName", async (req, res) => {
@@ -313,11 +342,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 【プロジェクト内の案件と週次報告データ】
 `;
       
+      // 対象の案件情報を取得（マイルストーン情報を含める）
+      const selectedCases = projectCases.filter(c => targetCaseIds.includes(c.id));
+      
       // 各案件の情報をプロンプトに追加
       Object.values(caseMap).forEach((caseInfo) => {
+        // 該当するケースのフル情報を探す
+        const fullCaseInfo = selectedCases.find(c => c.caseName === caseInfo.caseName);
+        const milestone = fullCaseInfo?.milestone || "";
+        
         prompt += `
 ■ 案件: ${caseInfo.caseName}
 ${caseInfo.description ? `説明: ${caseInfo.description}` : ""}
+${milestone ? `マイルストーン: ${milestone}` : ""}
 報告数: ${caseInfo.reports.length}件
 
 `;
@@ -520,9 +557,14 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 
       // 各案件の情報をプロンプトに追加
       Object.values(caseMap).forEach((caseInfo) => {
+        // 該当する案件の完全な情報を取得
+        const fullCaseInfo = cases.find(c => c.caseName === caseInfo.caseName);
+        const milestone = fullCaseInfo?.milestone || "";
+        
         prompt += `
 ■ 案件: ${caseInfo.caseName}
 ${caseInfo.description ? `説明: ${caseInfo.description}` : ""}
+${milestone ? `マイルストーン: ${milestone}` : ""}
 報告数: ${caseInfo.reports.length}件
 
 `;
