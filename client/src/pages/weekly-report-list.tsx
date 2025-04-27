@@ -26,7 +26,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import ReactMarkdown from 'react-markdown';
 
 // レスポンスの型定義
