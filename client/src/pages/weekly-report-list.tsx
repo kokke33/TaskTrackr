@@ -62,11 +62,14 @@ export default function WeeklyReportList() {
   const updateMilestoneMutation = useMutation<Case, Error, { caseId: number, milestone: string }>({
     mutationFn: async ({ caseId, milestone }) => {
       return apiRequest<Case>(`/api/cases/${caseId}/milestone`, {
-        method: "PUT",
+        method: "PATCH",
         data: { milestone }
       });
     },
     onSuccess: () => {
+      // キャッシュを更新して最新の案件情報を取得
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      
       toast({
         title: "マイルストーンを更新しました",
         description: "案件のマイルストーン情報が正常に更新されました。",
@@ -682,6 +685,68 @@ export default function WeeklyReportList() {
             )}
           </BreadcrumbList>
         </Breadcrumb>
+
+        {/* マイルストーン編集エリア - 案件が選択されている場合のみ表示 */}
+        {selectedCase !== null && (
+          <div className="mt-4 mb-6 p-4 border rounded-lg bg-muted/20">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="text-lg font-semibold">マイルストーン</h3>
+              <div className="flex gap-2">
+                {!isMilestoneEditing ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={startEditingMilestone}
+                    className="flex items-center gap-1"
+                  >
+                    編集
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={cancelEditingMilestone}
+                      className="flex items-center gap-1"
+                    >
+                      キャンセル
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={saveMilestone}
+                      disabled={updateMilestoneMutation.isPending}
+                      className="flex items-center gap-1"
+                    >
+                      {updateMilestoneMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : null}
+                      保存
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+            {isMilestoneEditing ? (
+              <textarea
+                value={milestone}
+                onChange={(e) => setMilestone(e.target.value)}
+                className="w-full p-2 border rounded-md min-h-[120px] bg-background"
+                placeholder="案件のマイルストーンを入力してください..."
+              />
+            ) : (
+              <div className="p-2 whitespace-pre-wrap min-h-[40px]">
+                {milestone ? (
+                  milestone
+                ) : (
+                  <span className="text-muted-foreground italic">
+                    マイルストーンは設定されていません
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* プロジェクト選択タブ - 案件が選択されていない場合のみ表示 */}
         {selectedCase === null && (
