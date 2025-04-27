@@ -46,6 +46,8 @@ export default function WeeklyReportList() {
   const [location] = useLocation();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [selectedCase, setSelectedCase] = useState<number | null>(null);
+  const [milestone, setMilestone] = useState<string>("");
+  const [isMilestoneEditing, setIsMilestoneEditing] = useState<boolean>(false);
   const [monthlySummary, setMonthlySummary] = useState<string>("");
   const [summaryDialogOpen, setSummaryDialogOpen] = useState<boolean>(false);
   const [dateDialogOpen, setDateDialogOpen] = useState<boolean>(false);
@@ -55,6 +57,31 @@ export default function WeeklyReportList() {
   const [tempProjectName, setTempProjectName] = useState<string>("");
   const [promptData, setPromptData] = useState<string>("");
   const [selectedCaseIds, setSelectedCaseIds] = useState<number[]>([]);
+  
+  // マイルストーン更新のmutation
+  const updateMilestoneMutation = useMutation<Case, Error, { caseId: number, milestone: string }>({
+    mutationFn: async ({ caseId, milestone }) => {
+      return apiRequest<Case>(`/api/cases/${caseId}/milestone`, {
+        method: "PUT",
+        data: { milestone }
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "マイルストーンを更新しました",
+        description: "案件のマイルストーン情報が正常に更新されました。",
+      });
+      setIsMilestoneEditing(false);
+    },
+    onError: (error) => {
+      console.error("Error updating milestone:", error);
+      toast({
+        title: "エラー",
+        description: "マイルストーンの更新に失敗しました。",
+        variant: "destructive",
+      });
+    }
+  });
   
   // 月次サマリー入力データを取得するmutation
   const monthlySummaryInputMutation = useMutation<{prompt: string}, Error, { projectName: string, startDate?: string, endDate?: string, caseIds?: number[] }>({
@@ -353,6 +380,40 @@ export default function WeeklyReportList() {
   // 案件を選択した時の処理
   const handleCaseSelect = (caseId: number) => {
     setSelectedCase(caseId);
+    
+    // 選択された案件のマイルストーンを読み込む
+    const selectedCase = caseMap.get(caseId);
+    if (selectedCase) {
+      setMilestone(selectedCase.milestone || "");
+      setIsMilestoneEditing(false);
+    }
+  };
+  
+  // マイルストーン編集開始
+  const startEditingMilestone = () => {
+    setIsMilestoneEditing(true);
+  };
+  
+  // マイルストーン保存
+  const saveMilestone = () => {
+    if (selectedCase) {
+      updateMilestoneMutation.mutate({
+        caseId: selectedCase,
+        milestone: milestone
+      });
+    }
+  };
+  
+  // マイルストーン編集キャンセル
+  const cancelEditingMilestone = () => {
+    // 選択されている案件のマイルストーンに戻す
+    if (selectedCase) {
+      const selectedCaseData = caseMap.get(selectedCase);
+      if (selectedCaseData) {
+        setMilestone(selectedCaseData.milestone || "");
+      }
+    }
+    setIsMilestoneEditing(false);
   };
 
   // プロジェクトを変更した時に案件選択をリセット
