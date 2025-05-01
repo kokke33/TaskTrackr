@@ -534,7 +534,9 @@ export default function CaseList() {
                             {case_.milestone && (
                               <div className="mt-2 text-sm">
                                 <span className="font-medium">マイルストーン: </span>
-                                {case_.milestone}
+                                <div className="line-clamp-5 overflow-hidden">
+                                  {case_.milestone}
+                                </div>
                               </div>
                             )}
                           </div>
