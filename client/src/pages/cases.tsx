@@ -434,16 +434,14 @@ export default function CaseList() {
           <ThemeToggle />
         </div>
 
-        <div className="mb-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Switch
-                id="showDeleted"
-                checked={showDeleted}
-                onCheckedChange={setShowDeleted}
-              />
-              <Label htmlFor="showDeleted">削除済み案件を表示</Label>
-            </div>
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Switch
+              id="showDeleted"
+              checked={showDeleted}
+              onCheckedChange={setShowDeleted}
+            />
+            <Label htmlFor="showDeleted">削除済み案件を表示</Label>
           </div>
           
           <div className="flex flex-col space-y-2">
@@ -460,7 +458,7 @@ export default function CaseList() {
                 handleMonthlyReportClick();
               }}
               disabled={monthlySummaryMutation.isPending}
-              className="flex items-center justify-center gap-2 w-full"
+              className="flex items-center gap-2"
             >
               {monthlySummaryMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -472,8 +470,8 @@ export default function CaseList() {
                 : "月次状況報告書"}
             </Button>
             
-            <Link href="/case/new" className="w-full">
-              <Button className="flex items-center justify-center gap-1 w-full">
+            <Link href="/case/new">
+              <Button className="flex items-center gap-1">
                 <Plus className="h-4 w-4" />
                 新規案件作成
               </Button>
