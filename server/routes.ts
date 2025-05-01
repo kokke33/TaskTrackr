@@ -227,14 +227,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      if (lastMonthReports.length === 0) {
+      if (lastMonthReports.length === 0 || casesWithReports.length === 0) {
         const startDateStr = startDate.toISOString().split('T')[0];
         const endDateStr = endDate.toISOString().split('T')[0];
+        console.log(`[ERROR] No reports found for the period ${startDateStr} to ${endDateStr}`);
         res.status(404).json({ 
           message: `指定された期間(${startDateStr}～${endDateStr})の週次報告が見つかりません` 
         });
         return;
       }
+      
+      console.log(`[DEBUG] Found ${lastMonthReports.length} reports for ${casesWithReports.length} cases`);
+      
       
       // データがある案件に関連するプロジェクト名だけを抽出
       const projectsWithData: string[] = Array.from(new Set(
@@ -337,12 +341,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const caseId of targetCaseIds) {
         const reports = await storage.getWeeklyReportsByCase(caseId);
+        console.log(`[DEBUG] Case ID: ${caseId}, Reports count: ${reports.length}`);
         
         // 日付でフィルタリング
         const filteredReports = reports.filter(report => {
           const reportDate = new Date(report.reportPeriodEnd);
           return reportDate >= startDate && reportDate <= endDate;
         });
+        
+        console.log(`[DEBUG] Case ID: ${caseId}, Filtered reports count: ${filteredReports.length}`);
         
         // 報告があれば、その案件をデータありとして記録
         if (filteredReports.length > 0) {
@@ -355,6 +362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (casesWithReports.length === 0) {
         const startDateStr = startDate.toISOString().split('T')[0];
         const endDateStr = endDate.toISOString().split('T')[0];
+        console.log(`[ERROR] No reports found for the period ${startDateStr} to ${endDateStr}`);
         res.status(404).json({ 
           message: `指定された期間(${startDateStr}～${endDateStr})の週次報告が見つかりません` 
         });
@@ -393,6 +401,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? `複数プロジェクト (${projectsWithData.join(', ')})` 
         : projectsWithData[0] || "";
       
+      console.log(`[DEBUG] Cases with reports: ${casesWithReports.length}`);
+      
       // AIプロンプト用のデータ構成
       let prompt = `
 以下のデータをもとに、${displayProjectName}の指定された期間の月次状況報告書を作成してください。
@@ -407,6 +417,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // データがある案件のみを対象とする
       const selectedCases = allProjectCases.filter(c => casesWithReports.includes(c.id));
+      console.log(`[DEBUG] Selected cases: ${selectedCases.length}, Case map keys: ${Object.keys(caseMap).length}`);
+      
+      // Empty prompt check - データがある案件が0件の場合は早期リターン
+      if (selectedCases.length === 0 || Object.keys(caseMap).length === 0) {
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+        console.log(`[ERROR] No cases with reports found for the period ${startDateStr} to ${endDateStr}`);
+        res.status(404).json({ 
+          message: `指定された期間(${startDateStr}～${endDateStr})に週次報告のある案件が見つかりません` 
+        });
+        return;
+      }
       
       // データがある案件の情報のみをプロンプトに追加
       Object.keys(caseMap).forEach((caseIdStr) => {
@@ -415,7 +437,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // 該当するケースのフル情報を探す
         const fullCaseInfo = selectedCases.find(c => c.id === caseId);
-        if (!fullCaseInfo) return; // データがない案件は表示しない
+        if (!fullCaseInfo) {
+          console.log(`[DEBUG] Case ${caseId} not found in selectedCases`);
+          return; // データがない案件は表示しない
+        }
         
         const milestone = fullCaseInfo?.milestone || "";
         
@@ -608,6 +633,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       
       // レポートのある案件IDのセットを作成
       const caseIdsWithReports = new Set(reports.map(report => report.caseId));
+      console.log(`[DEBUG] Monthly Summary - Report count: ${reports.length}, Case count: ${cases.length}, Cases with reports: ${caseIdsWithReports.size}`);
       
       // データがある案件のみを追加
       cases
@@ -620,11 +646,21 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
             reports: []
           };
         });
+      
+      console.log(`[DEBUG] Monthly Summary - Cases in map: ${Object.keys(caseMap).length}`);
+
+      // データがある案件がない場合は早期リターン
+      if (Object.keys(caseMap).length === 0) {
+        console.log(`[ERROR] Monthly Summary - No cases with reports found`);
+        return "指定された期間に週次報告のある案件が見つかりません。";
+      }
 
       // 週次報告を案件ごとに整理
       reports.forEach(report => {
         if (caseMap[report.caseId]) {
           caseMap[report.caseId].reports.push(report);
+        } else {
+          console.log(`[WARN] Monthly Summary - Report for case ID ${report.caseId} not found in case map`);
         }
       });
 
