@@ -351,19 +351,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // レポートがある案件が1つもない場合はエラーを返す
+      if (casesWithReports.length === 0) {
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+        res.status(404).json({ 
+          message: `指定された期間(${startDateStr}～${endDateStr})の週次報告が見つかりません` 
+        });
+        return;
+      }
+      
+      // データがある案件のみのリストを作成
+      const casesWithData = allProjectCases.filter(c => casesWithReports.includes(c.id));
+      
       // 案件をID基準のマップとして整理（データがある案件のみ）
       const caseMap: Record<number, { caseName: string; description: string | null; projectName: string; reports: any[] }> = {};
       
-      allProjectCases
-        .filter(case_ => casesWithReports.includes(case_.id))
-        .forEach(case_ => {
-          caseMap[case_.id] = {
-            caseName: case_.caseName,
-            description: case_.description,
-            projectName: case_.projectName,
-            reports: []
-          };
-        });
+      casesWithData.forEach(case_ => {
+        caseMap[case_.id] = {
+          caseName: case_.caseName,
+          description: case_.description,
+          projectName: case_.projectName,
+          reports: []
+        };
+      });
       
       // 週次報告を案件ごとに整理
       periodReports.forEach(report => {
@@ -374,15 +385,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // データがある案件に関連するプロジェクト名だけを抽出
       const projectsWithData: string[] = Array.from(new Set(
-        allProjectCases
-          .filter(c => casesWithReports.includes(c.id))
-          .map(c => c.projectName)
+        casesWithData.map(c => c.projectName)
       ));
       
       // 複数プロジェクトの場合は、プロジェクト名を「複数プロジェクト」とする
       const displayProjectName = projectsWithData.length > 1 
         ? `複数プロジェクト (${projectsWithData.join(', ')})` 
-        : projectsWithData[0] || projectName;
+        : projectsWithData[0] || "";
       
       // AIプロンプト用のデータ構成
       let prompt = `
@@ -586,19 +595,31 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         return "OpenAI API キーが設定されていません。デプロイメント設定でAPIキーを追加してください。";
       }
 
+      // データがない場合は早期リターン
+      if (reports.length === 0 || cases.length === 0) {
+        return "該当する期間に報告データがありません。";
+      }
+
       // 複数プロジェクトかどうかを判定
       const isMultiProject = projectName.includes('複数プロジェクト');
 
-      // 各案件と報告を整理
+      // 各案件と報告を整理（データがある案件のみ）
       const caseMap: Record<number, { caseName: string; description: string | null; projectName: string; reports: any[] }> = {};
-      cases.forEach(c => {
-        caseMap[c.id] = {
-          caseName: c.caseName,
-          description: c.description,
-          projectName: c.projectName,
-          reports: []
-        };
-      });
+      
+      // レポートのある案件IDのセットを作成
+      const caseIdsWithReports = new Set(reports.map(report => report.caseId));
+      
+      // データがある案件のみを追加
+      cases
+        .filter(c => caseIdsWithReports.has(c.id))
+        .forEach(c => {
+          caseMap[c.id] = {
+            caseName: c.caseName,
+            description: c.description,
+            projectName: c.projectName,
+            reports: []
+          };
+        });
 
       // 週次報告を案件ごとに整理
       reports.forEach(report => {
@@ -627,10 +648,15 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 【プロジェクト内の案件と週次報告データ】
 `;
 
-      // 各案件の情報をプロンプトに追加
-      Object.values(caseMap).forEach((caseInfo) => {
+      // データがある案件の情報のみをプロンプトに追加
+      Object.keys(caseMap).forEach((caseIdStr) => {
+        const caseId = parseInt(caseIdStr);
+        const caseInfo = caseMap[caseId];
+        
         // 該当する案件の完全な情報を取得
-        const fullCaseInfo = cases.find(c => c.caseName === caseInfo.caseName);
+        const fullCaseInfo = cases.find(c => c.id === caseId);
+        if (!fullCaseInfo) return; // 存在しない案件は表示しない
+        
         const milestone = fullCaseInfo?.milestone || "";
         
         prompt += `
