@@ -86,6 +86,63 @@ export default function CaseList() {
     refetchOnWindowFocus: true,
   });
   
+  // インプットデータを取得するmutation
+  const monthlySummaryInputMutation = useMutation<{prompt: string}, Error, void>({
+    mutationFn: async () => {
+      // プロジェクト名が選択されていない場合はエラー
+      if (!selectedProjects.length || !startDate || !endDate) {
+        throw new Error("プロジェクトと期間を選択してください");
+      }
+      
+      // 選択されたプロジェクト名をカンマ区切りで結合
+      const projectNames = selectedProjects.join(',');
+      
+      // クエリパラメータを追加
+      const params = new URLSearchParams();
+      params.append('startDate', startDate.toISOString().split('T')[0]);
+      params.append('endDate', endDate.toISOString().split('T')[0]);
+      
+      // 選択された案件IDsがある場合は追加
+      if (selectedCases.length > 0) {
+        selectedCases.forEach(id => params.append('caseId', id.toString()));
+      }
+      
+      let url = `/api/monthly-summary-input/${encodeURIComponent(projectNames)}`;
+      
+      // クエリパラメータがある場合は追加
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      return apiRequest<{prompt: string}>(url, { method: "GET" });
+    },
+    onSuccess: (data) => {
+      navigator.clipboard
+        .writeText(data.prompt)
+        .then(() => {
+          toast({
+            title: "コピー完了",
+            description: "月次報告書の生成用インプットデータをコピーしました",
+          });
+        })
+        .catch(() => {
+          toast({
+            title: "エラー",
+            description: "クリップボードへのコピーに失敗しました",
+            variant: "destructive",
+          });
+        });
+    },
+    onError: (error) => {
+      console.error("Error retrieving monthly summary input data:", error);
+      toast({
+        title: "エラー",
+        description: "月次報告書のインプットデータの取得に失敗しました",
+        variant: "destructive",
+      });
+    }
+  });
+  
   // 月次サマリーを生成するmutation
   const monthlySummaryMutation = useMutation<MonthlySummaryResponse, Error, { projectName: string, startDate?: string, endDate?: string, caseIds?: number[] }>({
     mutationFn: async ({ projectName, startDate, endDate, caseIds }) => {
@@ -611,78 +668,18 @@ export default function CaseList() {
             <div className="flex flex-row flex-wrap justify-between items-center gap-2 mt-4">
               <Button
                 variant="outline"
-                onClick={() => {
-                  // インプットデータを取得してコピーする機能を追加
-                  if (!selectedProjects.length || !startDate || !endDate) {
-                    toast({
-                      title: "エラー",
-                      description: "プロジェクトと期間を選択してください",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  
-                  // yyyy-MM-dd形式にフォーマット
-                  const formatDate = (date: Date) => {
-                    return date.toISOString().split('T')[0];
-                  };
-                  
-                  // 選択されている案件の詳細情報を取得
-                  const selectedCasesDetails = selectedCases.length > 0 
-                    ? selectedCases.map(caseId => {
-                        // 案件IDから案件情報を検索
-                        const foundCase = Object.values(groupedCases)
-                          .flat()
-                          .find(c => c.id === caseId);
-                        
-                        return foundCase 
-                          ? `- ${foundCase.projectName}: ${foundCase.caseName}`
-                          : null;
-                      }).filter(Boolean).join('\n')
-                    : "すべての案件";
-                  
-                  // プロジェクト別の選択案件数
-                  const projectCaseCounts = selectedProjects.map(projectName => {
-                    const totalCases = groupedCases[projectName].filter(c => !c.isDeleted).length;
-                    const selectedCount = selectedCases.filter(caseId => 
-                      groupedCases[projectName].some(c => c.id === caseId && !c.isDeleted)
-                    ).length;
-                    return `- ${projectName}: ${selectedCount}件/${totalCases}件`;
-                  }).join('\n');
-                  
-                  const tempPrompt = `
-月次レポート生成のためのインプットデータ:
-期間: ${formatDate(startDate)} 〜 ${formatDate(endDate)}
-選択プロジェクト: ${selectedProjects.join(', ')}
-選択案件数: ${selectedCases.length} 件
-
-【プロジェクト別選択案件数】
-${projectCaseCounts}
-
-【選択案件一覧】
-${selectedCasesDetails}
-                  `;
-                  
-                  navigator.clipboard
-                    .writeText(tempPrompt)
-                    .then(() => {
-                      toast({
-                        title: "コピー完了",
-                        description: "月次報告書の生成用インプットデータをコピーしました",
-                      });
-                    })
-                    .catch(() => {
-                      toast({
-                        title: "エラー",
-                        description: "クリップボードへのコピーに失敗しました",
-                        variant: "destructive",
-                      });
-                    });
-                }}
+                onClick={getAndCopyInputData}
+                disabled={!startDate || !endDate || monthlySummaryInputMutation.isPending}
                 className="flex items-center gap-2"
               >
-                <Copy className="h-4 w-4" />
-                インプットデータをコピー
+                {monthlySummaryInputMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {monthlySummaryInputMutation.isPending 
+                  ? "コピー中..." 
+                  : "インプットデータをコピー"}
               </Button>
               
               <div className="flex flex-row gap-2">
