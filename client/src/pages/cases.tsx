@@ -515,75 +515,41 @@ export default function CaseList() {
               
               {/* 案件選択部分 */}
               <div className="space-y-4 border rounded-lg p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center">
                   <div className="font-medium">処理対象の案件</div>
-                  <div className="flex space-x-2">
-                    {selectedProjects.map(projectName => (
-                      <div key={projectName} className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            const projectCaseIds = groupedCases[projectName]
-                              .filter(c => !c.isDeleted)
-                              .map(c => c.id);
-                            setSelectedCases(prev => {
-                              const newSelection = [...prev];
-                              projectCaseIds.forEach(id => {
-                                if (!newSelection.includes(id)) {
-                                  newSelection.push(id);
-                                }
-                              });
-                              return newSelection;
-                            });
-                          }}
-                        >
-                          すべて選択
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            const projectCaseIds = groupedCases[projectName]
-                              .filter(c => !c.isDeleted)
-                              .map(c => c.id);
-                            setSelectedCases(prev => prev.filter(id => !projectCaseIds.includes(id)));
-                          }}
-                        >
-                          選択解除
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2">
-                  {selectedProjects.map(projectName => 
-                    groupedCases[projectName]
-                      .filter(c => !c.isDeleted)
-                      .map(case_ => (
-                        <div 
-                          key={case_.id} 
-                          className="flex items-center space-x-2 hover:bg-accent/10 rounded-md p-2"
-                          onClick={() => toggleCaseSelection(case_.id, projectName)}
-                        >
-                          <input 
-                            type="checkbox" 
-                            id={`case-${case_.id}`}
-                            checked={selectedCases.includes(case_.id)}
-                            onChange={() => toggleCaseSelection(case_.id, projectName)}
-                            className="h-4 w-4"
-                          />
-                          <label 
-                            htmlFor={`case-${case_.id}`} 
-                            className="flex-grow cursor-pointer truncate"
-                            title={case_.caseName}
+                  {selectedProjects.map(projectName => (
+                    <div key={projectName} className="space-y-2">
+                      <div className="font-medium text-sm text-primary">{projectName}</div>
+                      {groupedCases[projectName]
+                        .filter(c => !c.isDeleted)
+                        .map(case_ => (
+                          <div 
+                            key={case_.id} 
+                            className="flex items-center space-x-2 hover:bg-accent/10 rounded-md p-2 ml-2"
+                            onClick={() => toggleCaseSelection(case_.id, projectName)}
                           >
-                            {case_.caseName}
-                          </label>
-                        </div>
-                      ))
-                  )}
+                            <input 
+                              type="checkbox" 
+                              id={`case-${case_.id}`}
+                              checked={selectedCases.includes(case_.id)}
+                              onChange={() => toggleCaseSelection(case_.id, projectName)}
+                              className="h-4 w-4"
+                            />
+                            <label 
+                              htmlFor={`case-${case_.id}`} 
+                              className="flex-grow cursor-pointer truncate"
+                              title={case_.caseName}
+                            >
+                              {case_.caseName}
+                            </label>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  ))}
                 </div>
                 
                 <div className="text-sm text-muted-foreground">
