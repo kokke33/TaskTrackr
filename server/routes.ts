@@ -262,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         summary,
         reportCount: lastMonthReports.length,
-        caseCount: allProjectCases.length
+        caseCount: casesWithData.length
       });
     } catch (error) {
       console.error("Error generating monthly summary:", error);
@@ -396,8 +396,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 【プロジェクト内の案件と週次報告データ】
 `;
       
-      // 対象の案件情報を取得（マイルストーン情報を含める）
-      const selectedCases = allProjectCases.filter(c => targetCaseIds.includes(c.id));
+      // データがある案件のみを対象とする
+      const selectedCases = allProjectCases.filter(c => casesWithReports.includes(c.id));
       
       // 各案件の情報をプロンプトに追加
       Object.values(caseMap).forEach((caseInfo) => {
@@ -464,7 +464,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         },
         prompt: prompt,
         reportCount: periodReports.length,
-        caseCount: allProjectCases.length
+        caseCount: selectedCases.length
       });
     } catch (error) {
       console.error("Error retrieving monthly summary input data:", error);
