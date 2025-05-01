@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Case, WeeklyReport } from "@shared/schema";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -12,11 +12,14 @@ import {
   CheckSquare, 
   Loader2,
   CalendarRange,
-  Copy
+  Copy,
+  Home,
+  Briefcase,
+  List
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
@@ -25,11 +28,21 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogFooter, 
-  DialogDescription 
+  DialogDescription,
+  DialogClose
 } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import ReactMarkdown from "react-markdown";
+import { 
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator
+} from "@/components/ui/breadcrumb";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // レスポンスの型定義
 type MonthlySummaryResponse = {
@@ -287,212 +300,375 @@ export default function CaseList() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <ThemeToggle />
-
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <header className="mb-8">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-primary">案件一覧</h1>
-            <div className="flex gap-2">
-              {isMultiSelectMode ? (
-                <>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsMultiSelectMode(false)}
-                    className="flex items-center gap-1"
-                  >
-                    選択をキャンセル
-                  </Button>
-                  <Button 
-                    variant="default" 
-                    onClick={handleMonthlyReportClick}
-                    disabled={selectedProjects.length === 0}
-                    className="flex items-center gap-1"
-                  >
-                    <FileText className="h-4 w-4" />
-                    月次報告書作成
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsMultiSelectMode(true)}
-                    className="flex items-center gap-1"
-                  >
-                    <CheckSquare className="h-4 w-4" />
-                    複数選択
-                  </Button>
-                  <Link href="/case/new">
-                    <Button className="flex items-center gap-1">
-                      <Plus className="h-4 w-4" />
-                      新規案件作成
-                    </Button>
+    <div className="h-screen bg-background flex flex-col">
+      <div className="container flex-1 mx-auto px-4 py-4 overflow-auto">
+        <div className="flex justify-between items-center mb-4">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/">
+                    <Home className="h-3.5 w-3.5" />
                   </Link>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="flex justify-between items-center mt-2">
-            <Link href="/" className="text-sm text-muted-foreground hover:text-primary">
-              ホームに戻る
-            </Link>
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="show-deleted" 
-                checked={showDeleted} 
-                onCheckedChange={setShowDeleted}
-              />
-              <Label htmlFor="show-deleted" className="text-sm">
-                削除済み案件を表示
-              </Label>
-            </div>
-          </div>
-        </header>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>
+                  <span className="flex items-center gap-1">
+                    <Briefcase className="h-3.5 w-3.5" />
+                    案件一覧
+                  </span>
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <ThemeToggle />
+        </div>
 
-        <div className="space-y-8">
-          {Object.entries(groupedCases).map(([projectName, projectCases]) => (
-            <div key={projectName}>
-              <div className="flex items-center gap-2 mb-4">
-                {isMultiSelectMode && (
-                  <Checkbox 
-                    checked={selectedProjects.includes(projectName)}
-                    onCheckedChange={() => toggleProjectSelection(projectName)}
-                    id={`project-${projectName}`}
-                  />
-                )}
-                <h2 className="text-xl font-semibold">{projectName}</h2>
-                {isMultiSelectMode && !showDeleted && (
-                  <div className="text-sm text-muted-foreground">
-                    ({projectCases.filter(c => !c.isDeleted).length}件の案件)
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Switch
+              id="showDeleted"
+              checked={showDeleted}
+              onCheckedChange={setShowDeleted}
+            />
+            <Label htmlFor="showDeleted">削除済み案件を表示</Label>
+          </div>
+          <div className="flex space-x-2">
+            {isMultiSelectMode ? (
+              <Button 
+                variant="outline" 
+                onClick={() => setIsMultiSelectMode(false)}
+                className="flex items-center gap-1"
+              >
+                選択をキャンセル
+              </Button>
+            ) : (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsMultiSelectMode(true)}
+                  className="flex items-center gap-1"
+                >
+                  <CheckSquare className="h-4 w-4" />
+                  複数選択
+                </Button>
+                <Link href="/case/new">
+                  <Button className="flex items-center gap-1">
+                    <Plus className="h-4 w-4" />
+                    新規案件作成
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {Object.entries(groupedCases).map(([projectName, projectCases]) => (
+              <div key={projectName} className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    {isMultiSelectMode && (
+                      <Checkbox 
+                        checked={selectedProjects.includes(projectName)}
+                        onCheckedChange={() => toggleProjectSelection(projectName)}
+                      />
+                    )}
+                    <h2 className="text-xl font-semibold">{projectName}の案件一覧</h2>
                   </div>
-                )}
-              </div>
-              <div className="grid gap-4">
-                {projectCases.map((case_) => (
-                  <Card 
-                    key={case_.id} 
-                    className={`hover:bg-accent/5 ${case_.isDeleted ? 'border-destructive/30 bg-destructive/5' : ''}`}
+                  <Button
+                    onClick={() => {
+                      // 通常モードの場合はプロジェクトを選択してからモーダルを表示
+                      if (!isMultiSelectMode) {
+                        setSelectedProjects([projectName]);
+                        
+                        // このプロジェクトの非削除案件を選択
+                        const projectCaseIds = projectCases
+                          .filter(c => !c.isDeleted)
+                          .map(c => c.id);
+                        setSelectedCases(projectCaseIds);
+                      }
+                      
+                      handleMonthlyReportClick();
+                    }}
+                    disabled={monthlySummaryMutation.isPending}
+                    className="flex items-center gap-2"
                   >
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-start gap-2">
+                    {monthlySummaryMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileText className="h-4 w-4" />
+                    )}
+                    {monthlySummaryMutation.isPending 
+                      ? "生成中..." 
+                      : "月次状況報告書を生成"}
+                  </Button>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {projectCases
+                    .filter(c => showDeleted || !c.isDeleted)
+                    .map((case_) => (
+                    <Card 
+                      key={case_.id} 
+                      className={`hover:bg-accent/5 ${case_.isDeleted ? 'border-destructive/30 bg-destructive/5' : ''}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex">
                           {isMultiSelectMode && !case_.isDeleted && (
-                            <Checkbox 
-                              checked={selectedCases.includes(case_.id)}
-                              onCheckedChange={() => toggleCaseSelection(case_.id, projectName)}
-                              className="mt-1"
-                            />
+                            <div className="mr-2">
+                              <Checkbox 
+                                checked={selectedCases.includes(case_.id)}
+                                onCheckedChange={() => toggleCaseSelection(case_.id, projectName)}
+                              />
+                            </div>
                           )}
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold">{case_.caseName}</p>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <Link href={`/case/edit/${case_.id}`}>
+                                  <h3 className="font-medium hover:text-primary hover:underline">{case_.caseName}</h3>
+                                </Link>
+                                <p className="text-sm text-muted-foreground">
+                                  {case_.description || "説明なし"}
+                                </p>
+                              </div>
                               {case_.isDeleted && (
-                                <div className="flex items-center text-destructive text-xs">
+                                <div className="ml-auto flex items-center text-xs text-destructive">
                                   <AlertCircle className="h-3 w-3 mr-1" />
-                                  <span>削除済み</span>
+                                  削除済み
                                 </div>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                              作成日: {new Date(case_.createdAt).toLocaleDateString()}
-                            </p>
+                            {case_.milestone && (
+                              <div className="mt-2 text-sm">
+                                <span className="font-medium">マイルストーン: </span>
+                                {case_.milestone}
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          {!case_.isDeleted && !isMultiSelectMode && (
-                            <Link href={`/reports?caseId=${case_.id}`}>
-                              <Button variant="outline" size="sm">
-                                週次報告一覧
-                              </Button>
-                            </Link>
-                          )}
-                          {!isMultiSelectMode && (
-                            <Link href={`/case/edit/${case_.id}`}>
-                              <Button variant="outline" size="sm">
-                                {case_.isDeleted ? '復元/編集' : '編集'}
-                              </Button>
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                      {case_.description && (
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {case_.description}
-                        </p>
+                      </CardContent>
+                      {!isMultiSelectMode && (
+                        <CardFooter className="p-4 pt-0 flex justify-end space-x-2">
+                          <Link href={`/reports?caseId=${case_.id}`}>
+                            <Button variant="outline" size="sm" className="flex items-center gap-1">
+                              <List className="h-3 w-3" />
+                              週次報告
+                            </Button>
+                          </Link>
+                          <Link href={`/case/edit/${case_.id}`}>
+                            <Button variant="outline" size="sm" className="flex items-center gap-1">
+                              {case_.isDeleted ? '復元/編集' : '編集'} <ChevronRight className="h-3 w-3" />
+                            </Button>
+                          </Link>
+                        </CardFooter>
                       )}
-                    </CardContent>
-                  </Card>
-                ))}
+                    </Card>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
         
-        {/* 日付選択ダイアログ */}
+        {/* 期間選択ダイアログ */}
         <Dialog open={dateDialogOpen} onOpenChange={setDateDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>月次報告書の期間を選択</DialogTitle>
+              <DialogTitle>期間と対象案件を指定</DialogTitle>
               <DialogDescription>
-                レポートに含める週次報告の期間を選択してください。
-                {selectedProjects.length > 0 && (
-                  <div className="mt-2">
-                    <p className="font-semibold">選択中のプロジェクト:</p>
-                    <ul className="list-disc pl-5 text-sm">
-                      {selectedProjects.map(project => (
-                        <li key={project}>{project}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {selectedCases.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm">選択中の案件数: {selectedCases.length}件</p>
-                  </div>
-                )}
+                月次報告書を生成する期間と対象案件を選択してください。
+                デフォルトでは直近1ヶ月と全案件が選択されています。
               </DialogDescription>
             </DialogHeader>
             
-            <div className="flex flex-col gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="start-date">開始日:</Label>
-                <div className="border rounded-md p-2">
+            <div className="flex flex-col space-y-6 py-4">
+              {/* カレンダー部分 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <div className="flex flex-col space-y-2">
+                  <div className="font-medium">開始日</div>
                   <Calendar
                     mode="single"
                     selected={startDate}
                     onSelect={setStartDate}
-                    initialFocus
+                    defaultMonth={startDate}
+                    className="border rounded-md mx-auto"
                   />
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="end-date">終了日:</Label>
-                <div className="border rounded-md p-2">
+                
+                <div className="flex flex-col space-y-2">
+                  <div className="font-medium">終了日</div>
                   <Calendar
                     mode="single"
                     selected={endDate}
                     onSelect={setEndDate}
-                    initialFocus
+                    defaultMonth={endDate}
+                    className="border rounded-md mx-auto"
+                    disabled={(date) => 
+                      startDate ? date < startDate : false
+                    }
                   />
+                </div>
+              </div>
+              
+              {/* 案件選択部分 */}
+              <div className="space-y-4 border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">処理対象の案件</div>
+                  <div className="flex space-x-2">
+                    {selectedProjects.map(projectName => (
+                      <div key={projectName} className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            const projectCaseIds = groupedCases[projectName]
+                              .filter(c => !c.isDeleted)
+                              .map(c => c.id);
+                            setSelectedCases(prev => {
+                              const newSelection = [...prev];
+                              projectCaseIds.forEach(id => {
+                                if (!newSelection.includes(id)) {
+                                  newSelection.push(id);
+                                }
+                              });
+                              return newSelection;
+                            });
+                          }}
+                        >
+                          すべて選択
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            const projectCaseIds = groupedCases[projectName]
+                              .filter(c => !c.isDeleted)
+                              .map(c => c.id);
+                            setSelectedCases(prev => prev.filter(id => !projectCaseIds.includes(id)));
+                          }}
+                        >
+                          選択解除
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2">
+                  {selectedProjects.map(projectName => 
+                    groupedCases[projectName]
+                      .filter(c => !c.isDeleted)
+                      .map(case_ => (
+                        <div 
+                          key={case_.id} 
+                          className="flex items-center space-x-2 hover:bg-accent/10 rounded-md p-2"
+                          onClick={() => toggleCaseSelection(case_.id, projectName)}
+                        >
+                          <input 
+                            type="checkbox" 
+                            id={`case-${case_.id}`}
+                            checked={selectedCases.includes(case_.id)}
+                            onChange={() => toggleCaseSelection(case_.id, projectName)}
+                            className="h-4 w-4"
+                          />
+                          <label 
+                            htmlFor={`case-${case_.id}`} 
+                            className="flex-grow cursor-pointer truncate"
+                            title={case_.caseName}
+                          >
+                            {case_.caseName}
+                          </label>
+                        </div>
+                      ))
+                  )}
+                </div>
+                
+                <div className="text-sm text-muted-foreground">
+                  {selectedCases.length === 0 
+                    ? "案件が選択されていません。全案件が対象になります。" 
+                    : `${selectedCases.length}件の案件が選択されています`}
                 </div>
               </div>
             </div>
             
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDateDialogOpen(false)}>
-                キャンセル
-              </Button>
-              <Button 
-                onClick={generateMonthlySummaryWithDates}
-                disabled={!startDate || !endDate || monthlySummaryMutation.isPending}
+            <div className="flex flex-row flex-wrap justify-between items-center gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // インプットデータを取得してコピーする機能を追加
+                  if (!selectedProjects.length || !startDate || !endDate) {
+                    toast({
+                      title: "エラー",
+                      description: "プロジェクトと期間を選択してください",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  
+                  // yyyy-MM-dd形式にフォーマット
+                  const formatDate = (date: Date) => {
+                    return date.toISOString().split('T')[0];
+                  };
+                  
+                  const tempPrompt = `
+月次レポート生成のためのインプットデータ:
+期間: ${formatDate(startDate)} 〜 ${formatDate(endDate)}
+プロジェクト: ${selectedProjects.join(', ')}
+選択案件数: ${selectedCases.length} 件
+                  `;
+                  
+                  navigator.clipboard
+                    .writeText(tempPrompt)
+                    .then(() => {
+                      toast({
+                        title: "コピー完了",
+                        description: "月次報告書の生成用インプットデータをコピーしました",
+                      });
+                    })
+                    .catch(() => {
+                      toast({
+                        title: "エラー",
+                        description: "クリップボードへのコピーに失敗しました",
+                        variant: "destructive",
+                      });
+                    });
+                }}
+                className="flex items-center gap-2"
               >
-                {monthlySummaryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                生成
+                <Copy className="h-4 w-4" />
+                インプットデータをコピー
               </Button>
-            </DialogFooter>
+              
+              <div className="flex flex-row gap-2">
+                <DialogClose asChild>
+                  <Button variant="outline">
+                    キャンセル
+                  </Button>
+                </DialogClose>
+                <Button
+                  onClick={generateMonthlySummaryWithDates}
+                  disabled={!startDate || !endDate || monthlySummaryMutation.isPending}
+                  className="flex items-center gap-2"
+                >
+                  {monthlySummaryMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="h-4 w-4" />
+                  )}
+                  {monthlySummaryMutation.isPending 
+                    ? "生成中..." 
+                    : "月次報告書を生成"}
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
         
