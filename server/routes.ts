@@ -167,11 +167,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate.setMonth(startDate.getMonth() - 1);
       }
       
-      // プロジェクト名に紐づく案件を全て取得
-      const projectCases = await storage.getCasesByProject(projectName);
+      // プロジェクト名がカンマ区切りの場合は複数プロジェクトとして処理
+      const projectNames = projectName.split(',');
+      let allProjectCases: any[] = [];
       
-      if (projectCases.length === 0) {
-        res.status(404).json({ message: "プロジェクトに関連する案件が見つかりません" });
+      // 各プロジェクトの案件を取得して結合
+      for (const name of projectNames) {
+        const projectCases = await storage.getCasesByProject(name.trim());
+        allProjectCases.push(...projectCases);
+      }
+      
+      if (allProjectCases.length === 0) {
+        res.status(404).json({ message: "指定されたプロジェクトに関連する案件が見つかりません" });
         return;
       }
       
@@ -190,14 +197,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // 対象の案件がプロジェクトに含まれるものだけに絞る
-        const projectCaseIds = projectCases.map(c => c.id);
-        targetCaseIds = targetCaseIds.filter(id => projectCaseIds.includes(id));
+        // 対象の案件が取得したプロジェクトに含まれるものだけに絞る
+        const allProjectCaseIds = allProjectCases.map(c => c.id);
+        targetCaseIds = targetCaseIds.filter(id => allProjectCaseIds.includes(id));
       }
       
       // 対象の案件IDがない場合は全ての案件を対象にする
       if (targetCaseIds.length === 0) {
-        targetCaseIds = projectCases.map(c => c.id);
+        targetCaseIds = allProjectCases.map(c => c.id);
       }
       
       // 対象案件に対して週次報告を取得
@@ -224,18 +231,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
+      // 複数プロジェクトの場合は、プロジェクト名を「複数プロジェクト」とする
+      const displayProjectName = projectNames.length > 1 
+        ? `複数プロジェクト (${projectNames.join(', ')})` 
+        : projectName;
+      
       // OpenAIを使用して月次レポートを生成
-      const summary = await generateMonthlySummary(projectName, lastMonthReports, projectCases);
+      const summary = await generateMonthlySummary(displayProjectName, lastMonthReports, allProjectCases);
       
       res.json({ 
-        projectName,
+        projectName: displayProjectName,
         period: {
           start: startDate.toISOString().split('T')[0],
           end: endDate.toISOString().split('T')[0],
         },
         summary,
         reportCount: lastMonthReports.length,
-        caseCount: projectCases.length
+        caseCount: allProjectCases.length
       });
     } catch (error) {
       console.error("Error generating monthly summary:", error);
@@ -264,11 +276,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate.setMonth(startDate.getMonth() - 1);
       }
       
-      // プロジェクト名に紐づく案件を全て取得
-      const projectCases = await storage.getCasesByProject(projectName);
+      // プロジェクト名がカンマ区切りの場合は複数プロジェクトとして処理
+      const projectNames = projectName.split(',');
+      let allProjectCases: any[] = [];
       
-      if (projectCases.length === 0) {
-        res.status(404).json({ message: "プロジェクトに関連する案件が見つかりません" });
+      // 各プロジェクトの案件を取得して結合
+      for (const name of projectNames) {
+        const projectCases = await storage.getCasesByProject(name.trim());
+        allProjectCases.push(...projectCases);
+      }
+      
+      if (allProjectCases.length === 0) {
+        res.status(404).json({ message: "指定されたプロジェクトに関連する案件が見つかりません" });
         return;
       }
       
@@ -287,14 +306,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // 対象の案件がプロジェクトに含まれるものだけに絞る
-        const projectCaseIds = projectCases.map(c => c.id);
-        targetCaseIds = targetCaseIds.filter(id => projectCaseIds.includes(id));
+        // 対象の案件が取得したプロジェクトに含まれるものだけに絞る
+        const allProjectCaseIds = allProjectCases.map(c => c.id);
+        targetCaseIds = targetCaseIds.filter(id => allProjectCaseIds.includes(id));
       }
       
       // 対象の案件IDがない場合は全ての案件を対象にする
       if (targetCaseIds.length === 0) {
-        targetCaseIds = projectCases.map(c => c.id);
+        targetCaseIds = allProjectCases.map(c => c.id);
       }
       
       // 対象案件に対して週次報告を取得
@@ -313,12 +332,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // 案件をID基準のマップとして整理
-      const caseMap: Record<number, { caseName: string; description: string | null; reports: any[] }> = {};
+      const caseMap: Record<number, { caseName: string; description: string | null; projectName: string; reports: any[] }> = {};
       
-      projectCases.forEach(case_ => {
+      allProjectCases.forEach(case_ => {
         caseMap[case_.id] = {
           caseName: case_.caseName,
           description: case_.description,
+          projectName: case_.projectName,
           reports: []
         };
       });
@@ -330,12 +350,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
+      // 複数プロジェクトの場合は、プロジェクト名を「複数プロジェクト」とする
+      const displayProjectName = projectNames.length > 1 
+        ? `複数プロジェクト (${projectNames.join(', ')})` 
+        : projectName;
+      
       // AIプロンプト用のデータ構成
       let prompt = `
-以下のデータをもとに、プロジェクト「${projectName}」の指定された期間の月次状況報告書を作成してください。
+以下のデータをもとに、${displayProjectName}の指定された期間の月次状況報告書を作成してください。
 報告書は、経営層やプロジェクト責任者が全体状況を把握できるよう、簡潔かつ要点を押さえた内容にしてください。
 
-【プロジェクト】 ${projectName}
+【プロジェクト】 ${displayProjectName}
 
 【対象期間】 ${startDate.toISOString().split('T')[0]} 〜 ${endDate.toISOString().split('T')[0]}
 
@@ -343,7 +368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 `;
       
       // 対象の案件情報を取得（マイルストーン情報を含める）
-      const selectedCases = projectCases.filter(c => targetCaseIds.includes(c.id));
+      const selectedCases = allProjectCases.filter(c => targetCaseIds.includes(c.id));
       
       // 各案件の情報をプロンプトに追加
       Object.values(caseMap).forEach((caseInfo) => {
@@ -352,6 +377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const milestone = fullCaseInfo?.milestone || "";
         
         prompt += `
+■ プロジェクト: ${caseInfo.projectName}
 ■ 案件: ${caseInfo.caseName}
 ${caseInfo.description ? `説明: ${caseInfo.description}` : ""}
 ${milestone ? `マイルストーン: ${milestone}` : ""}
@@ -402,14 +428,14 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 `;
       
       res.json({ 
-        projectName,
+        projectName: displayProjectName,
         period: {
           start: startDate.toISOString().split('T')[0],
           end: endDate.toISOString().split('T')[0],
         },
         prompt: prompt,
         reportCount: periodReports.length,
-        caseCount: projectCases.length
+        caseCount: allProjectCases.length
       });
     } catch (error) {
       console.error("Error retrieving monthly summary input data:", error);
@@ -526,12 +552,16 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         return "OpenAI API キーが設定されていません。デプロイメント設定でAPIキーを追加してください。";
       }
 
+      // 複数プロジェクトかどうかを判定
+      const isMultiProject = projectName.includes('複数プロジェクト');
+
       // 各案件と報告を整理
-      const caseMap: Record<number, { caseName: string; description: string | null; reports: any[] }> = {};
+      const caseMap: Record<number, { caseName: string; description: string | null; projectName: string; reports: any[] }> = {};
       cases.forEach(c => {
         caseMap[c.id] = {
           caseName: c.caseName,
           description: c.description,
+          projectName: c.projectName,
           reports: []
         };
       });
@@ -543,14 +573,22 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         }
       });
 
+      // 期間の計算
+      const startDate = reports.length > 0 
+        ? new Date(Math.min(...reports.map(r => new Date(r.reportPeriodStart).getTime())))
+        : new Date();
+      const endDate = reports.length > 0 
+        ? new Date(Math.max(...reports.map(r => new Date(r.reportPeriodEnd).getTime())))
+        : new Date();
+
       // プロンプト作成
       let prompt = `
-以下のデータをもとに、プロジェクト「${projectName}」の指定された期間の月次状況報告書を作成してください。
+以下のデータをもとに、${projectName}の指定された期間の月次状況報告書を作成してください。
 報告書は、経営層やプロジェクト責任者が全体状況を把握できるよう、簡潔かつ要点を押さえた内容にしてください。
 
 【プロジェクト】 ${projectName}
 
-【対象期間】 ${reports.length > 0 ? new Date(reports[0].reportPeriodStart).toISOString().split('T')[0] : ""} 〜 ${reports.length > 0 ? new Date(reports[reports.length - 1].reportPeriodEnd).toISOString().split('T')[0] : ""}
+【対象期間】 ${startDate.toISOString().split('T')[0]} 〜 ${endDate.toISOString().split('T')[0]}
 
 【プロジェクト内の案件と週次報告データ】
 `;
@@ -562,6 +600,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         const milestone = fullCaseInfo?.milestone || "";
         
         prompt += `
+${isMultiProject ? `■ プロジェクト: ${caseInfo.projectName}` : ''}
 ■ 案件: ${caseInfo.caseName}
 ${caseInfo.description ? `説明: ${caseInfo.description}` : ""}
 ${milestone ? `マイルストーン: ${milestone}` : ""}
@@ -602,12 +641,12 @@ ${milestone ? `マイルストーン: ${milestone}` : ""}
 1. 全体進捗状況のサマリー
 2. 主な成果と完了項目
 3. 直面している課題やリスク、その対応策
-4. 各案件ごとの状況概要（現状と予定）
+${isMultiProject ? '4. プロジェクトごとの概要と各案件の状況（現状と予定）' : '4. 各案件ごとの状況概要（現状と予定）'}
 5. 品質状況のまとめ
 6. 今後のスケジュールと目標
 7. 経営層に伝えるべきその他重要事項
 
-最終的なレポートは経営層向けに簡潔にまとめ、プロジェクト全体の健全性と今後の見通しが明確に伝わるように作成してください。
+最終的なレポートは経営層向けに簡潔にまとめ、${isMultiProject ? 'すべてのプロジェクト' : 'プロジェクト'}全体の健全性と今後の見通しが明確に伝わるように作成してください。
 Markdown形式で作成し、適切な見出しを使って整理してください。
 `;
 

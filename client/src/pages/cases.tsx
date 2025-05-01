@@ -11,7 +11,8 @@ import {
   ChevronRight, 
   CheckSquare, 
   Loader2,
-  CalendarRange
+  CalendarRange,
+  Copy
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
