@@ -668,7 +668,7 @@ export default function CaseList() {
             <div className="flex flex-row flex-wrap justify-between items-center gap-2 mt-4">
               <Button
                 variant="outline"
-                onClick={getAndCopyInputData}
+                onClick={() => monthlySummaryInputMutation.mutate()}
                 disabled={!startDate || !endDate || monthlySummaryInputMutation.isPending}
                 className="flex items-center gap-2"
               >
