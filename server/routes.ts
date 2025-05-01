@@ -209,6 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 対象案件に対して週次報告を取得
       const lastMonthReports = [];
+      const casesWithReports: number[] = []; // データがある案件のIDを記録
       
       for (const caseId of targetCaseIds) {
         const reports = await storage.getWeeklyReportsByCase(caseId);
@@ -219,7 +220,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return reportDate >= startDate && reportDate <= endDate;
         });
         
-        lastMonthReports.push(...filteredReports);
+        // 報告があれば、その案件をデータありとして記録
+        if (filteredReports.length > 0) {
+          casesWithReports.push(caseId);
+          lastMonthReports.push(...filteredReports);
+        }
       }
       
       if (lastMonthReports.length === 0) {
@@ -231,13 +236,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
+      // データがある案件に関連するプロジェクト名だけを抽出
+      const projectsWithData: string[] = Array.from(new Set(
+        allProjectCases
+          .filter(c => casesWithReports.includes(c.id))
+          .map(c => c.projectName)
+      ));
+      
       // 複数プロジェクトの場合は、プロジェクト名を「複数プロジェクト」とする
-      const displayProjectName = projectNames.length > 1 
-        ? `複数プロジェクト (${projectNames.join(', ')})` 
-        : projectName;
+      const displayProjectName = projectsWithData.length > 1 
+        ? `複数プロジェクト (${projectsWithData.join(', ')})` 
+        : projectsWithData[0] || projectName;
+      
+      // データがある案件のみをOpenAIに渡す
+      const casesWithData = allProjectCases.filter(c => casesWithReports.includes(c.id));
       
       // OpenAIを使用して月次レポートを生成
-      const summary = await generateMonthlySummary(displayProjectName, lastMonthReports, allProjectCases);
+      const summary = await generateMonthlySummary(displayProjectName, lastMonthReports, casesWithData);
       
       res.json({ 
         projectName: displayProjectName,
@@ -318,6 +333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 対象案件に対して週次報告を取得
       const periodReports = [];
+      const casesWithReports: number[] = []; // データがある案件のIDを記録
       
       for (const caseId of targetCaseIds) {
         const reports = await storage.getWeeklyReportsByCase(caseId);
@@ -328,20 +344,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return reportDate >= startDate && reportDate <= endDate;
         });
         
-        periodReports.push(...filteredReports);
+        // 報告があれば、その案件をデータありとして記録
+        if (filteredReports.length > 0) {
+          casesWithReports.push(caseId);
+          periodReports.push(...filteredReports);
+        }
       }
       
-      // 案件をID基準のマップとして整理
+      // 案件をID基準のマップとして整理（データがある案件のみ）
       const caseMap: Record<number, { caseName: string; description: string | null; projectName: string; reports: any[] }> = {};
       
-      allProjectCases.forEach(case_ => {
-        caseMap[case_.id] = {
-          caseName: case_.caseName,
-          description: case_.description,
-          projectName: case_.projectName,
-          reports: []
-        };
-      });
+      allProjectCases
+        .filter(case_ => casesWithReports.includes(case_.id))
+        .forEach(case_ => {
+          caseMap[case_.id] = {
+            caseName: case_.caseName,
+            description: case_.description,
+            projectName: case_.projectName,
+            reports: []
+          };
+        });
       
       // 週次報告を案件ごとに整理
       periodReports.forEach(report => {
@@ -350,10 +372,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
+      // データがある案件に関連するプロジェクト名だけを抽出
+      const projectsWithData: string[] = Array.from(new Set(
+        allProjectCases
+          .filter(c => casesWithReports.includes(c.id))
+          .map(c => c.projectName)
+      ));
+      
       // 複数プロジェクトの場合は、プロジェクト名を「複数プロジェクト」とする
-      const displayProjectName = projectNames.length > 1 
-        ? `複数プロジェクト (${projectNames.join(', ')})` 
-        : projectName;
+      const displayProjectName = projectsWithData.length > 1 
+        ? `複数プロジェクト (${projectsWithData.join(', ')})` 
+        : projectsWithData[0] || projectName;
       
       // AIプロンプト用のデータ構成
       let prompt = `
