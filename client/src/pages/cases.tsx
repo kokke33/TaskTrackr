@@ -114,9 +114,41 @@ export default function CaseList() {
         url += `?${params.toString()}`;
       }
       
-      return apiRequest<{prompt: string}>(url, { method: "GET" });
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          credentials: 'include',
+          headers: {
+            "Content-Type": "application/json",
+          }
+        });
+        
+        if (!response.ok) {
+          // 404エラーの場合、レスポンスボディからエラーメッセージを取得
+          if (response.status === 404) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "指定された期間に週次報告が見つかりません");
+          }
+          throw new Error("月次報告書のインプットデータの取得に失敗しました");
+        }
+        
+        return response.json();
+      } catch (error) {
+        console.error("Error retrieving monthly summary input data:", error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
+      // データが空でないか確認
+      if (!data.prompt || data.prompt.trim() === "") {
+        toast({
+          title: "データなし",
+          description: "指定された期間に週次報告のある案件が見つかりませんでした",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       navigator.clipboard
         .writeText(data.prompt)
         .then(() => {
@@ -133,11 +165,11 @@ export default function CaseList() {
           });
         });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Error retrieving monthly summary input data:", error);
       toast({
         title: "エラー",
-        description: "月次報告書のインプットデータの取得に失敗しました",
+        description: error.message || "月次報告書のインプットデータの取得に失敗しました",
         variant: "destructive",
       });
     }
@@ -163,9 +195,41 @@ export default function CaseList() {
         url += `?${params.toString()}`;
       }
       
-      return apiRequest<MonthlySummaryResponse>(url, { method: "GET" });
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          credentials: 'include',
+          headers: {
+            "Content-Type": "application/json",
+          }
+        });
+        
+        if (!response.ok) {
+          // 404エラーの場合、レスポンスボディからエラーメッセージを取得
+          if (response.status === 404) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "指定された期間に週次報告が見つかりません");
+          }
+          throw new Error("月次報告書の生成に失敗しました");
+        }
+        
+        return response.json();
+      } catch (error) {
+        console.error("Error generating monthly summary:", error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
+      // サマリーが空でないか確認
+      if (!data.summary || data.summary.trim() === "") {
+        toast({
+          title: "データなし",
+          description: "指定された期間に週次報告のある案件が見つかりませんでした",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setMonthlySummary(data.summary);
       if (data.period) {
         setMonthlySummaryPeriod(data.period);
@@ -182,11 +246,11 @@ export default function CaseList() {
         description: `${selectedMsg}${data.reportCount}件の週次報告から作成しました`,
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Error generating monthly summary:", error);
       toast({
         title: "エラー",
-        description: "月次報告書の生成に失敗しました",
+        description: error.message || "月次報告書の生成に失敗しました",
         variant: "destructive",
       });
     }
