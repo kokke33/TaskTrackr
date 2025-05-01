@@ -399,10 +399,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // データがある案件のみを対象とする
       const selectedCases = allProjectCases.filter(c => casesWithReports.includes(c.id));
       
-      // 各案件の情報をプロンプトに追加
-      Object.values(caseMap).forEach((caseInfo) => {
+      // データがある案件の情報のみをプロンプトに追加
+      Object.keys(caseMap).forEach((caseIdStr) => {
+        const caseId = parseInt(caseIdStr);
+        const caseInfo = caseMap[caseId];
+        
         // 該当するケースのフル情報を探す
-        const fullCaseInfo = selectedCases.find(c => c.caseName === caseInfo.caseName);
+        const fullCaseInfo = selectedCases.find(c => c.id === caseId);
+        if (!fullCaseInfo) return; // データがない案件は表示しない
+        
         const milestone = fullCaseInfo?.milestone || "";
         
         prompt += `
