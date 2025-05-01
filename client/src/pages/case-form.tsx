@@ -129,46 +129,29 @@ export default function CaseForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="required">プロジェクト名</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="選択してください" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="PNEC_SMSK_保守">
-                            PNEC_SMSK_共同損サ_保守
-                          </SelectItem>
-                          <SelectItem value="PNEC_SMSK_Stage3">
-                            PNEC_SMSK_共同損サ_Stage3
-                          </SelectItem>
-                          <SelectItem value="PNEC_SMSK_基盤">
-                            PNEC_SMSK_共同損サ_基盤
-                          </SelectItem>
-                          <SelectItem value="PNEC_SMSK_性能">
-                            PNEC_SMSK_共同損サ_性能
-                          </SelectItem>
-                          <SelectItem value="INSL_SNSK">
-                            INSL_SNSK新種
-                          </SelectItem>
-                          <SelectItem value="ITCS_SAIG">
-                            ITCS_SAIG_基幹系保守
-                          </SelectItem>
-                          <SelectItem value="VACC_SSJN">
-                            VACC_SSJN_未来革新Ⅲ期契約管理
-                          </SelectItem>
-                          <SelectItem value="IIBM_FWAM">
-                            IIBM_FWAM退職共済
-                          </SelectItem>
-                          <SelectItem value="SAMPLE_PRJ">
-                            サンプルプロジェクト
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            list="project-options"
+                            placeholder="選択または入力してください"
+                            {...field}
+                          />
+                          <datalist id="project-options">
+                            <option value="PNEC_SMSK_保守">PNEC_SMSK_共同損サ_保守</option>
+                            <option value="PNEC_SMSK_Stage3">PNEC_SMSK_共同損サ_Stage3</option>
+                            <option value="PNEC_SMSK_基盤">PNEC_SMSK_共同損サ_基盤</option>
+                            <option value="PNEC_SMSK_性能">PNEC_SMSK_共同損サ_性能</option>
+                            <option value="INSL_SNSK">INSL_SNSK新種</option>
+                            <option value="ITCS_SAIG">ITCS_SAIG_基幹系保守</option>
+                            <option value="VACC_SSJN">VACC_SSJN_未来革新Ⅲ期契約管理</option>
+                            <option value="IIBM_FWAM">IIBM_FWAM退職共済</option>
+                            <option value="SAMPLE_PRJ">サンプルプロジェクト</option>
+                          </datalist>
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        既存のプロジェクトから選択するか、新しいプロジェクト名を入力してください
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
