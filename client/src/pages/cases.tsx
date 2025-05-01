@@ -559,8 +559,35 @@ export default function CaseList() {
               
               {/* 案件選択部分 */}
               <div className="space-y-4 border rounded-lg p-4">
-                <div className="flex items-center">
+                <div className="flex items-center justify-between">
                   <div className="font-medium">処理対象の案件</div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        // 全プロジェクトを選択
+                        setSelectedProjects(Object.keys(groupedCases));
+                        
+                        // すべての非削除案件を選択
+                        const allCaseIds = Object.values(groupedCases)
+                          .flatMap(cases => cases.filter(c => !c.isDeleted).map(c => c.id));
+                        setSelectedCases(allCaseIds);
+                      }}
+                    >
+                      すべて選択
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        // すべての選択を解除
+                        setSelectedCases([]);
+                      }}
+                    >
+                      選択解除
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2">
