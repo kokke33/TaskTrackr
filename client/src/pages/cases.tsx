@@ -301,7 +301,7 @@ export default function CaseList() {
 
   return (
     <div className="h-screen bg-background flex flex-col">
-      <div className="container flex-1 mx-auto px-4 py-4 overflow-auto">
+      <div className="container flex-1 mx-auto px-4 py-4 overflow-auto max-w-4xl">
         <div className="flex justify-between items-center mb-4">
           <Breadcrumb>
             <BreadcrumbList>
@@ -354,6 +354,30 @@ export default function CaseList() {
                   <CheckSquare className="h-4 w-4" />
                   複数選択
                 </Button>
+                <Button
+                  onClick={() => {
+                    // 全プロジェクトを選択
+                    setSelectedProjects(Object.keys(groupedCases));
+                    
+                    // すべての非削除案件を選択
+                    const allCaseIds = Object.values(groupedCases)
+                      .flatMap(cases => cases.filter(c => !c.isDeleted).map(c => c.id));
+                    setSelectedCases(allCaseIds);
+                    
+                    handleMonthlyReportClick();
+                  }}
+                  disabled={monthlySummaryMutation.isPending}
+                  className="flex items-center gap-2"
+                >
+                  {monthlySummaryMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="h-4 w-4" />
+                  )}
+                  {monthlySummaryMutation.isPending 
+                    ? "生成中..." 
+                    : "月次状況報告書"}
+                </Button>
                 <Link href="/case/new">
                   <Button className="flex items-center gap-1">
                     <Plus className="h-4 w-4" />
@@ -373,43 +397,14 @@ export default function CaseList() {
           <div className="space-y-8">
             {Object.entries(groupedCases).map(([projectName, projectCases]) => (
               <div key={projectName} className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    {isMultiSelectMode && (
-                      <Checkbox 
-                        checked={selectedProjects.includes(projectName)}
-                        onCheckedChange={() => toggleProjectSelection(projectName)}
-                      />
-                    )}
-                    <h2 className="text-xl font-semibold">{projectName}の案件一覧</h2>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      // 通常モードの場合はプロジェクトを選択してからモーダルを表示
-                      if (!isMultiSelectMode) {
-                        setSelectedProjects([projectName]);
-                        
-                        // このプロジェクトの非削除案件を選択
-                        const projectCaseIds = projectCases
-                          .filter(c => !c.isDeleted)
-                          .map(c => c.id);
-                        setSelectedCases(projectCaseIds);
-                      }
-                      
-                      handleMonthlyReportClick();
-                    }}
-                    disabled={monthlySummaryMutation.isPending}
-                    className="flex items-center gap-2"
-                  >
-                    {monthlySummaryMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <FileText className="h-4 w-4" />
-                    )}
-                    {monthlySummaryMutation.isPending 
-                      ? "生成中..." 
-                      : "月次状況報告書を生成"}
-                  </Button>
+                <div className="flex items-center gap-2">
+                  {isMultiSelectMode && (
+                    <Checkbox 
+                      checked={selectedProjects.includes(projectName)}
+                      onCheckedChange={() => toggleProjectSelection(projectName)}
+                    />
+                  )}
+                  <h2 className="text-xl font-semibold">{projectName}の案件一覧</h2>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {projectCases
@@ -618,11 +613,40 @@ export default function CaseList() {
                     return date.toISOString().split('T')[0];
                   };
                   
+                  // 選択されている案件の詳細情報を取得
+                  const selectedCasesDetails = selectedCases.length > 0 
+                    ? selectedCases.map(caseId => {
+                        // 案件IDから案件情報を検索
+                        const foundCase = Object.values(groupedCases)
+                          .flat()
+                          .find(c => c.id === caseId);
+                        
+                        return foundCase 
+                          ? `- ${foundCase.projectName}: ${foundCase.caseName}`
+                          : null;
+                      }).filter(Boolean).join('\n')
+                    : "すべての案件";
+                  
+                  // プロジェクト別の選択案件数
+                  const projectCaseCounts = selectedProjects.map(projectName => {
+                    const totalCases = groupedCases[projectName].filter(c => !c.isDeleted).length;
+                    const selectedCount = selectedCases.filter(caseId => 
+                      groupedCases[projectName].some(c => c.id === caseId && !c.isDeleted)
+                    ).length;
+                    return `- ${projectName}: ${selectedCount}件/${totalCases}件`;
+                  }).join('\n');
+                  
                   const tempPrompt = `
 月次レポート生成のためのインプットデータ:
 期間: ${formatDate(startDate)} 〜 ${formatDate(endDate)}
-プロジェクト: ${selectedProjects.join(', ')}
+選択プロジェクト: ${selectedProjects.join(', ')}
 選択案件数: ${selectedCases.length} 件
+
+【プロジェクト別選択案件数】
+${projectCaseCounts}
+
+【選択案件一覧】
+${selectedCasesDetails}
                   `;
                   
                   navigator.clipboard
