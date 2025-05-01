@@ -257,22 +257,9 @@ export default function CaseList() {
         : [...prev, caseId]
     );
     
-    // プロジェクトの全案件が選択されているか確認
-    const projectCases = groupedCases[projectName].filter(case_ => !case_.isDeleted);
-    const projectCaseIds = projectCases.map(case_ => case_.id);
-    
-    // 更新後の選択状態を計算
-    const updatedSelectedCases = selectedCases.includes(caseId)
-      ? selectedCases.filter(id => id !== caseId)
-      : [...selectedCases, caseId];
-    
-    // プロジェクトの全案件が選択されている場合はプロジェクトも選択
-    const isAllSelected = projectCaseIds.every(id => updatedSelectedCases.includes(id));
-    
-    if (isAllSelected && !selectedProjects.includes(projectName)) {
+    // プロジェクトが選択されていない場合、自動的に選択する
+    if (!selectedProjects.includes(projectName)) {
       setSelectedProjects(prev => [...prev, projectName]);
-    } else if (!isAllSelected && selectedProjects.includes(projectName)) {
-      setSelectedProjects(prev => prev.filter(name => name !== projectName));
     }
   };
   
@@ -578,45 +565,8 @@ export default function CaseList() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2">
                   {Object.keys(groupedCases).map(projectName => (
-                    <div key={projectName} 
-                      className={`space-y-2 ${selectedProjects.includes(projectName) ? "" : "opacity-50"}`}
-                    >
-                      <div 
-                        className="font-medium text-sm text-primary flex items-center gap-2 cursor-pointer"
-                        onClick={() => {
-                          if (selectedProjects.includes(projectName)) {
-                            // プロジェクトの選択を解除
-                            setSelectedProjects(prev => prev.filter(p => p !== projectName));
-                            
-                            // このプロジェクトの全案件の選択を解除
-                            const projectCaseIds = groupedCases[projectName]
-                              .filter(c => !c.isDeleted)
-                              .map(c => c.id);
-                            setSelectedCases(prev => prev.filter(id => !projectCaseIds.includes(id)));
-                          } else {
-                            // プロジェクトを選択
-                            setSelectedProjects(prev => [...prev, projectName]);
-                          }
-                        }}
-                      >
-                        <input 
-                          type="checkbox" 
-                          checked={selectedProjects.includes(projectName)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedProjects(prev => [...prev, projectName]);
-                            } else {
-                              setSelectedProjects(prev => prev.filter(p => p !== projectName));
-                              
-                              // このプロジェクトの全案件の選択を解除
-                              const projectCaseIds = groupedCases[projectName]
-                                .filter(c => !c.isDeleted)
-                                .map(c => c.id);
-                              setSelectedCases(prev => prev.filter(id => !projectCaseIds.includes(id)));
-                            }
-                          }}
-                          className="h-4 w-4"
-                        />
+                    <div key={projectName} className="space-y-2">
+                      <div className="font-medium text-sm text-primary">
                         {projectName}
                       </div>
                       {groupedCases[projectName]
@@ -624,24 +574,15 @@ export default function CaseList() {
                         .map(case_ => (
                           <div 
                             key={case_.id} 
-                            className={`flex items-center space-x-2 hover:bg-accent/10 rounded-md p-2 ml-2 ${!selectedProjects.includes(projectName) ? "pointer-events-none" : ""}`}
-                            onClick={() => {
-                              if (selectedProjects.includes(projectName)) {
-                                toggleCaseSelection(case_.id, projectName);
-                              }
-                            }}
+                            className="flex items-center space-x-2 hover:bg-accent/10 rounded-md p-2 ml-2"
+                            onClick={() => toggleCaseSelection(case_.id, projectName)}
                           >
                             <input 
                               type="checkbox" 
                               id={`case-${case_.id}`}
                               checked={selectedCases.includes(case_.id)}
-                              onChange={() => {
-                                if (selectedProjects.includes(projectName)) {
-                                  toggleCaseSelection(case_.id, projectName);
-                                }
-                              }}
+                              onChange={() => toggleCaseSelection(case_.id, projectName)}
                               className="h-4 w-4"
-                              disabled={!selectedProjects.includes(projectName)}
                             />
                             <label 
                               htmlFor={`case-${case_.id}`} 
