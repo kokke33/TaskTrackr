@@ -575,13 +575,22 @@ export default function CaseList() {
                           <div 
                             key={case_.id} 
                             className="flex items-center space-x-2 hover:bg-accent/10 rounded-md p-2 ml-2"
-                            onClick={() => toggleCaseSelection(case_.id, projectName)}
+                            onClick={(e) => {
+                              // この一行を追加して、クリックイベントの伝播を防止
+                              e.stopPropagation();
+                              toggleCaseSelection(case_.id, projectName);
+                            }}
                           >
                             <input 
                               type="checkbox" 
                               id={`case-${case_.id}`}
                               checked={selectedCases.includes(case_.id)}
-                              onChange={() => toggleCaseSelection(case_.id, projectName)}
+                              onChange={(e) => {
+                                // この一行を追加して、クリックイベントの伝播を防止
+                                e.stopPropagation();
+                                toggleCaseSelection(case_.id, projectName);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
                               className="h-4 w-4"
                             />
                             <label 
