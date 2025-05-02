@@ -207,6 +207,13 @@ export default function WeeklyReportList() {
     }
   }, [location]); // locationを依存配列に入れて、URLが変わったときに再実行
   
+  // caseMapとselectedCaseが両方準備できた後に、最新の案件情報を取得
+  useEffect(() => {
+    if (selectedCase && cases?.length > 0) {
+      fetchLatestCaseData(selectedCase);
+    }
+  }, [selectedCase, cases]);
+  
   // すべての週次報告を取得
   const { data: reports, isLoading: isLoadingReports } = useQuery<WeeklyReport[]>({
     queryKey: ["/api/weekly-reports"],
@@ -389,16 +396,46 @@ export default function WeeklyReportList() {
       });
   };
 
+  // 選択された案件の最新情報を取得する関数
+  const fetchLatestCaseData = async (caseId: number) => {
+    try {
+      // API経由で最新の案件情報を取得
+      const response = await fetch(`/api/cases/${caseId}`);
+      
+      if (!response.ok) {
+        throw new Error('案件情報の取得に失敗しました');
+      }
+      
+      const latestCaseData = await response.json();
+      
+      // ローカルのcaseMapも更新
+      if (caseMap.has(caseId)) {
+        const updatedCase = { ...caseMap.get(caseId)!, ...latestCaseData };
+        caseMap.set(caseId, updatedCase);
+      }
+      
+      // マイルストーン情報を更新
+      setMilestone(latestCaseData.milestone || "");
+      
+      return latestCaseData;
+    } catch (error) {
+      console.error("最新の案件情報取得中にエラーが発生しました:", error);
+      // エラーの場合は現在のキャッシュされたデータを使用
+      const currentCase = caseMap.get(caseId);
+      if (currentCase) {
+        setMilestone(currentCase.milestone || "");
+      }
+      return null;
+    }
+  };
+
   // 案件を選択した時の処理
   const handleCaseSelect = (caseId: number) => {
     setSelectedCase(caseId);
+    setIsMilestoneEditing(false);
     
-    // 選択された案件のマイルストーンを読み込む
-    const selectedCase = caseMap.get(caseId);
-    if (selectedCase) {
-      setMilestone(selectedCase.milestone || "");
-      setIsMilestoneEditing(false);
-    }
+    // 案件選択時に最新の情報を取得
+    fetchLatestCaseData(caseId);
   };
   
   // マイルストーン編集開始
