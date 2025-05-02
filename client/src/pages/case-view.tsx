@@ -48,25 +48,56 @@ export default function CaseView() {
   const fromPage = useMemo(() => searchParams.get('from') || '', [searchParams]);
   const fromProjectId = useMemo(() => searchParams.get('projectId') || '', [searchParams]);
   const fromProjectName = useMemo(() => searchParams.get('projectName') || '', [searchParams]);
+  
+  // 案件データが変更された時に編集データを更新
+  useEffect(() => {
+    if (caseData) {
+      setEditedCase({
+        caseName: caseData.caseName,
+        description: caseData.description,
+        milestone: caseData.milestone,
+      });
+    }
+  }, [caseData]);
 
   // パンくずリストに表示するためのパス情報を決定
   const pathInfo = useMemo(() => {
-    if (!caseData) return { showProject: false, projectPath: '', projectName: '' };
+    if (!caseData) return { 
+      showProject: false, 
+      showReports: false,
+      projectPath: '', 
+      projectName: '',
+      reportsPath: ''
+    };
     
     // プロジェクト詳細ページから来た場合
     if (fromPage === 'project' && fromProjectId) {
       return {
         showProject: true,
+        showReports: false,
         projectPath: `/project/${fromProjectId}`,
-        projectName: caseData.projectName
+        projectName: caseData.projectName,
+        reportsPath: ''
       };
     }
-    // 案件一覧から来た場合
+    // 週次報告一覧から来た場合
+    else if (fromPage === 'reports') {
+      return {
+        showProject: false,
+        showReports: true,
+        projectPath: '',
+        projectName: caseData.projectName,
+        reportsPath: '/reports'
+      };
+    }
+    // 案件一覧からの場合（デフォルト）
     else {
       return {
         showProject: false,
+        showReports: false,
         projectPath: `/project/name/${encodeURIComponent(caseData.projectName)}`,
-        projectName: caseData.projectName
+        projectName: caseData.projectName,
+        reportsPath: ''
       };
     }
   }, [caseData, fromPage, fromProjectId]);
@@ -181,11 +212,20 @@ export default function CaseView() {
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/cases">案件一覧</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
+              {pathInfo.showReports ? (
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/reports">週次報告一覧</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+              ) : (
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/cases">案件一覧</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+              )}
+              
               {pathInfo.showProject && (
                 <>
                   <BreadcrumbSeparator />
@@ -198,6 +238,7 @@ export default function CaseView() {
                   </BreadcrumbItem>
                 </>
               )}
+              
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>{caseData.caseName}</BreadcrumbPage>
@@ -211,11 +252,19 @@ export default function CaseView() {
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-semibold">案件詳細</h1>
             <div className="flex gap-2">
-              <Link href="/cases">
-                <Button variant="outline" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" /> 一覧に戻る
-                </Button>
-              </Link>
+              {pathInfo.showReports ? (
+                <Link href="/reports">
+                  <Button variant="outline" size="sm">
+                    <ArrowLeft className="h-4 w-4 mr-2" /> 報告一覧に戻る
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/cases">
+                  <Button variant="outline" size="sm">
+                    <ArrowLeft className="h-4 w-4 mr-2" /> 案件一覧に戻る
+                  </Button>
+                </Link>
+              )}
               {isEditing ? (
                 <>
                   <Button variant="outline" size="sm" onClick={cancelEdit}>

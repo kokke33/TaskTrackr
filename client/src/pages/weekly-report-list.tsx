@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Copy, List, Plus, ChevronRight, FileText, Loader2, Home, Briefcase } from "lucide-react";
+import { Copy, List, Plus, ChevronRight, FileText, Loader2, Home, Briefcase, PenSquare, Check, X, ExternalLink } from "lucide-react";
 import { 
   Breadcrumb,
   BreadcrumbItem,
@@ -690,7 +690,13 @@ export default function WeeklyReportList() {
         {selectedCase !== null && (
           <div className="mt-4 mb-6 p-4 border rounded-lg bg-muted/20">
             <div className="flex justify-between items-start mb-2">
-              <h3 className="text-lg font-semibold">マイルストーン</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-semibold">マイルストーン</h3>
+                <Link href={`/case/view/${selectedCase}?from=reports`} className="text-sm text-primary hover:underline flex items-center gap-1">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  案件詳細を表示
+                </Link>
+              </div>
               <div className="flex gap-2">
                 {!isMilestoneEditing ? (
                   <Button
@@ -699,6 +705,7 @@ export default function WeeklyReportList() {
                     onClick={startEditingMilestone}
                     className="flex items-center gap-1"
                   >
+                    <PenSquare className="h-3.5 w-3.5 mr-1" />
                     編集
                   </Button>
                 ) : (
@@ -709,6 +716,7 @@ export default function WeeklyReportList() {
                       onClick={cancelEditingMilestone}
                       className="flex items-center gap-1"
                     >
+                      <X className="h-3.5 w-3.5 mr-1" />
                       キャンセル
                     </Button>
                     <Button
@@ -720,7 +728,9 @@ export default function WeeklyReportList() {
                     >
                       {updateMilestoneMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                      ) : null}
+                      ) : (
+                        <Check className="h-3.5 w-3.5 mr-1" />
+                      )}
                       保存
                     </Button>
                   </>
