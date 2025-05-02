@@ -41,6 +41,8 @@ export default function CaseView() {
   const { data: caseData, isLoading } = useQuery<Case>({
     queryKey: [`/api/cases/${id}`],
     enabled: !!id,
+    staleTime: 0, // 常に最新のデータを取得
+    refetchOnMount: true, // コンポーネントマウント時に再取得
   });
 
   // URLクエリパラメータを取得（前のページから情報を取得するため）
@@ -135,7 +137,9 @@ export default function CaseView() {
       setIsEditing(false);
       
       // キャッシュを無効化して最新データを取得する
+      // 個別の案件データだけでなく、案件一覧も更新
       queryClient.invalidateQueries({ queryKey: [`/api/cases/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       
       // 成功メッセージを表示
       toast({
