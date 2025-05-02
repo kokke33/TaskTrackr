@@ -15,7 +15,7 @@ import {
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { 
   Dialog,
   DialogContent,
@@ -290,7 +290,7 @@ export default function WeeklyReportList() {
       // API呼び出しを実行
       fetchLatestCaseData(selectedCase);
     }
-  }, [selectedCase, cases, caseMap, fetchLatestCaseData]);
+  }, [selectedCase, cases, caseMap]);
 
   // プロジェクト名でユニークなリストを作成し、アルファベット順にソート
   const projectNames = Array.from(new Set(cases?.map(case_ => case_.projectName) || []))
