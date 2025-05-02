@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertWeeklyReportSchema, insertCaseSchema } from "@shared/schema";
+import { insertWeeklyReportSchema, insertCaseSchema, insertProjectSchema } from "@shared/schema";
 import OpenAI from "openai";
 import passport from "passport";
 import { isAuthenticated } from "./auth";

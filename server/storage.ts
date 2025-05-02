@@ -1,12 +1,20 @@
-import { cases, weeklyReports, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase } from "@shared/schema";
+import { cases, weeklyReports, projects, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql } from "drizzle-orm";
 
 export interface IStorage {
+  // プロジェクト関連
+  createProject(projectData: InsertProject): Promise<Project>;
+  getProject(id: number): Promise<Project | undefined>;
+  getProjectByName(name: string): Promise<Project | undefined>;
+  getAllProjects(includeDeleted?: boolean): Promise<Project[]>;
+  updateProject(id: number, projectData: InsertProject): Promise<Project>;
+  deleteProject(id: number): Promise<Project>;
+  
   // 案件関連
   createCase(caseData: InsertCase): Promise<Case>;
   getCase(id: number): Promise<Case | undefined>;
-  getAllCases(): Promise<Case[]>;
+  getAllCases(includeDeleted?: boolean): Promise<Case[]>;
   getCasesByProject(projectName: string): Promise<Case[]>;
   updateCase(id: number, caseData: InsertCase): Promise<Case>;
 
@@ -21,6 +29,59 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // プロジェクト関連のメソッド
+  async createProject(projectData: InsertProject): Promise<Project> {
+    const [newProject] = await db.insert(projects).values({
+      ...projectData,
+      updatedAt: new Date()
+    }).returning();
+    return newProject;
+  }
+
+  async getProject(id: number): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project;
+  }
+
+  async getProjectByName(name: string): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.name, name));
+    return project;
+  }
+
+  async getAllProjects(includeDeleted: boolean = false): Promise<Project[]> {
+    const query = db.select().from(projects);
+    
+    if (!includeDeleted) {
+      query.where(eq(projects.isDeleted, false));
+    }
+    
+    return await query.orderBy(desc(projects.updatedAt));
+  }
+
+  async updateProject(id: number, projectData: InsertProject): Promise<Project> {
+    const [updated] = await db
+      .update(projects)
+      .set({
+        ...projectData,
+        updatedAt: new Date()
+      })
+      .where(eq(projects.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteProject(id: number): Promise<Project> {
+    const [deleted] = await db
+      .update(projects)
+      .set({ 
+        isDeleted: true,
+        updatedAt: new Date()
+      })
+      .where(eq(projects.id, id))
+      .returning();
+    return deleted;
+  }
+  
   // 案件関連のメソッド
   async createCase(caseData: InsertCase): Promise<Case> {
     const [newCase] = await db.insert(cases).values(caseData).returning();

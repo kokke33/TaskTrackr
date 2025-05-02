@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, date, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -9,6 +9,24 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// プロジェクトテーブル
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  overview: text("overview"),
+  organization: text("organization"), // 体制と関係者
+  personnel: text("personnel"), // 要員・契約情報
+  progress: text("progress"), // 現状の進捗・スケジュール
+  businessDetails: text("business_details"), // 業務・システム内容
+  issues: text("issues"), // 課題・リスク・懸念点
+  documents: text("documents"), // ドキュメント・ナレッジ
+  handoverNotes: text("handover_notes"), // 引き継ぎ時の優先確認事項
+  remarks: text("remarks"), // その他特記事項
+  isDeleted: boolean("is_deleted").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // 案件マスタテーブル
@@ -22,9 +40,15 @@ export const cases = pgTable("cases", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// プロジェクトと案件の関係定義
+export const projectsRelations = relations(projects, ({ many }) => ({
+  cases: many(cases),
+}));
+
 // 案件と週次報告の関係定義
-export const casesRelations = relations(cases, ({ many }) => ({
+export const casesRelations = relations(cases, ({ many, one }) => ({
   weeklyReports: many(weeklyReports),
+  project: one(projects),
 }));
 
 export const weeklyReports = pgTable("weekly_reports", {
@@ -84,6 +108,12 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 });
 
+export const insertProjectSchema = createInsertSchema(projects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertCaseSchema = createInsertSchema(cases).omit({
   id: true,
   createdAt: true,
@@ -98,6 +128,8 @@ export const insertWeeklyReportSchema = createInsertSchema(weeklyReports).omit({
 // 型定義
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type Project = typeof projects.$inferSelect;
 export type InsertCase = z.infer<typeof insertCaseSchema>;
 export type Case = typeof cases.$inferSelect;
 export type InsertWeeklyReport = z.infer<typeof insertWeeklyReportSchema>;
