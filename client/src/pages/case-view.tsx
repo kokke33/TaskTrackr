@@ -77,6 +77,7 @@ export default function CaseView() {
       setEditedCase({
         caseName: caseData.caseName,
         description: caseData.description,
+        milestone: caseData.milestone,
       });
     }
   }, [caseData, isEditing]);
@@ -130,6 +131,7 @@ export default function CaseView() {
       setEditedCase({
         caseName: caseData.caseName,
         description: caseData.description,
+        milestone: caseData.milestone,
       });
     }
   };
@@ -271,6 +273,22 @@ export default function CaseView() {
                 ) : (
                   <div className="bg-accent/50 p-3 rounded-md min-h-[100px] whitespace-pre-wrap">
                     {caseData.description || "説明はありません"}
+                  </div>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <h2 className="text-sm font-medium text-muted-foreground">マイルストーン</h2>
+                {isEditing ? (
+                  <Textarea
+                    name="milestone"
+                    value={editedCase.milestone || ''}
+                    onChange={handleInputChange}
+                    className="min-h-[100px]"
+                  />
+                ) : (
+                  <div className="bg-accent/50 p-3 rounded-md min-h-[100px] whitespace-pre-wrap">
+                    {caseData.milestone || "マイルストーンはありません"}
                   </div>
                 )}
               </div>
