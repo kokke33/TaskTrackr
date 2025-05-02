@@ -66,9 +66,18 @@ export default function WeeklyReportList() {
         data: { milestone }
       });
     },
-    onSuccess: () => {
-      // キャッシュを更新して最新の案件情報を取得
+    onSuccess: (updatedCase) => {
+      // 個別の案件キャッシュも更新
+      queryClient.invalidateQueries({ queryKey: [`/api/cases/${updatedCase.id}`] });
+      // 案件一覧のキャッシュも更新
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      
+      // 更新後の状態をローカルでも更新
+      const caseToUpdate = caseMap.get(updatedCase.id);
+      if (caseToUpdate) {
+        caseToUpdate.milestone = updatedCase.milestone;
+        caseMap.set(updatedCase.id, caseToUpdate);
+      }
       
       toast({
         title: "マイルストーンを更新しました",
