@@ -138,6 +138,37 @@ export default function CaseView() {
     );
   }
 
+  // パンくずリストのためのロケーション取得
+  const [location] = useLocation();
+  
+  // URLクエリパラメータを取得（前のページから情報を取得するため）
+  const searchParams = new URLSearchParams(window.location.search);
+  const fromPage = searchParams.get('from') || '';
+  const fromProjectId = searchParams.get('projectId') || '';
+  const fromProjectName = searchParams.get('projectName') || '';
+  
+  // パンくずリストに表示するためのパス情報を決定
+  const getPathInfo = () => {
+    // プロジェクト詳細ページから来た場合
+    if (fromPage === 'project' && fromProjectId) {
+      return {
+        showProject: true,
+        projectPath: `/project/${fromProjectId}`,
+        projectName: caseData.projectName
+      };
+    }
+    // 案件一覧から来た場合
+    else {
+      return {
+        showProject: false,
+        projectPath: `/project/name/${encodeURIComponent(caseData.projectName)}`,
+        projectName: caseData.projectName
+      };
+    }
+  };
+
+  const pathInfo = getPathInfo();
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -155,14 +186,18 @@ export default function CaseView() {
                   <Link href="/cases">案件一覧</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href={`/project/name/${encodeURIComponent(caseData.projectName)}`}>
-                    {caseData.projectName}
-                  </Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
+              {pathInfo.showProject && (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link href={pathInfo.projectPath}>
+                        {pathInfo.projectName}
+                      </Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                </>
+              )}
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>{caseData.caseName}</BreadcrumbPage>

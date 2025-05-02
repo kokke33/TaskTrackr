@@ -212,7 +212,7 @@ export default function ProjectDetail() {
                     <Card key={case_.id} className="overflow-hidden">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-bold line-clamp-2 break-all">
-                          <Link href={`/case/view/${case_.id}`}>
+                          <Link href={`/case/view/${case_.id}?from=project&projectId=${project.id}&projectName=${encodeURIComponent(project.name)}`}>
                             {case_.caseName}
                           </Link>
                         </CardTitle>
