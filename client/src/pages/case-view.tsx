@@ -10,7 +10,9 @@ import {
   ArrowLeft, 
   Briefcase, 
   Calendar,
-  FileText
+  FileText,
+  Check,
+  X
 } from "lucide-react";
 import { 
   Breadcrumb, 
@@ -21,16 +23,83 @@ import {
   BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 export default function CaseView() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedCase, setEditedCase] = useState<Partial<Case>>({});
 
   // 案件データを取得
   const { data: caseData, isLoading } = useQuery<Case>({
     queryKey: [`/api/cases/${id}`],
     enabled: !!id,
   });
+
+  // 編集開始時にデータを初期化
+  useEffect(() => {
+    if (caseData && !isEditing) {
+      setEditedCase({
+        caseName: caseData.caseName,
+        description: caseData.description,
+      });
+    }
+  }, [caseData, isEditing]);
+
+  // 編集モードの切り替え
+  const toggleEditMode = () => {
+    setIsEditing(!isEditing);
+  };
+
+  // 編集内容を保存
+  const saveChanges = async () => {
+    if (!caseData) return;
+
+    try {
+      const response = await fetch(`/api/cases/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...caseData,
+          ...editedCase
+        }),
+      });
+
+      if (response.ok) {
+        setIsEditing(false);
+        // ページをリロードして最新データを表示
+        window.location.reload();
+      } else {
+        console.error('Failed to update case');
+      }
+    } catch (error) {
+      console.error('Error updating case:', error);
+    }
+  };
+
+  // 編集をキャンセル
+  const cancelEdit = () => {
+    setIsEditing(false);
+    // 元のデータに戻す
+    if (caseData) {
+      setEditedCase({
+        caseName: caseData.caseName,
+        description: caseData.description,
+      });
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEditedCase({
+      ...editedCase,
+      [name]: value,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -77,7 +146,7 @@ export default function CaseView() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href={`/project/${encodeURIComponent(caseData.projectName)}`}>
+                  <Link href={`/project/name/${encodeURIComponent(caseData.projectName)}`}>
                     {caseData.projectName}
                   </Link>
                 </BreadcrumbLink>
@@ -100,11 +169,20 @@ export default function CaseView() {
                   <ArrowLeft className="h-4 w-4 mr-2" /> 一覧に戻る
                 </Button>
               </Link>
-              <Link href={`/case/edit/${id}`}>
-                <Button size="sm">
+              {isEditing ? (
+                <>
+                  <Button variant="outline" size="sm" onClick={cancelEdit}>
+                    <X className="h-4 w-4 mr-2" /> キャンセル
+                  </Button>
+                  <Button size="sm" onClick={saveChanges}>
+                    <Check className="h-4 w-4 mr-2" /> 保存
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" onClick={toggleEditMode}>
                   <PenSquare className="h-4 w-4 mr-2" /> 編集する
                 </Button>
-              </Link>
+              )}
             </div>
           </div>
         </header>
@@ -122,16 +200,34 @@ export default function CaseView() {
 
               <div className="space-y-2">
                 <h2 className="text-sm font-medium text-muted-foreground">案件名</h2>
-                <div className="bg-accent/50 p-2 rounded-md">
-                  <h3 className="text-lg font-semibold">{caseData.caseName}</h3>
-                </div>
+                {isEditing ? (
+                  <Input
+                    name="caseName"
+                    value={editedCase.caseName || ''}
+                    onChange={handleInputChange}
+                    className="w-full"
+                  />
+                ) : (
+                  <div className="bg-accent/50 p-2 rounded-md">
+                    <h3 className="text-lg font-semibold">{caseData.caseName}</h3>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
                 <h2 className="text-sm font-medium text-muted-foreground">説明</h2>
-                <div className="bg-accent/50 p-3 rounded-md min-h-[100px] whitespace-pre-wrap">
-                  {caseData.description || "説明はありません"}
-                </div>
+                {isEditing ? (
+                  <Textarea
+                    name="description"
+                    value={editedCase.description || ''}
+                    onChange={handleInputChange}
+                    className="min-h-[100px]"
+                  />
+                ) : (
+                  <div className="bg-accent/50 p-3 rounded-md min-h-[100px] whitespace-pre-wrap">
+                    {caseData.description || "説明はありません"}
+                  </div>
+                )}
               </div>
 
               {caseData.isDeleted && (
@@ -148,12 +244,15 @@ export default function CaseView() {
                   この案件の週次報告を表示
                 </Button>
               </Link>
-              <Link href={`/case/edit/${id}`}>
-                <Button className="flex items-center gap-2">
+              {!isEditing && (
+                <Button 
+                  className="flex items-center gap-2"
+                  onClick={toggleEditMode}
+                >
                   <PenSquare className="h-4 w-4" />
                   編集する
                 </Button>
-              </Link>
+              )}
             </div>
           </CardContent>
         </Card>

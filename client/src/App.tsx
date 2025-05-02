@@ -36,6 +36,7 @@ function Router() {
       <ProtectedRoute path="/project/new" component={ProjectForm} />
       <ProtectedRoute path="/project/edit/:id" component={ProjectForm} />
       <ProtectedRoute path="/project/:id" component={ProjectDetail} />
+      <ProtectedRoute path="/project/name/:name" component={ProjectDetail} />
       <Route component={NotFound} />
     </Switch>
   );

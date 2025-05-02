@@ -9,13 +9,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Home, FolderKanban, Briefcase, PenSquare, FileText } from "lucide-react";
 
 export default function ProjectDetail() {
-  const params = useParams<{ id: string }>();
+  const params = useParams<{ id?: string, name?: string }>();
   const [, setLocation] = useLocation();
-  const projectId = parseInt(params.id);
-
+  
+  // プロジェクトIDまたは名前から情報を取得
+  const projectId = params.id ? parseInt(params.id) : undefined;
+  const projectName = params.name ? decodeURIComponent(params.name) : undefined;
+  
+  // すべてのプロジェクト一覧を取得（名前からIDを検索する場合に使用）
+  const { data: allProjects, isLoading: isLoadingAllProjects } = useQuery<Project[]>({
+    queryKey: ['/api/projects'],
+    enabled: !!projectName && !projectId,
+    staleTime: 1000 * 60, // 1分間キャッシュ
+  });
+  
+  // 名前からIDを取得
+  const resolvedProjectId = React.useMemo(() => {
+    if (projectId) return projectId;
+    if (projectName && allProjects) {
+      const foundProject = allProjects.find(p => p.name === projectName);
+      return foundProject?.id;
+    }
+    return undefined;
+  }, [projectId, projectName, allProjects]);
+  
   // プロジェクト情報を取得
   const { data: project, isLoading: isLoadingProject } = useQuery<Project>({
-    queryKey: [`/api/projects/${projectId}`],
+    queryKey: [`/api/projects/${resolvedProjectId}`],
+    enabled: !!resolvedProjectId,
     staleTime: 1000 * 60, // 1分間キャッシュ
   });
 
@@ -26,7 +47,7 @@ export default function ProjectDetail() {
     staleTime: 1000 * 60, // 1分間キャッシュ
   });
 
-  if (isLoadingProject) {
+  if (isLoadingProject || isLoadingAllProjects || (!projectId && !project)) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
