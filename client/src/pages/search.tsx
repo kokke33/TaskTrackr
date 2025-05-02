@@ -74,6 +74,18 @@ export default function SearchPage() {
     }
   };
 
+  // 検索入力のハンドラ（リアルタイム検索）
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    
+    // 少なくとも2文字以上入力された場合、リアルタイム検索を実行
+    if (value.trim().length >= 2) {
+      // URLを更新せずに検索クエリを更新（リアルタイム検索用）
+      setQuery(value.trim());
+    }
+  };
+
   // 検索結果のタイプごとの数をカウント
   const resultCounts = {
     all: searchResults?.total || 0,
@@ -158,7 +170,7 @@ export default function SearchPage() {
                   placeholder="プロジェクト、案件、報告を検索..."
                   className="pl-10"
                   value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
+                  onChange={handleSearchInputChange}
                 />
               </div>
               <Button type="submit">検索</Button>

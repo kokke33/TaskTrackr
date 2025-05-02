@@ -32,8 +32,11 @@ export function SearchBar() {
   // コマンドダイアログのトリガー
   const toggleSearch = () => {
     setIsOpen(!isOpen);
-    setQuery("");
-    setSuggestions([]);
+    // ダイアログを閉じる場合のみクエリをクリア
+    if (isOpen) {
+      setQuery("");
+      setSuggestions([]);
+    }
   };
 
   // 検索バーからの直接検索
@@ -115,7 +118,10 @@ export function SearchBar() {
           placeholder="プロジェクト、案件、報告を検索..."
           className="w-60 pl-8"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!isOpen) setIsOpen(true);
+          }}
           onClick={() => setIsOpen(true)}
         />
         <Search className="h-4 w-4 absolute left-2.5 text-muted-foreground" />
