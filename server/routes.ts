@@ -41,8 +41,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // 認証が必要なエンドポイントにミドルウェアを適用
+  app.use("/api/projects", isAuthenticated);
   app.use("/api/cases", isAuthenticated);
   app.use("/api/weekly-reports", isAuthenticated);
+
+  // プロジェクト関連のエンドポイント
+  app.post("/api/projects", async (req, res) => {
+    try {
+      const projectData = insertProjectSchema.parse(req.body);
+      const newProject = await storage.createProject(projectData);
+      res.json(newProject);
+    } catch (error) {
+      console.error("Error creating project:", error);
+      res.status(400).json({ message: "無効なプロジェクトデータです" });
+    }
+  });
+
+  app.get("/api/projects", async (req, res) => {
+    try {
+      const includeDeleted = req.query.includeDeleted === 'true';
+      const projects = await storage.getAllProjects(includeDeleted);
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      res.status(500).json({ message: "プロジェクト一覧の取得に失敗しました" });
+    }
+  });
+
+  app.get("/api/projects/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const project = await storage.getProject(id);
+      if (!project) {
+        res.status(404).json({ message: "プロジェクトが見つかりません" });
+        return;
+      }
+      res.json(project);
+    } catch (error) {
+      console.error("Error fetching project:", error);
+      res.status(500).json({ message: "プロジェクトの取得に失敗しました" });
+    }
+  });
+
+  app.get("/api/projects/by-name/:name", async (req, res) => {
+    try {
+      const name = req.params.name;
+      const project = await storage.getProjectByName(name);
+      if (!project) {
+        res.status(404).json({ message: "プロジェクトが見つかりません" });
+        return;
+      }
+      res.json(project);
+    } catch (error) {
+      console.error("Error fetching project by name:", error);
+      res.status(500).json({ message: "プロジェクトの取得に失敗しました" });
+    }
+  });
+
+  app.put("/api/projects/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existingProject = await storage.getProject(id);
+      if (!existingProject) {
+        res.status(404).json({ message: "プロジェクトが見つかりません" });
+        return;
+      }
+      const projectData = insertProjectSchema.parse(req.body);
+      const updatedProject = await storage.updateProject(id, projectData);
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      res.status(400).json({ message: "プロジェクトの更新に失敗しました" });
+    }
+  });
+
+  app.delete("/api/projects/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existingProject = await storage.getProject(id);
+      if (!existingProject) {
+        res.status(404).json({ message: "プロジェクトが見つかりません" });
+        return;
+      }
+      
+      const deletedProject = await storage.deleteProject(id);
+      res.json(deletedProject);
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      res.status(500).json({ message: "プロジェクトの削除に失敗しました" });
+    }
+  });
 
   // 案件関連のエンドポイント
   app.post("/api/cases", async (req, res) => {

@@ -11,6 +11,9 @@ import WeeklyReportList from "@/pages/weekly-report-list";
 import WeeklyReportDetail from "@/pages/weekly-report-detail";
 import CaseList from "@/pages/cases";
 import CaseForm from "@/pages/case-form";
+import ProjectList from "@/pages/projects";
+import ProjectForm from "@/pages/project-form";
+import ProjectDetail from "@/pages/project-detail";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -25,6 +28,10 @@ function Router() {
       <ProtectedRoute path="/cases" component={CaseList} />
       <ProtectedRoute path="/case/new" component={CaseForm} />
       <ProtectedRoute path="/case/edit/:id" component={CaseForm} />
+      <ProtectedRoute path="/projects" component={ProjectList} />
+      <ProtectedRoute path="/project/new" component={ProjectForm} />
+      <ProtectedRoute path="/project/edit/:id" component={ProjectForm} />
+      <ProtectedRoute path="/project/:id" component={ProjectDetail} />
       <Route component={NotFound} />
     </Switch>
   );

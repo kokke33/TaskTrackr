@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ClipboardEdit, List } from "lucide-react";
+import { ClipboardEdit, List, FolderKanban, Briefcase } from "lucide-react";
 
 export default function Home() {
   return (
@@ -40,6 +40,32 @@ export default function Home() {
                 <div>
                   <div className="font-semibold">報告一覧</div>
                   <div className="text-sm text-muted-foreground">提出済みの報告を確認する</div>
+                </div>
+              </Button>
+            </Link>
+            
+            <Link href="/projects">
+              <Button
+                variant="outline"
+                className="w-full h-32 text-left flex flex-col items-center justify-center gap-2"
+              >
+                <FolderKanban className="h-8 w-8" />
+                <div>
+                  <div className="font-semibold">プロジェクト管理</div>
+                  <div className="text-sm text-muted-foreground">プロジェクト情報を管理する</div>
+                </div>
+              </Button>
+            </Link>
+
+            <Link href="/cases">
+              <Button
+                variant="outline"
+                className="w-full h-32 text-left flex flex-col items-center justify-center gap-2"
+              >
+                <Briefcase className="h-8 w-8" />
+                <div>
+                  <div className="font-semibold">案件管理</div>
+                  <div className="text-sm text-muted-foreground">案件情報を管理する</div>
                 </div>
               </Button>
             </Link>
