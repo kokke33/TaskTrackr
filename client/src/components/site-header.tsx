@@ -36,9 +36,7 @@ export function SiteHeader() {
         {/* モバイル用のロゴ */}
         <div className="md:hidden">
           <Link href="/">
-            <a className="flex items-center">
-              <span className="font-bold">PMS</span>
-            </a>
+            <span className="flex items-center font-bold cursor-pointer">PMS</span>
           </Link>
         </div>
         
