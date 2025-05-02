@@ -25,12 +25,16 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CaseView() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const [isEditing, setIsEditing] = useState(false);
   const [editedCase, setEditedCase] = useState<Partial<Case>>({});
+  const { toast } = useToast();
 
   // 案件データを取得
   const { data: caseData, isLoading } = useQuery<Case>({
@@ -52,33 +56,40 @@ export default function CaseView() {
   const toggleEditMode = () => {
     setIsEditing(!isEditing);
   };
-
-  // 編集内容を保存
+  
   const saveChanges = async () => {
     if (!caseData) return;
 
     try {
-      const response = await fetch(`/api/cases/${id}`, {
+      // apiRequestを使ってTanStack Queryのキャッシュを更新
+      await apiRequest(`/api/cases/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        data: {
           ...caseData,
           ...editedCase
-        }),
-        credentials: 'include', // 認証情報を含める
+        }
       });
-
-      if (response.ok) {
-        setIsEditing(false);
-        // ページをリロードして最新データを表示
-        window.location.reload();
-      } else {
-        console.error('Failed to update case');
-      }
+      
+      // 編集モードを終了
+      setIsEditing(false);
+      
+      // キャッシュを無効化して最新データを取得する
+      queryClient.invalidateQueries({ queryKey: [`/api/cases/${id}`] });
+      
+      // 成功メッセージを表示
+      toast({
+        title: "保存成功",
+        description: "案件情報が正常に更新されました。"
+      });
     } catch (error) {
       console.error('Error updating case:', error);
+      
+      // エラーメッセージを表示
+      toast({
+        title: "エラー",
+        description: "案件情報の更新に失敗しました。",
+        variant: "destructive"
+      });
     }
   };
 
