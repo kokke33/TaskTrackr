@@ -123,6 +123,9 @@ export default function CaseView() {
     );
   }
 
+  // パンくずリストのためのロケーション取得
+  const [location] = useLocation();
+  
   if (!caseData) {
     return (
       <div className="min-h-screen bg-background">
@@ -137,9 +140,6 @@ export default function CaseView() {
       </div>
     );
   }
-
-  // パンくずリストのためのロケーション取得
-  const [location] = useLocation();
   
   // URLクエリパラメータを取得（前のページから情報を取得するため）
   const searchParams = new URLSearchParams(window.location.search);
