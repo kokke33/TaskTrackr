@@ -67,6 +67,7 @@ export default function CaseView() {
           ...caseData,
           ...editedCase
         }),
+        credentials: 'include', // 認証情報を含める
       });
 
       if (response.ok) {
