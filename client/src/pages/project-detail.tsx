@@ -21,7 +21,7 @@ export default function ProjectDetail() {
 
   // プロジェクトに関連する案件を取得
   const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
-    queryKey: [`/api/cases?projectName=${project?.name}`],
+    queryKey: [`/api/cases?projectName=${encodeURIComponent(project?.name || '')}`],
     enabled: !!project?.name,
     staleTime: 1000 * 60, // 1分間キャッシュ
   });
@@ -78,7 +78,9 @@ export default function ProjectDetail() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>
-                  {project.name}
+                  <span className="flex items-center gap-1">
+                    プロジェクト詳細: {project.name}
+                  </span>
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
@@ -87,7 +89,7 @@ export default function ProjectDetail() {
         </div>
 
         <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">{project.name}</h1>
+          <h1 className="text-2xl font-bold">プロジェクト詳細: {project.name}</h1>
           <Button 
             variant="outline"
             onClick={() => setLocation(`/project/edit/${project.id}`)}
@@ -167,14 +169,14 @@ export default function ProjectDetail() {
 
           <TabsContent value="cases" className="border rounded-lg p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">関連案件</h2>
+              <h2 className="text-xl font-bold">{project.name}の関連案件</h2>
               <Button
-                onClick={() => setLocation('/case/new')}
+                onClick={() => setLocation(`/case/new?projectName=${encodeURIComponent(project.name)}`)}
                 variant="outline"
                 className="flex items-center gap-2"
               >
                 <Briefcase className="h-4 w-4" />
-                新規案件
+                新規案件作成
               </Button>
             </div>
             
@@ -182,7 +184,9 @@ export default function ProjectDetail() {
               <p className="text-center py-4">案件を読み込み中...</p>
             ) : cases && cases.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {cases.map(case_ => (
+                {cases
+                  .filter(case_ => case_.projectName === project.name)
+                  .map(case_ => (
                   <Card key={case_.id} className="overflow-hidden">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-bold line-clamp-2 break-all">
@@ -207,7 +211,7 @@ export default function ProjectDetail() {
               </div>
             ) : (
               <p className="text-center py-4 text-muted-foreground">
-                関連する案件はありません
+                このプロジェクトに関連する案件はありません
               </p>
             )}
           </TabsContent>
