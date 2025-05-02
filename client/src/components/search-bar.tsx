@@ -12,6 +12,7 @@ import {
   CommandItem 
 } from "@/components/ui/command";
 import { apiRequest } from "@/lib/queryClient";
+import { useCustomEvent } from "../hooks/use-custom-event";
 
 type SearchSuggestion = {
   id: number;
@@ -26,8 +27,12 @@ export function SearchBar() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // 検索ページとの連携のためのカスタムイベント
+  const dispatchSearchEvent = useCustomEvent<string>("global-search");
+  const updateSearchQuery = useCustomEvent<string>("update-search-bar");
 
   // コマンドダイアログのトリガー
   const toggleSearch = () => {
@@ -65,6 +70,11 @@ export function SearchBar() {
     setQuery("");
   };
 
+  // 検索ページからの更新をリッスン
+  useCustomEvent<string>("update-search-bar", (newQuery) => {
+    setQuery(newQuery);
+  });
+  
   // 検索クエリの変更を検出してサジェストを取得
   useEffect(() => {
     if (!query.trim() || query.length < 2) {
@@ -90,10 +100,15 @@ export function SearchBar() {
     // 入力から少し遅延させてAPIリクエストを行う（タイピング中の過剰なリクエストを防ぐ）
     const timer = setTimeout(() => {
       fetchSuggestions();
+      
+      // 検索ページにいるときは、現在のクエリを検索ページに送信
+      if (location.startsWith('/search')) {
+        dispatchSearchEvent(query);
+      }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, location, dispatchSearchEvent]);
 
   // キーボードショートカット
   useEffect(() => {

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Home, Search, FileText, Briefcase, FolderOpen, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useCustomEvent } from "../hooks/use-custom-event";
 
 // 検索結果の型定義
 type SearchResult = {
