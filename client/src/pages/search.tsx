@@ -36,14 +36,30 @@ export default function SearchPage() {
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [activeTab, setActiveTab] = useState<string>("all");
   const [searchInput, setSearchInput] = useState(searchParams.get("q") || "");
+  
+  // ヘッダー検索バーとの連携のためのカスタムイベント
+  const updateSearchBar = useCustomEvent<string>("update-search-bar");
+  // ヘッダー検索バーからのイベントをリッスン
+  useCustomEvent<string>("global-search", (searchQuery) => {
+    if (searchQuery !== searchInput) {
+      setSearchInput(searchQuery);
+      setQuery(searchQuery);
+    }
+  });
 
   // URLが変更されたときにクエリパラメータを更新
   useEffect(() => {
     const newParams = new URLSearchParams(window.location.search);
+    const queryParam = newParams.get("q") || "";
     setSearchParams(newParams);
-    setQuery(newParams.get("q") || "");
-    setSearchInput(newParams.get("q") || "");
-  }, [location]);
+    setQuery(queryParam);
+    setSearchInput(queryParam);
+    
+    // ヘッダー検索バーにも検索クエリを反映
+    if (queryParam) {
+      updateSearchBar(queryParam);
+    }
+  }, [location, updateSearchBar]);
 
   // 検索APIを呼び出す
   const { data: searchResults, isLoading, error } = useQuery<{
@@ -72,6 +88,9 @@ export default function SearchPage() {
         `/search?q=${encodeURIComponent(searchInput.trim())}`
       );
       setQuery(searchInput.trim());
+      
+      // ヘッダーの検索バーも更新
+      updateSearchBar(searchInput.trim());
     }
   };
 
@@ -84,6 +103,9 @@ export default function SearchPage() {
     if (value.trim().length >= 2) {
       // URLを更新せずに検索クエリを更新（リアルタイム検索用）
       setQuery(value.trim());
+      
+      // ヘッダーの検索バーにも検索値を反映
+      updateSearchBar(value.trim());
     }
   };
 
