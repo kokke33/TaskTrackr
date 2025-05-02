@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./lib/auth";
+import { SiteLayout } from "@/components/site-layout";
 import { ProtectedRoute } from "./lib/protected-route";
 import Login from "@/pages/login";
 import Home from "@/pages/Home";
@@ -16,6 +17,7 @@ import ProjectList from "@/pages/projects";
 import ProjectForm from "@/pages/project-form";
 import ProjectDetail from "@/pages/project-detail";
 import NotFound from "@/pages/not-found";
+import SearchPage from "@/pages/search";
 
 const CaseView = lazy(() => import('./pages/case-view')); //React.lazyを使用
 
@@ -42,6 +44,7 @@ function Router() {
       <ProtectedRoute path="/project/edit/:id" component={ProjectForm} />
       <ProtectedRoute path="/project/:id" component={ProjectDetail} />
       <ProtectedRoute path="/project/name/:name" component={ProjectDetail} />
+      <ProtectedRoute path="/search" component={SearchPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -51,7 +54,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
+        <SiteLayout>
+          <Router />
+        </SiteLayout>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
