@@ -2,6 +2,32 @@ import { cases, weeklyReports, projects, type WeeklyReport, type InsertWeeklyRep
 import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql } from "drizzle-orm";
 
+// 検索用の型定義
+type SearchResult = {
+  id: number;
+  type: 'project' | 'case' | 'report';
+  title: string;
+  description: string;
+  content?: string;
+  projectName?: string;
+  caseName?: string;
+  date?: string;
+  match?: {
+    field: string;
+    text: string;
+    highlight: [number, number][];
+  }[];
+  link: string;
+};
+
+type SearchSuggestion = {
+  id: number;
+  type: 'project' | 'case' | 'report';
+  title: string;
+  description?: string;
+  link: string;
+};
+
 export interface IStorage {
   // プロジェクト関連
   createProject(projectData: InsertProject): Promise<Project>;
@@ -26,9 +52,510 @@ export interface IStorage {
   updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport>;
   getLatestReportByCase(caseId: number): Promise<WeeklyReport | undefined>;
   getWeeklyReportsByCase(caseId: number): Promise<WeeklyReport[]>;
+  
+  // 検索関連
+  search(query: string, type?: string): Promise<{ total: number, results: SearchResult[] }>;
+  getSearchSuggestions(query: string): Promise<SearchSuggestion[]>;
 }
 
 export class DatabaseStorage implements IStorage {
+  // 検索関連のメソッド
+  async search(query: string, type?: string): Promise<{ total: number, results: SearchResult[] }> {
+    if (!query || query.trim() === '') {
+      return { total: 0, results: [] };
+    }
+
+    // 全角スペースを半角に変換し、複数のスペースを単一のスペースに置換
+    const normalizedQuery = query.trim().replace(/　/g, ' ').replace(/\s+/g, ' ');
+    
+    // 検索キーワードを分割
+    const keywords = normalizedQuery.split(' ').filter(k => k.length > 0);
+    if (keywords.length === 0) {
+      return { total: 0, results: [] };
+    }
+
+    const results: SearchResult[] = [];
+    
+    // プロジェクトの検索
+    if (!type || type === 'project') {
+      const projectResults = await this.searchProjects(keywords);
+      results.push(...projectResults);
+    }
+    
+    // 案件の検索
+    if (!type || type === 'case') {
+      const caseResults = await this.searchCases(keywords);
+      results.push(...caseResults);
+    }
+    
+    // 週次報告の検索
+    if (!type || type === 'report') {
+      const reportResults = await this.searchWeeklyReports(keywords);
+      results.push(...reportResults);
+    }
+    
+    return {
+      total: results.length,
+      results
+    };
+  }
+  
+  // 検索候補を取得するメソッド
+  async getSearchSuggestions(query: string): Promise<SearchSuggestion[]> {
+    if (!query || query.trim() === '') {
+      return [];
+    }
+
+    // 全角スペースを半角に変換し、複数のスペースを単一のスペースに置換
+    const normalizedQuery = query.trim().replace(/　/g, ' ').replace(/\s+/g, ' ');
+    
+    // 検索キーワードを分割
+    const keywords = normalizedQuery.split(' ').filter(k => k.length > 0);
+    if (keywords.length === 0) {
+      return [];
+    }
+
+    const suggestions: SearchSuggestion[] = [];
+    const limit = 3; // 各カテゴリの最大表示数
+    
+    // プロジェクトの候補を取得
+    const projectSuggestions = await this.getProjectSuggestions(keywords, limit);
+    suggestions.push(...projectSuggestions);
+    
+    // 案件の候補を取得
+    const caseSuggestions = await this.getCaseSuggestions(keywords, limit);
+    suggestions.push(...caseSuggestions);
+    
+    // 週次報告の候補を取得
+    const reportSuggestions = await this.getReportSuggestions(keywords, limit);
+    suggestions.push(...reportSuggestions);
+    
+    // 最大10件に制限
+    return suggestions.slice(0, 10);
+  }
+  
+  // プロジェクトを検索
+  private async searchProjects(keywords: string[]): Promise<SearchResult[]> {
+    const results: SearchResult[] = [];
+    
+    // 複数キーワードを含むSQL検索条件を構築
+    const conditions = keywords.map(keyword => {
+      const likePattern = `%${keyword}%`;
+      return or(
+        sql`lower(${projects.name}) like lower(${likePattern})`,
+        sql`lower(${projects.overview}) like lower(${likePattern})`,
+        sql`lower(${projects.organization}) like lower(${likePattern})`,
+        sql`lower(${projects.personnel}) like lower(${likePattern})`,
+        sql`lower(${projects.progress}) like lower(${likePattern})`,
+        sql`lower(${projects.businessDetails}) like lower(${likePattern})`,
+        sql`lower(${projects.issues}) like lower(${likePattern})`
+      );
+    });
+    
+    // 削除されていないプロジェクトのみ検索
+    const foundProjects = await db
+      .select()
+      .from(projects)
+      .where(and(
+        eq(projects.isDeleted, false),
+        ...conditions
+      ));
+    
+    // 検索結果をフォーマット
+    for (const project of foundProjects) {
+      const matchFields: {
+        field: string;
+        text: string;
+        highlight: [number, number][];
+      }[] = [];
+      
+      // タイトルのマッチ
+      if (this.containsAnyKeyword(project.name, keywords)) {
+        matchFields.push({
+          field: 'title',
+          text: project.name,
+          highlight: this.getHighlightPositions(project.name, keywords)
+        });
+      }
+      
+      // 概要のマッチ
+      if (project.overview && this.containsAnyKeyword(project.overview, keywords)) {
+        matchFields.push({
+          field: 'description',
+          text: this.truncateText(project.overview, 150),
+          highlight: this.getHighlightPositions(this.truncateText(project.overview, 150), keywords)
+        });
+      }
+      
+      // 進捗情報のマッチ
+      if (project.progress && this.containsAnyKeyword(project.progress, keywords)) {
+        matchFields.push({
+          field: 'content',
+          text: this.truncateText(project.progress, 150),
+          highlight: this.getHighlightPositions(this.truncateText(project.progress, 150), keywords)
+        });
+      }
+      
+      results.push({
+        id: project.id,
+        type: 'project',
+        title: project.name,
+        description: project.overview || '',
+        match: matchFields,
+        link: `/project/${project.id}`
+      });
+    }
+    
+    return results;
+  }
+  
+  // 案件を検索
+  private async searchCases(keywords: string[]): Promise<SearchResult[]> {
+    const results: SearchResult[] = [];
+    
+    // 複数キーワードを含むSQL検索条件を構築
+    const conditions = keywords.map(keyword => {
+      const likePattern = `%${keyword}%`;
+      return or(
+        sql`lower(${cases.caseName}) like lower(${likePattern})`,
+        sql`lower(${cases.description}) like lower(${likePattern})`,
+        sql`lower(${cases.milestone}) like lower(${likePattern})`,
+        sql`lower(${cases.projectName}) like lower(${likePattern})`
+      );
+    });
+    
+    // 削除されていない案件のみ検索
+    const foundCases = await db
+      .select()
+      .from(cases)
+      .where(and(
+        eq(cases.isDeleted, false),
+        ...conditions
+      ));
+    
+    // 検索結果をフォーマット
+    for (const case_ of foundCases) {
+      const matchFields: {
+        field: string;
+        text: string;
+        highlight: [number, number][];
+      }[] = [];
+      
+      // タイトルのマッチ
+      if (this.containsAnyKeyword(case_.caseName, keywords)) {
+        matchFields.push({
+          field: 'title',
+          text: case_.caseName,
+          highlight: this.getHighlightPositions(case_.caseName, keywords)
+        });
+      }
+      
+      // 説明のマッチ
+      if (case_.description && this.containsAnyKeyword(case_.description, keywords)) {
+        matchFields.push({
+          field: 'description',
+          text: this.truncateText(case_.description, 150),
+          highlight: this.getHighlightPositions(this.truncateText(case_.description, 150), keywords)
+        });
+      }
+      
+      // マイルストーンのマッチ
+      if (case_.milestone && this.containsAnyKeyword(case_.milestone, keywords)) {
+        matchFields.push({
+          field: 'milestone',
+          text: this.truncateText(case_.milestone, 150),
+          highlight: this.getHighlightPositions(this.truncateText(case_.milestone, 150), keywords)
+        });
+      }
+      
+      results.push({
+        id: case_.id,
+        type: 'case',
+        title: case_.caseName,
+        description: case_.description || '',
+        projectName: case_.projectName,
+        match: matchFields,
+        link: `/case/view/${case_.id}`
+      });
+    }
+    
+    return results;
+  }
+  
+  // 週次報告を検索
+  private async searchWeeklyReports(keywords: string[]): Promise<SearchResult[]> {
+    const results: SearchResult[] = [];
+    
+    // 複数キーワードを含むSQL検索条件を構築
+    const conditions = keywords.map(keyword => {
+      const likePattern = `%${keyword}%`;
+      return or(
+        sql`lower(${weeklyReports.reporterName}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.weeklyTasks}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.delayDetails}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.issues}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.riskSummary}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.riskCountermeasures}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.qualityDetails}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.testProgress}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.changeDetails}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.nextWeekPlan}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.supportRequests}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.aiAnalysis}) like lower(${likePattern})`
+      );
+    });
+    
+    // 関連する案件のJOINクエリを作成
+    const foundReports = await db
+      .select({
+        report: weeklyReports,
+        caseName: cases.caseName,
+        projectName: cases.projectName
+      })
+      .from(weeklyReports)
+      .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+      .where(and(
+        eq(cases.isDeleted, false),
+        ...conditions
+      ));
+    
+    // 検索結果をフォーマット
+    for (const { report, caseName, projectName } of foundReports) {
+      const matchFields: {
+        field: string;
+        text: string;
+        highlight: [number, number][];
+      }[] = [];
+      
+      // 週次タスクのマッチ
+      if (report.weeklyTasks && this.containsAnyKeyword(report.weeklyTasks, keywords)) {
+        matchFields.push({
+          field: 'content',
+          text: this.truncateText(report.weeklyTasks, 150),
+          highlight: this.getHighlightPositions(this.truncateText(report.weeklyTasks, 150), keywords)
+        });
+      }
+      
+      // 課題・問題点のマッチ
+      if (report.issues && this.containsAnyKeyword(report.issues, keywords)) {
+        matchFields.push({
+          field: 'content',
+          text: this.truncateText(report.issues, 150),
+          highlight: this.getHighlightPositions(this.truncateText(report.issues, 150), keywords)
+        });
+      }
+      
+      // AIレポート分析のマッチ
+      if (report.aiAnalysis && this.containsAnyKeyword(report.aiAnalysis, keywords)) {
+        matchFields.push({
+          field: 'content',
+          text: this.truncateText(report.aiAnalysis, 150),
+          highlight: this.getHighlightPositions(this.truncateText(report.aiAnalysis, 150), keywords)
+        });
+      }
+      
+      results.push({
+        id: report.id,
+        type: 'report',
+        title: `${report.reportPeriodStart} 〜 ${report.reportPeriodEnd} レポート`,
+        description: report.weeklyTasks || '',
+        projectName,
+        caseName,
+        date: new Date(report.reportPeriodEnd).toLocaleDateString(),
+        match: matchFields,
+        link: `/reports/${report.id}`
+      });
+    }
+    
+    return results;
+  }
+  
+  // プロジェクトの検索候補を取得
+  private async getProjectSuggestions(keywords: string[], limit: number): Promise<SearchSuggestion[]> {
+    const suggestions: SearchSuggestion[] = [];
+    
+    // 複数キーワードを含むSQL検索条件を構築
+    const conditions = keywords.map(keyword => {
+      const likePattern = `%${keyword}%`;
+      return or(
+        sql`lower(${projects.name}) like lower(${likePattern})`,
+        sql`lower(${projects.overview}) like lower(${likePattern})`
+      );
+    });
+    
+    // 削除されていないプロジェクトのみ検索
+    const foundProjects = await db
+      .select()
+      .from(projects)
+      .where(and(
+        eq(projects.isDeleted, false),
+        ...conditions
+      ))
+      .limit(limit);
+    
+    // 検索結果をフォーマット
+    for (const project of foundProjects) {
+      suggestions.push({
+        id: project.id,
+        type: 'project',
+        title: project.name,
+        description: project.overview || '',
+        link: `/project/${project.id}`
+      });
+    }
+    
+    return suggestions;
+  }
+  
+  // 案件の検索候補を取得
+  private async getCaseSuggestions(keywords: string[], limit: number): Promise<SearchSuggestion[]> {
+    const suggestions: SearchSuggestion[] = [];
+    
+    // 複数キーワードを含むSQL検索条件を構築
+    const conditions = keywords.map(keyword => {
+      const likePattern = `%${keyword}%`;
+      return or(
+        sql`lower(${cases.caseName}) like lower(${likePattern})`,
+        sql`lower(${cases.description}) like lower(${likePattern})`
+      );
+    });
+    
+    // 削除されていない案件のみ検索
+    const foundCases = await db
+      .select()
+      .from(cases)
+      .where(and(
+        eq(cases.isDeleted, false),
+        ...conditions
+      ))
+      .limit(limit);
+    
+    // 検索結果をフォーマット
+    for (const case_ of foundCases) {
+      suggestions.push({
+        id: case_.id,
+        type: 'case',
+        title: case_.caseName,
+        description: `${case_.projectName} / ${case_.description || '説明なし'}`,
+        link: `/case/view/${case_.id}`
+      });
+    }
+    
+    return suggestions;
+  }
+  
+  // 週次報告の検索候補を取得
+  private async getReportSuggestions(keywords: string[], limit: number): Promise<SearchSuggestion[]> {
+    const suggestions: SearchSuggestion[] = [];
+    
+    // 複数キーワードを含むSQL検索条件を構築
+    const conditions = keywords.map(keyword => {
+      const likePattern = `%${keyword}%`;
+      return or(
+        sql`lower(${weeklyReports.weeklyTasks}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.issues}) like lower(${likePattern})`,
+        sql`lower(${weeklyReports.nextWeekPlan}) like lower(${likePattern})`
+      );
+    });
+    
+    // 関連する案件のJOINクエリを作成
+    const foundReports = await db
+      .select({
+        report: weeklyReports,
+        caseName: cases.caseName,
+        projectName: cases.projectName
+      })
+      .from(weeklyReports)
+      .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+      .where(and(
+        eq(cases.isDeleted, false),
+        ...conditions
+      ))
+      .limit(limit);
+    
+    // 検索結果をフォーマット
+    for (const { report, caseName, projectName } of foundReports) {
+      const startDate = new Date(report.reportPeriodStart).toLocaleDateString();
+      const endDate = new Date(report.reportPeriodEnd).toLocaleDateString();
+      
+      suggestions.push({
+        id: report.id,
+        type: 'report',
+        title: `${startDate} 〜 ${endDate} レポート`,
+        description: `${projectName} / ${caseName}`,
+        link: `/reports/${report.id}`
+      });
+    }
+    
+    return suggestions;
+  }
+  
+  // テキストを指定した長さに切り詰める
+  private truncateText(text: string, maxLength: number): string {
+    if (!text) return '';
+    
+    if (text.length <= maxLength) {
+      return text;
+    }
+    
+    return text.substring(0, maxLength) + '...';
+  }
+  
+  // テキストが指定したキーワードのいずれかを含むかチェック
+  private containsAnyKeyword(text: string, keywords: string[]): boolean {
+    if (!text) return false;
+    
+    const lowerText = text.toLowerCase();
+    return keywords.some(keyword => lowerText.includes(keyword.toLowerCase()));
+  }
+  
+  // テキスト内のキーワードの位置を検出
+  private getHighlightPositions(text: string, keywords: string[]): [number, number][] {
+    if (!text) return [];
+    
+    const positions: [number, number][] = [];
+    const lowerText = text.toLowerCase();
+    
+    keywords.forEach(keyword => {
+      const lowerKeyword = keyword.toLowerCase();
+      let index = 0;
+      
+      while ((index = lowerText.indexOf(lowerKeyword, index)) !== -1) {
+        positions.push([index, index + keyword.length]);
+        index += keyword.length;
+      }
+    });
+    
+    // 位置をマージして重複を解消
+    return this.mergeOverlappingPositions(positions);
+  }
+  
+  // 重複する位置をマージ
+  private mergeOverlappingPositions(positions: [number, number][]): [number, number][] {
+    if (positions.length <= 1) return positions;
+    
+    // 開始位置でソート
+    positions.sort((a, b) => a[0] - b[0]);
+    
+    const merged: [number, number][] = [];
+    let current = positions[0];
+    
+    for (let i = 1; i < positions.length; i++) {
+      const [start, end] = positions[i];
+      
+      // 現在の範囲と重複する場合はマージ
+      if (start <= current[1]) {
+        current[1] = Math.max(current[1], end);
+      } else {
+        // 重複しない場合は現在の範囲を保存して新しい範囲に移動
+        merged.push(current);
+        current = positions[i];
+      }
+    }
+    
+    merged.push(current);
+    return merged;
+  }
   // プロジェクト関連のメソッド
   async createProject(projectData: InsertProject): Promise<Project> {
     const [newProject] = await db.insert(projects).values({

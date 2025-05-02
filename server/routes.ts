@@ -11,6 +11,40 @@ const openai = new OpenAI({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // 検索API
+  app.get('/api/search', async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      const type = req.query.type as string | undefined;
+      
+      if (!query || query.trim() === '') {
+        return res.json({ total: 0, results: [] });
+      }
+      
+      const searchResults = await storage.search(query, type);
+      return res.json(searchResults);
+    } catch (error) {
+      console.error('Search error:', error);
+      return res.status(500).json({ error: '検索中にエラーが発生しました' });
+    }
+  });
+  
+  // 検索サジェストAPI
+  app.get('/api/search/suggest', async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      
+      if (!query || query.trim() === '') {
+        return res.json([]);
+      }
+      
+      const suggestions = await storage.getSearchSuggestions(query);
+      return res.json(suggestions);
+    } catch (error) {
+      console.error('Search suggestion error:', error);
+      return res.status(500).json({ error: 'サジェスト取得中にエラーが発生しました' });
+    }
+  });
   // 認証関連のエンドポイント
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
     // ユーザー情報と成功メッセージを返す
