@@ -517,7 +517,15 @@ export default function CaseList() {
                           <div className="flex-1">
                             <div className="flex justify-between items-start">
                               <div>
-                                <Link href={`/case/view/${case_.id}?from=cases`}>
+                                <Link 
+                                  href={`/case/view/${case_.id}?from=cases`}
+                                  onClick={() => {
+                                    // 案件詳細ページに遷移する前に、個別の案件データを無効化して最新データを取得させる
+                                    import("@/lib/queryClient").then(({ queryClient }) => {
+                                      queryClient.invalidateQueries({ queryKey: [`/api/cases/${case_.id}`] });
+                                    });
+                                  }}
+                                >
                                   <h3 className="font-medium hover:text-primary hover:underline">{case_.caseName}</h3>
                                 </Link>
                                 <p className="text-sm text-muted-foreground">

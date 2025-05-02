@@ -701,7 +701,16 @@ export default function WeeklyReportList() {
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center gap-3">
                 <h3 className="text-lg font-semibold">マイルストーン</h3>
-                <Link href={`/case/view/${selectedCase}?from=reports`} className="text-sm text-primary hover:underline flex items-center gap-1">
+                <Link 
+                  href={`/case/view/${selectedCase}?from=reports`} 
+                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                  onClick={() => {
+                    // 案件詳細ページに遷移する前に、個別の案件データを無効化して最新データを取得させる
+                    import("@/lib/queryClient").then(({ queryClient }) => {
+                      queryClient.invalidateQueries({ queryKey: [`/api/cases/${selectedCase}`] });
+                    });
+                  }}
+                >
                   <ExternalLink className="h-3.5 w-3.5" />
                   案件詳細を表示
                 </Link>
