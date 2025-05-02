@@ -72,12 +72,10 @@ export default function WeeklyReportList() {
       // 案件一覧のキャッシュも更新
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       
-      // 更新後の状態をローカルでも更新
-      const caseToUpdate = caseMap.get(updatedCase.id);
-      if (caseToUpdate) {
-        caseToUpdate.milestone = updatedCase.milestone;
-        caseMap.set(updatedCase.id, caseToUpdate);
-      }
+      // キャッシュ無効化後、最新データを取得して適用
+      setTimeout(() => {
+        fetchLatestCaseData(updatedCase.id);
+      }, 100);
       
       toast({
         title: "マイルストーンを更新しました",
@@ -199,6 +197,9 @@ export default function WeeklyReportList() {
           const caseId = parseInt(caseIdParam);
           if (!isNaN(caseId)) {
             setSelectedCase(caseId);
+            
+            // 案件データが読み込まれた後に実行される handleCaseSelect の処理を待つ
+            // 実際の処理は handleCaseSelect 内で行われる
           }
         }
       } catch (err) {
@@ -206,13 +207,6 @@ export default function WeeklyReportList() {
       }
     }
   }, [location]); // locationを依存配列に入れて、URLが変わったときに再実行
-  
-  // caseMapとselectedCaseが両方準備できた後に、最新の案件情報を取得
-  useEffect(() => {
-    if (selectedCase && cases?.length > 0) {
-      fetchLatestCaseData(selectedCase);
-    }
-  }, [selectedCase, cases]);
   
   // すべての週次報告を取得
   const { data: reports, isLoading: isLoadingReports } = useQuery<WeeklyReport[]>({
@@ -225,6 +219,15 @@ export default function WeeklyReportList() {
     queryKey: ["/api/cases"],
     staleTime: 0,
   });
+  
+  // URLパラメータから選択された案件の詳細を取得
+  useEffect(() => {
+    // selectedCaseが設定され、casesデータが読み込まれている場合
+    if (selectedCase && cases && cases.length > 0 && caseMap) {
+      // 選択された案件の最新情報を取得する
+      fetchLatestCaseData(selectedCase);
+    }
+  }, [cases, selectedCase]);
   
   // 選択された案件に紐づく週次報告を取得
   const { data: caseReports, isLoading: isLoadingCaseReports } = useQuery<WeeklyReport[]>({
