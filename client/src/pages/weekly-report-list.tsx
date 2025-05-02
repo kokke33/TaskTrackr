@@ -242,39 +242,47 @@ export default function WeeklyReportList() {
   // 案件情報をIDでマップ化
   const caseMap = new Map(cases?.map(case_ => [case_.id, case_]));
 
-  // データが読み込まれた後に一度だけ実行されるuseEffectを追加
-  // このuseEffectはレンダリング後に実行されるため、fetchLatestCaseDataを安全に呼び出せる
+  // 案件が選択されている場合、選択された案件のマイルストーンを設定
+  // 初期値は選択されている案件のマイルストーン
   useEffect(() => {
+    // マイルストーン情報を初期化
     if (selectedCase && cases && cases.length > 0 && caseMap.size > 0) {
-      // 案件が選択されている場合は、マウント時に一度最新情報を取得する
-      const loadLatestData = async () => {
-        try {
-          // API経由で最新の案件情報を取得
-          const response = await fetch(`/api/cases/${selectedCase}`);
-          
-          if (!response.ok) {
-            throw new Error('案件情報の取得に失敗しました');
-          }
-          
-          const latestCaseData = await response.json();
-          
-          // マイルストーン情報を更新
-          setMilestone(latestCaseData.milestone || "");
-          
-          console.log("Successfully loaded latest milestone data for case:", selectedCase);
-        } catch (error) {
-          console.error("最新の案件情報取得中にエラーが発生しました:", error);
-          // エラーの場合は現在のキャッシュされたデータを使用
-          const currentCase = caseMap.get(selectedCase);
-          if (currentCase) {
-            setMilestone(currentCase.milestone || "");
-          }
-        }
-      };
-      
-      loadLatestData();
+      const currentCase = caseMap.get(selectedCase);
+      if (currentCase) {
+        setMilestone(currentCase.milestone || "");
+      }
     }
-  }, [selectedCase, caseMap.size]);
+  }, [selectedCase, cases, caseMap.size]);
+  
+  // 案件が選択されている場合、APIから最新の情報を取得
+  useEffect(() => {
+    const fetchLatestMilestone = async () => {
+      if (!selectedCase) return;
+      
+      try {
+        // API経由で最新の案件情報を取得
+        const response = await fetch(`/api/cases/${selectedCase}`);
+        
+        if (!response.ok) {
+          throw new Error('案件情報の取得に失敗しました');
+        }
+        
+        const latestCaseData = await response.json();
+        
+        // マイルストーン情報を更新
+        setMilestone(latestCaseData.milestone || "");
+        
+        console.log("Successfully loaded latest milestone data for case:", selectedCase);
+      } catch (error) {
+        console.error("最新の案件情報取得中にエラーが発生しました:", error);
+      }
+    };
+    
+    // selectedCaseが設定されている場合のみ実行
+    if (selectedCase) {
+      fetchLatestMilestone();
+    }
+  }, [selectedCase]);
 
   // プロジェクト名でユニークなリストを作成し、アルファベット順にソート
   const projectNames = Array.from(new Set(cases?.map(case_ => case_.projectName) || []))
