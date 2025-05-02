@@ -229,26 +229,19 @@ export default function WeeklyReportList() {
     enabled: selectedCase !== null,
   });
 
-  if (isLoadingReports || isLoadingCases || (selectedCase !== null && isLoadingCaseReports)) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-          <p className="text-center">読み込み中...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // 案件情報をIDでマップ化
+  // マイルストーン初期化のための参照を保持
+  const initialMilestoneSetRef = useRef<boolean>(false);
+  
+  // 案件情報をIDでマップ化 - フックの順序を保つためloadingチェックの前に移動
   const caseMap = useMemo(() => 
     new Map(cases?.map(case_ => [case_.id, case_]) || []), 
     [cases]
   );
   
-  // マイルストーン初期化のための参照を保持
-  const initialMilestoneSetRef = useRef<boolean>(false);
-  
   // 選択された案件の最新情報を取得する関数（一貫性のために関数定義を上部に移動）
+  // ローディング状態のチェックとレンダリング
+  const isLoading = isLoadingReports || isLoadingCases || (selectedCase !== null && isLoadingCaseReports);
+  
   const fetchLatestCaseData = useCallback(async (caseId: number) => {
     try {
       // API経由で最新の案件情報を取得
@@ -647,6 +640,17 @@ export default function WeeklyReportList() {
       });
   };
 
+  // ローディング中の表示
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <p className="text-center">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-background">
       <ThemeToggle />
