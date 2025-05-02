@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, lazy } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -16,6 +16,9 @@ import ProjectForm from "@/pages/project-form";
 import ProjectDetail from "@/pages/project-detail";
 import NotFound from "@/pages/not-found";
 
+const CaseView = lazy(() => import('./pages/case-view')); //Added lazy loading for CaseView component
+
+
 function Router() {
   return (
     <Switch>
@@ -28,6 +31,7 @@ function Router() {
       <ProtectedRoute path="/cases" component={CaseList} />
       <ProtectedRoute path="/case/new" component={CaseForm} />
       <ProtectedRoute path="/case/edit/:id" component={CaseForm} />
+      <ProtectedRoute path="/case/view/:id" component={CaseView} /> {/* Added route for case view */}
       <ProtectedRoute path="/projects" component={ProjectList} />
       <ProtectedRoute path="/project/new" component={ProjectForm} />
       <ProtectedRoute path="/project/edit/:id" component={ProjectForm} />

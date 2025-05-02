@@ -517,7 +517,7 @@ export default function CaseList() {
                           <div className="flex-1">
                             <div className="flex justify-between items-start">
                               <div>
-                                <Link href={`/case/edit/${case_.id}`}>
+                                <Link href={`/case/view/${case_.id}`}>
                                   <h3 className="font-medium hover:text-primary hover:underline">{case_.caseName}</h3>
                                 </Link>
                                 <p className="text-sm text-muted-foreground">

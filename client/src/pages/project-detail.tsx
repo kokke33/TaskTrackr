@@ -179,7 +179,7 @@ export default function ProjectDetail() {
                 新規案件作成
               </Button>
             </div>
-            
+
             {isLoadingCases ? (
               <p className="text-center py-4">案件を読み込み中...</p>
             ) : cases && cases.length > 0 ? (
@@ -187,27 +187,29 @@ export default function ProjectDetail() {
                 {cases
                   .filter(case_ => case_.projectName === project.name)
                   .map(case_ => (
-                  <Card key={case_.id} className="overflow-hidden">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-bold line-clamp-2 break-all">
-                        {case_.caseName}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pb-3">
-                      <div className="text-sm text-muted-foreground line-clamp-3">
-                        {case_.description || "説明なし"}
-                      </div>
-                      <div className="mt-2 flex justify-end">
-                        <Link href={`/reports?projectName=${encodeURIComponent(project.name)}&caseId=${case_.id}`}>
-                          <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                            <FileText className="h-3.5 w-3.5" />
-                            週次報告
-                          </Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                    <Card key={case_.id} className="overflow-hidden">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg font-bold line-clamp-2 break-all">
+                          <Link href={`/case/view/${case_.id}`}>
+                            {case_.caseName}
+                          </Link>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pb-3">
+                        <div className="text-sm text-muted-foreground line-clamp-3">
+                          {case_.description || "説明なし"}
+                        </div>
+                        <div className="mt-2 flex justify-end">
+                          <Link href={`/reports?projectName=${encodeURIComponent(project.name)}&caseId=${case_.id}`}>
+                            <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                              <FileText className="h-3.5 w-3.5" />
+                              週次報告
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
               </div>
             ) : (
               <p className="text-center py-4 text-muted-foreground">
