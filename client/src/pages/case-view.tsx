@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { type Case } from "@shared/schema";
@@ -30,8 +30,9 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CaseView() {
+  // すべてのReactフックを関数の先頭で宣言
   const { id } = useParams<{ id: string }>();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [isEditing, setIsEditing] = useState(false);
   const [editedCase, setEditedCase] = useState<Partial<Case>>({});
   const { toast } = useToast();
@@ -41,6 +42,34 @@ export default function CaseView() {
     queryKey: [`/api/cases/${id}`],
     enabled: !!id,
   });
+
+  // URLクエリパラメータを取得（前のページから情報を取得するため）
+  const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
+  const fromPage = useMemo(() => searchParams.get('from') || '', [searchParams]);
+  const fromProjectId = useMemo(() => searchParams.get('projectId') || '', [searchParams]);
+  const fromProjectName = useMemo(() => searchParams.get('projectName') || '', [searchParams]);
+
+  // パンくずリストに表示するためのパス情報を決定
+  const pathInfo = useMemo(() => {
+    if (!caseData) return { showProject: false, projectPath: '', projectName: '' };
+    
+    // プロジェクト詳細ページから来た場合
+    if (fromPage === 'project' && fromProjectId) {
+      return {
+        showProject: true,
+        projectPath: `/project/${fromProjectId}`,
+        projectName: caseData.projectName
+      };
+    }
+    // 案件一覧から来た場合
+    else {
+      return {
+        showProject: false,
+        projectPath: `/project/name/${encodeURIComponent(caseData.projectName)}`,
+        projectName: caseData.projectName
+      };
+    }
+  }, [caseData, fromPage, fromProjectId]);
 
   // 編集開始時にデータを初期化
   useEffect(() => {
@@ -122,9 +151,6 @@ export default function CaseView() {
       </div>
     );
   }
-
-  // パンくずリストのためのロケーション取得
-  const [location] = useLocation();
   
   if (!caseData) {
     return (
@@ -140,34 +166,6 @@ export default function CaseView() {
       </div>
     );
   }
-  
-  // URLクエリパラメータを取得（前のページから情報を取得するため）
-  const searchParams = new URLSearchParams(window.location.search);
-  const fromPage = searchParams.get('from') || '';
-  const fromProjectId = searchParams.get('projectId') || '';
-  const fromProjectName = searchParams.get('projectName') || '';
-  
-  // パンくずリストに表示するためのパス情報を決定
-  const getPathInfo = () => {
-    // プロジェクト詳細ページから来た場合
-    if (fromPage === 'project' && fromProjectId) {
-      return {
-        showProject: true,
-        projectPath: `/project/${fromProjectId}`,
-        projectName: caseData.projectName
-      };
-    }
-    // 案件一覧から来た場合
-    else {
-      return {
-        showProject: false,
-        projectPath: `/project/name/${encodeURIComponent(caseData.projectName)}`,
-        projectName: caseData.projectName
-      };
-    }
-  };
-
-  const pathInfo = getPathInfo();
 
   return (
     <div className="min-h-screen bg-background">
