@@ -5,6 +5,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import passport from "passport";
 import { createInitialUsers } from "./auth";
+import { migrateExistingProjectsFromCases } from "./migrations";
 
 const app = express();
 app.use(express.json());
@@ -55,6 +56,11 @@ app.use(passport.session());
 // 初期ユーザーの作成
 createInitialUsers().catch((error) => {
   console.error("Failed to create initial users:", error);
+});
+
+// 既存の案件からプロジェクトを作成
+migrateExistingProjectsFromCases().catch((error) => {
+  console.error("Failed to migrate projects from cases:", error);
 });
 
 // セッションデバッグミドルウェア
