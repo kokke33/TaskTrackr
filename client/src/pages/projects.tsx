@@ -8,11 +8,14 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { Home, FolderKanban, Plus, ChevronRight } from "lucide-react";
+import { Home, FolderKanban, Plus, ChevronRight, Edit, ExternalLink } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { AdminOnly } from "@/lib/admin-only";
 
 export default function ProjectList() {
   const [, setLocation] = useLocation();
   const [showDeleted, setShowDeleted] = useState(false);
+  const { user } = useAuth();
 
   // プロジェクト一覧を取得
   const { data: projects, isLoading } = useQuery<Project[]>({
@@ -67,9 +70,11 @@ export default function ProjectList() {
             <Label htmlFor="showDeleted">削除済みプロジェクトを表示</Label>
           </div>
           
-          <Button onClick={() => setLocation('/project/new')} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" /> 新規プロジェクト
-          </Button>
+          <AdminOnly>
+            <Button onClick={() => setLocation('/project/new')} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" /> 新規プロジェクト
+            </Button>
+          </AdminOnly>
         </div>
 
         {projects && projects.length > 0 ? (
@@ -83,9 +88,23 @@ export default function ProjectList() {
                 `}
               >
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-bold line-clamp-2 break-all">
-                    {project.name}
-                  </CardTitle>
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg font-bold line-clamp-2 break-all">
+                      {project.name}
+                    </CardTitle>
+                    <AdminOnly>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setLocation(`/project/edit/${project.id}`);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </AdminOnly>
+                  </div>
                 </CardHeader>
                 <CardContent className="pb-3">
                   <div className="space-y-3">
@@ -110,9 +129,11 @@ export default function ProjectList() {
         ) : (
           <div className="text-center py-8">
             <p className="text-lg text-muted-foreground mb-4">プロジェクトがありません</p>
-            <Button onClick={() => setLocation('/project/new')}>
-              新規プロジェクトを作成
-            </Button>
+            <AdminOnly>
+              <Button onClick={() => setLocation('/project/new')}>
+                新規プロジェクトを作成
+              </Button>
+            </AdminOnly>
           </div>
         )}
       </div>
