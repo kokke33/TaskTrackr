@@ -4,6 +4,8 @@ import { Case, WeeklyReport } from "@shared/schema";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth";
+import { AdminOnly } from "@/lib/admin-only";
 import { 
   Plus, 
   AlertCircle, 
@@ -470,12 +472,14 @@ export default function CaseList() {
                 : "月次状況報告書"}
             </Button>
             
-            <Link href="/case/new">
-              <Button className="flex items-center gap-1">
-                <Plus className="h-4 w-4" />
-                新規案件作成
-              </Button>
-            </Link>
+            <AdminOnly>
+              <Link href="/case/new">
+                <Button className="flex items-center gap-1">
+                  <Plus className="h-4 w-4" />
+                  新規案件作成
+                </Button>
+              </Link>
+            </AdminOnly>
           </div>
         </div>
 
@@ -558,11 +562,13 @@ export default function CaseList() {
                               週次報告
                             </Button>
                           </Link>
-                          <Link href={`/case/edit/${case_.id}`}>
-                            <Button variant="outline" size="sm" className="flex items-center gap-1">
-                              {case_.isDeleted ? '復元/編集' : '編集'} <ChevronRight className="h-3 w-3" />
-                            </Button>
-                          </Link>
+                          <AdminOnly>
+                            <Link href={`/case/edit/${case_.id}`}>
+                              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                {case_.isDeleted ? '復元/編集' : '編集'} <ChevronRight className="h-3 w-3" />
+                              </Button>
+                            </Link>
+                          </AdminOnly>
                         </CardFooter>
                       )}
                     </Card>

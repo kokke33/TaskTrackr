@@ -98,39 +98,6 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return user;
   }
-  // ユーザー関連のメソッド
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id));
-    return user;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username));
-    return user;
-  }
-
-  async createUser(userData: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .returning();
-    return user;
-  }
-
-  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set(userData)
-      .where(eq(users.id, id))
-      .returning();
-    return user;
-  }
 
   // 検索関連のメソッド
   async search(query: string, type?: string): Promise<{ total: number, results: SearchResult[] }> {
