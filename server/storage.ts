@@ -94,6 +94,33 @@ export class DatabaseStorage implements IStorage {
       results.push(...reportResults);
     }
     
+    // 結果を更新日時（作成日、更新日、レポート期間終了日など）の降順でソート
+    results.sort((a, b) => {
+      // プロジェクトと案件はcreatedAt/updatedAtの比較
+      if ((a.type === 'project' || a.type === 'case') && (b.type === 'project' || b.type === 'case')) {
+        // 日付文字列がない場合は現在の値を維持
+        return 0;
+      }
+      
+      // reportの場合は、dateプロパティ（reportPeriodEndの日付文字列）を比較
+      if (a.type === 'report' && b.type === 'report') {
+        if (a.date && b.date) {
+          // 日付文字列を日付オブジェクトに変換して比較（降順）
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
+      }
+      
+      // レポートはプロジェクトや案件よりも新しい（上位に表示）
+      if (a.type === 'report' && b.type !== 'report') {
+        return -1;
+      }
+      if (a.type !== 'report' && b.type === 'report') {
+        return 1;
+      }
+      
+      return 0;
+    });
+    
     return {
       total: results.length,
       results
@@ -131,6 +158,30 @@ export class DatabaseStorage implements IStorage {
     suggestions.push(...reportSuggestions);
     
     // 最大10件に制限
+    // 検索候補も更新日が新しい順（週次報告の場合はレポート期間終了日が新しい順）でソート
+    suggestions.sort((a, b) => {
+      // レポートはより新しい項目として常に優先
+      if (a.type === 'report' && b.type !== 'report') {
+        return -1;
+      }
+      if (a.type !== 'report' && b.type === 'report') {
+        return 1;
+      }
+      
+      // 同じタイプ内では、タイトルの日付情報（レポートの場合）や名前の順
+      if (a.type === 'report' && b.type === 'report') {
+        // レポートタイトルから日付を抽出して比較（降順）
+        const aMatch = a.title.match(/(\d{4}[-/]\d{1,2}[-/]\d{1,2})/);
+        const bMatch = b.title.match(/(\d{4}[-/]\d{1,2}[-/]\d{1,2})/);
+        
+        if (aMatch && bMatch) {
+          return new Date(bMatch[1]).getTime() - new Date(aMatch[1]).getTime();
+        }
+      }
+      
+      return 0;
+    });
+    
     return suggestions.slice(0, 10);
   }
   
@@ -458,7 +509,7 @@ export class DatabaseStorage implements IStorage {
       );
     });
     
-    // 関連する案件のJOINクエリを作成
+    // 関連する案件のJOINクエリを作成（最新の報告を先に表示）
     const foundReports = await db
       .select({
         report: weeklyReports,
@@ -471,6 +522,7 @@ export class DatabaseStorage implements IStorage {
         eq(cases.isDeleted, false),
         ...conditions
       ))
+      .orderBy(desc(weeklyReports.reportPeriodEnd))
       .limit(limit);
     
     // 検索結果をフォーマット
