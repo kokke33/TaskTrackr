@@ -47,6 +47,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   // 認証関連のエンドポイント
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
+    // ログのデバッグ情報を出力
+    if (req.user) {
+      console.log("Login success - user info:", {
+        id: req.user.id,
+        username: req.user.username,
+        isAdmin: req.user.isAdmin
+      });
+    }
+    
     // ユーザー情報と成功メッセージを返す
     res.json({ 
       message: "ログイン成功",
@@ -61,12 +70,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/check-auth", (req, res) => {
-    if (req.isAuthenticated()) {
+    if (req.isAuthenticated() && req.user) {
+      // セッションに保存されているユーザー情報をログ出力
+      const user = req.user as { id: number, username: string, isAdmin?: boolean };
+      console.log("Check-auth - authenticated user info:", {
+        id: user.id,
+        username: user.username,
+        isAdmin: user.isAdmin
+      });
+      
       res.json({ 
         authenticated: true,
         user: req.user
       });
     } else {
+      console.log("Check-auth - not authenticated");
       res.status(401).json({
         authenticated: false,
         message: "認証されていません。再度ログインしてください。",
