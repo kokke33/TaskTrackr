@@ -9,7 +9,8 @@ import { eq } from "drizzle-orm";
 passport.use(
   new LocalStrategy(async (username, password, done) => {
     try {
-      const [user] = await db
+      // パスワード検証のためのユーザー情報取得
+      const [userAuth] = await db
         .select({
           id: users.id,
           username: users.username,
@@ -18,17 +19,34 @@ passport.use(
         .from(users)
         .where(eq(users.username, username));
 
-      if (!user) {
+      if (!userAuth) {
         return done(null, false, { message: "ユーザーが見つかりません" });
       }
 
-      const isValid = await compare(password, user.password);
+      const isValid = await compare(password, userAuth.password);
       if (!isValid) {
         return done(null, false, { message: "パスワードが正しくありません" });
       }
 
-      return done(null, user);
+      // 認証成功後、isAdminフラグを含む完全なユーザー情報を取得
+      const [completeUser] = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          isAdmin: users.isAdmin,
+        })
+        .from(users)
+        .where(eq(users.id, userAuth.id));
+
+      console.log("認証成功 - ユーザー情報:", {
+        id: completeUser.id,
+        username: completeUser.username,
+        isAdmin: completeUser.isAdmin
+      });
+
+      return done(null, completeUser);
     } catch (error) {
+      console.error("認証エラー:", error);
       return done(error);
     }
   })
