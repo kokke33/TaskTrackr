@@ -70,10 +70,20 @@ export function SearchBar() {
     setQuery("");
   };
 
-  // 検索ページからの更新をリッスン
-  useCustomEvent<string>("update-search-bar", (newQuery) => {
-    setQuery(newQuery);
-  });
+  // 検索ページからの更新をリッスン - useEffectにラップして無限ループを防止
+  useEffect(() => {
+    const listener = (newQuery: string) => {
+      if (newQuery !== query) {
+        setQuery(newQuery);
+      }
+    };
+    
+    // リスナーを登録
+    const cleanup = updateSearchQuery.on(listener);
+    
+    // クリーンアップ
+    return () => cleanup();
+  }, [updateSearchQuery, query]);
   
   // 検索クエリの変更を検出してサジェストを取得
   useEffect(() => {

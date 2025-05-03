@@ -39,13 +39,23 @@ export default function SearchPage() {
   
   // ヘッダー検索バーとの連携のためのカスタムイベント
   const updateSearchBar = useCustomEvent<string>("update-search-bar");
-  // ヘッダー検索バーからのイベントをリッスン
-  useCustomEvent<string>("global-search", (searchQuery) => {
-    if (searchQuery !== searchInput) {
-      setSearchInput(searchQuery);
-      setQuery(searchQuery);
-    }
-  });
+  
+  // ヘッダー検索バーからのイベントをリッスン（useEffectでラップしてクリーンアップを追加）
+  useEffect(() => {
+    const listener = (searchQuery: string) => {
+      if (searchQuery !== searchInput) {
+        setSearchInput(searchQuery);
+        setQuery(searchQuery);
+      }
+    };
+    
+    // リスナーを登録
+    const dispatchSearchEvent = useCustomEvent<string>("global-search");
+    const cleanup = dispatchSearchEvent.on(listener);
+    
+    // クリーンアップ
+    return () => cleanup();
+  }, [searchInput]);
 
   // URLが変更されたときにクエリパラメータを更新
   useEffect(() => {
