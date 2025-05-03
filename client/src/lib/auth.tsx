@@ -13,7 +13,7 @@ interface User {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: () => void;
+  login: (userData?: User) => void;
   logout: () => void;
 }
 

@@ -52,20 +52,36 @@ export default function Login() {
         data,
       });
       
-      // ユーザー情報を含めて認証状態を更新
-      if (responseData.user) {
-        // ユーザー情報をコンソールに出力してデバッグ
-        console.log("Login response user data:", responseData.user);
-        login(responseData.user);
-      } else {
-        login();
-      }
-      
+      // ログイン成功メッセージを表示
       toast({
         title: "ログイン成功",
         description: `${responseData.user?.username || ''}さん、ようこそ！`,
       });
-      setLocation("/");
+      
+      // ユーザー情報を含めて認証状態を更新
+      if (responseData.user) {
+        // ユーザー情報をコンソールに出力してデバッグ
+        console.log("Login response user data:", responseData.user);
+        
+        // 明示的に管理者フラグ情報をログ出力
+        console.log(`ユーザー ${responseData.user.username} の管理者権限: ${responseData.user.isAdmin ? 'あり' : 'なし'}`);
+        
+        // 認証コンテキストを更新
+        login(responseData.user);
+        
+        // 強制的に最新の認証情報を取得するために
+        // チェック認証APIを呼び出す
+        await apiRequest("/api/check-auth", {
+          method: "GET"
+        });
+        
+        // トップページに移動
+        setLocation("/");
+      } else {
+        // ユーザー情報がない場合でも認証状態は更新
+        login();
+        setLocation("/");
+      }
     } catch (error) {
       console.error("Login error:", error);
       toast({

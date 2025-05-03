@@ -1,12 +1,34 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ClipboardEdit, List, FolderKanban, Briefcase } from "lucide-react";
+import { ClipboardEdit, List, FolderKanban, Briefcase, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { AdminOnly } from "@/lib/admin-only";
+import { useEffect } from "react";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Home() {
   const { user } = useAuth();
+  
+  // デバッグ用
+  useEffect(() => {
+    console.log("Home: ユーザー情報:", user);
+    console.log("管理者権限:", user?.isAdmin);
+  }, [user]);
+  
+  // 強制的に認証を再確認するための関数
+  const refreshAuth = async () => {
+    try {
+      const data = await apiRequest("/api/check-auth", {
+        method: "GET"
+      });
+      console.log("認証情報再取得結果:", data);
+      // ページをリロード
+      window.location.reload();
+    } catch (error) {
+      console.error("認証情報取得エラー:", error);
+    }
+  };
   
   return (
     <div className="min-h-screen bg-background">
@@ -15,10 +37,21 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto text-center">
           <h1 className="text-4xl font-bold text-primary mb-4">週次報告</h1>
-          <p className="text-muted-foreground mb-8">
-            {user?.username || ''}
-            {user?.isAdmin && <span className="ml-2 text-green-600">(管理者)</span>}
-          </p>
+          <div className="flex items-center justify-center mb-4">
+            <p className="text-muted-foreground">
+              {user?.username || ''}
+              {user?.isAdmin && <span className="ml-2 text-green-600">(管理者)</span>}
+            </p>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={refreshAuth} 
+              title="認証情報を更新" 
+              className="ml-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
           <p className="text-muted-foreground mb-8">
             <span style={{ color: 'red' }}>週次報告は「週ごとに」新規作成してください。</span>
           </p>
