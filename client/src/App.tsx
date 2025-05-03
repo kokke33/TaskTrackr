@@ -39,7 +39,7 @@ function Router() {
         <Suspense fallback={<div>読み込み中...</div>}>
           <CaseView {...props} />
         </Suspense>
-      )} /> {/* Added route for case view with Suspense */}
+      )} />
       <ProtectedRoute path="/projects" component={ProjectList} />
       <AdminRoute path="/project/new" component={ProjectForm} />
       <AdminRoute path="/project/edit/:id" component={ProjectForm} />
