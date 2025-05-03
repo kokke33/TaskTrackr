@@ -2,8 +2,12 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ClipboardEdit, List, FolderKanban, Briefcase } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { AdminOnly } from "@/lib/admin-only";
 
 export default function Home() {
+  const { user } = useAuth();
+  
   return (
     <div className="min-h-screen bg-background">
       <ThemeToggle />
@@ -12,7 +16,8 @@ export default function Home() {
         <div className="max-w-2xl mx-auto text-center">
           <h1 className="text-4xl font-bold text-primary mb-4">週次報告</h1>
           <p className="text-muted-foreground mb-8">
-            ss7-1
+            {user?.username || ''}
+            {user?.isAdmin && <span className="ml-2 text-green-600">(管理者)</span>}
           </p>
           <p className="text-muted-foreground mb-8">
             <span style={{ color: 'red' }}>週次報告は「週ごとに」新規作成してください。</span>
