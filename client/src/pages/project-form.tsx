@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,8 +14,9 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Home, FolderKanban, Loader2 } from "lucide-react";
+import { Home, FolderKanban, Loader2, ShieldAlert } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/lib/auth";
 
 // Zodスキーマを拡張
 const projectFormSchema = insertProjectSchema.extend({});
@@ -27,13 +28,37 @@ export default function ProjectForm() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const isEditing = !!params.id;
   const projectId = isEditing ? parseInt(params.id) : null;
 
+  // 管理者権限チェック
+  useEffect(() => {
+    // ユーザー情報がロードされた後に管理者権限をチェック
+    if (user && !user.isAdmin) {
+      toast({
+        title: "権限エラー",
+        description: "プロジェクト管理は管理者のみが行えます",
+        variant: "destructive",
+      });
+      setLocation("/projects");
+    }
+  }, [user, setLocation, toast]);
+
   // プロジェクト詳細を取得（編集時のみ）
-  const { data: project, isLoading: isLoadingProject } = useQuery<Project>({
+  const { data: project, isLoading: isLoadingProject, error } = useQuery<Project>({
     queryKey: [`/api/projects/${projectId}`],
     enabled: isEditing,
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(`${queryKey[0]}?edit=true`, {
+        credentials: "include"
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "プロジェクト情報の取得に失敗しました");
+      }
+      return response.json();
+    }
   });
 
   // フォーム設定
@@ -164,6 +189,25 @@ export default function ProjectForm() {
     }
   };
 
+  // エラー発生時の表示
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <ShieldAlert className="mx-auto h-12 w-12 text-destructive mb-4" />
+            <h2 className="text-xl font-bold mb-2">アクセスエラー</h2>
+            <p className="mb-6">{error instanceof Error ? error.message : "プロジェクト情報の取得に失敗しました"}</p>
+            <Button onClick={() => setLocation("/projects")}>
+              プロジェクト一覧へ戻る
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // 読み込み中の表示
   if (isEditing && isLoadingProject) {
     return (
       <div className="min-h-screen bg-background">

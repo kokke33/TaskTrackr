@@ -110,6 +110,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(404).json({ message: "プロジェクトが見つかりません" });
         return;
       }
+      
+      // 編集用データは管理者のみに提供し、一般ユーザーには表示用データのみ提供
+      const user = req.user as { id: number, username: string, isAdmin?: boolean };
+      if (req.query.edit === "true" && !user?.isAdmin) {
+        return res.status(403).json({ message: "プロジェクト編集は管理者のみ許可されています" });
+      }
+      
       res.json(project);
     } catch (error) {
       console.error("Error fetching project:", error);
@@ -125,6 +132,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(404).json({ message: "プロジェクトが見つかりません" });
         return;
       }
+      
+      // 編集用データは管理者のみに提供し、一般ユーザーには表示用データのみ提供
+      const user = req.user as { id: number, username: string, isAdmin?: boolean };
+      if (req.query.edit === "true" && !user?.isAdmin) {
+        return res.status(403).json({ message: "プロジェクト編集は管理者のみ許可されています" });
+      }
+      
       res.json(project);
     } catch (error) {
       console.error("Error fetching project by name:", error);
