@@ -25,8 +25,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const login = () => {
+  const login = (userData?: User) => {
     setIsAuthenticated(true);
+    if (userData) {
+      setUser(userData);
+    }
   };
 
   const logout = async () => {
@@ -60,8 +63,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           method: "GET"
         });
         
-        setIsAuthenticated(true);
-        setUser(data.user || null);
+        if (data.authenticated && data.user) {
+          console.log("Auth check successful, user:", data.user);
+          setIsAuthenticated(true);
+          setUser(data.user);
+        } else {
+          console.log("Auth check failed, no authenticated user");
+          setIsAuthenticated(false);
+          setUser(null);
+          
+          // ログインページ以外にいる場合はリダイレクト
+          if (window.location.pathname !== "/login") {
+            setLocation("/login");
+          }
+        }
       } catch (error) {
         console.error("Auth check failed:", error);
         setIsAuthenticated(false);

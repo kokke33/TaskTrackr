@@ -52,8 +52,14 @@ export default function Login() {
         data,
       });
       
-      // 認証状態を更新
-      login();
+      // ユーザー情報を含めて認証状態を更新
+      if (responseData.user) {
+        // ユーザー情報をコンソールに出力してデバッグ
+        console.log("Login response user data:", responseData.user);
+        login(responseData.user);
+      } else {
+        login();
+      }
       
       toast({
         title: "ログイン成功",
@@ -61,6 +67,7 @@ export default function Login() {
       });
       setLocation("/");
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "エラー",
         description: error instanceof Error ? error.message : "ログインに失敗しました",
