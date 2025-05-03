@@ -38,6 +38,8 @@ export default function CaseForm() {
   const { data: existingCase, isLoading: isLoadingCase } = useQuery<Case>({
     queryKey: [`/api/cases/${id}`],
     enabled: isEditMode,
+    staleTime: 0, // 毎回最新のデータを取得
+    refetchOnMount: true, // コンポーネントマウント時に必ず再取得
   });
 
   const form = useForm<InsertCase>({
@@ -73,6 +75,11 @@ export default function CaseForm() {
         title: isEditMode ? "案件が更新されました" : "案件が作成されました",
         description: "案件情報が正常に保存されました。",
       });
+      // 個別の案件キャッシュも無効化
+      if (isEditMode && id) {
+        queryClient.invalidateQueries({ queryKey: [`/api/cases/${id}`] });
+      }
+      // 一覧キャッシュを無効化
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       setLocation("/cases");
     },

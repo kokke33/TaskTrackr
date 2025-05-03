@@ -37,8 +37,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { apiRequest } from "@/lib/queryClient";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CaseView() {
@@ -211,7 +210,9 @@ export default function CaseView() {
         }
       });
       
-      // キャッシュを無効化
+      // 個別の案件キャッシュも無効化
+      queryClient.invalidateQueries({ queryKey: [`/api/cases/${id}`] });
+      // 一覧キャッシュを無効化
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       
       toast({
