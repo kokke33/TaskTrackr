@@ -162,11 +162,9 @@ export default function SearchPage() {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href="/">
-                    <span className="flex items-center gap-1">
-                      <Home className="h-3.5 w-3.5" />
-                      ホーム
-                    </span>
+                  <Link href="/" className="flex items-center gap-1">
+                    <Home className="h-3.5 w-3.5" />
+                    ホーム
                   </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
@@ -253,12 +251,10 @@ export default function SearchPage() {
                               )}
                             </div>
                             <div className="flex-1">
-                              <Link href={result.link}>
-                                <a className="block">
-                                  <h3 className="text-lg font-medium hover:text-primary hover:underline">
-                                    {result.title}
-                                  </h3>
-                                </a>
+                              <Link href={result.link} className="block">
+                                <h3 className="text-lg font-medium hover:text-primary hover:underline">
+                                  {result.title}
+                                </h3>
                               </Link>
                               
                               <div className="text-sm text-muted-foreground mt-1">
