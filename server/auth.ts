@@ -58,7 +58,8 @@ passport.deserializeUser(async (id: number, done) => {
 export async function createInitialUsers() {
   try {
     const initialUsers = [
-      { username: "ss7-1", password: "ss7-1weeklyreport" },
+      { username: "ss7-1", password: "ss7-1weeklyreport", isAdmin: false },
+      { username: "admin", password: "adminpassword", isAdmin: true },
     ];
 
     for (const user of initialUsers) {
@@ -72,8 +73,9 @@ export async function createInitialUsers() {
         await db.insert(users).values({
           username: user.username,
           password: hashedPassword,
+          isAdmin: user.isAdmin,
         });
-        console.log(`Created initial user: ${user.username}`);
+        console.log(`Created initial user: ${user.username}, isAdmin: ${user.isAdmin}`);
       }
     }
   } catch (error) {
