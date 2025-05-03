@@ -4,6 +4,16 @@ import { useParams, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { type Case } from "@shared/schema";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
   PenSquare, 
@@ -12,7 +22,9 @@ import {
   Calendar,
   FileText,
   Check,
-  X
+  X,
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 import { 
   Breadcrumb, 
@@ -35,6 +47,7 @@ export default function CaseView() {
   const [location, setLocation] = useLocation();
   const [isEditing, setIsEditing] = useState(false);
   const [editedCase, setEditedCase] = useState<Partial<Case>>({});
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // 案件データを取得
@@ -177,6 +190,46 @@ export default function CaseView() {
       ...editedCase,
       [name]: value,
     });
+  };
+  
+  // 削除ダイアログを開く
+  const openDeleteDialog = () => {
+    setIsDeleteDialogOpen(true);
+  };
+  
+  // 削除を実行
+  const handleDelete = async () => {
+    if (!id) return;
+    
+    try {
+      // 削除フラグを立てるAPIを実行
+      await apiRequest(`/api/cases/${id}`, {
+        method: 'PUT',
+        data: {
+          ...(caseData || {}),
+          isDeleted: true
+        }
+      });
+      
+      // キャッシュを無効化
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      
+      toast({
+        title: "削除成功",
+        description: "案件を削除しました。",
+        variant: "default"
+      });
+      
+      // 案件一覧ページにリダイレクト
+      setLocation("/cases");
+    } catch (error) {
+      console.error('Error deleting case:', error);
+      toast({
+        title: "エラー",
+        description: "案件の削除に失敗しました。",
+        variant: "destructive"
+      });
+    }
   };
 
   if (isLoading) {
@@ -353,7 +406,16 @@ export default function CaseView() {
               )}
             </div>
 
-            <div className="flex justify-center mt-8">
+            <div className="flex justify-between mt-8">
+              <Button 
+                variant="destructive" 
+                className="flex items-center gap-2"
+                onClick={openDeleteDialog}
+                disabled={isEditing}
+              >
+                <Trash2 className="h-4 w-4" />
+                削除する
+              </Button>
               <Link href={`/reports?caseId=${caseData.id}`}>
                 <Button variant="outline" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -363,6 +425,30 @@ export default function CaseView() {
             </div>
           </CardContent>
         </Card>
+        
+        {/* 削除確認ダイアログ */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>案件を削除しますか？</AlertDialogTitle>
+              <AlertDialogDescription>
+                <div className="flex flex-col gap-2">
+                  <p>案件「{caseData.caseName}」を削除します。この操作は元に戻せません。</p>
+                  <div className="flex items-center text-destructive gap-2 mt-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    <span>削除された案件は週次報告一覧から非表示になります</span>
+                  </div>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>キャンセル</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                削除する
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
