@@ -130,21 +130,23 @@ export function SearchBar() {
     <>
       {/* ヘッダーの検索バー */}
       <form onSubmit={handleSearch} className="hidden md:flex items-center relative max-w-md">
-        <Input
-          type="text"
-          placeholder="プロジェクト、案件、報告を検索..."
-          className="w-60 pl-8"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            if (!isOpen) setIsOpen(true);
-          }}
-          onClick={() => setIsOpen(true)}
-        />
-        <Search className="h-4 w-4 absolute left-2.5 text-muted-foreground" />
-        <Button type="submit" variant="ghost" size="sm" className="absolute right-1">
-          <Search className="h-4 w-4" />
-        </Button>
+        <div className="relative w-60">
+          <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            type="text"
+            placeholder="プロジェクト、案件、報告を検索..."
+            className="w-full pl-8 pr-9"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              if (!isOpen) setIsOpen(true);
+            }}
+            onClick={() => setIsOpen(true)}
+          />
+          <Button type="submit" variant="ghost" size="sm" className="absolute right-0.5 top-1/2 -translate-y-1/2 h-7 w-7 p-0">
+            <Search className="h-4 w-4" />
+          </Button>
+        </div>
       </form>
 
       {/* モバイル用の検索ボタン */}
