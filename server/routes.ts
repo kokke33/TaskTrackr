@@ -105,6 +105,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      console.log(`[DEBUG] GET /api/projects/${id} - Query params:`, req.query);
+      console.log(`[DEBUG] User:`, req.user);
+      
       const project = await storage.getProject(id);
       if (!project) {
         res.status(404).json({ message: "プロジェクトが見つかりません" });
@@ -113,8 +116,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 編集用データは管理者のみに提供し、一般ユーザーには表示用データのみ提供
       const user = req.user as { id: number, username: string, isAdmin?: boolean };
-      if (req.query.edit === "true" && !user?.isAdmin) {
-        return res.status(403).json({ message: "プロジェクト編集は管理者のみ許可されています" });
+      if (req.query.edit === "true") {
+        console.log(`[DEBUG] Edit mode requested. User isAdmin:`, user?.isAdmin);
+        if (!user?.isAdmin) {
+          console.log(`[DEBUG] Access denied: non-admin user tried to access edit mode`);
+          return res.status(403).json({ message: "プロジェクト編集は管理者のみ許可されています" });
+        }
       }
       
       res.json(project);
@@ -127,6 +134,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/by-name/:name", async (req, res) => {
     try {
       const name = req.params.name;
+      console.log(`[DEBUG] GET /api/projects/by-name/${name} - Query params:`, req.query);
+      console.log(`[DEBUG] User:`, req.user);
+      
       const project = await storage.getProjectByName(name);
       if (!project) {
         res.status(404).json({ message: "プロジェクトが見つかりません" });
@@ -135,8 +145,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 編集用データは管理者のみに提供し、一般ユーザーには表示用データのみ提供
       const user = req.user as { id: number, username: string, isAdmin?: boolean };
-      if (req.query.edit === "true" && !user?.isAdmin) {
-        return res.status(403).json({ message: "プロジェクト編集は管理者のみ許可されています" });
+      if (req.query.edit === "true") {
+        console.log(`[DEBUG] Edit mode requested by name. User isAdmin:`, user?.isAdmin);
+        if (!user?.isAdmin) {
+          console.log(`[DEBUG] Access denied: non-admin user tried to access edit mode`);
+          return res.status(403).json({ message: "プロジェクト編集は管理者のみ許可されています" });
+        }
       }
       
       res.json(project);
