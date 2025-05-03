@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertWeeklyReportSchema, insertCaseSchema, insertProjectSchema } from "@shared/schema";
 import OpenAI from "openai";
 import passport from "passport";
-import { isAuthenticated } from "./auth";
+import { isAuthenticated, isAdmin } from "./auth";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -80,7 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/weekly-reports", isAuthenticated);
 
   // プロジェクト関連のエンドポイント
-  app.post("/api/projects", async (req, res) => {
+  app.post("/api/projects", isAdmin, async (req, res) => {
     try {
       const projectData = insertProjectSchema.parse(req.body);
       const newProject = await storage.createProject(projectData);
@@ -132,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/projects/:id", async (req, res) => {
+  app.put("/api/projects/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existingProject = await storage.getProject(id);
@@ -149,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/projects/:id", async (req, res) => {
+  app.delete("/api/projects/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existingProject = await storage.getProject(id);
@@ -167,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // 案件関連のエンドポイント
-  app.post("/api/cases", async (req, res) => {
+  app.post("/api/cases", isAdmin, async (req, res) => {
     try {
       const caseData = insertCaseSchema.parse(req.body);
       const newCase = await storage.createCase(caseData);
@@ -204,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/cases/:id", async (req, res) => {
+  app.put("/api/cases/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existingCase = await storage.getCase(id);
@@ -222,7 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // マイルストーン更新専用の簡易エンドポイント
-  app.patch("/api/cases/:id/milestone", async (req, res) => {
+  app.patch("/api/cases/:id/milestone", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existingCase = await storage.getCase(id);
