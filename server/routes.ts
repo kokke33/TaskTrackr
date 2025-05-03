@@ -79,9 +79,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAdmin: user.isAdmin
       });
       
+      // 明確に管理者フラグを含めて返す
       res.json({ 
         authenticated: true,
-        user: req.user
+        user: {
+          id: user.id,
+          username: user.username,
+          isAdmin: !!user.isAdmin // booleanとして確実に返す
+        }
       });
     } else {
       console.log("Check-auth - not authenticated");

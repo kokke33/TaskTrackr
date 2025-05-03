@@ -69,14 +69,10 @@ export default function Login() {
         // 認証コンテキストを更新
         login(responseData.user);
         
-        // 強制的に最新の認証情報を取得するために
-        // チェック認証APIを呼び出す
-        await apiRequest("/api/check-auth", {
-          method: "GET"
-        });
+        console.log("ログイン成功 - 管理者権限:", responseData.user.isAdmin);
         
-        // トップページに移動
-        setLocation("/");
+        // トップページに移動、強制的にリロードして確実に最新の状態を反映
+        window.location.href = "/";
       } else {
         // ユーザー情報がない場合でも認証状態は更新
         login();
