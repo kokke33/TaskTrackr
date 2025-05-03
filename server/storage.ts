@@ -1,4 +1,4 @@
-import { cases, weeklyReports, projects, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject } from "@shared/schema";
+import { cases, weeklyReports, projects, users, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql } from "drizzle-orm";
 
@@ -29,6 +29,12 @@ type SearchSuggestion = {
 };
 
 export interface IStorage {
+  // ユーザー関連
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(userData: InsertUser): Promise<User>;
+  updateUser(id: number, userData: Partial<InsertUser>): Promise<User>;
+  
   // プロジェクト関連
   createProject(projectData: InsertProject): Promise<Project>;
   getProject(id: number): Promise<Project | undefined>;
@@ -59,6 +65,73 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // ユーザー関連のメソッド
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+  // ユーザー関連のメソッド
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
   // 検索関連のメソッド
   async search(query: string, type?: string): Promise<{ total: number, results: SearchResult[] }> {
     if (!query || query.trim() === '') {

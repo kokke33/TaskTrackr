@@ -44,6 +44,7 @@ passport.deserializeUser(async (id: number, done) => {
       .select({
         id: users.id,
         username: users.username,
+        isAdmin: users.isAdmin,
       })
       .from(users)
       .where(eq(users.id, id));
@@ -86,4 +87,12 @@ export function isAuthenticated(req: any, res: any, next: any) {
     return next();
   }
   res.status(401).json({ message: "認証が必要です" });
+}
+
+// 管理者権限チェックミドルウェア
+export function isAdmin(req: any, res: any, next: any) {
+  if (req.isAuthenticated() && req.user && req.user.isAdmin) {
+    return next();
+  }
+  res.status(403).json({ message: "この操作には管理者権限が必要です" });
 }

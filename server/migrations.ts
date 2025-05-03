@@ -1,7 +1,8 @@
 import { storage } from './storage';
 import { db } from './db';
-import { cases, projects } from '@shared/schema';
+import { cases, projects, users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { hash as bcryptHash } from 'bcryptjs';
 
 /**
  * 案件（Case）データに基づいて既存のプロジェクトを作成するマイグレーション
@@ -63,4 +64,48 @@ export async function migrateExistingProjectsFromCases() {
   
   console.log(`マイグレーション完了: ${createdCount}件のプロジェクトを作成しました`);
   return { created: createdCount, total: projectNamesSet.size };
+}
+
+/**
+ * 管理者ユーザーの設定
+ * - 新規管理者アカウントの作成
+ * - 既存ユーザーの管理者権限の設定
+ */
+export async function setupAdminUser(adminUsername: string, adminPassword: string) {
+  console.log('管理者ユーザーの設定を開始...');
+
+  try {
+    // パスワードをハッシュ化
+    const hashedPassword = await bcryptHash(adminPassword, 10);
+    
+    // 指定されたユーザー名でユーザーを検索
+    const existingUser = await storage.getUserByUsername(adminUsername);
+    
+    if (existingUser) {
+      // ユーザーが存在する場合は管理者権限を付与
+      await db.update(users)
+        .set({ 
+          isAdmin: true,
+          // パスワードも指定されていれば更新
+          ...(adminPassword ? { password: hashedPassword } : {})
+        })
+        .where(eq(users.id, existingUser.id));
+      
+      console.log(`既存ユーザー "${adminUsername}" に管理者権限を付与しました`);
+      return { created: false, updated: true };
+    } else {
+      // 新規ユーザーとして管理者アカウントを作成
+      await storage.createUser({
+        username: adminUsername,
+        password: hashedPassword,
+        isAdmin: true
+      });
+      
+      console.log(`新しい管理者ユーザー "${adminUsername}" を作成しました`);
+      return { created: true, updated: false };
+    }
+  } catch (error) {
+    console.error('管理者ユーザーの設定中にエラーが発生しました:', error);
+    throw error;
+  }
 }
