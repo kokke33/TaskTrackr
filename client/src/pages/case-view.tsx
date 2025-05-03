@@ -353,22 +353,13 @@ export default function CaseView() {
               )}
             </div>
 
-            <div className="flex justify-between mt-8">
+            <div className="flex justify-center mt-8">
               <Link href={`/reports?caseId=${caseData.id}`}>
                 <Button variant="outline" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   この案件の週次報告を表示
                 </Button>
               </Link>
-              {!isEditing && (
-                <Button 
-                  className="flex items-center gap-2"
-                  onClick={toggleEditMode}
-                >
-                  <PenSquare className="h-4 w-4" />
-                  編集する
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>
