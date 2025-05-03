@@ -49,31 +49,55 @@ export default function Home() {
               </Button>
             </Link>
             
-            <Link href="/projects">
-              <Button
-                variant="outline"
-                className="w-full h-32 text-left flex flex-col items-center justify-center gap-2"
-              >
-                <FolderKanban className="h-8 w-8" />
-                <div>
-                  <div className="font-semibold">プロジェクト管理</div>
-                  <div className="text-sm text-muted-foreground">プロジェクト情報を管理する</div>
+            <AdminOnly
+              fallback={
+                <div className="bg-muted w-full h-32 flex flex-col items-center justify-center gap-2 rounded-md border border-dashed">
+                  <FolderKanban className="h-8 w-8 text-muted-foreground" />
+                  <div>
+                    <div className="font-semibold text-muted-foreground">プロジェクト管理</div>
+                    <div className="text-sm text-muted-foreground opacity-60">管理者権限が必要です</div>
+                  </div>
                 </div>
-              </Button>
-            </Link>
+              }
+            >
+              <Link href="/projects">
+                <Button
+                  variant="outline"
+                  className="w-full h-32 text-left flex flex-col items-center justify-center gap-2"
+                >
+                  <FolderKanban className="h-8 w-8" />
+                  <div>
+                    <div className="font-semibold">プロジェクト管理</div>
+                    <div className="text-sm text-muted-foreground">プロジェクト情報を管理する</div>
+                  </div>
+                </Button>
+              </Link>
+            </AdminOnly>
 
-            <Link href="/cases">
-              <Button
-                variant="outline"
-                className="w-full h-32 text-left flex flex-col items-center justify-center gap-2"
-              >
-                <Briefcase className="h-8 w-8" />
-                <div>
-                  <div className="font-semibold">案件管理</div>
-                  <div className="text-sm text-muted-foreground">案件情報を管理する</div>
+            <AdminOnly
+              fallback={
+                <div className="bg-muted w-full h-32 flex flex-col items-center justify-center gap-2 rounded-md border border-dashed">
+                  <Briefcase className="h-8 w-8 text-muted-foreground" />
+                  <div>
+                    <div className="font-semibold text-muted-foreground">案件管理</div>
+                    <div className="text-sm text-muted-foreground opacity-60">管理者権限が必要です</div>
+                  </div>
                 </div>
-              </Button>
-            </Link>
+              }
+            >
+              <Link href="/cases">
+                <Button
+                  variant="outline"
+                  className="w-full h-32 text-left flex flex-col items-center justify-center gap-2"
+                >
+                  <Briefcase className="h-8 w-8" />
+                  <div>
+                    <div className="font-semibold">案件管理</div>
+                    <div className="text-sm text-muted-foreground">案件情報を管理する</div>
+                  </div>
+                </Button>
+              </Link>
+            </AdminOnly>
           </div>
         </div>
       </div>
