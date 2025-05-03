@@ -32,7 +32,11 @@ export function SearchBar() {
   
   // 検索ページとの連携のためのカスタムイベント
   const dispatchSearchEvent = useCustomEvent<string>("global-search");
-  const updateSearchQuery = useCustomEvent<string>("update-search-bar");
+  useCustomEvent<string>("update-search-bar", (newQuery) => {
+    if (newQuery !== query) {
+      setQuery(newQuery);
+    }
+  });
 
   // コマンドダイアログのトリガー
   const toggleSearch = () => {
@@ -70,20 +74,7 @@ export function SearchBar() {
     setQuery("");
   };
 
-  // 検索ページからの更新をリッスン - useEffectにラップして無限ループを防止
-  useEffect(() => {
-    const listener = (newQuery: string) => {
-      if (newQuery !== query) {
-        setQuery(newQuery);
-      }
-    };
-    
-    // リスナーを登録
-    const cleanup = updateSearchQuery.on(listener);
-    
-    // クリーンアップ
-    return () => cleanup();
-  }, [updateSearchQuery, query]);
+  // 古いリスナーコードは上部の新しいリスナーに置き換えました
   
   // 検索クエリの変更を検出してサジェストを取得
   useEffect(() => {
