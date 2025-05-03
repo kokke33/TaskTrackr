@@ -11,7 +11,7 @@ import {
   CommandGroup, 
   CommandItem 
 } from "@/components/ui/command";
-import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
+
 import { apiRequest } from "@/lib/queryClient";
 import { useCustomEvent } from "../hooks/use-custom-event";
 
@@ -154,10 +154,7 @@ export function SearchBar() {
 
       {/* コマンドダイアログ（検索モーダル） */}
       <CommandDialog open={isOpen} onOpenChange={setIsOpen}>
-        {/* Dialog内部で必要なアクセシビリティ要素を提供 */}
-        <div className="flex items-center justify-between px-3">
-          <div className="sr-only" id="search-dialog-title">検索ダイアログ</div>
-        </div>
+        {/* アクセシビリティは親コンポーネントで対応 */}
         <CommandInput
           placeholder="プロジェクト、案件、報告を検索..."
           value={query}
