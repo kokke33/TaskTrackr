@@ -7,6 +7,7 @@ import { apiRequest } from "./queryClient";
 interface User {
   id: number;
   username: string;
+  isAdmin: boolean;
 }
 
 interface AuthContextType {

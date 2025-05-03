@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./lib/auth";
 import { SiteLayout } from "@/components/site-layout";
 import { ProtectedRoute } from "./lib/protected-route";
+import { AdminRoute } from "./lib/admin-only";
 import Login from "@/pages/login";
 import Home from "@/pages/Home";
 import WeeklyReport from "@/pages/weekly-report";
@@ -32,16 +33,16 @@ function Router() {
       <ProtectedRoute path="/reports" component={WeeklyReportList} />
       <ProtectedRoute path="/reports/:id" component={WeeklyReportDetail} />
       <ProtectedRoute path="/cases" component={CaseList} />
-      <ProtectedRoute path="/case/new" component={CaseForm} />
-      <ProtectedRoute path="/case/edit/:id" component={CaseForm} />
+      <AdminRoute path="/case/new" component={CaseForm} />
+      <AdminRoute path="/case/edit/:id" component={CaseForm} />
       <ProtectedRoute path="/case/view/:id" component={(props) => (
         <Suspense fallback={<div>読み込み中...</div>}>
           <CaseView {...props} />
         </Suspense>
       )} /> {/* Added route for case view with Suspense */}
       <ProtectedRoute path="/projects" component={ProjectList} />
-      <ProtectedRoute path="/project/new" component={ProjectForm} />
-      <ProtectedRoute path="/project/edit/:id" component={ProjectForm} />
+      <AdminRoute path="/project/new" component={ProjectForm} />
+      <AdminRoute path="/project/edit/:id" component={ProjectForm} />
       <ProtectedRoute path="/project/:id" component={ProjectDetail} />
       <ProtectedRoute path="/project/name/:name" component={ProjectDetail} />
       <ProtectedRoute path="/search" component={SearchPage} />
