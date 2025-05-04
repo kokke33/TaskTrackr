@@ -66,13 +66,14 @@ export default function Login() {
         // 明示的に管理者フラグ情報をログ出力
         console.log(`ユーザー ${responseData.user.username} の管理者権限: ${responseData.user.isAdmin ? 'あり' : 'なし'}`);
         
+        // ログイン成功情報をコンソールに出力
+        console.log("ログイン成功 - 管理者権限:", responseData.user.isAdmin);
+        
         // 認証コンテキストを更新
         login(responseData.user);
         
-        console.log("ログイン成功 - 管理者権限:", responseData.user.isAdmin);
-        
-        // トップページに移動、強制的にリロードして確実に最新の状態を反映
-        window.location.href = "/";
+        // トップページに移動
+        setLocation("/");
       } else {
         // ユーザー情報がない場合でも認証状態は更新
         login();

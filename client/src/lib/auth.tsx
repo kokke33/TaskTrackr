@@ -28,7 +28,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = (userData?: User) => {
     setIsAuthenticated(true);
     if (userData) {
-      setUser(userData);
+      // 管理者フラグが確実にbooleanとして設定されるようにする
+      setUser({
+        ...userData,
+        isAdmin: !!userData.isAdmin
+      });
+      console.log("認証コンテキスト更新 - 管理者権限:", !!userData.isAdmin);
     }
   };
 
@@ -66,7 +71,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (data.authenticated && data.user) {
           console.log("Auth check successful, user:", data.user);
           setIsAuthenticated(true);
-          setUser(data.user);
+          // 管理者フラグが確実にbooleanとして設定されるようにする
+          setUser({
+            ...data.user,
+            isAdmin: !!data.user.isAdmin
+          });
+          console.log("Auth check - 管理者権限:", !!data.user.isAdmin);
         } else {
           console.log("Auth check failed, no authenticated user");
           setIsAuthenticated(false);
