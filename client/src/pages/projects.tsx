@@ -60,6 +60,11 @@ export default function ProjectList() {
           <ThemeToggle />
         </div>
 
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-semibold">プロジェクト一覧</h1>
+          <ThemeToggle />
+        </div>
+
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Switch
