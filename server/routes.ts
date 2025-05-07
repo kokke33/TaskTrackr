@@ -255,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/cases/:id", isAdmin, async (req, res) => {
+  app.put("/api/cases/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existingCase = await storage.getCase(id);
