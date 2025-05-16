@@ -48,6 +48,7 @@ export interface IStorage {
   getCase(id: number): Promise<Case | undefined>;
   getAllCases(includeDeleted?: boolean): Promise<Case[]>;
   getCasesByProject(projectName: string): Promise<Case[]>;
+  getRecentlyUpdatedCases(limit?: number): Promise<Case[]>;
   updateCase(id: number, caseData: InsertCase): Promise<Case>;
 
   // 週次報告関連
@@ -58,6 +59,7 @@ export interface IStorage {
   updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport>;
   getLatestReportByCase(caseId: number): Promise<WeeklyReport | undefined>;
   getWeeklyReportsByCase(caseId: number): Promise<WeeklyReport[]>;
+  getRecentWeeklyReports(limit?: number): Promise<WeeklyReport[]>;
   
   // 検索関連
   search(query: string, type?: string): Promise<{ total: number, results: SearchResult[] }>;
@@ -741,6 +743,43 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updated;
   }
+  
+  async getRecentlyUpdatedCases(limit: number = 20): Promise<Case[]> {
+    return await db
+      .select()
+      .from(cases)
+      .where(eq(cases.isDeleted, false))
+      .orderBy(desc(cases.createdAt))
+      .limit(limit);
+  }
+  
+  async getRecentWeeklyReports(limit: number = 20): Promise<WeeklyReport[]> {
+    // JOINを使って初めから関連する案件情報も取得する
+    const result = await db
+      .select({
+        id: weeklyReports.id,
+        reportPeriodStart: weeklyReports.reportPeriodStart,
+        reportPeriodEnd: weeklyReports.reportPeriodEnd,
+        caseId: weeklyReports.caseId,
+        reporterName: weeklyReports.reporterName,
+        weeklyTasks: weeklyReports.weeklyTasks,
+        progressRate: weeklyReports.progressRate,
+        progressStatus: weeklyReports.progressStatus,
+        delayIssues: weeklyReports.delayIssues,
+        issues: weeklyReports.issues,
+        createdAt: weeklyReports.createdAt,
+        // 案件情報
+        projectName: cases.projectName,
+        caseName: cases.caseName
+      })
+      .from(weeklyReports)
+      .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+      .where(eq(cases.isDeleted, false))
+      .orderBy(desc(weeklyReports.createdAt))
+      .limit(limit);
+    
+    return result as unknown as WeeklyReport[];
+  }
 
   // 週次報告関連のメソッド
   async createWeeklyReport(report: InsertWeeklyReport): Promise<WeeklyReport> {
@@ -866,6 +905,63 @@ export class DatabaseStorage implements IStorage {
       .from(weeklyReports)
       .where(eq(weeklyReports.caseId, caseId))
       .orderBy(desc(weeklyReports.reportPeriodStart));
+  }
+
+  async getRecentWeeklyReports(limit: number = 20): Promise<WeeklyReport[]> {
+    // JOINを使って削除されていない案件の週次報告のみを取得
+    const result = await db
+      .select({
+        id: weeklyReports.id,
+        reportPeriodStart: weeklyReports.reportPeriodStart,
+        reportPeriodEnd: weeklyReports.reportPeriodEnd,
+        caseId: weeklyReports.caseId,
+        reporterName: weeklyReports.reporterName,
+        weeklyTasks: weeklyReports.weeklyTasks,
+        progressRate: weeklyReports.progressRate,
+        progressStatus: weeklyReports.progressStatus,
+        delayIssues: weeklyReports.delayIssues,
+        delayDetails: weeklyReports.delayDetails,
+        issues: weeklyReports.issues,
+        newRisks: weeklyReports.newRisks,
+        riskSummary: weeklyReports.riskSummary,
+        riskCountermeasures: weeklyReports.riskCountermeasures,
+        riskLevel: weeklyReports.riskLevel,
+        qualityConcerns: weeklyReports.qualityConcerns,
+        qualityDetails: weeklyReports.qualityDetails,
+        testProgress: weeklyReports.testProgress,
+        changes: weeklyReports.changes,
+        changeDetails: weeklyReports.changeDetails,
+        nextWeekPlan: weeklyReports.nextWeekPlan,
+        supportRequests: weeklyReports.supportRequests,
+        resourceConcerns: weeklyReports.resourceConcerns,
+        resourceDetails: weeklyReports.resourceDetails,
+        customerIssues: weeklyReports.customerIssues,
+        customerDetails: weeklyReports.customerDetails,
+        environmentIssues: weeklyReports.environmentIssues,
+        environmentDetails: weeklyReports.environmentDetails,
+        costIssues: weeklyReports.costIssues,
+        costDetails: weeklyReports.costDetails,
+        knowledgeIssues: weeklyReports.knowledgeIssues,
+        knowledgeDetails: weeklyReports.knowledgeDetails,
+        trainingIssues: weeklyReports.trainingIssues,
+        trainingDetails: weeklyReports.trainingDetails,
+        urgentIssues: weeklyReports.urgentIssues,
+        urgentDetails: weeklyReports.urgentDetails,
+        businessOpportunities: weeklyReports.businessOpportunities,
+        businessDetails: weeklyReports.businessDetails,
+        aiAnalysis: weeklyReports.aiAnalysis,
+        createdAt: weeklyReports.createdAt,
+        // 検索と表示のための案件のプロパティ
+        projectName: cases.projectName,
+        caseName: cases.caseName
+      })
+      .from(weeklyReports)
+      .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+      .where(eq(cases.isDeleted, false))
+      .orderBy(desc(weeklyReports.reportPeriodEnd))
+      .limit(limit);
+    
+    return result as unknown as WeeklyReport[];
   }
 }
 

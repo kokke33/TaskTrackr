@@ -199,6 +199,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: "プロジェクトの更新に失敗しました" });
     }
   });
+  
+  // 最近更新された週次報告一覧を取得
+  app.get("/api/recent-reports", isAuthenticated, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const recentReports = await storage.getRecentWeeklyReports(limit);
+      res.json(recentReports);
+    } catch (error) {
+      console.error("Error fetching recent reports:", error);
+      res.status(500).json({ message: "最近の週次報告一覧の取得に失敗しました" });
+    }
+  });
 
   app.delete("/api/projects/:id", isAdmin, async (req, res) => {
     try {

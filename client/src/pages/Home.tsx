@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ClipboardEdit, List, FolderKanban, Briefcase, RefreshCw } from "lucide-react";
+import { ClipboardEdit, List, FolderKanban, Briefcase, RefreshCw, Clock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { AdminOnly } from "@/lib/admin-only";
 import { useEffect } from "react";
@@ -78,6 +78,19 @@ export default function Home() {
                 <div>
                   <div className="font-semibold">報告一覧</div>
                   <div className="text-sm text-muted-foreground">提出済みの報告を確認する</div>
+                </div>
+              </Button>
+            </Link>
+            
+            <Link href="/recent-weekly-reports">
+              <Button
+                variant="outline"
+                className="w-full h-32 text-left flex flex-col items-center justify-center gap-2"
+              >
+                <Clock className="h-8 w-8" />
+                <div>
+                  <div className="font-semibold">週次報告詳細一覧</div>
+                  <div className="text-sm text-muted-foreground">最近の週次報告を詳細確認する</div>
                 </div>
               </Button>
             </Link>

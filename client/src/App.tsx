@@ -19,6 +19,7 @@ import ProjectForm from "@/pages/project-form";
 import ProjectDetail from "@/pages/project-detail";
 import NotFound from "@/pages/not-found";
 import SearchPage from "@/pages/search";
+import RecentWeeklyReports from "@/pages/recent-weekly-reports";
 
 const CaseView = lazy(() => import('./pages/case-view')); //React.lazyを使用
 
@@ -46,6 +47,7 @@ function Router() {
       <ProtectedRoute path="/project/:id" component={ProjectDetail} />
       <ProtectedRoute path="/project/name/:name" component={ProjectDetail} />
       <ProtectedRoute path="/search" component={SearchPage} />
+      <ProtectedRoute path="/recent-weekly-reports" component={RecentWeeklyReports} />
       <Route component={NotFound} />
     </Switch>
   );
