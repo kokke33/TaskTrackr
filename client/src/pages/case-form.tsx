@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertCaseSchema, type InsertCase, type Case } from "@shared/schema";
+import { insertCaseSchema, type InsertCase, type Case, type Project } from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -34,6 +34,12 @@ export default function CaseForm() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // プロジェクト一覧を取得
+  const { data: projects, isLoading: isLoadingProjects } = useQuery<Project[]>({
+    queryKey: ["/api/projects"],
+    staleTime: 0, // 毎回最新のデータを取得
+  });
 
   const { data: existingCase, isLoading: isLoadingCase } = useQuery<Case>({
     queryKey: [`/api/cases/${id}`],
@@ -99,7 +105,7 @@ export default function CaseForm() {
     mutation.mutate(data);
   };
 
-  if (isEditMode && isLoadingCase) {
+  if ((isEditMode && isLoadingCase) || isLoadingProjects) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
@@ -144,15 +150,11 @@ export default function CaseForm() {
                             {...field}
                           />
                           <datalist id="project-options">
-                            <option value="PNEC_SMSK_保守">PNEC_SMSK_共同損サ_保守</option>
-                            <option value="PNEC_SMSK_Stage3">PNEC_SMSK_共同損サ_Stage3</option>
-                            <option value="PNEC_SMSK_基盤">PNEC_SMSK_共同損サ_基盤</option>
-                            <option value="PNEC_SMSK_性能">PNEC_SMSK_共同損サ_性能</option>
-                            <option value="INSL_SNSK">INSL_SNSK新種</option>
-                            <option value="ITCS_SAIG">ITCS_SAIG_基幹系保守</option>
-                            <option value="VACC_SSJN">VACC_SSJN_未来革新Ⅲ期契約管理</option>
-                            <option value="IIBM_FWAM">IIBM_FWAM退職共済</option>
-                            <option value="SAMPLE_PRJ">サンプルプロジェクト</option>
+                            {projects?.filter(project => !project.isDeleted).map(project => (
+                              <option key={project.id} value={project.name}>
+                                {project.name}
+                              </option>
+                            ))}
                           </datalist>
                         </div>
                       </FormControl>
