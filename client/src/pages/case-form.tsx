@@ -142,24 +142,25 @@ export default function CaseForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="required">プロジェクト名</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            list="project-options"
-                            placeholder="選択または入力してください"
-                            {...field}
-                          />
-                          <datalist id="project-options">
-                            {projects?.filter(project => !project.isDeleted).map(project => (
-                              <option key={project.id} value={project.name}>
-                                {project.name}
-                              </option>
-                            ))}
-                          </datalist>
-                        </div>
-                      </FormControl>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="プロジェクトを選択" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {projects?.filter(project => !project.isDeleted).map(project => (
+                            <SelectItem key={project.id} value={project.name}>
+                              {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormDescription>
-                        既存のプロジェクトから選択するか、新しいプロジェクト名を入力してください
+                        既存のプロジェクトから選択してください
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
