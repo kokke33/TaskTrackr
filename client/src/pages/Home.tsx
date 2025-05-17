@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ClipboardEdit, List, FolderKanban, Briefcase, RefreshCw } from "lucide-react";
+import { ClipboardEdit, List, FolderKanban, Briefcase, RefreshCw, Clock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { AdminOnly } from "@/lib/admin-only";
 import { useEffect } from "react";
@@ -9,13 +9,13 @@ import { apiRequest } from "@/lib/queryClient";
 
 export default function Home() {
   const { user } = useAuth();
-  
+
   // デバッグ用
   useEffect(() => {
     console.log("Home: ユーザー情報:", user);
     console.log("管理者権限:", user?.isAdmin);
   }, [user]);
-  
+
   // 強制的に認証を再確認するための関数
   const refreshAuth = async () => {
     try {
@@ -29,11 +29,11 @@ export default function Home() {
       console.error("認証情報取得エラー:", error);
     }
   };
-  
+
   return (
     <div className="min-h-screen bg-background">
       <ThemeToggle />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto text-center">
           <h1 className="text-4xl font-bold text-primary mb-4">週次報告</h1>
@@ -81,7 +81,20 @@ export default function Home() {
                 </div>
               </Button>
             </Link>
-            
+
+            <Link href="/recent-weekly-reports">
+              <Button
+                variant="outline"
+                className="w-full h-32 text-left flex flex-col items-center justify-center gap-2"
+              >
+                <Clock className="h-8 w-8" />
+                <div>
+                  <div className="font-semibold">週次報告詳細一覧</div>
+                  <div className="text-sm text-muted-foreground">最近の週次報告を詳細確認する</div>
+                </div>
+              </Button>
+            </Link>
+
             <AdminOnly
               fallback={
                 <div className="bg-muted w-full h-32 flex flex-col items-center justify-center gap-2 rounded-md border border-dashed">

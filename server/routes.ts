@@ -16,11 +16,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const query = req.query.q as string;
       const type = req.query.type as string | undefined;
-      
+
       if (!query || query.trim() === '') {
         return res.json({ total: 0, results: [] });
       }
-      
+
       const searchResults = await storage.search(query, type);
       return res.json(searchResults);
     } catch (error) {
@@ -28,16 +28,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: '検索中にエラーが発生しました' });
     }
   });
-  
+
   // 検索サジェストAPI
   app.get('/api/search/suggest', async (req, res) => {
     try {
       const query = req.query.q as string;
-      
+
       if (!query || query.trim() === '') {
         return res.json([]);
       }
-      
+
       const suggestions = await storage.getSearchSuggestions(query);
       return res.json(suggestions);
     } catch (error) {
@@ -55,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAdmin: req.user.isAdmin
       });
     }
-    
+
     // ユーザー情報と成功メッセージを返す
     res.json({ 
       message: "ログイン成功",
@@ -78,7 +78,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: user.username,
         isAdmin: user.isAdmin
       });
-      
+
       // 明確に管理者フラグを含めて返す
       res.json({ 
         authenticated: true,
@@ -130,13 +130,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       console.log(`[DEBUG] GET /api/projects/${id} - Query params:`, req.query);
       console.log(`[DEBUG] User:`, req.user);
-      
+
       const project = await storage.getProject(id);
       if (!project) {
         res.status(404).json({ message: "プロジェクトが見つかりません" });
         return;
       }
-      
+
       // 編集用データは管理者のみに提供し、一般ユーザーには表示用データのみ提供
       const user = req.user as { id: number, username: string, isAdmin?: boolean };
       if (req.query.edit === "true") {
@@ -146,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "プロジェクト編集は管理者のみ許可されています" });
         }
       }
-      
+
       res.json(project);
     } catch (error) {
       console.error("Error fetching project:", error);
@@ -159,13 +159,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const name = req.params.name;
       console.log(`[DEBUG] GET /api/projects/by-name/${name} - Query params:`, req.query);
       console.log(`[DEBUG] User:`, req.user);
-      
+
       const project = await storage.getProjectByName(name);
       if (!project) {
         res.status(404).json({ message: "プロジェクトが見つかりません" });
         return;
       }
-      
+
       // 編集用データは管理者のみに提供し、一般ユーザーには表示用データのみ提供
       const user = req.user as { id: number, username: string, isAdmin?: boolean };
       if (req.query.edit === "true") {
@@ -175,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "プロジェクト編集は管理者のみ許可されています" });
         }
       }
-      
+
       res.json(project);
     } catch (error) {
       console.error("Error fetching project by name:", error);
@@ -200,6 +200,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 最近更新された週次報告一覧を取得
+  app.get("/api/recent-reports", isAuthenticated, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const recentReports = await storage.getRecentWeeklyReports(limit);
+      res.json(recentReports);
+    } catch (error) {
+      console.error("Error fetching recent reports:", error);
+      res.status(500).json({ message: "最近の週次報告一覧の取得に失敗しました" });
+    }
+  });
+
   app.delete("/api/projects/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -208,7 +220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(404).json({ message: "プロジェクトが見つかりません" });
         return;
       }
-      
+
       const deletedProject = await storage.deleteProject(id);
       res.json(deletedProject);
     } catch (error) {
@@ -255,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/cases/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/cases/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existingCase = await storage.getCase(id);
@@ -271,9 +283,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: "Failed to update case" });
     }
   });
-  
+
   // マイルストーン更新専用の簡易エンドポイント
-  app.patch("/api/cases/:id/milestone", isAuthenticated, async (req, res) => {
+  app.patch("/api/cases/:id/milestone", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existingCase = await storage.getCase(id);
@@ -281,19 +293,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(404).json({ message: "案件が見つかりません" });
         return;
       }
-      
+
       const { milestone } = req.body;
       if (milestone === undefined) {
         res.status(400).json({ message: "マイルストーン情報が含まれていません" });
         return;
       }
-      
+
       // 既存のデータを保持しつつマイルストーンのみ更新
       const updatedCase = await storage.updateCase(id, {
         ...existingCase,
         milestone
       });
-      
+
       res.json(updatedCase);
     } catch (error) {
       console.error("Error updating milestone:", error);
@@ -318,46 +330,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch latest report" });
     }
   });
-  
+
   // プロジェクト別月次報告書を生成するエンドポイント
   app.get("/api/monthly-summary/:projectName", async (req, res) => {
     try {
       const { projectName } = req.params;
       const { startDate: startDateQuery, endDate: endDateQuery, caseId } = req.query;
-      
+
       // クエリパラメータから日付を取得、なければデフォルトで直近1か月を使用
       let endDate = new Date();
       let startDate = new Date();
-      
+
       if (endDateQuery && typeof endDateQuery === 'string') {
         endDate = new Date(endDateQuery);
       }
-      
+
       if (startDateQuery && typeof startDateQuery === 'string') {
         startDate = new Date(startDateQuery);
       } else {
         // デフォルトで直近1か月
         startDate.setMonth(startDate.getMonth() - 1);
       }
-      
+
       // プロジェクト名がカンマ区切りの場合は複数プロジェクトとして処理
       const projectNames = projectName.split(',');
       let allProjectCases: any[] = [];
-      
+
       // 各プロジェクトの案件を取得して結合
       for (const name of projectNames) {
         const projectCases = await storage.getCasesByProject(name.trim());
         allProjectCases.push(...projectCases);
       }
-      
+
       if (allProjectCases.length === 0) {
         res.status(404).json({ message: "指定されたプロジェクトに関連する案件が見つかりません" });
         return;
       }
-      
+
       // 選択された案件IDがある場合はフィルタリング
       let targetCaseIds: number[] = [];
-      
+
       if (caseId) {
         // 複数の案件IDが渡される場合は配列として処理
         if (Array.isArray(caseId)) {
@@ -369,37 +381,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
             targetCaseIds = [parsedId];
           }
         }
-        
+
         // 対象の案件が取得したプロジェクトに含まれるものだけに絞る
         const allProjectCaseIds = allProjectCases.map(c => c.id);
         targetCaseIds = targetCaseIds.filter(id => allProjectCaseIds.includes(id));
       }
-      
+
       // 対象の案件IDがない場合は全ての案件を対象にする
       if (targetCaseIds.length === 0) {
         targetCaseIds = allProjectCases.map(c => c.id);
       }
-      
+
       // 対象案件に対して週次報告を取得
       const lastMonthReports = [];
       const casesWithReports: number[] = []; // データがある案件のIDを記録
-      
+
       for (const caseId of targetCaseIds) {
         const reports = await storage.getWeeklyReportsByCase(caseId);
-        
+
         // 日付でフィルタリング（指定期間のものだけ）
         const filteredReports = reports.filter(report => {
           const reportDate = new Date(report.reportPeriodEnd);
           return reportDate >= startDate && reportDate <= endDate;
         });
-        
+
         // 報告があれば、その案件をデータありとして記録
         if (filteredReports.length > 0) {
           casesWithReports.push(caseId);
           lastMonthReports.push(...filteredReports);
         }
       }
-      
+
       if (lastMonthReports.length === 0 || casesWithReports.length === 0) {
         const startDateStr = startDate.toISOString().split('T')[0];
         const endDateStr = endDate.toISOString().split('T')[0];
@@ -409,28 +421,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         return;
       }
-      
+
       console.log(`[DEBUG] Found ${lastMonthReports.length} reports for ${casesWithReports.length} cases`);
-      
-      
+
+
       // データがある案件に関連するプロジェクト名だけを抽出
       const projectsWithData: string[] = Array.from(new Set(
         allProjectCases
           .filter(c => casesWithReports.includes(c.id))
           .map(c => c.projectName)
       ));
-      
+
       // 複数プロジェクトの場合は、プロジェクト名を「複数プロジェクト」とする
       const displayProjectName = projectsWithData.length > 1 
         ? `複数プロジェクト (${projectsWithData.join(', ')})` 
         : projectsWithData[0] || projectName;
-      
+
       // データがある案件のみをOpenAIに渡す
       const casesWithData = allProjectCases.filter(c => casesWithReports.includes(c.id));
-      
+
       // OpenAIを使用して月次レポートを生成
       const summary = await generateMonthlySummary(displayProjectName, lastMonthReports, casesWithData);
-      
+
       res.json({ 
         projectName: displayProjectName,
         period: {
@@ -446,46 +458,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "月次報告書の生成に失敗しました" });
     }
   });
-  
+
   // 月次レポート生成のためのインプットデータを取得するAPIエンドポイント
   app.get("/api/monthly-summary-input/:projectName", async (req, res) => {
     try {
       const { projectName } = req.params;
       const { startDate: startDateQuery, endDate: endDateQuery, caseId } = req.query;
-      
+
       // クエリパラメータから日付を取得、なければデフォルトで直近1か月を使用
       let endDate = new Date();
       let startDate = new Date();
-      
+
       if (endDateQuery && typeof endDateQuery === 'string') {
         endDate = new Date(endDateQuery);
       }
-      
+
       if (startDateQuery && typeof startDateQuery === 'string') {
         startDate = new Date(startDateQuery);
       } else {
         // デフォルトで直近1か月
         startDate.setMonth(startDate.getMonth() - 1);
       }
-      
+
       // プロジェクト名がカンマ区切りの場合は複数プロジェクトとして処理
       const projectNames = projectName.split(',');
       let allProjectCases: any[] = [];
-      
+
       // 各プロジェクトの案件を取得して結合
       for (const name of projectNames) {
         const projectCases = await storage.getCasesByProject(name.trim());
         allProjectCases.push(...projectCases);
       }
-      
+
       if (allProjectCases.length === 0) {
         res.status(404).json({ message: "指定されたプロジェクトに関連する案件が見つかりません" });
         return;
       }
-      
+
       // 選択された案件IDがある場合はフィルタリング
       let targetCaseIds: number[] = [];
-      
+
       if (caseId) {
         // 複数の案件IDが渡される場合は配列として処理
         if (Array.isArray(caseId)) {
@@ -497,40 +509,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
             targetCaseIds = [parsedId];
           }
         }
-        
+
         // 対象の案件が取得したプロジェクトに含まれるものだけに絞る
         const allProjectCaseIds = allProjectCases.map(c => c.id);
         targetCaseIds = targetCaseIds.filter(id => allProjectCaseIds.includes(id));
       }
-      
+
       // 対象の案件IDがない場合は全ての案件を対象にする
       if (targetCaseIds.length === 0) {
         targetCaseIds = allProjectCases.map(c => c.id);
       }
-      
+
       // 対象案件に対して週次報告を取得
       const periodReports = [];
       const casesWithReports: number[] = []; // データがある案件のIDを記録
-      
+
       for (const caseId of targetCaseIds) {
         const reports = await storage.getWeeklyReportsByCase(caseId);
         console.log(`[DEBUG] Case ID: ${caseId}, Reports count: ${reports.length}`);
-        
+
         // 日付でフィルタリング
         const filteredReports = reports.filter(report => {
           const reportDate = new Date(report.reportPeriodEnd);
           return reportDate >= startDate && reportDate <= endDate;
         });
-        
+
         console.log(`[DEBUG] Case ID: ${caseId}, Filtered reports count: ${filteredReports.length}`);
-        
+
         // 報告があれば、その案件をデータありとして記録
         if (filteredReports.length > 0) {
           casesWithReports.push(caseId);
           periodReports.push(...filteredReports);
         }
       }
-      
+
       // レポートがある案件が1つもない場合はエラーを返す
       if (casesWithReports.length === 0) {
         const startDateStr = startDate.toISOString().split('T')[0];
@@ -541,13 +553,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         return;
       }
-      
+
       // データがある案件のみのリストを作成
       const casesWithData = allProjectCases.filter(c => casesWithReports.includes(c.id));
-      
+
       // 案件をID基準のマップとして整理（データがある案件のみ）
       const caseMap: Record<number, { caseName: string; description: string | null; projectName: string; reports: any[] }> = {};
-      
+
       casesWithData.forEach(case_ => {
         caseMap[case_.id] = {
           caseName: case_.caseName,
@@ -556,26 +568,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           reports: []
         };
       });
-      
+
       // 週次報告を案件ごとに整理
       periodReports.forEach(report => {
         if (caseMap[report.caseId]) {
           caseMap[report.caseId].reports.push(report);
         }
       });
-      
+
       // データがある案件に関連するプロジェクト名だけを抽出
       const projectsWithData: string[] = Array.from(new Set(
         casesWithData.map(c => c.projectName)
       ));
-      
+
       // 複数プロジェクトの場合は、プロジェクト名を「複数プロジェクト」とする
       const displayProjectName = projectsWithData.length > 1 
         ? `複数プロジェクト (${projectsWithData.join(', ')})` 
         : projectsWithData[0] || "";
-      
+
       console.log(`[DEBUG] Cases with reports: ${casesWithReports.length}`);
-      
+
       // AIプロンプト用のデータ構成
       let prompt = `
 以下のデータをもとに、${displayProjectName}の指定された期間の月次状況報告書を作成してください。
@@ -587,11 +599,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 【プロジェクト内の案件と週次報告データ】
 `;
-      
+
       // データがある案件のみを対象とする
       const selectedCases = allProjectCases.filter(c => casesWithReports.includes(c.id));
       console.log(`[DEBUG] Selected cases: ${selectedCases.length}, Case map keys: ${Object.keys(caseMap).length}`);
-      
+
       // Empty prompt check - データがある案件が0件の場合は早期リターン
       if (selectedCases.length === 0 || Object.keys(caseMap).length === 0) {
         const startDateStr = startDate.toISOString().split('T')[0];
@@ -602,21 +614,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         return;
       }
-      
+
       // データがある案件の情報のみをプロンプトに追加
       Object.keys(caseMap).forEach((caseIdStr) => {
         const caseId = parseInt(caseIdStr);
         const caseInfo = caseMap[caseId];
-        
+
         // 該当するケースのフル情報を探す
         const fullCaseInfo = selectedCases.find(c => c.id === caseId);
         if (!fullCaseInfo) {
           console.log(`[DEBUG] Case ${caseId} not found in selectedCases`);
           return; // データがない案件は表示しない
         }
-        
+
         const milestone = fullCaseInfo?.milestone || "";
-        
+
         prompt += `
 ■ プロジェクト: ${caseInfo.projectName}
 ■ 案件: ${caseInfo.caseName}
@@ -625,17 +637,17 @@ ${milestone ? `マイルストーン: ${milestone}` : ""}
 報告数: ${caseInfo.reports.length}件
 
 `;
-        
+
         // 各案件の報告内容をプロンプトに追加
         if (caseInfo.reports.length > 0) {
           // 日付順にソート
           caseInfo.reports.sort((a: any, b: any) => 
             new Date(a.reportPeriodEnd).getTime() - new Date(b.reportPeriodEnd).getTime()
           );
-          
+
           // 最大5件までの報告を表示
           const displayReports = caseInfo.reports.slice(-5);
-          
+
           displayReports.forEach((report: any) => {
             prompt += `
 報告期間: ${report.reportPeriodStart} 〜 ${report.reportPeriodEnd}
@@ -652,7 +664,7 @@ ${milestone ? `マイルストーン: ${milestone}` : ""}
           });
         }
       });
-      
+
       prompt += `
 以上のデータを元に、以下の観点で月次状況報告書を作成してください：
 
@@ -667,7 +679,7 @@ ${milestone ? `マイルストーン: ${milestone}` : ""}
 最終的なレポートは経営層向けに簡潔にまとめ、プロジェクト全体の健全性と今後の見通しが明確に伝わるように作成してください。
 Markdown形式で作成し、適切な見出しを使って整理してください。
 `;
-      
+
       res.json({ 
         projectName: displayProjectName,
         period: {
@@ -803,11 +815,11 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 
       // 各案件と報告を整理（データがある案件のみ）
       const caseMap: Record<number, { caseName: string; description: string | null; projectName: string; reports: any[] }> = {};
-      
+
       // レポートのある案件IDのセットを作成
       const caseIdsWithReports = new Set(reports.map(report => report.caseId));
       console.log(`[DEBUG] Monthly Summary - Report count: ${reports.length}, Case count: ${cases.length}, Cases with reports: ${caseIdsWithReports.size}`);
-      
+
       // データがある案件のみを追加
       cases
         .filter(c => caseIdsWithReports.has(c.id))
@@ -819,7 +831,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
             reports: []
           };
         });
-      
+
       console.log(`[DEBUG] Monthly Summary - Cases in map: ${Object.keys(caseMap).length}`);
 
       // データがある案件がない場合は早期リターン
@@ -861,13 +873,13 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       Object.keys(caseMap).forEach((caseIdStr) => {
         const caseId = parseInt(caseIdStr);
         const caseInfo = caseMap[caseId];
-        
+
         // 該当する案件の完全な情報を取得
         const fullCaseInfo = cases.find(c => c.id === caseId);
         if (!fullCaseInfo) return; // 存在しない案件は表示しない
-        
+
         const milestone = fullCaseInfo?.milestone || "";
-        
+
         prompt += `
 ${isMultiProject ? `■ プロジェクト: ${caseInfo.projectName}` : ''}
 ■ 案件: ${caseInfo.caseName}
@@ -883,10 +895,10 @@ ${milestone ? `マイルストーン: ${milestone}` : ""}
           caseInfo.reports.sort((a: any, b: any) => 
             new Date(a.reportPeriodEnd).getTime() - new Date(b.reportPeriodEnd).getTime()
           );
-          
+
           // 最大5件までの報告を表示
           const displayReports = caseInfo.reports.slice(-5);
-          
+
           displayReports.forEach((report: any) => {
             prompt += `
 報告期間: ${report.reportPeriodStart} 〜 ${report.reportPeriodEnd}
@@ -922,7 +934,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       const aiModel = "gpt-4.1-mini";
       console.log(`Using AI model for monthly summary: ${aiModel}`);
-      
+
       const completion = await openai.chat.completions.create({
         messages: [
           {
@@ -942,7 +954,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       return "月次レポート生成中にエラーが発生しました。";
     }
   }
-  
+
   async function analyzeWeeklyReport(
     report: any,
     relatedCase: any,
