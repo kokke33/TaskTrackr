@@ -43,6 +43,8 @@ export interface IStorage {
   updateProject(id: number, projectData: InsertProject): Promise<Project>;
   deleteProject(id: number): Promise<Project>;
 
+  restoreProject(id: number): Promise<Project>;
+
   // 案件関連
   createCase(caseData: InsertCase): Promise<Case>;
   getCase(id: number): Promise<Case | undefined>;
@@ -703,6 +705,19 @@ export class DatabaseStorage implements IStorage {
     return deleted;
   }
 
+
+  async restoreProject(id: number): Promise<Project> {
+    const [restored] = await db
+      .update(projects)
+      .set({ 
+        isDeleted: false,
+        updatedAt: new Date()
+      })
+      .where(eq(projects.id, id))
+      .returning();
+    return restored;
+  }
+  
   // 案件関連のメソッド
   async createCase(caseData: InsertCase): Promise<Case> {
     const [newCase] = await db.insert(cases).values(caseData).returning();
