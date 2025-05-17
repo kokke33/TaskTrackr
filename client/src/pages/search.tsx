@@ -67,11 +67,12 @@ export default function SearchPage() {
     total: number;
     results: SearchResult[];
   }>({
-    queryKey: [`/api/search?q=${query}${activeTab !== "all" ? `&type=${activeTab}` : ""}`],
+    queryKey: [`/api/search?q=${query}`], // タブが変わってもベースクエリは同じ
     queryFn: async () => {
       if (!query) return { total: 0, results: [] };
+      // タブ切り替えはフロントエンドでフィルタリングするため、APIには全データを取得
       return apiRequest<{ total: number; results: SearchResult[] }>(
-        `/api/search?q=${encodeURIComponent(query)}${activeTab !== "all" ? `&type=${activeTab}` : ""}`,
+        `/api/search?q=${encodeURIComponent(query)}`,
         { method: "GET" }
       );
     },
@@ -230,7 +231,9 @@ export default function SearchPage() {
               ) : searchResults?.results && searchResults.results.length > 0 ? (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground mb-4">
-                    {searchResults.total}件の検索結果
+                    {activeTab === "all" 
+                      ? searchResults.total
+                      : searchResults.results.filter(result => result.type === activeTab).length}件の検索結果
                   </p>
 
                   {searchResults.results
