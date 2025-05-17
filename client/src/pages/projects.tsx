@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Project } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,20 +7,60 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
-import { Home, FolderKanban, Plus, ChevronRight, Edit, ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Home, FolderKanban, Plus, ChevronRight, Edit, ExternalLink, RotateCcw } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { AdminOnly } from "@/lib/admin-only";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast, toast } from "@/hooks/use-toast";
 
 export default function ProjectList() {
   const [, setLocation] = useLocation();
   const [showDeleted, setShowDeleted] = useState(false);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // プロジェクト一覧を取得
-  const { data: projects, isLoading } = useQuery<Project[]>({
+  const { data: projects, isLoading, refetch } = useQuery<Project[]>({
     queryKey: [`/api/projects${showDeleted ? '?includeDeleted=true' : ''}`],
     staleTime: 1000 * 60, // 1分間キャッシュ
+  });
+
+  // 表示切り替え時に強制リフレッシュ
+  useEffect(() => {
+    refetch();
+  }, [showDeleted, refetch]);
+
+  // プロジェクト復活のミューテーション
+  const restoreMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      return apiRequest(`/api/projects/${projectId}/restore`, {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "成功",
+        description: "プロジェクトを復活しました",
+        variant: "default",
+      });
+      // キャッシュを更新
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects?includeDeleted=true"] });
+      
+      // データを強制リフレッシュ
+      setTimeout(() => {
+        refetch();
+      }, 300);
+    },
+    onError: (error) => {
+      console.error("Error restoring project:", error);
+      toast({
+        title: "エラー",
+        description: "プロジェクトの復活に失敗しました",
+        variant: "destructive",
+      });
+    },
   });
 
   if (isLoading) {
@@ -121,12 +161,42 @@ export default function ProjectList() {
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter className="pt-0">
-                  <Link href={`/project/${project.id}`} className="w-full">
-                    <Button variant="default" className="w-full flex items-center justify-center gap-1">
-                      詳細を見る <ChevronRight className="h-3 w-3" />
-                    </Button>
-                  </Link>
+                <CardFooter className="pt-0 flex flex-col gap-2">
+                  {project.isDeleted ? (
+                    <>
+                      {/* 管理者権限デバッグ表示 */}
+                      <div className="text-xs text-gray-500 mb-2">
+                        管理者: {user?.isAdmin ? "はい" : "いいえ"}
+                      </div>
+                      <AdminOnly>
+                        <Button 
+                          variant="outline" 
+                          className="w-full flex items-center justify-center gap-1 mb-2"
+                          onClick={() => restoreMutation.mutate(project.id)}
+                          disabled={restoreMutation.isPending}
+                        >
+                          <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                          プロジェクトを復活 (AdminOnly)
+                        </Button>
+                      </AdminOnly>
+                      {/* 直接テスト用のボタン */}
+                      <Button 
+                        variant="outline" 
+                        className="w-full flex items-center justify-center gap-1 bg-yellow-100 dark:bg-yellow-900"
+                        onClick={() => restoreMutation.mutate(project.id)}
+                        disabled={restoreMutation.isPending}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                        プロジェクトを復活 (直接テスト)
+                      </Button>
+                    </>
+                  ) : (
+                    <Link href={`/project/${project.id}`} className="w-full">
+                      <Button variant="default" className="w-full flex items-center justify-center gap-1">
+                        詳細を見る <ChevronRight className="h-3 w-3" />
+                      </Button>
+                    </Link>
+                  )}
                 </CardFooter>
               </Card>
             ))}

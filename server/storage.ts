@@ -42,6 +42,7 @@ export interface IStorage {
   getAllProjects(includeDeleted?: boolean): Promise<Project[]>;
   updateProject(id: number, projectData: InsertProject): Promise<Project>;
   deleteProject(id: number): Promise<Project>;
+  restoreProject(id: number): Promise<Project>;
   
   // 案件関連
   createCase(caseData: InsertCase): Promise<Case>;
@@ -701,6 +702,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(projects.id, id))
       .returning();
     return deleted;
+  }
+
+  async restoreProject(id: number): Promise<Project> {
+    const [restored] = await db
+      .update(projects)
+      .set({ 
+        isDeleted: false,
+        updatedAt: new Date()
+      })
+      .where(eq(projects.id, id))
+      .returning();
+    return restored;
   }
   
   // 案件関連のメソッド

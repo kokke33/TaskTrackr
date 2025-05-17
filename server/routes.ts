@@ -228,6 +228,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "プロジェクトの削除に失敗しました" });
     }
   });
+  
+  // プロジェクト復活のエンドポイント
+  app.post("/api/projects/:id/restore", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existingProject = await storage.getProject(id);
+      if (!existingProject) {
+        res.status(404).json({ message: "プロジェクトが見つかりません" });
+        return;
+      }
+      
+      // プロジェクトが削除されていない場合
+      if (!existingProject.isDeleted) {
+        return res.status(400).json({ message: "このプロジェクトは削除されていません" });
+      }
+      
+      const restoredProject = await storage.restoreProject(id);
+      res.json(restoredProject);
+    } catch (error) {
+      console.error("Error restoring project:", error);
+      res.status(500).json({ message: "プロジェクトの復元に失敗しました" });
+    }
+  });
 
   // 案件関連のエンドポイント
   app.post("/api/cases", isAdmin, async (req, res) => {
