@@ -803,11 +803,14 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       const updatedData = insertWeeklyReportSchema.parse(data);
       const updatedReport = await storage.updateWeeklyReport(id, updatedData);
 
-      // 関連する案件情報を取得
-      const relatedCase = await storage.getCase(updatedReport.caseId);
-      const analysis = await analyzeWeeklyReport(updatedReport, relatedCase);
-      if (analysis) {
-        await storage.updateAIAnalysis(id, analysis);
+      // 自動保存フラグがない場合のみAI分析を実行
+      if (!req.query.autosave) {
+        // 関連する案件情報を取得
+        const relatedCase = await storage.getCase(updatedReport.caseId);
+        const analysis = await analyzeWeeklyReport(updatedReport, relatedCase);
+        if (analysis) {
+          await storage.updateAIAnalysis(id, analysis);
+        }
       }
 
       const finalReport = await storage.getWeeklyReport(id);
@@ -815,6 +818,43 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     } catch (error) {
       console.error("Error updating weekly report:", error);
       res.status(400).json({ message: "Failed to update weekly report" });
+    }
+  });
+  
+  // 自動保存用の簡易エンドポイント
+  app.put("/api/weekly-reports/:id/autosave", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existingReport = await storage.getWeeklyReport(id);
+
+      if (!existingReport) {
+        res.status(404).json({ message: "Weekly report not found" });
+        return;
+      }
+
+      // 必須項目のバリデーションをスキップ
+      const data = { ...req.body };
+      if (data.reporterName) {
+        data.reporterName = data.reporterName.replace(/\s+/g, "");
+      }
+      
+      // 既存のデータと新しいデータをマージして必須フィールドが欠けないようにする
+      const mergedData = { ...existingReport, ...data };
+      delete mergedData.id; // idは更新対象外
+      delete mergedData.createdAt; // createdAtは更新対象外
+      delete mergedData.aiAnalysis; // aiAnalysisは更新対象外
+
+      const updatedReport = await storage.updateWeeklyReport(id, mergedData);
+      
+      // 簡略化したレスポンスを返す
+      res.json({ 
+        id: updatedReport.id, 
+        message: "Auto-saved successfully",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error auto-saving weekly report:", error);
+      res.status(400).json({ message: "Failed to auto-save weekly report" });
     }
   });
 
