@@ -199,6 +199,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: "プロジェクトの更新に失敗しました" });
     }
   });
+  
+  // 最近更新された週次報告一覧を取得
+  app.get("/api/recent-reports", isAuthenticated, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const recentReports = await storage.getRecentWeeklyReports(limit);
+      res.json(recentReports);
+    } catch (error) {
+      console.error("Error fetching recent reports:", error);
+      res.status(500).json({ message: "最近の週次報告一覧の取得に失敗しました" });
+    }
+  });
 
   // 最近更新された週次報告一覧を取得
   app.get("/api/recent-reports", isAuthenticated, async (req, res) => {
@@ -226,6 +238,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting project:", error);
       res.status(500).json({ message: "プロジェクトの削除に失敗しました" });
+    }
+  });
+  
+  // プロジェクト復活のエンドポイント
+  app.post("/api/projects/:id/restore", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existingProject = await storage.getProject(id);
+      if (!existingProject) {
+        res.status(404).json({ message: "プロジェクトが見つかりません" });
+        return;
+      }
+      
+      // プロジェクトが削除されていない場合
+      if (!existingProject.isDeleted) {
+        return res.status(400).json({ message: "このプロジェクトは削除されていません" });
+      }
+      
+      const restoredProject = await storage.restoreProject(id);
+      res.json(restoredProject);
+    } catch (error) {
+      console.error("Error restoring project:", error);
+      res.status(500).json({ message: "プロジェクトの復元に失敗しました" });
     }
   });
 
@@ -818,6 +853,43 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     } catch (error) {
       console.error("Error updating weekly report:", error);
       res.status(400).json({ message: "Failed to update weekly report" });
+    }
+  });
+  
+  // 自動保存用の簡易エンドポイント
+  app.put("/api/weekly-reports/:id/autosave", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existingReport = await storage.getWeeklyReport(id);
+
+      if (!existingReport) {
+        res.status(404).json({ message: "Weekly report not found" });
+        return;
+      }
+
+      // 必須項目のバリデーションをスキップ
+      const data = { ...req.body };
+      if (data.reporterName) {
+        data.reporterName = data.reporterName.replace(/\s+/g, "");
+      }
+      
+      // 既存のデータと新しいデータをマージして必須フィールドが欠けないようにする
+      const mergedData = { ...existingReport, ...data };
+      delete mergedData.id; // idは更新対象外
+      delete mergedData.createdAt; // createdAtは更新対象外
+      delete mergedData.aiAnalysis; // aiAnalysisは更新対象外
+
+      const updatedReport = await storage.updateWeeklyReport(id, mergedData);
+      
+      // 簡略化したレスポンスを返す
+      res.json({ 
+        id: updatedReport.id, 
+        message: "Auto-saved successfully",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error auto-saving weekly report:", error);
+      res.status(400).json({ message: "Failed to auto-save weekly report" });
     }
   });
 

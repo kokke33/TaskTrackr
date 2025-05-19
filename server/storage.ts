@@ -42,9 +42,7 @@ export interface IStorage {
   getAllProjects(includeDeleted?: boolean): Promise<Project[]>;
   updateProject(id: number, projectData: InsertProject): Promise<Project>;
   deleteProject(id: number): Promise<Project>;
-
   restoreProject(id: number): Promise<Project>;
-
   // 案件関連
   createCase(caseData: InsertCase): Promise<Case>;
   getCase(id: number): Promise<Case | undefined>;
@@ -705,7 +703,6 @@ export class DatabaseStorage implements IStorage {
     return deleted;
   }
 
-
   async restoreProject(id: number): Promise<Project> {
     const [restored] = await db
       .update(projects)
@@ -757,6 +754,43 @@ export class DatabaseStorage implements IStorage {
       .where(eq(cases.id, id))
       .returning();
     return updated;
+  }
+  
+  async getRecentlyUpdatedCases(limit: number = 20): Promise<Case[]> {
+    return await db
+      .select()
+      .from(cases)
+      .where(eq(cases.isDeleted, false))
+      .orderBy(desc(cases.createdAt))
+      .limit(limit);
+  }
+  
+  async getRecentWeeklyReports(limit: number = 20): Promise<WeeklyReport[]> {
+    // JOINを使って初めから関連する案件情報も取得する
+    const result = await db
+      .select({
+        id: weeklyReports.id,
+        reportPeriodStart: weeklyReports.reportPeriodStart,
+        reportPeriodEnd: weeklyReports.reportPeriodEnd,
+        caseId: weeklyReports.caseId,
+        reporterName: weeklyReports.reporterName,
+        weeklyTasks: weeklyReports.weeklyTasks,
+        progressRate: weeklyReports.progressRate,
+        progressStatus: weeklyReports.progressStatus,
+        delayIssues: weeklyReports.delayIssues,
+        issues: weeklyReports.issues,
+        createdAt: weeklyReports.createdAt,
+        // 案件情報
+        projectName: cases.projectName,
+        caseName: cases.caseName
+      })
+      .from(weeklyReports)
+      .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+      .where(eq(cases.isDeleted, false))
+      .orderBy(desc(weeklyReports.createdAt))
+      .limit(limit);
+    
+    return result as unknown as WeeklyReport[];
   }
 
   async getRecentlyUpdatedCases(limit: number = 20): Promise<Case[]> {
@@ -975,7 +1009,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(cases.isDeleted, false))
       .orderBy(desc(weeklyReports.reportPeriodEnd))
       .limit(limit);
-
     return result as unknown as WeeklyReport[];
   }
 }

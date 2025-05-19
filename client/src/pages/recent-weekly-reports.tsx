@@ -62,7 +62,6 @@ export default function WeeklyReportList() {
       day: '2-digit',
     });
   };
-
   // 進捗状況を日本語表示にする関数
   const formatProgressStatus = (status: string): string => {
     const statusMap: Record<string, string> = {

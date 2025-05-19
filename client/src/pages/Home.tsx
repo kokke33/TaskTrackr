@@ -81,7 +81,6 @@ export default function Home() {
                 </div>
               </Button>
             </Link>
-
             <Link href="/recent-weekly-reports">
               <Button
                 variant="outline"
@@ -94,7 +93,6 @@ export default function Home() {
                 </div>
               </Button>
             </Link>
-
             <AdminOnly
               fallback={
                 <div className="bg-muted w-full h-32 flex flex-col items-center justify-center gap-2 rounded-md border border-dashed">
