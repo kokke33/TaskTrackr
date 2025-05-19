@@ -9,13 +9,13 @@ import { apiRequest } from "@/lib/queryClient";
 
 export default function Home() {
   const { user } = useAuth();
-  
+
   // デバッグ用
   useEffect(() => {
     console.log("Home: ユーザー情報:", user);
     console.log("管理者権限:", user?.isAdmin);
   }, [user]);
-  
+
   // 強制的に認証を再確認するための関数
   const refreshAuth = async () => {
     try {
@@ -29,11 +29,11 @@ export default function Home() {
       console.error("認証情報取得エラー:", error);
     }
   };
-  
+
   return (
     <div className="min-h-screen bg-background">
       <ThemeToggle />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto text-center">
           <h1 className="text-4xl font-bold text-primary mb-4">週次報告</h1>
@@ -81,7 +81,6 @@ export default function Home() {
                 </div>
               </Button>
             </Link>
-            
             <Link href="/recent-weekly-reports">
               <Button
                 variant="outline"
@@ -94,7 +93,6 @@ export default function Home() {
                 </div>
               </Button>
             </Link>
-            
             <AdminOnly
               fallback={
                 <div className="bg-muted w-full h-32 flex flex-col items-center justify-center gap-2 rounded-md border border-dashed">

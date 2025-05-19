@@ -1,14 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'wouter';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Separator } from '@/components/ui/separator';
-import { useAuth } from '@/lib/auth';
-import { AdminOnly } from '@/lib/admin-only';
-import { Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Link } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/lib/auth";
+import { AdminOnly } from "@/lib/admin-only";
+import { Loader2 } from "lucide-react";
 
 // 案件データの型定義
 interface Case {
@@ -31,16 +44,17 @@ export default function RecentCases() {
     const fetchRecentCases = async () => {
       try {
         setLoading(true);
-        const data = await apiRequest<Case[]>('/api/recent-cases', {
-          method: 'GET'
+
+        const data = await apiRequest<Case[]>("/api/recent-cases", {
+          method: "GET",
         });
         setCases(data);
       } catch (error) {
-        console.error('Error fetching recent cases:', error);
+        console.error("Error fetching recent cases:", error);
         toast({
-          title: 'エラー',
-          description: '最近の案件一覧の取得に失敗しました',
-          variant: 'destructive',
+          title: "エラー",
+          description: "最近の案件一覧の取得に失敗しました",
+          variant: "destructive",
         });
       } finally {
         setLoading(false);
@@ -53,10 +67,10 @@ export default function RecentCases() {
   // 日付フォーマット関数
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
+    return date.toLocaleDateString("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   };
 
@@ -111,8 +125,8 @@ export default function RecentCases() {
                   <TableRow key={case_.id}>
                     <TableCell>{case_.projectName}</TableCell>
                     <TableCell>{case_.caseName}</TableCell>
-                    <TableCell>{case_.description || '-'}</TableCell>
-                    <TableCell>{case_.milestone || '-'}</TableCell>
+                    <TableCell>{case_.description || "-"}</TableCell>
+                    <TableCell>{case_.milestone || "-"}</TableCell>
                     <TableCell>{formatDate(case_.createdAt)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

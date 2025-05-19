@@ -1,7 +1,6 @@
-
 import { useEffect, useState, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { type Case } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,7 +61,7 @@ export default function CaseView() {
   const fromPage = useMemo(() => searchParams.get('from') || '', [searchParams]);
   const fromProjectId = useMemo(() => searchParams.get('projectId') || '', [searchParams]);
   const fromProjectName = useMemo(() => searchParams.get('projectName') || '', [searchParams]);
-  
+
   // 案件データが変更された時に編集データを更新
   useEffect(() => {
     if (caseData) {
@@ -83,7 +82,7 @@ export default function CaseView() {
       projectName: '',
       reportsPath: ''
     };
-    
+
     // プロジェクト詳細ページから来た場合
     if (fromPage === 'project' && fromProjectId) {
       return {
@@ -131,7 +130,19 @@ export default function CaseView() {
   const toggleEditMode = () => {
     setIsEditing(!isEditing);
   };
-  
+
+  // マイルストーン更新
+  const updateMilestoneMutation = useMutation<Case, Error, string>({
+    mutationFn: async (newMilestone) => {
+      // マイルストーン専用エンドポイントを使用（一般ユーザーも利用可能）
+      return apiRequest<Case>(`/api/cases/${id}/milestone`, {
+        method: "PATCH",
+        data: { milestone: newMilestone }
+      });
+    },
+  });
+
+
   const saveChanges = async () => {
     if (!caseData) return;
 
@@ -144,15 +155,17 @@ export default function CaseView() {
           ...editedCase
         }
       });
-      
+      //Update Milestone separately using the new mutation
+      await updateMilestoneMutation.mutateAsync(editedCase.milestone || "");
+
       // 編集モードを終了
       setIsEditing(false);
-      
+
       // キャッシュを無効化して最新データを取得する
       // 個別の案件データだけでなく、案件一覧も更新
       queryClient.invalidateQueries({ queryKey: [`/api/cases/${id}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      
+
       // 成功メッセージを表示
       toast({
         title: "保存成功",
@@ -160,7 +173,7 @@ export default function CaseView() {
       });
     } catch (error) {
       console.error('Error updating case:', error);
-      
+
       // エラーメッセージを表示
       toast({
         title: "エラー",
@@ -190,16 +203,16 @@ export default function CaseView() {
       [name]: value,
     });
   };
-  
+
   // 削除ダイアログを開く
   const openDeleteDialog = () => {
     setIsDeleteDialogOpen(true);
   };
-  
+
   // 削除を実行
   const handleDelete = async () => {
     if (!id) return;
-    
+
     try {
       // 削除フラグを立てるAPIを実行
       await apiRequest(`/api/cases/${id}`, {
@@ -209,18 +222,18 @@ export default function CaseView() {
           isDeleted: true
         }
       });
-      
+
       // 個別の案件キャッシュも無効化
       queryClient.invalidateQueries({ queryKey: [`/api/cases/${id}`] });
       // 一覧キャッシュを無効化
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      
+
       toast({
         title: "削除成功",
         description: "案件を削除しました。",
         variant: "default"
       });
-      
+
       // 案件一覧ページにリダイレクト
       setLocation("/cases");
     } catch (error) {
@@ -242,7 +255,7 @@ export default function CaseView() {
       </div>
     );
   }
-  
+
   if (!caseData) {
     return (
       <div className="min-h-screen bg-background">
@@ -283,7 +296,7 @@ export default function CaseView() {
                   </BreadcrumbLink>
                 </BreadcrumbItem>
               )}
-              
+
               {pathInfo.showProject && (
                 <>
                   <BreadcrumbSeparator />
@@ -296,7 +309,7 @@ export default function CaseView() {
                   </BreadcrumbItem>
                 </>
               )}
-              
+
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>{caseData.caseName}</BreadcrumbPage>
@@ -383,7 +396,7 @@ export default function CaseView() {
                   </div>
                 )}
               </div>
-              
+
               <div className="space-y-2">
                 <h2 className="text-sm font-medium text-muted-foreground">マイルストーン</h2>
                 {isEditing ? (
@@ -426,7 +439,7 @@ export default function CaseView() {
             </div>
           </CardContent>
         </Card>
-        
+
         {/* 削除確認ダイアログ */}
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
