@@ -22,10 +22,10 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Send, Plus } from "lucide-react";
+import { Send, Plus, Save } from "lucide-react";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
@@ -46,6 +46,12 @@ export default function WeeklyReport() {
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const [isAutosaving, setIsAutosaving] = useState(false);
+  // 自動保存タイマーのためのref
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // フォームが変更されたかどうかの状態
+  const [formChanged, setFormChanged] = useState(false);
 
   // 選択された案件の最新の報告を取得
   const { data: latestReport, isLoading: isLoadingLatest } = useQuery<WeeklyReport>({
@@ -96,6 +102,76 @@ export default function WeeklyReport() {
     },
   });
 
+  // 自動保存処理
+  const autoSave = useCallback(async () => {
+    if (!isEditMode || !id || !formChanged) return;
+
+    try {
+      setIsAutosaving(true);
+      const data = form.getValues();
+      const url = `/api/weekly-reports/${id}/autosave`;
+
+      const response = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        credentials: "include", // 重要: クッキーを送信するために必要
+      });
+
+      if (!response.ok) {
+        throw new Error("自動保存に失敗しました");
+      }
+
+      const result = await response.json();
+      const now = new Date().toLocaleTimeString();
+      setLastSavedTime(now);
+      setFormChanged(false);
+      console.log("Auto-saved at:", now, result);
+    } catch (error) {
+      console.error("Error auto-saving report:", error);
+    } finally {
+      setIsAutosaving(false);
+    }
+  }, [isEditMode, id, form, formChanged]);
+
+  // フォーム変更の監視
+  useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      if (type === "change") {
+        setFormChanged(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
+  // 自動保存タイマーの設定
+  useEffect(() => {
+    if (isEditMode && id) {
+      // 5分ごとに自動保存する
+      autoSaveTimerRef.current = setInterval(() => {
+        autoSave();
+      }, 5 * 60 * 1000);
+
+      // クリーンアップ
+      return () => {
+        if (autoSaveTimerRef.current) {
+          clearInterval(autoSaveTimerRef.current);
+        }
+      };
+    }
+  }, [isEditMode, id, autoSave]);
+
+  // 明示的に自動保存を行う関数
+  const handleManualAutoSave = async () => {
+    await autoSave();
+    toast({
+      title: "自動保存しました",
+      description: `${new Date().toLocaleTimeString()}に保存されました`,
+    });
+  };
+
   useEffect(() => {
     if (isEditMode && existingReport) {
       Object.entries(existingReport).forEach(([key, value]) => {
@@ -119,6 +195,7 @@ export default function WeeklyReport() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
+        credentials: "include", // 重要: クッキーを送信するために必要
       });
 
       if (!response.ok) {
@@ -224,9 +301,31 @@ export default function WeeklyReport() {
             <div className="p-6 bg-card rounded-lg shadow-sm">
               <header className="mb-8">
                 <div className="flex flex-col gap-4 mb-2">
-                  <h1 className="text-xl font-semibold">
-                    {isEditMode ? "週次報告編集" : "週次報告フォーム"}
-                  </h1>
+                  <div className="flex items-center justify-between">
+                    <h1 className="text-xl font-semibold">
+                      {isEditMode ? "週次報告編集" : "週次報告フォーム"}
+                    </h1>
+                    {isEditMode && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleManualAutoSave}
+                          disabled={isAutosaving || !formChanged}
+                          className="flex items-center gap-1"
+                        >
+                          <Save className="h-4 w-4" />
+                          {isAutosaving ? "保存中..." : "自動保存"}
+                        </Button>
+                        {lastSavedTime && (
+                          <span className="text-xs text-muted-foreground">
+                            最終保存: {lastSavedTime}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {selectedCaseId && (
                     <Button
                       type="button"
