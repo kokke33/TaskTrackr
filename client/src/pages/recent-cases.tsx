@@ -44,7 +44,6 @@ export default function RecentCases() {
     const fetchRecentCases = async () => {
       try {
         setLoading(true);
-
         const data = await apiRequest<Case[]>("/api/recent-cases", {
           method: "GET",
         });
