@@ -104,15 +104,23 @@ export default function WeeklyReport() {
 
   // 自動保存処理
   const autoSave = useCallback(async () => {
-    if (!isEditMode || !id || !formChanged) return;
+    if (!formChanged) return;
 
     try {
       setIsAutosaving(true);
       const data = form.getValues();
-      const url = `/api/weekly-reports/${id}/autosave`;
+
+      // 編集モードと新規作成モードで異なるエンドポイントを使用
+      let url = "/api/weekly-reports/autosave";
+      let method = "POST";
+
+      if (isEditMode && id) {
+        url = `/api/weekly-reports/${id}/autosave`;
+        method = "PUT";
+      }
 
       const response = await fetch(url, {
-        method: "PUT",
+        method: method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -128,6 +136,14 @@ export default function WeeklyReport() {
       const now = new Date().toLocaleTimeString();
       setLastSavedTime(now);
       setFormChanged(false);
+
+      // 新規作成モードで自動保存が成功し、IDが返ってきた場合は、
+      // 編集モードに切り替えるためにIDをセット
+      if (!isEditMode && result.id) {
+        // URLを変更せずに内部状態だけ更新
+        window.history.replaceState(null, '', `/report/edit/${result.id}`);
+      }
+
       console.log("Auto-saved at:", now, result);
     } catch (error) {
       console.error("Error auto-saving report:", error);
@@ -148,20 +164,19 @@ export default function WeeklyReport() {
 
   // 自動保存タイマーの設定
   useEffect(() => {
-    if (isEditMode && id) {
-      // 5分ごとに自動保存する
-      autoSaveTimerRef.current = setInterval(() => {
-        autoSave();
-      }, 5 * 60 * 1000);
+    // 編集モードでも新規作成モードでも自動保存を有効にする
+    // 5分ごとに自動保存する
+    autoSaveTimerRef.current = setInterval(() => {
+      autoSave();
+    }, 5 * 60 * 1000);
 
-      // クリーンアップ
-      return () => {
-        if (autoSaveTimerRef.current) {
-          clearInterval(autoSaveTimerRef.current);
-        }
-      };
-    }
-  }, [isEditMode, id, autoSave]);
+    // クリーンアップ
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current);
+      }
+    };
+  }, [autoSave]);
 
   // 明示的に自動保存を行う関数
   const handleManualAutoSave = async () => {
@@ -305,26 +320,24 @@ export default function WeeklyReport() {
                     <h1 className="text-xl font-semibold">
                       {isEditMode ? "週次報告編集" : "週次報告フォーム"}
                     </h1>
-                    {isEditMode && (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleManualAutoSave}
-                          disabled={isAutosaving || !formChanged}
-                          className="flex items-center gap-1"
-                        >
-                          <Save className="h-4 w-4" />
-                          {isAutosaving ? "保存中..." : "自動保存"}
-                        </Button>
-                        {lastSavedTime && (
-                          <span className="text-xs text-muted-foreground">
-                            最終保存: {lastSavedTime}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleManualAutoSave}
+                        disabled={isAutosaving || !formChanged}
+                        className="flex items-center gap-1"
+                      >
+                        <Save className="h-4 w-4" />
+                        {isAutosaving ? "保存中..." : "自動保存"}
+                      </Button>
+                      {lastSavedTime && (
+                        <span className="text-xs text-muted-foreground">
+                          最終保存: {lastSavedTime}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {selectedCaseId && (
                     <Button

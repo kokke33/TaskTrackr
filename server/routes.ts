@@ -860,6 +860,41 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     }
   });
 
+  // 新規作成用の自動保存エンドポイント
+  app.post("/api/weekly-reports/autosave", isAuthenticated, async (req, res) => {
+    try {
+      // 必須項目のバリデーションをスキップし、新規報告として保存
+      const data = { ...req.body };
+      if (data.reporterName) {
+        data.reporterName = data.reporterName.replace(/\s+/g, "");
+      }
+
+      // 最低限必要なフィールドだけバリデーション
+      if (!data.caseId) {
+        return res.status(400).json({ message: "案件IDは必須です" });
+      }
+
+      // 関連する案件が存在するか確認
+      const relatedCase = await storage.getCase(data.caseId);
+      if (!relatedCase) {
+        return res.status(404).json({ message: "指定された案件が見つかりません" });
+      }
+
+      // 下書きとして保存（必須項目が不足していても保存できるように）
+      const createdReport = await storage.createWeeklyReport(data);
+
+      // 簡略化したレスポンスを返す
+      res.json({ 
+        id: createdReport.id, 
+        message: "Auto-saved successfully",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error auto-saving new weekly report:", error);
+      res.status(400).json({ message: "Failed to auto-save new weekly report" });
+    }
+  });
+
   // 自動保存用の簡易エンドポイント
   app.put("/api/weekly-reports/:id/autosave", isAuthenticated, async (req, res) => {
     try {
