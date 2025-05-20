@@ -57,7 +57,7 @@ export default function WeeklyReportList() {
   const [tempProjectName, setTempProjectName] = useState<string>("");
   const [promptData, setPromptData] = useState<string>("");
   const [selectedCaseIds, setSelectedCaseIds] = useState<number[]>([]);
-  
+
   // マイルストーン更新のmutation
   const updateMilestoneMutation = useMutation<Case, Error, { caseId: number, milestone: string }>({
     mutationFn: async ({ caseId, milestone }) => {
@@ -71,12 +71,12 @@ export default function WeeklyReportList() {
       queryClient.invalidateQueries({ queryKey: [`/api/cases/${updatedCase.id}`] });
       // 案件一覧のキャッシュも更新
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      
+
       // キャッシュ無効化後、最新データを取得して適用
       setTimeout(() => {
         fetchLatestCaseData(updatedCase.id);
       }, 100);
-      
+
       toast({
         title: "マイルストーンを更新しました",
         description: "案件のマイルストーン情報が正常に更新されました。",
@@ -92,27 +92,27 @@ export default function WeeklyReportList() {
       });
     }
   });
-  
+
   // 月次サマリー入力データを取得するmutation
   const monthlySummaryInputMutation = useMutation<{prompt: string}, Error, { projectName: string, startDate?: string, endDate?: string, caseIds?: number[] }>({
     mutationFn: async ({ projectName, startDate, endDate, caseIds }) => {
       let url = `/api/monthly-summary-input/${encodeURIComponent(projectName)}`;
-      
+
       // クエリパラメータを追加
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
-      
+
       // 選択された案件IDsがある場合は追加
       if (caseIds && caseIds.length > 0) {
         caseIds.forEach(id => params.append('caseId', id.toString()));
       }
-      
+
       // クエリパラメータがある場合は追加
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
-      
+
       return apiRequest<{prompt: string}>(url, { method: "GET" });
     },
     onSuccess: (data) => {
@@ -127,27 +127,27 @@ export default function WeeklyReportList() {
       });
     }
   });
-  
+
   // 月次サマリーを生成するmutation
   const monthlySummaryMutation = useMutation<MonthlySummaryResponse, Error, { projectName: string, startDate?: string, endDate?: string, caseIds?: number[] }>({
     mutationFn: async ({ projectName, startDate, endDate, caseIds }) => {
       let url = `/api/monthly-summary/${encodeURIComponent(projectName)}`;
-      
+
       // クエリパラメータを追加
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
-      
+
       // 選択された案件IDsがある場合は追加
       if (caseIds && caseIds.length > 0) {
         caseIds.forEach(id => params.append('caseId', id.toString()));
       }
-      
+
       // クエリパラメータがある場合は追加
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
-      
+
       return apiRequest<MonthlySummaryResponse>(url, { method: "GET" });
     },
     onSuccess: (data) => {
@@ -156,12 +156,12 @@ export default function WeeklyReportList() {
         setMonthlySummaryPeriod(data.period);
       }
       setSummaryDialogOpen(true);
-      
+
       // 選択された案件数に関する情報を追加
       const selectedMsg = selectedCaseIds.length > 0 
         ? `選択された${selectedCaseIds.length}件の案件の` 
         : "";
-      
+
       toast({
         title: "月次報告書の生成が完了しました",
         description: `${selectedMsg}${data.reportCount}件の週次報告から作成しました`,
@@ -176,7 +176,7 @@ export default function WeeklyReportList() {
       });
     }
   });
-  
+
   // URLパラメータから初期値を設定
   useEffect(() => {
     // ブラウザの場合のみURLSearchParamsを使用
@@ -186,18 +186,18 @@ export default function WeeklyReportList() {
         const url = new URL(window.location.href);
         const projectNameParam = url.searchParams.get('projectName');
         const caseIdParam = url.searchParams.get('caseId');
-        
+
         console.log('URL Params:', { projectNameParam, caseIdParam });
-        
+
         if (projectNameParam) {
           setSelectedProject(decodeURIComponent(projectNameParam));
         }
-        
+
         if (caseIdParam) {
           const caseId = parseInt(caseIdParam);
           if (!isNaN(caseId)) {
             setSelectedCase(caseId);
-            
+
             // 案件データが読み込まれた後に実行される handleCaseSelect の処理を待つ
             // 実際の処理は handleCaseSelect 内で行われる
           }
@@ -207,7 +207,7 @@ export default function WeeklyReportList() {
       }
     }
   }, [location]); // locationを依存配列に入れて、URLが変わったときに再実行
-  
+
   // すべての週次報告を取得
   const { data: reports, isLoading: isLoadingReports } = useQuery<WeeklyReport[]>({
     queryKey: ["/api/weekly-reports"],
@@ -219,9 +219,9 @@ export default function WeeklyReportList() {
     queryKey: ["/api/cases"],
     staleTime: 0,
   });
-  
+
   // URLパラメータからの初期値設定は既に別のuseEffectで対応済み
-  
+
   // 選択された案件に紐づく週次報告を取得
   const { data: caseReports, isLoading: isLoadingCaseReports } = useQuery<WeeklyReport[]>({
     queryKey: [`/api/weekly-reports/by-case/${selectedCase}`],
@@ -231,31 +231,31 @@ export default function WeeklyReportList() {
 
   // マイルストーン初期化のための参照を保持
   const initialMilestoneSetRef = useRef<boolean>(false);
-  
+
   // 案件情報をIDでマップ化 - フックの順序を保つためloadingチェックの前に移動
   const caseMap = useMemo(() => 
     new Map(cases?.map(case_ => [case_.id, case_]) || []), 
     [cases]
   );
-  
+
   // 選択された案件の最新情報を取得する関数（一貫性のために関数定義を上部に移動）
   // ローディング状態のチェックとレンダリング
   const isLoading = isLoadingReports || isLoadingCases || (selectedCase !== null && isLoadingCaseReports);
-  
+
   const fetchLatestCaseData = useCallback(async (caseId: number) => {
     try {
       // API経由で最新の案件情報を取得
       const response = await fetch(`/api/cases/${caseId}`);
-      
+
       if (!response.ok) {
         throw new Error('案件情報の取得に失敗しました');
       }
-      
+
       const latestCaseData = await response.json();
-      
+
       // マイルストーン情報を更新
       setMilestone(latestCaseData.milestone || "");
-      
+
       console.log("Successfully loaded latest milestone data for case:", caseId);
       return latestCaseData;
     } catch (error) {
@@ -268,7 +268,7 @@ export default function WeeklyReportList() {
       return null;
     }
   }, [caseMap]);
-  
+
   // マイルストーン取得・更新用のuseEffect
   useEffect(() => {
     // selectedCaseが有効で、casesデータがある場合のみ処理を実行
@@ -279,7 +279,7 @@ export default function WeeklyReportList() {
         setMilestone(currentCase.milestone || "");
         initialMilestoneSetRef.current = true;
       }
-      
+
       // API呼び出しを実行
       fetchLatestCaseData(selectedCase);
     }
@@ -288,7 +288,7 @@ export default function WeeklyReportList() {
   // プロジェクト名でユニークなリストを作成し、アルファベット順にソート
   const projectNames = Array.from(new Set(cases?.map(case_ => case_.projectName) || []))
     .sort((a, b) => a.localeCompare(b, 'ja'));
-  
+
   // プロジェクトごとに案件をグループ化
   const projectCasesMap = cases?.reduce((acc, case_) => {
     const projectName = case_.projectName;
@@ -327,103 +327,74 @@ export default function WeeklyReportList() {
       low: "低",
     };
 
-    const csvHeaders = [
-      "報告期間開始",
-      "報告期間終了",
-      "プロジェクト名",
-      "案件名",
-      "報告者名",
-      "今週の作業内容",
-      "進捗率",
-      "進捗状況",
-      "遅延・問題点の有無",
-      "遅延・問題点の詳細",
-      "課題・問題点",
-      "新たなリスクの有無",
-      "リスクの概要",
-      "リスク対策",
-      "リスクレベル",
-      "品質懸念事項の有無",
-      "品質懸念事項の詳細",
-      "テスト進捗状況",
-      "変更の有無",
-      "変更内容の詳細",
-      "来週の作業予定",
-      "支援・判断の要望事項",
-      "リソースに関する懸念",
-      "リソースの詳細",
-      "顧客に関する懸念",
-      "顧客の詳細",
-      "環境に関する懸念",
-      "環境の詳細",
-      "コストに関する懸念",
-      "コストの詳細",
-      "知識・スキルに関する懸念",
-      "知識・スキルの詳細",
-      "教育に関する懸念",
-      "教育の詳細",
-      "緊急課題に関する懸念",
-      "緊急課題の詳細",
-      "営業チャンス・顧客ニーズ",
-      "営業チャンス・顧客ニーズの詳細",
-    ].join(",");
+    // マークダウン形式のデータを構築
+    const markdownData = `
+## 報告基本情報
+- **報告期間**: ${report.reportPeriodStart} ～ ${report.reportPeriodEnd}
+- **プロジェクト名**: ${case_.projectName}
+- **案件名**: ${case_.caseName}
+- **報告者名**: ${report.reporterName}
 
-    const csvData = [
-      csvHeaders,
-      [
-        report.reportPeriodStart,
-        report.reportPeriodEnd,
-        case_.projectName,
-        case_.caseName,
-        report.reporterName,
-        report.weeklyTasks || "",
-        `${report.progressRate}%`,
-        progressStatusMap[
-          report.progressStatus as keyof typeof progressStatusMap
-        ] || report.progressStatus,
-        report.delayIssues === "yes" ? "あり" : "なし",
-        report.delayDetails || "",
-        report.issues || "",
-        report.newRisks === "yes" ? "あり" : "なし",
-        report.riskSummary || "",
-        report.riskCountermeasures || "",
-        report.riskLevel
-          ? riskLevelMap[report.riskLevel as keyof typeof riskLevelMap]
-          : "",
-        qualityConcernsMap[
-          report.qualityConcerns as keyof typeof qualityConcernsMap
-        ] || "",
-        report.qualityDetails || "",
-        report.testProgress || "",
-        report.changes === "yes" ? "あり" : "なし",
-        report.changeDetails || "",
-        report.nextWeekPlan || "",
-        report.supportRequests || "",
-        report.resourceConcerns === "exists" ? "あり" : "なし",
-        report.resourceDetails || "",
-        report.customerIssues === "exists" ? "あり" : "なし",
-        report.customerDetails || "",
-        report.environmentIssues === "exists" ? "あり" : "なし",
-        report.environmentDetails || "",
-        report.costIssues === "exists" ? "あり" : "なし",
-        report.costDetails || "",
-        report.knowledgeIssues === "exists" ? "あり" : "なし",
-        report.knowledgeDetails || "",
-        report.trainingIssues === "exists" ? "あり" : "なし",
-        report.trainingDetails || "",
-        report.urgentIssues === "exists" ? "あり" : "なし",
-        report.urgentDetails || "",
-        report.businessOpportunities === "exists" ? "あり" : "なし",
-        report.businessDetails || "",
-      ].join(","),
-    ].join("\n");
+## 今週の進捗
+- **作業内容**:
+${report.weeklyTasks ? report.weeklyTasks.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n') : ''}
+- **進捗率**: ${report.progressRate}%
+- **進捗状況**: ${progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus}
+
+## 遅延・問題点
+- **遅延・問題点の有無**: ${report.delayIssues === "yes" ? "あり" : "なし"}
+${report.delayDetails ? `- **遅延・問題点の詳細**:\n  ${report.delayDetails.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+
+## 課題・リスク
+- **課題・問題点**:
+${report.issues ? report.issues.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n') : ''}
+- **新たなリスクの有無**: ${report.newRisks === "yes" ? "あり" : "なし"}
+${report.riskSummary ? `- **リスクの概要**:\n  ${report.riskSummary.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+${report.riskCountermeasures ? `- **リスク対策**:\n  ${report.riskCountermeasures.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+${report.riskLevel ? `- **リスクレベル**: ${riskLevelMap[report.riskLevel as keyof typeof riskLevelMap]}` : ''}
+
+## 品質状況
+- **品質懸念事項の有無**: ${qualityConcernsMap[report.qualityConcerns as keyof typeof qualityConcernsMap] || ""}
+${report.qualityDetails ? `- **品質懸念事項の詳細**:\n  ${report.qualityDetails.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+${report.testProgress ? `- **テスト進捗状況**:\n  ${report.testProgress.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+
+## 変更管理
+- **変更の有無**: ${report.changes === "yes" ? "あり" : "なし"}
+${report.changeDetails ? `- **変更内容の詳細**:\n  ${report.changeDetails.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+
+## 今後の計画
+- **来週の作業予定**:
+${report.nextWeekPlan ? report.nextWeekPlan.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n') : ''}
+- **支援・判断の要望事項**:
+${report.supportRequests ? report.supportRequests.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n') : ''}
+
+## 懸念事項
+- **リソースに関する懸念**: ${report.resourceConcerns === "exists" ? "あり" : "なし"}
+${report.resourceDetails ? `- **リソースの詳細**:\n  ${report.resourceDetails.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+- **顧客に関する懸念**: ${report.customerIssues === "exists" ? "あり" : "なし"}
+${report.customerDetails ? `- **顧客の詳細**:\n  ${report.customerDetails.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+- **環境に関する懸念**: ${report.environmentIssues === "exists" ? "あり" : "なし"}
+${report.environmentDetails ? `- **環境の詳細**:\n  ${report.environmentDetails.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+- **コストに関する懸念**: ${report.costIssues === "exists" ? "あり" : "なし"}
+${report.costDetails ? `- **コストの詳細**:\n  ${report.costDetails.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+- **知識・スキルに関する懸念**: ${report.knowledgeIssues === "exists" ? "あり" : "なし"}
+${report.knowledgeDetails ? `- **知識・スキルの詳細**:\n  ${report.knowledgeDetails.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+- **教育に関する懸念**: ${report.trainingIssues === "exists" ? "あり" : "なし"}
+${report.trainingDetails ? `- **教育の詳細**:\n  ${report.trainingDetails.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+- **緊急課題に関する懸念**: ${report.urgentIssues === "exists" ? "あり" : "なし"}
+${report.urgentDetails ? `- **緊急課題の詳細**:\n  ${report.urgentDetails.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+
+## ビジネス機会
+- **営業チャンス・顧客ニーズ**: ${report.businessOpportunities === "exists" ? "あり" : "なし"}
+${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:\n  ${report.businessDetails.split('\n').map(line => `  - ${line.trim()}`).filter(line => line.length > 3).join('\n')}` : ''}
+`;
 
     navigator.clipboard
-      .writeText(csvData)
+      .writeText(markdownData)
       .then(() => {
         toast({
           title: "コピー完了",
-          description: "報告内容をCSV形式でクリップボードにコピーしました。",
+          description: "報告内容をマークダウン形式でクリップボードにコピーしました。",
         });
       })
       .catch(() => {
@@ -441,16 +412,16 @@ export default function WeeklyReportList() {
   const handleCaseSelect = (caseId: number) => {
     setSelectedCase(caseId);
     setIsMilestoneEditing(false);
-    
+
     // 案件選択時に最新の情報を取得
     fetchLatestCaseData(caseId);
   };
-  
+
   // マイルストーン編集開始
   const startEditingMilestone = () => {
     setIsMilestoneEditing(true);
   };
-  
+
   // マイルストーン保存
   const saveMilestone = () => {
     if (selectedCase) {
@@ -460,7 +431,7 @@ export default function WeeklyReportList() {
       });
     }
   };
-  
+
   // マイルストーン編集キャンセル
   const cancelEditingMilestone = () => {
     // 選択されている案件のマイルストーンに戻す
@@ -483,14 +454,14 @@ export default function WeeklyReportList() {
   const resetCaseSelection = () => {
     setSelectedCase(null);
   };
-  
+
   // 月次サマリー生成のための日付選択ダイアログを表示
   const showDateDialog = (projectName: string) => {
     // 日付を1ヶ月前に初期化
     const end = new Date();
     const start = new Date();
     start.setMonth(start.getMonth() - 1);
-    
+
     // 日付を設定
     setEndDate(end);
     setStartDate(start);
@@ -499,7 +470,7 @@ export default function WeeklyReportList() {
     setSelectedCaseIds([]);
     setDateDialogOpen(true);
   };
-  
+
   // 案件の選択状態を切り替える処理
   const toggleCaseSelection = (caseId: number) => {
     setSelectedCaseIds(prev => 
@@ -508,7 +479,7 @@ export default function WeeklyReportList() {
         : [...prev, caseId]
     );
   };
-  
+
   // すべての案件を選択/選択解除する処理
   const toggleAllCases = (projectName: string, select: boolean) => {
     if (select) {
@@ -522,25 +493,31 @@ export default function WeeklyReportList() {
       setSelectedCaseIds([]);
     }
   };
-  
+
+
   // 選択された期間で月次サマリーを生成
   const generateMonthlySummaryWithDates = () => {
     if (!tempProjectName || !startDate || !endDate) return;
-    
+
+    console.log("月次サマリー生成開始:", tempProjectName);
+
     setMonthlySummary("");
     setMonthlySummaryPeriod(null);
     setDateDialogOpen(false);
-    
+
     toast({
       title: "月次報告書を生成中",
       description: "OpenAI APIを使って処理中です。しばらくお待ちください...",
     });
-    
+
     // yyyy-MM-dd形式にフォーマット
     const formatDate = (date: Date) => {
       return date.toISOString().split('T')[0];
     };
-    
+
+    // プロジェクト名はそのまま使用
+    const projectNameToUse = tempProjectName;
+
     // 選択された案件IDsがある場合のみ含める
     const params: {
       projectName: string, 
@@ -548,33 +525,38 @@ export default function WeeklyReportList() {
       endDate: string,
       caseIds?: number[]
     } = {
-      projectName: tempProjectName,
+      projectName: projectNameToUse,
       startDate: formatDate(startDate),
       endDate: formatDate(endDate)
     };
-    
+
     // 案件が選択されている場合は追加
     if (selectedCaseIds.length > 0) {
       params.caseIds = selectedCaseIds;
     }
-    
+
     monthlySummaryMutation.mutate(params);
   };
-  
+
   // 選択された期間のインプットデータを取得してコピー
   const getAndCopyInputData = () => {
     if (!tempProjectName || !startDate || !endDate) return;
-    
+
     // yyyy-MM-dd形式にフォーマット
     const formatDate = (date: Date) => {
       return date.toISOString().split('T')[0];
     };
-    
+
     toast({
       title: "入力データを取得中",
       description: "インプットデータの準備中です...",
     });
-    
+
+    console.log("プロジェクト処理開始:", tempProjectName);
+
+    // プロジェクト名はそのまま使用
+    const processedProjectName = tempProjectName;
+
     // 選択された案件IDsがある場合のみ含める
     const params: {
       projectName: string, 
@@ -582,16 +564,16 @@ export default function WeeklyReportList() {
       endDate: string,
       caseIds?: number[]
     } = {
-      projectName: tempProjectName,
+      projectName: processedProjectName,
       startDate: formatDate(startDate),
       endDate: formatDate(endDate)
     };
-    
+
     // 案件が選択されている場合は追加
     if (selectedCaseIds.length > 0) {
       params.caseIds = selectedCaseIds;
     }
-    
+
     // インプットデータを取得
     monthlySummaryInputMutation.mutate(params, {
       onSuccess: (data) => {
@@ -602,10 +584,17 @@ export default function WeeklyReportList() {
             const selectedMsg = selectedCaseIds.length > 0 
               ? `（選択された${selectedCaseIds.length}件の案件が対象）` 
               : "";
-            
+
+            console.log("インプットデータ取得完了:", { 
+              projectName: params.projectName,
+              startDate: params.startDate,
+              endDate: params.endDate,
+              selectedCaseIds: params.caseIds
+            });
+
             toast({
               title: "コピー完了",
-              description: `月次報告書の生成に使用するインプットデータをクリップボードにコピーしました。${selectedMsg}`,
+              description: `月次報告書の生成に使用するインプットデータをマークダウン形式でクリップボードにコピーしました。${selectedMsg}`,
             });
           })
           .catch(() => {
@@ -618,11 +607,11 @@ export default function WeeklyReportList() {
       }
     });
   };
-  
+
   // 月次サマリーをクリップボードにコピーする処理
   const copyMonthlySummaryToClipboard = () => {
     if (!monthlySummary) return;
-    
+
     navigator.clipboard
       .writeText(monthlySummary)
       .then(() => {
@@ -650,7 +639,7 @@ export default function WeeklyReportList() {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-background">
       <ThemeToggle />
@@ -696,9 +685,9 @@ export default function WeeklyReportList() {
                 </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            
+
             <BreadcrumbSeparator />
-            
+
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
                 <Link href="/cases">
@@ -709,7 +698,7 @@ export default function WeeklyReportList() {
                 </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            
+
             {selectedCase === null ? (
               <>
                 <BreadcrumbSeparator />
@@ -738,9 +727,9 @@ export default function WeeklyReportList() {
                     </Button>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                
+
                 <BreadcrumbSeparator />
-                
+
                 <BreadcrumbItem>
                   <BreadcrumbPage>
                     {caseMap.get(selectedCase)?.caseName}
@@ -935,7 +924,7 @@ export default function WeeklyReportList() {
                               onClick={() => copyToClipboard(report)}
                             >
                               <Copy className="h-4 w-4" />
-                              CSVコピー
+                              マークダウンコピー
                             </Button>
                           </div>
                         </div>
@@ -948,7 +937,7 @@ export default function WeeklyReportList() {
           </div>
         )}
       </div>
-      
+
       {/* 期間選択ダイアログ */}
       <Dialog open={dateDialogOpen} onOpenChange={setDateDialogOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
@@ -959,7 +948,7 @@ export default function WeeklyReportList() {
               デフォルトでは直近1ヶ月と全案件が選択されています。
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex flex-col space-y-6 py-4">
             {/* カレンダー部分 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
@@ -973,7 +962,7 @@ export default function WeeklyReportList() {
                   className="border rounded-md mx-auto"
                 />
               </div>
-              
+
               <div className="flex flex-col space-y-2">
                 <div className="font-medium">終了日</div>
                 <Calendar
@@ -988,7 +977,7 @@ export default function WeeklyReportList() {
                 />
               </div>
             </div>
-            
+
             {/* 案件選択部分 */}
             <div className="space-y-4 border rounded-lg p-4">
               <div className="flex items-center justify-between">
@@ -1010,7 +999,7 @@ export default function WeeklyReportList() {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2">
                 {projectCasesMap[tempProjectName]?.map((case_) => (
                   <div 
@@ -1035,7 +1024,7 @@ export default function WeeklyReportList() {
                   </div>
                 ))}
               </div>
-              
+
               <div className="text-sm text-muted-foreground">
                 {selectedCaseIds.length === 0 
                   ? "案件が選択されていません。全案件が対象になります。" 
@@ -1043,7 +1032,7 @@ export default function WeeklyReportList() {
               </div>
             </div>
           </div>
-          
+
           <div className="flex flex-row flex-wrap justify-between items-center gap-2 mt-4">
             <Button
               variant="outline"
@@ -1060,7 +1049,7 @@ export default function WeeklyReportList() {
                 ? "コピー中..." 
                 : "インプットデータをコピー"}
             </Button>
-            
+
             <div className="flex flex-row gap-2">
               <Button
                 variant="outline"
@@ -1083,7 +1072,7 @@ export default function WeeklyReportList() {
           </div>
         </DialogContent>
       </Dialog>
-      
+
       {/* 月次報告書ダイアログ */}
       <Dialog open={summaryDialogOpen} onOpenChange={setSummaryDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -1099,7 +1088,7 @@ export default function WeeklyReportList() {
               )}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="mt-4 p-4 border rounded-lg bg-muted/30">
             {monthlySummary ? (
               <div className="prose prose-sm dark:prose-invert max-w-full">
@@ -1111,7 +1100,7 @@ export default function WeeklyReportList() {
               </div>
             )}
           </div>
-          
+
           <div className="flex justify-end gap-2 mt-4">
             <Button
               onClick={copyMonthlySummaryToClipboard}
