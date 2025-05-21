@@ -566,7 +566,7 @@ export class DatabaseStorage implements IStorage {
         eq(cases.isDeleted, false),
         ...conditions
       ))
-      .orderBy(desc(weeklyReports.reportPeriodEnd))
+      .orderBy(desc(weeklyReports.createdAt))
       .limit(limit);
 
     // 検索結果をフォーマット
@@ -897,8 +897,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(weeklyReports)
       .where(eq(weeklyReports.caseId, caseId))
-      .orderBy(desc(weeklyReports.reportPeriodEnd))
-      .limit(1);
+      .orderBy(desc(weeklyReports.reportPeriodStart));
 
     return report;
   }
@@ -973,7 +972,7 @@ export class DatabaseStorage implements IStorage {
       .from(weeklyReports)
       .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
       .where(eq(cases.isDeleted, false))
-      .orderBy(desc(weeklyReports.reportPeriodEnd))
+      .orderBy(desc(weeklyReports.createdAt))
       .limit(limit);
 
     return result as unknown as WeeklyReport[];

@@ -108,7 +108,7 @@ export default function WeeklyReportList() {
         <Card>
           <CardHeader>
             <CardTitle>最近の週次報告</CardTitle>
-            <CardDescription>報告期間終了日が新しい順に表示しています</CardDescription>
+            <CardDescription>作成タイムスタンプが新しい順に表示しています</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
