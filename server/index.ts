@@ -6,6 +6,7 @@ import session from "express-session";
 import passport from "passport";
 import { createInitialUsers } from "./auth";
 import { migrateExistingProjectsFromCases } from "./migrations";
+import { validateAIConfig } from "./config";
 
 const app = express();
 app.use(express.json());
@@ -62,6 +63,13 @@ createInitialUsers().catch((error) => {
 migrateExistingProjectsFromCases().catch((error) => {
   console.error("Failed to migrate projects from cases:", error);
 });
+
+// AI設定の検証とログ出力
+try {
+  validateAIConfig();
+} catch (error) {
+  console.error("AI configuration validation failed:", error);
+}
 
 // セッションデバッグミドルウェア
 app.use((req, res, next) => {

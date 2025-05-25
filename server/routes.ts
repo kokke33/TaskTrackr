@@ -2,13 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertWeeklyReportSchema, insertCaseSchema, insertProjectSchema } from "@shared/schema";
-import OpenAI from "openai";
+import { getAIService } from "./ai-service";
 import passport from "passport";
 import { isAuthenticated, isAdmin } from "./auth";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // 検索API
@@ -938,10 +934,6 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     cases: any[]
   ): Promise<string> {
     try {
-      if (!process.env.OPENAI_API_KEY) {
-        return "OpenAI API キーが設定されていません。デプロイメント設定でAPIキーを追加してください。";
-      }
-
       // データがない場合は早期リターン
       if (reports.length === 0 || cases.length === 0) {
         return "該当する期間に報告データがありません。";
@@ -1068,26 +1060,21 @@ ${isMultiProject ? '4. プロジェクトごとの概要と各案件の状況（
 Markdown形式で作成し、適切な見出しを使って整理してください。
 `;
 
-      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      const aiModel = "gpt-4.1-mini";
-      console.log(`Using AI model for monthly summary: ${aiModel}`);
+      // AIサービスを使用してレポートを生成
+      const aiService = getAIService();
+      console.log(`Using AI provider: ${process.env.AI_PROVIDER || 'openai'} for monthly summary`);
 
-      const completion = await openai.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "あなたは経営層向けのプロジェクト状況報告書を作成する専門家です。複数の週次報告から重要な情報を抽出し、簡潔で要点を押さえた月次報告書を作成します。報告書は経営判断に必要な情報が過不足なく含まれるよう心がけてください。"
-          },
-          { role: "user", content: prompt }
-        ],
-        model: aiModel,
-      });
+      const response = await aiService.generateResponse([
+        {
+          role: "system",
+          content: "あなたは経営層向けのプロジェクト状況報告書を作成する専門家です。複数の週次報告から重要な情報を抽出し、簡潔で要点を押さえた月次報告書を作成します。報告書は経営判断に必要な情報が過不足なく含まれるよう心がけてください。"
+        },
+        { role: "user", content: prompt }
+      ], undefined, { operation: 'generateMonthlySummary', projectName, reportCount: reports.length });
 
-      // 内容を確実に文字列として返す
-      const content = completion.choices[0].message.content;
-      return content !== null && content !== undefined ? content : "";
+      return response.content;
     } catch (error) {
-      console.error("OpenAI API error:", error);
+      console.error("AI API error:", error);
       return "月次レポート生成中にエラーが発生しました。";
     }
   }
@@ -1097,10 +1084,6 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     relatedCase: any,
   ): Promise<string> {
     try {
-      if (!process.env.OPENAI_API_KEY) {
-        return "OpenAI API キーが設定されていません。デプロイメント設定でAPIキーを追加してください。";
-      }
-
       // 過去の報告を取得
       const pastReports = await storage.getWeeklyReportsByCase(report.caseId);
       console.log(`取得した過去の報告数: ${pastReports.length}`);
@@ -1179,25 +1162,23 @@ ${previousReportInfo}
 簡潔に重要なポイントのみ指摘してください。特に前回からの変化や、前回予定していた作業との差異がある場合は具体的に言及してください。
 `;
 
-      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      const aiModel = process.env.OPENAI_MODEL || "gpt-4.1-mini";
-      console.log(`Using AI model: ${aiModel}`);
-
-      const completion = await openai.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content:
-              "あなたはプロジェクトマネージャーのアシスタントです。週次報告を詳細に分析し、改善点や注意点を明確に指摘できます。前回の報告と今回の報告を比較し、変化や傾向を把握します。",
-          },
-          { role: "user", content: prompt },
-        ],
-        model: aiModel,
+      // AIサービスを使用して分析を実行
+      const aiService = getAIService();
+      
+      const response = await aiService.generateResponse([
+        {
+          role: "system",
+          content: "あなたはプロジェクトマネージャーのアシスタントです。週次報告を詳細に分析し、改善点や注意点を明確に指摘できます。前回の報告と今回の報告を比較し、変化や傾向を把握します。",
+        },
+        { role: "user", content: prompt },
+      ], undefined, { 
+        operation: 'analyzeWeeklyReport', 
+        reportId: report.id, 
+        caseId: report.caseId,
+        projectName: relatedCase?.projectName 
       });
 
-      // 内容を確実に文字列として返す
-      const content = completion.choices[0].message.content;
-      return content !== null && content !== undefined ? content : "";
+      return response.content;
     } catch (error) {
       console.error("OpenAI API error:", error);
       return "AI分析中にエラーが発生しました。";
