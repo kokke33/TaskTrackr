@@ -1067,7 +1067,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       const response = await aiService.generateResponse([
         {
           role: "system",
-          content: "あなたは経営層向けのプロジェクト状況報告書を作成する専門家です。複数の週次報告から重要な情報を抽出し、簡潔で要点を押さえた月次報告書を作成します。報告書は経営判断に必要な情報が過不足なく含まれるよう心がけてください。"
+          content: "あなたは経営層向けのプロジェクト状況報告書を作成する専門家です。複数の週次報告から重要な情報を抽出し、簡潔で要点を押さえた月次報告書を作成します。報告書は経営判断に必要な情報が過不足なく含まれるよう心がけてください。\n\n重要: 応答はマークダウン形式で直接出力してください。```markdown のようなコードブロックは使用しないでください。"
         },
         { role: "user", content: prompt }
       ], undefined, { operation: 'generateMonthlySummary', projectName, reportCount: reports.length });

@@ -507,7 +507,7 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
 
     toast({
       title: "月次報告書を生成中",
-      description: "OpenAI APIを使って処理中です。しばらくお待ちください...",
+      description: "AIを使って処理中です。しばらくお待ちください...",
     });
 
     // yyyy-MM-dd形式にフォーマット

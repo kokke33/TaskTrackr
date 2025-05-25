@@ -29,6 +29,17 @@ export abstract class AIService {
 
   abstract generateResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): Promise<AIResponse>;
   
+  protected cleanThinkTags(content: string): string {
+    // Remove <think>...</think> tags and their content - default implementation
+    let cleaned = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    
+    // Remove markdown code blocks (```markdown ... ```)
+    cleaned = cleaned.replace(/```markdown\s*\n([\s\S]*?)\n```/g, '$1');
+    cleaned = cleaned.replace(/```\s*\n([\s\S]*?)\n```/g, '$1');
+    
+    return cleaned.trim();
+  }
+  
   async generateSummary(text: string, userId?: string): Promise<string> {
     const requestId = generateRequestId();
     
@@ -84,8 +95,9 @@ export abstract class AIService {
     try {
       let analysis;
       if (this.provider === 'ollama') {
-        // Extract JSON from response (Ollama might include extra text)
-        const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+        // Clean the response first, then extract JSON
+        const cleanedContent = this.cleanThinkTags(response.content);
+        const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           analysis = JSON.parse(jsonMatch[0]);
         } else {
@@ -263,12 +275,15 @@ export class OllamaService extends AIService {
         throw new Error('No response content from Ollama');
       }
 
+      // Remove <think> tags and their content from the response
+      const cleanedResponse = this.cleanThinkTags(data.response);
+
       const responseData = {
         status: response.status,
         headers: Object.fromEntries(response.headers.entries()),
         body: {
           model: data.model,
-          content: data.response,
+          content: cleanedResponse,
           done: data.done,
           eval_count: data.eval_count,
           prompt_eval_count: data.prompt_eval_count,
@@ -281,7 +296,7 @@ export class OllamaService extends AIService {
       aiLogger.logResponse('ollama', 'generateResponse', requestId, responseData, userId, metadata);
 
       const result: AIResponse = {
-        content: data.response,
+        content: cleanedResponse,
         usage: {
           promptTokens: data.prompt_eval_count || 0,
           completionTokens: data.eval_count || 0,
