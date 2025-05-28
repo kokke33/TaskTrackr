@@ -1185,6 +1185,122 @@ ${previousReportInfo}
     }
   }
 
+  // マネージャ定例議事録関連のAPI
+  // プロジェクト別議事録一覧取得（月指定可能）
+  app.get('/api/projects/:id/manager-meetings', isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const yearMonth = req.query.yearMonth as string;
+
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: 'Invalid project ID' });
+      }
+
+      const meetings = await storage.getManagerMeetingsByProject(projectId, yearMonth);
+      res.json(meetings);
+    } catch (error) {
+      console.error('Manager meetings fetch error:', error);
+      res.status(500).json({ error: 'マネージャ定例議事録の取得中にエラーが発生しました' });
+    }
+  });
+
+  // プロジェクトの利用可能月取得
+  app.get('/api/projects/:id/manager-meetings/months', isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: 'Invalid project ID' });
+      }
+
+      const months = await storage.getAvailableMonths(projectId);
+      res.json(months);
+    } catch (error) {
+      console.error('Available months fetch error:', error);
+      res.status(500).json({ error: '利用可能月の取得中にエラーが発生しました' });
+    }
+  });
+
+  // 新規議事録作成
+  app.post('/api/projects/:id/manager-meetings', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: 'Invalid project ID' });
+      }
+
+      const meetingData = insertManagerMeetingSchema.parse({
+        ...req.body,
+        projectId
+      });
+
+      const meeting = await storage.createManagerMeeting(meetingData);
+      res.status(201).json(meeting);
+    } catch (error) {
+      console.error('Manager meeting creation error:', error);
+      res.status(500).json({ error: 'マネージャ定例議事録の作成中にエラーが発生しました' });
+    }
+  });
+
+  // 個別議事録取得
+  app.get('/api/manager-meetings/:id', isAuthenticated, async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.id);
+
+      if (isNaN(meetingId)) {
+        return res.status(400).json({ error: 'Invalid meeting ID' });
+      }
+
+      const meeting = await storage.getManagerMeeting(meetingId);
+      
+      if (!meeting) {
+        return res.status(404).json({ error: 'マネージャ定例議事録が見つかりません' });
+      }
+
+      res.json(meeting);
+    } catch (error) {
+      console.error('Manager meeting fetch error:', error);
+      res.status(500).json({ error: 'マネージャ定例議事録の取得中にエラーが発生しました' });
+    }
+  });
+
+  // 議事録更新
+  app.put('/api/manager-meetings/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.id);
+
+      if (isNaN(meetingId)) {
+        return res.status(400).json({ error: 'Invalid meeting ID' });
+      }
+
+      const meetingData = insertManagerMeetingSchema.parse(req.body);
+      const updatedMeeting = await storage.updateManagerMeeting(meetingId, meetingData);
+      
+      res.json(updatedMeeting);
+    } catch (error) {
+      console.error('Manager meeting update error:', error);
+      res.status(500).json({ error: 'マネージャ定例議事録の更新中にエラーが発生しました' });
+    }
+  });
+
+  // 議事録削除
+  app.delete('/api/manager-meetings/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.id);
+
+      if (isNaN(meetingId)) {
+        return res.status(400).json({ error: 'Invalid meeting ID' });
+      }
+
+      const deletedMeeting = await storage.deleteManagerMeeting(meetingId);
+      res.json(deletedMeeting);
+    } catch (error) {
+      console.error('Manager meeting deletion error:', error);
+      res.status(500).json({ error: 'マネージャ定例議事録の削除中にエラーが発生しました' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

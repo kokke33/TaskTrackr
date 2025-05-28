@@ -7,11 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, FolderKanban, Briefcase, PenSquare, FileText } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Home, FolderKanban, Briefcase, PenSquare, FileText, Users } from "lucide-react";
+import { ManagerMeetingForm } from "@/components/manager-meeting-form";
+import { ManagerMeetingList } from "@/components/manager-meeting-list";
 
 export default function ProjectDetail() {
   const params = useParams<{ id?: string, name?: string }>();
   const [, setLocation] = useLocation();
+  const [selectedMonth, setSelectedMonth] = React.useState<string>("");
   
   // プロジェクトIDまたは名前から情報を取得
   const projectId = params.id ? parseInt(params.id) : undefined;
@@ -45,6 +49,13 @@ export default function ProjectDetail() {
   const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
     queryKey: [`/api/cases?projectName=${encodeURIComponent(project?.name || '')}`],
     enabled: !!project?.name,
+    staleTime: 1000 * 60, // 1分間キャッシュ
+  });
+
+  // マネージャ定例議事録の利用可能月を取得
+  const { data: availableMonths = [] } = useQuery<string[]>({
+    queryKey: ["/api/projects", resolvedProjectId, "manager-meetings", "months"],
+    enabled: !!resolvedProjectId,
     staleTime: 1000 * 60, // 1分間キャッシュ
   });
 
@@ -129,6 +140,7 @@ export default function ProjectDetail() {
             <TabsTrigger value="progress">進捗・スケジュール</TabsTrigger>
             <TabsTrigger value="business">業務・システム内容</TabsTrigger>
             <TabsTrigger value="issues">課題・リスク</TabsTrigger>
+            <TabsTrigger value="manager-meetings">マネ定議事録</TabsTrigger>
             <TabsTrigger value="cases">関連案件</TabsTrigger>
           </TabsList>
 
