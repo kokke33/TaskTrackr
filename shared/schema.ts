@@ -44,6 +44,7 @@ export const cases = pgTable("cases", {
 // プロジェクトと案件の関係定義
 export const projectsRelations = relations(projects, ({ many }) => ({
   cases: many(cases),
+  managerMeetings: many(managerMeetings),
 }));
 
 // 案件と週次報告の関係定義
@@ -95,11 +96,31 @@ export const weeklyReports = pgTable("weekly_reports", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// マネージャ定例議事録テーブル
+export const managerMeetings = pgTable("manager_meetings", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  meetingDate: date("meeting_date").notNull(),
+  yearMonth: text("year_month").notNull(), // 'YYYY-MM'形式
+  title: text("title").notNull(),
+  content: text("content").notNull(), // メインの議事録内容
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // 週次報告と案件の関係定義
 export const weeklyReportsRelations = relations(weeklyReports, ({ one }) => ({
   case: one(cases, {
     fields: [weeklyReports.caseId],
     references: [cases.id],
+  }),
+}));
+
+// マネージャ定例議事録とプロジェクトの関係定義
+export const managerMeetingsRelations = relations(managerMeetings, ({ one }) => ({
+  project: one(projects, {
+    fields: [managerMeetings.projectId],
+    references: [projects.id],
   }),
 }));
 
@@ -126,6 +147,12 @@ export const insertWeeklyReportSchema = createInsertSchema(weeklyReports).omit({
   aiAnalysis: true,
 });
 
+export const insertManagerMeetingSchema = createInsertSchema(managerMeetings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // 型定義
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -138,3 +165,5 @@ export type WeeklyReport = typeof weeklyReports.$inferSelect & {
   projectName?: string;
   caseName?: string;
 };
+export type InsertManagerMeeting = z.infer<typeof insertManagerMeetingSchema>;
+export type ManagerMeeting = typeof managerMeetings.$inferSelect;
