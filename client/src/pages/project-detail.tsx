@@ -210,40 +210,6 @@ export default function ProjectDetail() {
               <ManagerMeetingForm projectId={project.id} />
             </div>
 
-            <div className="mb-4 flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <label htmlFor="month-select" className="text-sm font-medium">表示月:</label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="すべての月" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">すべての月</SelectItem>
-                    {availableMonths
-                      .filter(month => typeof month === 'string' && month.includes('-'))
-                      .map((month) => {
-                        const [year, monthNum] = month.split('-');
-                        const monthName = `${year}年${parseInt(monthNum)}月`;
-                        return (
-                          <SelectItem key={month} value={month}>
-                            {monthName}
-                          </SelectItem>
-                        );
-                      })}
-                  </SelectContent>
-                </Select>
-              </div>
-              {selectedMonth && selectedMonth !== "all" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedMonth("all")}
-                >
-                  フィルタを解除
-                </Button>
-              )}
-            </div>
-
             <ManagerMeetingList
               projectId={project.id}
               selectedMonth={selectedMonth && selectedMonth !== "all" ? selectedMonth : undefined}

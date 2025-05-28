@@ -776,34 +776,6 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  async getRecentWeeklyReports(limit: number = 20): Promise<WeeklyReport[]> {
-    // JOINを使って初めから関連する案件情報も取得する
-    const result = await db
-      .select({
-        id: weeklyReports.id,
-        reportPeriodStart: weeklyReports.reportPeriodStart,
-        reportPeriodEnd: weeklyReports.reportPeriodEnd,
-        caseId: weeklyReports.caseId,
-        reporterName: weeklyReports.reporterName,
-        weeklyTasks: weeklyReports.weeklyTasks,
-        progressRate: weeklyReports.progressRate,
-        progressStatus: weeklyReports.progressStatus,
-        delayIssues: weeklyReports.delayIssues,
-        issues: weeklyReports.issues,
-        createdAt: weeklyReports.createdAt,
-        // 案件情報
-        projectName: cases.projectName,
-        caseName: cases.caseName
-      })
-      .from(weeklyReports)
-      .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
-      .where(eq(cases.isDeleted, false))
-      .orderBy(desc(weeklyReports.createdAt))
-      .limit(limit);
-
-    return result as unknown as WeeklyReport[];
-  }
-
   // 週次報告関連のメソッド
   async createWeeklyReport(report: InsertWeeklyReport): Promise<WeeklyReport> {
     const [weeklyReport] = await db.insert(weeklyReports).values(report).returning();
@@ -1046,7 +1018,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(managerMeetings.projectId, projectId))
         .orderBy(desc(managerMeetings.yearMonth));
 
-      console.log(`[DEBUG] Available months for project ${projectId}:`, result);
+      console.log(`[DEBUG] Available months query result for project ${projectId}:`, result); // 追加
       return result.map(row => row.yearMonth).filter(Boolean);
     } catch (error) {
       console.error("Error fetching available months:", error);
