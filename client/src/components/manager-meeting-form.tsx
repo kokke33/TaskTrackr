@@ -117,19 +117,6 @@ export function ManagerMeetingForm({ projectId, meeting, onSuccess }: ManagerMee
     } else {
       createMutation.mutate(submitData);
     }
-  };h() + 1).padStart(2, '0')}`;
-    
-    const formData = {
-      ...data,
-      yearMonth,
-      projectId,
-    };
-
-    if (meeting) {
-      updateMutation.mutate(formData);
-    } else {
-      createMutation.mutate(formData);
-    }
   };
 
   return (
