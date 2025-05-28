@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertWeeklyReportSchema, insertCaseSchema, insertProjectSchema } from "@shared/schema";
+import { insertWeeklyReportSchema, insertCaseSchema, insertProjectSchema, insertManagerMeetingSchema } from "@shared/schema";
 import { getAIService } from "./ai-service";
 import passport from "passport";
 import { isAuthenticated, isAdmin } from "./auth";

@@ -1,4 +1,4 @@
-import { cases, weeklyReports, projects, users, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject } from "@shared/schema";
+import { cases, weeklyReports, projects, users, managerMeetings, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql } from "drizzle-orm";
 
@@ -66,6 +66,14 @@ export interface IStorage {
   // 検索関連
   search(query: string, type?: string): Promise<{ total: number, results: SearchResult[] }>;
   getSearchSuggestions(query: string): Promise<SearchSuggestion[]>;
+
+  // マネージャ定例議事録関連
+  createManagerMeeting(meetingData: InsertManagerMeeting): Promise<ManagerMeeting>;
+  getManagerMeeting(id: number): Promise<ManagerMeeting | undefined>;
+  getManagerMeetingsByProject(projectId: number, yearMonth?: string): Promise<ManagerMeeting[]>;
+  updateManagerMeeting(id: number, meetingData: InsertManagerMeeting): Promise<ManagerMeeting>;
+  deleteManagerMeeting(id: number): Promise<ManagerMeeting>;
+  getAvailableMonths(projectId: number): Promise<string[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -976,6 +984,65 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
 
     return result as unknown as WeeklyReport[];
+  }
+
+  // マネージャ定例議事録関連のメソッド
+  async createManagerMeeting(meetingData: InsertManagerMeeting): Promise<ManagerMeeting> {
+    const [meeting] = await db
+      .insert(managerMeetings)
+      .values(meetingData)
+      .returning();
+    return meeting;
+  }
+
+  async getManagerMeeting(id: number): Promise<ManagerMeeting | undefined> {
+    const [meeting] = await db
+      .select()
+      .from(managerMeetings)
+      .where(eq(managerMeetings.id, id));
+    return meeting;
+  }
+
+  async getManagerMeetingsByProject(projectId: number, yearMonth?: string): Promise<ManagerMeeting[]> {
+    const whereConditions = yearMonth 
+      ? and(
+          eq(managerMeetings.projectId, projectId),
+          eq(managerMeetings.yearMonth, yearMonth)
+        )
+      : eq(managerMeetings.projectId, projectId);
+
+    return await db
+      .select()
+      .from(managerMeetings)
+      .where(whereConditions)
+      .orderBy(desc(managerMeetings.meetingDate));
+  }
+
+  async updateManagerMeeting(id: number, meetingData: InsertManagerMeeting): Promise<ManagerMeeting> {
+    const [updated] = await db
+      .update(managerMeetings)
+      .set({ ...meetingData, updatedAt: new Date() })
+      .where(eq(managerMeetings.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteManagerMeeting(id: number): Promise<ManagerMeeting> {
+    const [deleted] = await db
+      .delete(managerMeetings)
+      .where(eq(managerMeetings.id, id))
+      .returning();
+    return deleted;
+  }
+
+  async getAvailableMonths(projectId: number): Promise<string[]> {
+    const result = await db
+      .selectDistinct({ yearMonth: managerMeetings.yearMonth })
+      .from(managerMeetings)
+      .where(eq(managerMeetings.projectId, projectId))
+      .orderBy(desc(managerMeetings.yearMonth));
+    
+    return result.map(row => row.yearMonth);
   }
 }
 
