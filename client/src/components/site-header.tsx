@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth';
 import { Button } from './ui/button';
 import { ThemeToggle } from './theme-toggle';
 import { SearchBar } from './search-bar';
+import { AdminOnly } from '@/lib/admin-only';
 import { User, LogOut } from 'lucide-react';
 
 export function SiteHeader() {
@@ -19,12 +20,16 @@ export function SiteHeader() {
           <nav className="flex items-center space-x-6 text-sm font-medium">
             {isAuthenticated && (
               <>
-                <Link href="/projects">
-                  <span className="transition-colors hover:text-foreground/80 cursor-pointer">プロジェクト</span>
-                </Link>
-                <Link href="/cases">
-                  <span className="transition-colors hover:text-foreground/80 cursor-pointer">案件一覧</span>
-                </Link>
+                <AdminOnly>
+                  <Link href="/projects">
+                    <span className="transition-colors hover:text-foreground/80 cursor-pointer">プロジェクト</span>
+                  </Link>
+                </AdminOnly>
+                <AdminOnly>
+                  <Link href="/cases">
+                    <span className="transition-colors hover:text-foreground/80 cursor-pointer">案件一覧</span>
+                  </Link>
+                </AdminOnly>
                 <Link href="/reports">
                   <span className="transition-colors hover:text-foreground/80 cursor-pointer">週次報告</span>
                 </Link>

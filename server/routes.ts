@@ -304,7 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // マイルストーン更新専用の簡易エンドポイント
-  app.patch("/api/cases/:id/milestone", isAdmin, async (req, res) => {
+  app.patch("/api/cases/:id/milestone", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existingCase = await storage.getCase(id);

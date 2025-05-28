@@ -42,7 +42,7 @@ function Router() {
           <CaseView {...props} />
         </Suspense>
       )} />
-      <ProtectedRoute path="/projects" component={ProjectList} />
+      <AdminRoute path="/projects" component={ProjectList} />
       <AdminRoute path="/project/new" component={ProjectForm} />
       <AdminRoute path="/project/edit/:id" component={ProjectForm} />
       <ProtectedRoute path="/project/:id" component={ProjectDetail} />
