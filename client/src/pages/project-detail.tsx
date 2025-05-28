@@ -219,15 +219,17 @@ export default function ProjectDetail() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">すべての月</SelectItem>
-                    {availableMonths.map((month) => {
-                      const [year, monthNum] = month.split('-');
-                      const monthName = `${year}年${parseInt(monthNum)}月`;
-                      return (
-                        <SelectItem key={month} value={month}>
-                          {monthName}
-                        </SelectItem>
-                      );
-                    })}
+                    {availableMonths
+                      .filter(month => typeof month === 'string' && month.includes('-'))
+                      .map((month) => {
+                        const [year, monthNum] = month.split('-');
+                        const monthName = `${year}年${parseInt(monthNum)}月`;
+                        return (
+                          <SelectItem key={month} value={month}>
+                            {monthName}
+                          </SelectItem>
+                        );
+                      })}
                   </SelectContent>
                 </Select>
               </div>
