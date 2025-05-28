@@ -777,12 +777,28 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     }
   });
 
-  app.get("/api/weekly-reports", async (_req, res) => {
+  app.get("/api/weekly-reports", async (req, res) => {
     try {
-      const reports = await storage.getAllWeeklyReports();
-      res.json(reports);
+      // 一覧画面用の軽量データまたは詳細データのいずれかを返す
+      const listOnly = req.query.listOnly === 'true';
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      
+      console.log(`[DEBUG] Weekly reports request - listOnly: ${listOnly}, limit: ${limit}`);
+      
+      if (listOnly) {
+        // 一覧表示用の軽量データを取得（パフォーマンス最適化）
+        const reports = await storage.getAllWeeklyReportsForList(limit);
+        console.log(`[DEBUG] Returning ${reports.length} lightweight weekly reports`);
+        res.json(reports);
+      } else {
+        // 従来の詳細データ（検索機能等で使用）
+        const reports = await storage.getAllWeeklyReports();
+        console.log(`[DEBUG] Returning ${reports.length} full weekly reports`);
+        res.json(reports);
+      }
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch weekly reports" });
+      console.error("Error fetching weekly reports:", error);
+      res.status(500).json({ message: "週次報告一覧の取得に失敗しました" });
     }
   });
 

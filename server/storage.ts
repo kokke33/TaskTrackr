@@ -28,6 +28,20 @@ type SearchSuggestion = {
   link: string;
 };
 
+// 週次報告一覧用の軽量型定義
+type WeeklyReportSummary = {
+  id: number;
+  reportPeriodStart: string;
+  reportPeriodEnd: string;
+  reporterName: string;
+  progressRate: number;
+  progressStatus: string;
+  projectName: string;
+  caseName: string;
+  createdAt: Date;
+  caseId: number;
+};
+
 export interface IStorage {
   // ユーザー関連
   getUser(id: number): Promise<User | undefined>;
@@ -57,6 +71,7 @@ export interface IStorage {
   createWeeklyReport(report: InsertWeeklyReport): Promise<WeeklyReport>;
   getWeeklyReport(id: number): Promise<WeeklyReport | undefined>;
   getAllWeeklyReports(): Promise<WeeklyReport[]>;
+  getAllWeeklyReportsForList(limit?: number): Promise<WeeklyReportSummary[]>; // 新規追加
   updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport>;
   updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport>;
   getLatestReportByCase(caseId: number): Promise<WeeklyReport | undefined>;
@@ -841,6 +856,34 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(weeklyReports.reportPeriodStart));
 
     return result as unknown as WeeklyReport[];
+  }
+
+  // 【新規追加】週次報告一覧用の軽量メソッド（パフォーマンス最適化版）
+  async getAllWeeklyReportsForList(limit: number = 50): Promise<WeeklyReportSummary[]> {
+    console.log('[DEBUG] Using optimized getAllWeeklyReportsForList method');
+    
+    const result = await db
+      .select({
+        id: weeklyReports.id,
+        reportPeriodStart: weeklyReports.reportPeriodStart,
+        reportPeriodEnd: weeklyReports.reportPeriodEnd,
+        reporterName: weeklyReports.reporterName,
+        progressRate: weeklyReports.progressRate,
+        progressStatus: weeklyReports.progressStatus,
+        createdAt: weeklyReports.createdAt,
+        caseId: weeklyReports.caseId,
+        // 案件情報（最小限）
+        projectName: cases.projectName,
+        caseName: cases.caseName
+      })
+      .from(weeklyReports)
+      .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+      .where(eq(cases.isDeleted, false))
+      .orderBy(desc(weeklyReports.reportPeriodStart))
+      .limit(limit);
+
+    console.log(`[DEBUG] Retrieved ${result.length} weekly reports for list view`);
+    return result;
   }
 
   async updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport> {
