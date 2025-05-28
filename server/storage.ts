@@ -725,7 +725,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return restored;
   }
-  
+
   // 案件関連のメソッド
   async createCase(caseData: InsertCase): Promise<Case> {
     const [newCase] = await db.insert(cases).values(caseData).returning();
@@ -1035,14 +1035,23 @@ export class DatabaseStorage implements IStorage {
     return deleted;
   }
 
+  // プロジェクトの利用可能月を取得
   async getAvailableMonths(projectId: number): Promise<string[]> {
-    const result = await db
-      .selectDistinct({ yearMonth: managerMeetings.yearMonth })
-      .from(managerMeetings)
-      .where(eq(managerMeetings.projectId, projectId))
-      .orderBy(desc(managerMeetings.yearMonth));
-    
-    return result.map(row => row.yearMonth);
+    try {
+      const result = await db
+        .selectDistinct({
+          yearMonth: managerMeetings.yearMonth
+        })
+        .from(managerMeetings)
+        .where(eq(managerMeetings.projectId, projectId))
+        .orderBy(desc(managerMeetings.yearMonth));
+
+      console.log(`[DEBUG] Available months for project ${projectId}:`, result);
+      return result.map(row => row.yearMonth).filter(Boolean);
+    } catch (error) {
+      console.error("Error fetching available months:", error);
+      return [];
+    }
   }
 }
 

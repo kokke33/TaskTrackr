@@ -104,6 +104,21 @@ export function ManagerMeetingForm({ projectId, meeting, onSuccess }: ManagerMee
     const date = new Date(data.meetingDate);
     const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     
+    const submitData = {
+      ...data,
+      yearMonth,
+      projectId
+    };
+
+    console.log('Submitting manager meeting with yearMonth:', yearMonth);
+
+    if (meeting) {
+      updateMutation.mutate(submitData);
+    } else {
+      createMutation.mutate(submitData);
+    }
+  };h() + 1).padStart(2, '0')}`;
+    
     const formData = {
       ...data,
       yearMonth,

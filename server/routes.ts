@@ -1230,10 +1230,17 @@ ${previousReportInfo}
         return res.status(400).json({ error: 'Invalid project ID' });
       }
 
+      // 開催日から年月を自動生成
+      const meetingDate = new Date(req.body.meetingDate);
+      const yearMonth = `${meetingDate.getFullYear()}-${String(meetingDate.getMonth() + 1).padStart(2, '0')}`;
+
       const meetingData = insertManagerMeetingSchema.parse({
         ...req.body,
-        projectId
+        projectId,
+        yearMonth
       });
+
+      console.log(`[DEBUG] Creating manager meeting with yearMonth: ${yearMonth}`);
 
       const meeting = await storage.createManagerMeeting(meetingData);
       res.status(201).json(meeting);
@@ -1274,7 +1281,17 @@ ${previousReportInfo}
         return res.status(400).json({ error: 'Invalid meeting ID' });
       }
 
-      const meetingData = insertManagerMeetingSchema.parse(req.body);
+      // 開催日から年月を自動生成
+      const meetingDate = new Date(req.body.meetingDate);
+      const yearMonth = `${meetingDate.getFullYear()}-${String(meetingDate.getMonth() + 1).padStart(2, '0')}`;
+
+      const meetingData = insertManagerMeetingSchema.parse({
+        ...req.body,
+        yearMonth
+      });
+
+      console.log(`[DEBUG] Updating manager meeting with yearMonth: ${yearMonth}`);
+
       const updatedMeeting = await storage.updateManagerMeeting(meetingId, meetingData);
       
       res.json(updatedMeeting);
