@@ -218,7 +218,7 @@ export default function ProjectDetail() {
                     <SelectValue placeholder="すべての月" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">すべての月</SelectItem>
+                    <SelectItem value="all">すべての月</SelectItem>
                     {availableMonths
                       .filter(month => typeof month === 'string' && month.includes('-'))
                       .map((month) => {
@@ -233,11 +233,11 @@ export default function ProjectDetail() {
                   </SelectContent>
                 </Select>
               </div>
-              {selectedMonth && (
+              {selectedMonth && selectedMonth !== "all" && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSelectedMonth("")}
+                  onClick={() => setSelectedMonth("all")}
                 >
                   フィルタを解除
                 </Button>
@@ -246,7 +246,7 @@ export default function ProjectDetail() {
 
             <ManagerMeetingList
               projectId={project.id}
-              selectedMonth={selectedMonth || undefined}
+              selectedMonth={selectedMonth && selectedMonth !== "all" ? selectedMonth : undefined}
             />
           </TabsContent>
 

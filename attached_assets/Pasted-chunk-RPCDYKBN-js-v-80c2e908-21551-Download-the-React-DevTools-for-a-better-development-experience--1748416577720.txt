@@ -1,0 +1,148 @@
+chunk-RPCDYKBN.js?v=80c2e908:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+auth.tsx:72 Auth check successful, user: {id: 2, username: 'admin', isAdmin: true}
+auth.tsx:79 Auth check - 管理者権限: true
+Home.tsx:15 Home: ユーザー情報: {id: 2, username: 'admin', isAdmin: true}
+Home.tsx:16 管理者権限: true
+@radix-ui_react-select.js?v=80c2e908:3071 Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at @radix-ui_react-select.js?v=80c2e908:3071:13
+    at renderWithHooks (chunk-RPCDYKBN.js?v=80c2e908:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=80c2e908:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=80c2e908:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=80c2e908:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=80c2e908:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=80c2e908:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=80c2e908:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=80c2e908:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=80c2e908:19137:13)
+(anonymous) @ @radix-ui_react-select.js?v=80c2e908:3071
+renderWithHooks @ chunk-RPCDYKBN.js?v=80c2e908:11548
+updateForwardRef @ chunk-RPCDYKBN.js?v=80c2e908:14325
+beginWork @ chunk-RPCDYKBN.js?v=80c2e908:15946
+callCallback2 @ chunk-RPCDYKBN.js?v=80c2e908:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=80c2e908:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=80c2e908:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=80c2e908:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=80c2e908:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=80c2e908:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=80c2e908:19116
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=80c2e908:18874
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=80c2e908:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=80c2e908:18627
+@radix-ui_react-select.js?v=80c2e908:3071 Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at @radix-ui_react-select.js?v=80c2e908:3071:13
+    at renderWithHooks (chunk-RPCDYKBN.js?v=80c2e908:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=80c2e908:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=80c2e908:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=80c2e908:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=80c2e908:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=80c2e908:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=80c2e908:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=80c2e908:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=80c2e908:19137:13)
+(anonymous) @ @radix-ui_react-select.js?v=80c2e908:3071
+renderWithHooks @ chunk-RPCDYKBN.js?v=80c2e908:11548
+updateForwardRef @ chunk-RPCDYKBN.js?v=80c2e908:14325
+beginWork @ chunk-RPCDYKBN.js?v=80c2e908:15946
+callCallback2 @ chunk-RPCDYKBN.js?v=80c2e908:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=80c2e908:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=80c2e908:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=80c2e908:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=80c2e908:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=80c2e908:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=80c2e908:19116
+recoverFromConcurrentError @ chunk-RPCDYKBN.js?v=80c2e908:18736
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=80c2e908:18879
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=80c2e908:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=80c2e908:18627
+chunk-RPCDYKBN.js?v=80c2e908:14032 The above error occurred in the <SelectItem> component:
+
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=80c2e908:3044:7
+    at _c11 (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/src/components/ui/select.tsx:207:13)
+    at div
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RLTE5R7I.js?v=80c2e908:41:13
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UACHJROW.js?v=80c2e908:52:11
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UACHJROW.js?v=80c2e908:33:11
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-MRB2OOEX.js?v=80c2e908:98:15
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=80c2e908:2955:13
+    at div
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UACHJROW.js?v=80c2e908:52:11
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UACHJROW.js?v=80c2e908:33:11
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-MRB2OOEX.js?v=80c2e908:98:15
+    at Provider (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-NPI43BMZ.js?v=80c2e908:38:15)
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=80c2e908:2499:59
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UACHJROW.js?v=80c2e908:52:11
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UACHJROW.js?v=80c2e908:33:11
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RLTE5R7I.js?v=80c2e908:41:13
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-3L65UTKK.js?v=80c2e908:258:22
+    at SelectPortal
+    at _c7 (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/src/components/ui/select.tsx:122:12)
+    at Provider (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-NPI43BMZ.js?v=80c2e908:38:15)
+    at Provider (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-MRB2OOEX.js?v=80c2e908:28:15)
+    at CollectionProvider (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-MRB2OOEX.js?v=80c2e908:89:13)
+    at Provider (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-NPI43BMZ.js?v=80c2e908:38:15)
+    at Provider (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=80c2e908:1952:15)
+    at Popper (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=80c2e908:2009:11)
+    at Select (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=80c2e908:2287:5)
+    at div
+    at div
+    at div
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RLTE5R7I.js?v=80c2e908:41:13
+    at Presence (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-NYR4UMVK.js?v=80c2e908:24:11)
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=80c2e908:171:13
+    at _c5 (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/src/components/ui/tabs.tsx:72:12)
+    at div
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RLTE5R7I.js?v=80c2e908:41:13
+    at Provider (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-NPI43BMZ.js?v=80c2e908:38:15)
+    at https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=80c2e908:49:7
+    at div
+    at div
+    at ProjectDetail (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/src/pages/project-detail.tsx?t=1748416492576:32:18)
+    at Route (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=80c2e908:191:16)
+    at ProtectedRoute (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/src/lib/protected-route.tsx:20:34)
+    at Switch (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=80c2e908:247:17)
+    at Router
+    at main
+    at div
+    at SiteLayout (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/src/components/site-layout.tsx:18:30)
+    at AuthProvider (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/src/lib/auth.tsx:23:32)
+    at QueryClientProvider (https://a11235e2-ae69-4004-81b7-507369bed925-00-20o2klipc15n2.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=80c2e908:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=80c2e908:14032
+update.callback @ chunk-RPCDYKBN.js?v=80c2e908:14052
+callCallback @ chunk-RPCDYKBN.js?v=80c2e908:11248
+commitUpdateQueue @ chunk-RPCDYKBN.js?v=80c2e908:11265
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=80c2e908:17093
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=80c2e908:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=80c2e908:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=80c2e908:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=80c2e908:19353
+commitRoot @ chunk-RPCDYKBN.js?v=80c2e908:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=80c2e908:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=80c2e908:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=80c2e908:18627
+chunk-RPCDYKBN.js?v=80c2e908:9129 Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at @radix-ui_react-select.js?v=80c2e908:3071:13
+    at renderWithHooks (chunk-RPCDYKBN.js?v=80c2e908:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=80c2e908:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=80c2e908:15946:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=80c2e908:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=80c2e908:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=80c2e908:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=80c2e908:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=80c2e908:18736:28)
+    at performSyncWorkOnRoot (chunk-RPCDYKBN.js?v=80c2e908:18879:28)
+(anonymous) @ @radix-ui_react-select.js?v=80c2e908:3071
+renderWithHooks @ chunk-RPCDYKBN.js?v=80c2e908:11548
+updateForwardRef @ chunk-RPCDYKBN.js?v=80c2e908:14325
+beginWork @ chunk-RPCDYKBN.js?v=80c2e908:15946
+beginWork$1 @ chunk-RPCDYKBN.js?v=80c2e908:19753
+performUnitOfWork @ chunk-RPCDYKBN.js?v=80c2e908:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=80c2e908:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=80c2e908:19116
+recoverFromConcurrentError @ chunk-RPCDYKBN.js?v=80c2e908:18736
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=80c2e908:18879
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=80c2e908:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=80c2e908:18627
