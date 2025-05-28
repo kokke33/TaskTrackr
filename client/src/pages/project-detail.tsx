@@ -201,6 +201,53 @@ export default function ProjectDetail() {
             </div>
           </TabsContent>
 
+          <TabsContent value="manager-meetings" className="border rounded-lg p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Users className="h-6 w-6" />
+                マネージャ定例議事録
+              </h2>
+              <ManagerMeetingForm projectId={project.id} />
+            </div>
+
+            <div className="mb-4 flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label htmlFor="month-select" className="text-sm font-medium">表示月:</label>
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="すべての月" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">すべての月</SelectItem>
+                    {availableMonths.map((month) => {
+                      const [year, monthNum] = month.split('-');
+                      const monthName = `${year}年${parseInt(monthNum)}月`;
+                      return (
+                        <SelectItem key={month} value={month}>
+                          {monthName}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedMonth && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedMonth("")}
+                >
+                  フィルタを解除
+                </Button>
+              )}
+            </div>
+
+            <ManagerMeetingList
+              projectId={project.id}
+              selectedMonth={selectedMonth || undefined}
+            />
+          </TabsContent>
+
           <TabsContent value="cases" className="border rounded-lg p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">{project.name}の関連案件</h2>
