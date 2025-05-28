@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Calendar, Edit, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ManagerMeetingForm } from "./manager-meeting-form";
@@ -49,6 +51,38 @@ export function ManagerMeetingList({ projectId, selectedMonth }: ManagerMeetingL
   const formatContent = (content: string) => {
     return content.split('\n').slice(0, 3).join('\n') + (content.split('\n').length > 3 ? '\n...' : '');
   };
+
+  // フルコンテンツ表示用のダイアログコンポーネント
+  function FullContentDialog({ meeting }: { meeting: ManagerMeeting }) {
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button 
+            variant="link" 
+            className="p-0 h-auto text-blue-600 hover:text-blue-800 mt-2"
+          >
+            続きを読む
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              {meeting.title}
+            </DialogTitle>
+            <p className="text-sm text-gray-500">
+              {format(new Date(meeting.meetingDate), "yyyy年M月d日", { locale: ja })}
+            </p>
+          </DialogHeader>
+          <div className="mt-4">
+            <div className="whitespace-pre-wrap text-sm text-gray-700 bg-gray-50 p-4 rounded border leading-relaxed">
+              {meeting.content}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -137,20 +171,11 @@ export function ManagerMeetingList({ projectId, selectedMonth }: ManagerMeetingL
           </CardHeader>
           <CardContent>
             <div className="prose prose-sm max-w-none">
-              <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
+              <div className="whitespace-pre-wrap text-sm text-gray-700 bg-gray-50 p-3 rounded border">
                 {formatContent(meeting.content)}
-              </pre>
+              </div>
               {meeting.content.split('\n').length > 3 && (
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto text-blue-600 hover:text-blue-800"
-                  onClick={() => {
-                    // 議事録詳細表示のロジックを後で追加可能
-                    console.log("Show full content for meeting:", meeting.id);
-                  }}
-                >
-                  続きを読む
-                </Button>
+                <FullContentDialog meeting={meeting} />
               )}
             </div>
           </CardContent>
