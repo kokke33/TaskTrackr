@@ -647,7 +647,9 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <header className="mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-3xl font-bold text-primary">週次報告一覧</h1>
+            <h1 className="text-3xl font-bold text-primary">
+              {selectedCase !== null ? "案件別週次報告一覧" : "週次報告一覧"}
+            </h1>
             <div className="flex items-center gap-4">
               <Link href="/report/new">
                 <Button variant="outline" size="sm" className="flex items-center gap-2">

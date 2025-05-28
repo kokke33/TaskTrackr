@@ -24,7 +24,7 @@ interface WeeklyReport {
   createdAt: string;
 }
 
-export default function WeeklyReportList() {
+export default function RecentWeeklyReportsList() {
   const [reports, setReports] = useState<WeeklyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -42,7 +42,7 @@ export default function WeeklyReportList() {
         console.error('Error fetching weekly reports:', error);
         toast({
           title: 'エラー',
-          description: '週次報告一覧の取得に失敗しました',
+          description: '最近の週次報告一覧の取得に失敗しました',
           variant: 'destructive',
         });
       } finally {
@@ -81,7 +81,7 @@ export default function WeeklyReportList() {
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">週次報告詳細一覧 (TOP20)</h1>
+        <h1 className="text-2xl font-bold">最近の週次報告一覧</h1>
         <div className="flex gap-2">
           <Link href="/reports">
             <Button variant="outline">全週次報告一覧</Button>
