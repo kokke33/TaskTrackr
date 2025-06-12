@@ -74,7 +74,8 @@ passport.deserializeUser(async (id: number, done) => {
 
 // 初期ユーザーの作成
 export async function createInitialUsers() {
-  try {
+  // リトライ機能付きでユーザー作成を実行
+  const createUsersWithRetry = async () => {
     const initialUsers = [
       { username: "ss7-1", password: "ss7-1weeklyreport", isAdmin: false },
       { username: "admin", password: "adminpassword", isAdmin: true },
@@ -94,6 +95,35 @@ export async function createInitialUsers() {
           isAdmin: user.isAdmin,
         });
         console.log(`Created initial user: ${user.username}, isAdmin: ${user.isAdmin}`);
+      }
+    }
+  };
+
+  try {
+    // 最大3回リトライ
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await createUsersWithRetry();
+        console.log('✅ 初期ユーザーの作成が完了しました');
+        break;
+      } catch (error: any) {
+        const isConnectionError = 
+          error.message?.includes('Connection terminated unexpectedly') ||
+          error.message?.includes('ECONNRESET') ||
+          error.message?.includes('ETIMEDOUT') ||
+          error.code === 'ECONNRESET' ||
+          error.code === 'ETIMEDOUT';
+        
+        if (isConnectionError && retries > 1) {
+          retries--;
+          console.log(`🔄 初期ユーザー作成でデータベース接続エラー (残り${retries}回)`);
+          console.log('5秒後にリトライします...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          continue;
+        }
+        
+        throw error;
       }
     }
   } catch (error) {

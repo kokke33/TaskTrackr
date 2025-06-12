@@ -27,18 +27,33 @@ app.use(cors({
 }));
 
 // セッション設定
+import MemoryStore from "memorystore";
 import pgSession from "connect-pg-simple";
 const PostgresStore = pgSession(session);
+const MemStore = MemoryStore(session);
+
+// DATABASE_URLを解析してセッションストアを決定
+const databaseUrl = process.env.DATABASE_URL || '';
+const isNeon = databaseUrl.includes('neon.tech');
+
+// Neonの場合はMemoryStoreを使用（接続問題を回避）
+const sessionStore = isNeon ? 
+  new MemStore({
+    checkPeriod: 86400000 // 24時間でクリーンアップ
+  }) :
+  new PostgresStore({
+    conObject: {
+      connectionString: process.env.DATABASE_URL,
+    },
+    createTableIfMissing: true,
+    tableName: 'session'
+  });
+
+console.log(`セッションストア: ${isNeon ? 'MemoryStore (Neon対応)' : 'PostgreSQL'}`);
 
 app.use(
   session({
-    store: new PostgresStore({
-      conObject: {
-        connectionString: process.env.DATABASE_URL,
-      },
-      createTableIfMissing: true,
-      tableName: 'session' // セッションテーブル名を明示的に指定
-    }),
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
     saveUninitialized: false,
@@ -74,21 +89,12 @@ try {
   console.error("AI configuration validation failed:", error);
 }
 
-// セッションデバッグミドルウェア
+// セッションデバッグミドルウェア（簡略化）
 app.use((req, res, next) => {
-  // 詳細なセッション情報のログ
-  console.log('=== Session Debug Info ===');
-  console.log(`Request Path: ${req.path}`);
-  console.log(`Session ID: ${req.sessionID}`);
-  console.log(`Is Authenticated: ${req.isAuthenticated()}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`Cookie Settings:`, req.session?.cookie);
-  console.log(`Request Headers:`, {
-    origin: req.headers.origin,
-    cookie: req.headers.cookie,
-    'user-agent': req.headers['user-agent']
-  });
-  console.log('========================');
+  // APIアクセス時のみログ出力
+  if (req.path.startsWith("/api") && req.method !== 'OPTIONS') {
+    console.log(`${req.method} ${req.path} - Auth: ${req.isAuthenticated()}`);
+  }
 
   // パフォーマンス測定
   const start = Date.now();

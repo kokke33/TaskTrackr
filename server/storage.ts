@@ -2,6 +2,43 @@ import { cases, weeklyReports, projects, users, managerMeetings, type User, type
 import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql } from "drizzle-orm";
 
+// データベース操作のリトライ機能
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  delayMs: number = 1000
+): Promise<T> {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Neon特有の接続エラーかチェック
+      const isConnectionError = 
+        error.message?.includes('Connection terminated unexpectedly') ||
+        error.message?.includes('ECONNRESET') ||
+        error.message?.includes('ETIMEDOUT') ||
+        error.code === 'ECONNRESET' ||
+        error.code === 'ETIMEDOUT';
+      
+      if (isConnectionError && attempt < maxRetries) {
+        console.log(`🔄 データベース接続エラー (試行 ${attempt}/${maxRetries}): ${error.message}`);
+        console.log(`${delayMs * attempt}ms後にリトライします...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+        continue;
+      }
+      
+      // リトライしないエラーまたは最大試行回数に達した場合
+      throw error;
+    }
+  }
+  
+  throw lastError;
+}
+
 // 検索用の型定義
 type SearchResult = {
   id: number;
@@ -753,13 +790,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllCases(includeDeleted: boolean = false): Promise<Case[]> {
-    const query = db.select().from(cases);
+    return withRetry(async () => {
+      const query = db.select().from(cases);
 
-    if (!includeDeleted) {
-      query.where(eq(cases.isDeleted, false));
-    }
+      if (!includeDeleted) {
+        query.where(eq(cases.isDeleted, false));
+      }
 
-    return await query.orderBy(desc(cases.createdAt));
+      return await query.orderBy(desc(cases.createdAt));
+    });
   }
 
   async getCasesByProject(projectName: string): Promise<Case[]> {
