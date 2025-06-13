@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -80,7 +80,7 @@ export default function ProjectForm() {
   });
 
   // 編集時にデータをフォームに設定
-  React.useEffect(() => {
+  useEffect(() => {
     if (project) {
       form.reset({
         name: project.name,
