@@ -40,7 +40,9 @@ TaskTrackr/
 │   ├── routes.ts        # API route definitions
 │   ├── storage.ts       # Database operations (Drizzle ORM)
 │   ├── ai-service.ts    # AI provider abstraction
+│   ├── ai-logger.ts     # AI interaction logging
 │   ├── auth.ts          # Passport.js authentication
+│   ├── config.ts        # Configuration validation
 │   └── migrations/      # Database migration files
 ├── shared/              # Shared TypeScript types
 │   └── schema.ts        # Drizzle ORM schema definitions
@@ -65,10 +67,26 @@ Core entities managed by Drizzle ORM:
 
 Required environment variables:
 ```env
+# Database
 DATABASE_URL=postgres://user:pass@localhost:5432/tasktrackr
+
+# Session
 SESSION_SECRET=your-session-secret
+
+# AI Provider
 AI_PROVIDER=openai  # or "ollama"
-OPENAI_API_KEY=sk-...  # if using OpenAI
+AI_LOG_LEVEL=info
+AI_LOG_CONSOLE=true
+
+# OpenAI (if using)
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-3.5-turbo
+OPENAI_MAX_TOKENS=1000
+OPENAI_TEMPERATURE=0.7
+
+# Ollama (if using)
+OLLAMA_BASE_URL=http://localhost:11434/
+OLLAMA_MODEL=llama2
 ```
 
 ## Development Patterns
@@ -91,7 +109,10 @@ OPENAI_API_KEY=sk-...  # if using OpenAI
 ### AI Service
 - Configurable AI providers (OpenAI/Ollama) in `server/ai-service.ts`
 - Main endpoints: `/ai/summarize` and `/ai/chat`
-- Comprehensive logging system for AI interactions
+- Comprehensive logging system for AI interactions in `server/ai-logger.ts`
+- Configuration validation in `server/config.ts`
+- Content cleaning and post-processing capabilities
+- Token usage monitoring and cost tracking
 
 ## Common Tasks
 
@@ -107,5 +128,23 @@ OPENAI_API_KEY=sk-...  # if using OpenAI
 
 ### Component Development
 - Follow existing patterns in `client/src/components/`
-- Use Shadcn/ui components from `client/src/components/ui/`
+- Use Shadcn/ui components from `client/src/components/ui/` (30+ available components)
 - Implement proper TypeScript typing and error handling
+- Theme support with dark/light mode toggle available
+
+## Special Configuration
+
+### Database Compatibility
+- **Neon.tech support**: Automatic fallback to MemoryStore for sessions when PostgreSQL sessions fail
+- **Connection retry logic**: Handles connection failures gracefully in storage operations
+- **Migration system**: SQL files in `server/migrations/` for schema versioning
+
+### Build Configuration
+- **Hybrid build system**: Frontend built with Vite, backend with ESBuild
+- **Path aliases**: `@/` for client code, `@shared/` for shared types
+- **Development server**: Single `npm run dev` command runs both frontend and backend
+
+### Authentication Features
+- **Initial user creation**: Automatic admin user setup on first run
+- **Session debugging**: Development middleware for session troubleshooting
+- **Role-based middleware**: `isAuthenticated` and `isAdmin` guards for API routes
