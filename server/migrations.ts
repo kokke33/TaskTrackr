@@ -1,8 +1,4 @@
 import { storage } from './storage';
-import { db } from './db';
-import { cases, projects, users } from '@shared/schema';
-import { eq } from 'drizzle-orm';
-import { hash as bcryptHash } from 'bcryptjs';
 
 /**
  * 案件（Case）データに基づいて既存のプロジェクトを作成するマイグレーション

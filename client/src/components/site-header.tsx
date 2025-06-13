@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Link } from 'wouter';
 import { useAuth } from '@/lib/auth';
 import { Button } from './ui/button';

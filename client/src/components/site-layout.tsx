@@ -1,8 +1,8 @@
-import React from 'react';
 import { SiteHeader } from './site-header';
+import type { ReactNode } from 'react';
 
 type SiteLayoutProps = {
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 export function SiteLayout({ children }: SiteLayoutProps) {
