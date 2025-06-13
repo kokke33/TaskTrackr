@@ -1,8 +1,9 @@
-import React from "react";
+
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { Project, Case } from "@shared/schema";
 import { Button } from "@/components/ui/button";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -15,7 +16,7 @@ import { ManagerMeetingList } from "@/components/manager-meeting-list";
 export default function ProjectDetail() {
   const params = useParams<{ id?: string, name?: string }>();
   const [, setLocation] = useLocation();
-  const [selectedMonth, setSelectedMonth] = React.useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
   
   // プロジェクトIDまたは名前から情報を取得
   const projectId = params.id ? parseInt(params.id) : undefined;
@@ -29,7 +30,7 @@ export default function ProjectDetail() {
   });
   
   // 名前からIDを取得
-  const resolvedProjectId = React.useMemo(() => {
+  const resolvedProjectId = useMemo(() => {
     if (projectId) return projectId;
     if (projectName && allProjects) {
       const foundProject = allProjects.find(p => p.name === projectName);
