@@ -1,6 +1,6 @@
 import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, isNull, inArray, or, ne, sql } from "drizzle-orm";
+import { eq, desc, and, isNull, inArray, or, ne, sql, gte, lte } from "drizzle-orm";
 
 // データベース操作のリトライ機能
 async function withRetry<T>(
@@ -79,6 +79,17 @@ type WeeklyReportSummary = {
   caseId: number;
 };
 
+// プロジェクト一覧用の軽量型定義
+type ProjectSummary = {
+  id: number;
+  name: string;
+  overview: string | null;
+  organization: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  isDeleted: boolean;
+};
+
 export interface IStorage {
   // ユーザー関連
   getUser(id: number): Promise<User | undefined>;
@@ -91,6 +102,7 @@ export interface IStorage {
   getProject(id: number): Promise<Project | undefined>;
   getProjectByName(name: string): Promise<Project | undefined>;
   getAllProjects(includeDeleted?: boolean): Promise<Project[]>;
+  getAllProjectsForList(includeDeleted?: boolean): Promise<ProjectSummary[]>;
   updateProject(id: number, projectData: InsertProject): Promise<Project>;
   deleteProject(id: number): Promise<Project>;
 
@@ -113,6 +125,7 @@ export interface IStorage {
   updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport>;
   getLatestReportByCase(caseId: number): Promise<WeeklyReport | undefined>;
   getWeeklyReportsByCase(caseId: number): Promise<WeeklyReport[]>;
+  getWeeklyReportsByCases(caseIds: number[], startDate?: Date, endDate?: Date): Promise<WeeklyReport[]>;
   getRecentWeeklyReports(limit?: number): Promise<WeeklyReport[]>;
 
   // 検索関連
@@ -307,14 +320,15 @@ export class DatabaseStorage implements IStorage {
       );
     });
 
-    // 削除されていないプロジェクトのみ検索
+    // 削除されていないプロジェクトのみ検索（最大20件）
     const foundProjects = await db
       .select()
       .from(projects)
       .where(and(
         eq(projects.isDeleted, false),
         ...conditions
-      ));
+      ))
+      .limit(20);
 
     // 検索結果をフォーマット
     for (const project of foundProjects) {
@@ -379,14 +393,15 @@ export class DatabaseStorage implements IStorage {
       );
     });
 
-    // 削除されていない案件のみ検索
+    // 削除されていない案件のみ検索（最大20件）
     const foundCases = await db
       .select()
       .from(cases)
       .where(and(
         eq(cases.isDeleted, false),
         ...conditions
-      ));
+      ))
+      .limit(20);
 
     // 検索結果をフォーマット
     for (const case_ of foundCases) {
@@ -750,6 +765,28 @@ export class DatabaseStorage implements IStorage {
     return await query.orderBy(desc(projects.updatedAt));
   }
 
+  async getAllProjectsForList(includeDeleted: boolean = false): Promise<ProjectSummary[]> {
+    console.log(`[DEBUG] Using optimized getAllProjectsForList method`);
+    
+    const query = db
+      .select({
+        id: projects.id,
+        name: projects.name,
+        overview: projects.overview,
+        organization: projects.organization,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+        isDeleted: projects.isDeleted
+      })
+      .from(projects);
+
+    if (!includeDeleted) {
+      query.where(eq(projects.isDeleted, false));
+    }
+
+    return await query.orderBy(desc(projects.updatedAt));
+  }
+
   async updateProject(id: number, projectData: InsertProject): Promise<Project> {
     const [updated] = await db
       .update(projects)
@@ -990,6 +1027,36 @@ export class DatabaseStorage implements IStorage {
       .from(weeklyReports)
       .where(eq(weeklyReports.caseId, caseId))
       .orderBy(desc(weeklyReports.reportPeriodStart));
+  }
+
+  async getWeeklyReportsByCases(caseIds: number[], startDate?: Date, endDate?: Date): Promise<WeeklyReport[]> {
+    if (caseIds.length === 0) {
+      return [];
+    }
+
+    // WHERE条件を構築
+    const conditions = [
+      inArray(weeklyReports.caseId, caseIds),
+      eq(cases.isDeleted, false)
+    ];
+
+    // 日付範囲でフィルタリング
+    if (startDate && endDate) {
+      conditions.push(
+        gte(weeklyReports.reportPeriodEnd, startDate.toISOString().split('T')[0]),
+        lte(weeklyReports.reportPeriodEnd, endDate.toISOString().split('T')[0])
+      );
+    }
+
+    const result = await db
+      .select()
+      .from(weeklyReports)
+      .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+      .where(and(...conditions))
+      .orderBy(desc(weeklyReports.reportPeriodStart));
+    
+    // 週次報告のデータのみを返す（JOINしたcasesデータは除く）
+    return result.map(item => item.weekly_reports);
   }
 
   async getRecentWeeklyReports(limit: number = 20): Promise<WeeklyReport[]> {

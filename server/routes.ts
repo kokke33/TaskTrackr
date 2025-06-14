@@ -113,8 +113,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects", async (req, res) => {
     try {
       const includeDeleted = req.query.includeDeleted === 'true';
-      const projects = await storage.getAllProjects(includeDeleted);
-      res.json(projects);
+      const fullData = req.query.fullData === 'true';
+      
+      if (fullData) {
+        // 詳細データが必要な場合
+        const projects = await storage.getAllProjects(includeDeleted);
+        console.log(`[DEBUG] Returning ${projects.length} full projects`);
+        res.json(projects);
+      } else {
+        // デフォルトで軽量データを取得（パフォーマンス最適化）
+        const projects = await storage.getAllProjectsForList(includeDeleted);
+        console.log(`[DEBUG] Returning ${projects.length} lightweight projects`);
+        res.json(projects);
+      }
     } catch (error) {
       console.error("Error fetching projects:", error);
       res.status(500).json({ message: "プロジェクト一覧の取得に失敗しました" });
@@ -429,25 +440,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetCaseIds = allProjectCases.map(c => c.id);
       }
 
-      // 対象案件に対して週次報告を取得
-      const lastMonthReports = [];
-      const casesWithReports: number[] = []; // データがある案件のIDを記録
-
-      for (const caseId of targetCaseIds) {
-        const reports = await storage.getWeeklyReportsByCase(caseId);
-
-        // 日付でフィルタリング（指定期間のものだけ）
-        const filteredReports = reports.filter(report => {
-          const reportDate = new Date(report.reportPeriodEnd);
-          return reportDate >= startDate && reportDate <= endDate;
-        });
-
-        // 報告があれば、その案件をデータありとして記録
-        if (filteredReports.length > 0) {
-          casesWithReports.push(caseId);
-          lastMonthReports.push(...filteredReports);
-        }
-      }
+      // 対象案件に対して週次報告を一括取得（N+1問題を解決）
+      const lastMonthReports = await storage.getWeeklyReportsByCases(targetCaseIds, startDate, endDate);
+      
+      // データがある案件のIDを記録
+      const casesWithReports = Array.from(new Set(lastMonthReports.map(report => report.caseId)));
 
       if (lastMonthReports.length === 0 || casesWithReports.length === 0) {
         const startDateStr = startDate.toISOString().split('T')[0];
