@@ -64,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function checkAuth() {
       try {
+        // サーバー側が未認証時も200で応答するため、apiRequestを使用可能
         const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
           method: "GET"
         });
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
           console.log("Auth check - 管理者権限:", !!data.user.isAdmin);
         } else {
-          console.log("Auth check failed, no authenticated user");
+          console.log("Auth check: user not authenticated");
           setIsAuthenticated(false);
           setUser(null);
           

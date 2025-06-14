@@ -86,7 +86,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } else {
       console.log("Check-auth - not authenticated");
-      res.status(401).json({
+      // 未認証でも200ステータスで応答（エラーではなく正常な状態として扱う）
+      res.json({
         authenticated: false,
         message: "認証されていません。再度ログインしてください。",
       });
