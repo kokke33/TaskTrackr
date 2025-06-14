@@ -23,7 +23,7 @@ export default function ProjectList() {
   // プロジェクト一覧を取得
   const { data: projects, isLoading, refetch } = useQuery<Project[]>({
     queryKey: [`/api/projects${showDeleted ? '?includeDeleted=true' : ''}`],
-    staleTime: 1000 * 60, // 1分間キャッシュ
+    staleTime: 5 * 60 * 1000, // 5分間キャッシュ（プロジェクト情報は変更頻度が低い）
   });
 
   // 表示切り替え時に強制リフレッシュ

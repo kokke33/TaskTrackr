@@ -49,7 +49,8 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      staleTime: 2 * 60 * 1000, // デフォルト2分間キャッシュ（従来のInfinityから変更）
+      gcTime: 5 * 60 * 1000, // 5分後にガベージコレクション
       retry: (failureCount, error) => {
         // 認証エラーの場合はリトライしない
         if (error instanceof Error && error.message.startsWith("401:")) {

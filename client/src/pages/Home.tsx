@@ -23,8 +23,12 @@ export default function Home() {
         method: "GET"
       });
       console.log("認証情報再取得結果:", data);
-      // ページをリロード
-      window.location.reload();
+      // React Queryのキャッシュをクリアしてからリロード
+      import("@/lib/queryClient").then(({ queryClient }) => {
+        queryClient.clear();
+        // ページをリロード
+        window.location.reload();
+      });
     } catch (error) {
       console.error("認証情報取得エラー:", error);
     }

@@ -208,16 +208,16 @@ export default function WeeklyReportList() {
     }
   }, [location]); // locationを依存配列に入れて、URLが変わったときに再実行
 
-  // すべての週次報告を取得
+  // すべての週次報告を取得（軽量版）
   const { data: reports, isLoading: isLoadingReports } = useQuery<WeeklyReport[]>({
     queryKey: ["/api/weekly-reports"],
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000, // 5分間キャッシュ
   });
 
   // すべての案件を取得
   const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
     queryKey: ["/api/cases"],
-    staleTime: 0,
+    staleTime: 10 * 60 * 1000, // 10分間キャッシュ（案件情報は変更頻度が低い）
   });
 
   // URLパラメータからの初期値設定は既に別のuseEffectで対応済み

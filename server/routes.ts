@@ -779,21 +779,21 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 
   app.get("/api/weekly-reports", async (req, res) => {
     try {
-      // 一覧画面用の軽量データまたは詳細データのいずれかを返す
-      const listOnly = req.query.listOnly === 'true';
+      // デフォルトで軽量データを返す（パフォーマンス最適化）
+      const fullData = req.query.fullData === 'true';
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       
-      console.log(`[DEBUG] Weekly reports request - listOnly: ${listOnly}, limit: ${limit}`);
+      console.log(`[DEBUG] Weekly reports request - fullData: ${fullData}, limit: ${limit}`);
       
-      if (listOnly) {
-        // 一覧表示用の軽量データを取得（パフォーマンス最適化）
-        const reports = await storage.getAllWeeklyReportsForList(limit);
-        console.log(`[DEBUG] Returning ${reports.length} lightweight weekly reports`);
-        res.json(reports);
-      } else {
-        // 従来の詳細データ（検索機能等で使用）
+      if (fullData) {
+        // 詳細データが必要な場合（検索機能等で使用）
         const reports = await storage.getAllWeeklyReports();
         console.log(`[DEBUG] Returning ${reports.length} full weekly reports`);
+        res.json(reports);
+      } else {
+        // デフォルトで軽量データを取得（パフォーマンス最適化）
+        const reports = await storage.getAllWeeklyReportsForList(limit || 50);
+        console.log(`[DEBUG] Returning ${reports.length} lightweight weekly reports`);
         res.json(reports);
       }
     } catch (error) {

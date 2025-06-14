@@ -437,7 +437,7 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
-  // 週次報告を検索
+  // 週次報告を検索（検索用に軽量化）
   private async searchWeeklyReports(keywords: string[]): Promise<SearchResult[]> {
     const results: SearchResult[] = [];
 
@@ -460,10 +460,16 @@ export class DatabaseStorage implements IStorage {
       );
     });
 
-    // 関連する案件のJOINクエリを作成
+    // 検索結果を軽量化するため、必要最小限のフィールドのみ選択
     const foundReports = await db
       .select({
-        report: weeklyReports,
+        id: weeklyReports.id,
+        reportPeriodStart: weeklyReports.reportPeriodStart,
+        reportPeriodEnd: weeklyReports.reportPeriodEnd,
+        reporterName: weeklyReports.reporterName,
+        weeklyTasks: weeklyReports.weeklyTasks,
+        issues: weeklyReports.issues,
+        aiAnalysis: weeklyReports.aiAnalysis,
         caseName: cases.caseName,
         projectName: cases.projectName
       })
@@ -472,10 +478,11 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         eq(cases.isDeleted, false),
         ...conditions
-      ));
+      ))
+      .limit(20); // 検索結果を最大20件に制限
 
     // 検索結果をフォーマット
-    for (const { report, caseName, projectName } of foundReports) {
+    for (const report of foundReports) {
       const matchFields: {
         field: string;
         text: string;
@@ -514,8 +521,8 @@ export class DatabaseStorage implements IStorage {
         type: 'report',
         title: `${report.reportPeriodStart} 〜 ${report.reportPeriodEnd} レポート`,
         description: report.weeklyTasks || '',
-        projectName,
-        caseName,
+        projectName: report.projectName,
+        caseName: report.caseName,
         date: new Date(report.reportPeriodEnd).toLocaleDateString(),
         match: matchFields,
         link: `/reports/${report.id}`
@@ -599,7 +606,7 @@ export class DatabaseStorage implements IStorage {
     return suggestions;
   }
 
-  // 週次報告の検索候補を取得
+  // 週次報告の検索候補を取得（軽量版）
   private async getReportSuggestions(keywords: string[], limit: number): Promise<SearchSuggestion[]> {
     const suggestions: SearchSuggestion[] = [];
 
@@ -613,10 +620,12 @@ export class DatabaseStorage implements IStorage {
       );
     });
 
-    // 関連する案件のJOINクエリを作成（最新の報告を先に表示）
+    // 検索候補用に必要最小限のフィールドのみ選択
     const foundReports = await db
       .select({
-        report: weeklyReports,
+        id: weeklyReports.id,
+        reportPeriodStart: weeklyReports.reportPeriodStart,
+        reportPeriodEnd: weeklyReports.reportPeriodEnd,
         caseName: cases.caseName,
         projectName: cases.projectName
       })
@@ -630,7 +639,7 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
 
     // 検索結果をフォーマット
-    for (const { report, caseName, projectName } of foundReports) {
+    for (const report of foundReports) {
       const startDate = new Date(report.reportPeriodStart).toLocaleDateString();
       const endDate = new Date(report.reportPeriodEnd).toLocaleDateString();
 
@@ -638,7 +647,7 @@ export class DatabaseStorage implements IStorage {
         id: report.id,
         type: 'report',
         title: `${startDate} 〜 ${endDate} レポート`,
-        description: `${projectName} / ${caseName}`,
+        description: `${report.projectName} / ${report.caseName}`,
         link: `/reports/${report.id}`
       });
     }
@@ -899,7 +908,7 @@ export class DatabaseStorage implements IStorage {
 
   // 【新規追加】週次報告一覧用の軽量メソッド（パフォーマンス最適化版）
   async getAllWeeklyReportsForList(limit: number = 50): Promise<WeeklyReportSummary[]> {
-    console.log('[DEBUG] Using optimized getAllWeeklyReportsForList method');
+    console.log(`[DEBUG] Using optimized getAllWeeklyReportsForList method with limit: ${limit}`);
     
     const result = await db
       .select({
@@ -919,7 +928,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
       .where(eq(cases.isDeleted, false))
       .orderBy(desc(weeklyReports.reportPeriodStart))
-      .limit(limit);
+      .limit(Math.min(limit, 100)); // 最大100件まで制限
 
     console.log(`[DEBUG] Retrieved ${result.length} weekly reports for list view`);
     return result;
