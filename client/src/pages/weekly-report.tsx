@@ -27,6 +27,7 @@ import { useLocation, Link, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Send, Plus, Save, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import CaseSelectorModal from "@/components/case-selector-modal";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
@@ -78,6 +79,9 @@ export default function WeeklyReport() {
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   // フォームが変更されたかどうかの状態
   const [formChanged, setFormChanged] = useState(false);
+  
+  // 案件選択モーダルの状態
+  const [isCaseSelectorOpen, setIsCaseSelectorOpen] = useState(false);
 
   // 議事録更新のミューテーション
   const updateMeetingMutation = useMutation({
@@ -447,15 +451,6 @@ export default function WeeklyReport() {
     );
   }
 
-  // 案件をプロジェクトごとにグループ化
-  const groupedCases = cases?.reduce((acc, currentCase) => {
-    const projectName = currentCase.projectName;
-    if (!acc[projectName]) {
-      acc[projectName] = [];
-    }
-    acc[projectName].push(currentCase);
-    return acc;
-  }, {} as Record<string, Case[]>) ?? {};
 
   return (
     <div className="min-h-screen bg-background">
@@ -570,47 +565,40 @@ export default function WeeklyReport() {
                 <FormField
                   control={form.control}
                   name="caseId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="required">案件</FormLabel>
-                      <div className="flex items-center gap-2">
-                        <Select
-                          onValueChange={(value) => {
-                            const caseId = parseInt(value);
-                            field.onChange(caseId);
-                            setSelectedCaseId(caseId);
-                          }}
-                          value={field.value?.toString()}
-                        >
+                  render={({ field }) => {
+                    const selectedCase = cases?.find(c => c.id === field.value);
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel className="required">案件</FormLabel>
+                        <div className="flex items-center gap-2">
                           <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="選択してください" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Object.entries(groupedCases).map(([projectName, projectCases]) => (
-                              <div key={projectName}>
-                                <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                                  {projectName}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                              onClick={() => setIsCaseSelectorOpen(true)}
+                            >
+                              {selectedCase ? (
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">{selectedCase.caseName}</span>
+                                  <span className="text-xs text-muted-foreground">{selectedCase.projectName}</span>
                                 </div>
-                                {projectCases.map((case_) => (
-                                  <SelectItem key={case_.id} value={case_.id.toString()}>
-                                    {case_.caseName}
-                                  </SelectItem>
-                                ))}
-                              </div>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Link href="/case/new">
-                          <Button variant="outline" size="icon" type="button">
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                              ) : (
+                                <span className="text-muted-foreground">案件を選択してください</span>
+                              )}
+                            </Button>
+                          </FormControl>
+                          <Link href="/case/new">
+                            <Button variant="outline" size="icon" type="button">
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 <FormField
@@ -1628,6 +1616,18 @@ export default function WeeklyReport() {
           </form>
         </Form>
       </div>
+
+      {/* 案件選択モーダル */}
+      <CaseSelectorModal
+        isOpen={isCaseSelectorOpen}
+        onClose={() => setIsCaseSelectorOpen(false)}
+        onSelect={(selectedCase) => {
+          form.setValue("caseId", selectedCase.id);
+          setSelectedCaseId(selectedCase.id);
+        }}
+        cases={cases || []}
+        selectedCaseId={selectedCaseId || undefined}
+      />
     </div>
   );
 }
