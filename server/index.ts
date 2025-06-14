@@ -58,8 +58,8 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
+      secure: false, // HTTPS環境でのみtrueにする
+      sameSite: 'lax', // 開発・本番環境で統一
       maxAge: 24 * 60 * 60 * 1000, // 24時間
       httpOnly: true
     },
