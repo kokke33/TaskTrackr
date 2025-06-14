@@ -987,22 +987,32 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       const updateData = insertWeeklyReportSchema.parse(updatedData);
       const updatedReport = await storage.updateWeeklyReport(id, updateData);
 
-      // 2. AI分析を実行
+      // 2. 関連案件情報を取得
       const relatedCase = await storage.getCase(updatedReport.caseId);
-      const analysis = await analyzeWeeklyReport(updatedReport, relatedCase);
-      if (analysis) {
-        await storage.updateAIAnalysis(id, analysis);
-      }
 
-      // 3. 差分を計算してAIで議事録を生成
-      const meetingMinutes = await generateEditMeetingMinutes(
-        originalData, 
-        updatedData, 
-        req.user?.username || "管理者",
-        relatedCase
-      );
+      // 3. AI分析と議事録生成を並列実行（処理時間短縮）
+      console.log("Starting parallel AI processing...");
+      const parallelStartTime = Date.now();
+      
+      const [analysis, meetingMinutes] = await Promise.all([
+        // AI分析処理
+        analyzeWeeklyReport(updatedReport, relatedCase),
+        // 議事録生成処理
+        generateEditMeetingMinutes(
+          originalData, 
+          updatedData, 
+          req.user?.username || "管理者",
+          relatedCase
+        )
+      ]);
+      
+      const parallelEndTime = Date.now();
+      console.log(`Parallel AI processing completed in ${parallelEndTime - parallelStartTime}ms`);
 
-      // 4. 修正会議議事録を保存
+      // 4. AI分析結果保存と議事録保存を並列実行
+      console.log("Starting parallel database operations...");
+      const dbStartTime = Date.now();
+      
       const meetingData = {
         weeklyReportId: id,
         meetingDate: new Date().toISOString().split('T')[0],
@@ -1013,7 +1023,15 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         modifiedData: updatedData
       };
 
-      const meeting = await storage.upsertWeeklyReportMeeting(meetingData);
+      const [, meeting] = await Promise.all([
+        // AI分析結果を保存（analysisが存在する場合のみ）
+        analysis ? storage.updateAIAnalysis(id, analysis) : Promise.resolve(),
+        // 修正会議議事録を保存
+        storage.upsertWeeklyReportMeeting(meetingData)
+      ]);
+      
+      const dbEndTime = Date.now();
+      console.log(`Parallel database operations completed in ${dbEndTime - dbStartTime}ms`);
 
       // 5. 最終的な週次報告データを取得
       const finalReport = await storage.getWeeklyReport(id);
