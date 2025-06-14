@@ -24,7 +24,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, Link, useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Send, Plus, Save, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
@@ -67,13 +67,89 @@ export default function WeeklyReport() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [isAutosaving, setIsAutosaving] = useState(false);
+  const queryClient = useQueryClient();
   
   // 管理者編集モード用の状態
   const [originalData, setOriginalData] = useState<WeeklyReport | null>(null);
+  
+  // 議事録編集の状態管理
+  const [editingMeetings, setEditingMeetings] = useState<{[key: number]: {title: string, content: string}}>({});
   // 自動保存タイマーのためのref
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   // フォームが変更されたかどうかの状態
   const [formChanged, setFormChanged] = useState(false);
+
+  // 議事録更新のミューテーション
+  const updateMeetingMutation = useMutation({
+    mutationFn: async ({ meetingId, title, content }: { meetingId: number, title: string, content: string }) => {
+      const response = await fetch(`/api/weekly-reports/meetings/${meetingId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title, content }),
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('議事録の更新に失敗しました');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/weekly-reports/${id}/meetings`] });
+      toast({
+        title: "成功",
+        description: "議事録が更新されました",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: "議事録の更新に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // 議事録編集のヘルパー関数
+  const startEditingMeeting = (meetingId: number, title: string, content: string) => {
+    setEditingMeetings(prev => ({
+      ...prev,
+      [meetingId]: { title, content }
+    }));
+  };
+
+  const cancelEditingMeeting = (meetingId: number) => {
+    setEditingMeetings(prev => {
+      const newState = { ...prev };
+      delete newState[meetingId];
+      return newState;
+    });
+  };
+
+  const saveMeeting = (meetingId: number) => {
+    const editData = editingMeetings[meetingId];
+    if (editData) {
+      updateMeetingMutation.mutate({
+        meetingId,
+        title: editData.title,
+        content: editData.content
+      });
+      cancelEditingMeeting(meetingId);
+    }
+  };
+
+  const updateMeetingField = (meetingId: number, field: 'title' | 'content', value: string) => {
+    setEditingMeetings(prev => ({
+      ...prev,
+      [meetingId]: {
+        ...prev[meetingId],
+        [field]: value
+      }
+    }));
+  };
 
   // 選択された案件の最新の報告を取得
   const { data: latestReport, isLoading: isLoadingLatest } = useQuery<WeeklyReport>({
@@ -1456,26 +1532,62 @@ export default function WeeklyReport() {
                       <div className="bg-gray-50 rounded-lg p-4">
                         <h4 className="font-medium mb-2">{meeting.title}</h4>
                         
-                        {/* 議事録内容表示 */}
-                        <div className="mb-4">
-                          <div className="whitespace-pre-wrap bg-white p-3 rounded border text-sm">
-                            {meeting.content}
+                        {editingMeetings[meeting.id] ? (
+                          // 編集モード
+                          <div className="mb-4">
+                            <div className="mb-4">
+                              <label className="block text-sm font-medium mb-2">タイトル:</label>
+                              <input
+                                type="text"
+                                value={editingMeetings[meeting.id].title}
+                                onChange={(e) => updateMeetingField(meeting.id, 'title', e.target.value)}
+                                className="w-full p-2 border rounded"
+                              />
+                            </div>
+                            <div className="mb-4">
+                              <label className="block text-sm font-medium mb-2">内容:</label>
+                              <Textarea
+                                value={editingMeetings[meeting.id].content}
+                                onChange={(e) => updateMeetingField(meeting.id, 'content', e.target.value)}
+                                className="min-h-[200px]"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                type="button"
+                                size="sm" 
+                                onClick={() => saveMeeting(meeting.id)}
+                                disabled={updateMeetingMutation.isPending}
+                              >
+                                {updateMeetingMutation.isPending ? "保存中..." : "保存"}
+                              </Button>
+                              <Button 
+                                type="button"
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => cancelEditingMeeting(meeting.id)}
+                              >
+                                キャンセル
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                        
-                        {/* 編集可能なテキストエリア（管理者編集モードの場合） */}
-                        {isAdminEditMode && (
-                          <div className="mt-4">
-                            <label className="block text-sm font-medium mb-2">議事録を編集:</label>
-                            <Textarea
-                              placeholder="議事録内容を編集..."
-                              defaultValue={meeting.content}
-                              className="min-h-[200px]"
-                              onChange={(e) => {
-                                // 議事録の編集内容を保存する処理（必要に応じて実装）
-                                console.log('Meeting content updated:', e.target.value);
-                              }}
-                            />
+                        ) : (
+                          // 表示モード
+                          <div className="mb-4">
+                            <div className="flex justify-between items-center mb-2">
+                              <h4 className="font-medium">{meeting.title}</h4>
+                              <Button 
+                                type="button"
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => startEditingMeeting(meeting.id, meeting.title, meeting.content)}
+                              >
+                                編集
+                              </Button>
+                            </div>
+                            <div className="whitespace-pre-wrap bg-white p-3 rounded border text-sm">
+                              {meeting.content}
+                            </div>
                           </div>
                         )}
                         

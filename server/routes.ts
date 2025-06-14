@@ -1043,6 +1043,37 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     }
   });
 
+  // 議事録更新エンドポイント
+  app.put("/api/weekly-reports/meetings/:meetingId", isAuthenticated, async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.meetingId);
+      const { title, content } = req.body;
+
+      // 議事録の存在確認
+      const existingMeeting = await storage.getWeeklyReportMeeting(meetingId);
+      if (!existingMeeting) {
+        return res.status(404).json({ message: "議事録が見つかりません" });
+      }
+
+      // 更新データを準備
+      const updateData = {
+        title: title || existingMeeting.title,
+        content: content || existingMeeting.content,
+      };
+
+      // 議事録を更新
+      const updatedMeeting = await storage.updateWeeklyReportMeeting(meetingId, updateData);
+      
+      res.json({ 
+        message: "議事録が更新されました",
+        meeting: updatedMeeting 
+      });
+    } catch (error) {
+      console.error("Error updating meeting:", error);
+      res.status(500).json({ message: "議事録の更新に失敗しました" });
+    }
+  });
+
   async function generateMonthlySummary(
     projectName: string,
     reports: any[],
@@ -1353,98 +1384,52 @@ ${previousReportInfo}
         businessOpportunities: "営業チャンス"
       };
 
-      // 文字列差分検出とタスク抽出機能（文脈情報付き）
-      const extractDiffWithContext = (original: string, updated: string, fieldName: string) => {
-        const originalLines = original.split('\n').map(line => line.trim()).filter(line => line);
-        const updatedLines = updated.split('\n').map(line => line.trim()).filter(line => line);
+      // フィールド単位の変更検出機能（一括処理）
+      const extractFieldChanges = (original: string, updated: string, fieldName: string) => {
+        // フィールド全体が変更されている場合のみ処理
+        if (original.trim() === updated.trim()) {
+          return null; // 変更なし
+        }
         
-        const diffsWithContext: Array<{
-          diff: string;
-          context: string;
-          fieldName: string;
-          fullOriginal: string;
-          fullUpdated: string;
-        }> = [];
-        
-        // 更新後にあって元になかった行を差分として抽出
-        updatedLines.forEach((updatedLine, index) => {
-          const isNewLine = !originalLines.some(originalLine => 
-            originalLine === updatedLine || 
-            updatedLine.includes(originalLine) || 
-            originalLine.includes(updatedLine)
-          );
-          
-          if (isNewLine) {
-            // 文脈を取得（差分の前後の行を含む）
-            const contextLines: string[] = [];
-            
-            // 前の行（最大2行）
-            for (let i = Math.max(0, index - 2); i < index; i++) {
-              if (updatedLines[i]) contextLines.push(updatedLines[i]);
-            }
-            
-            // 次の行（最大1行）
-            if (updatedLines[index + 1]) {
-              contextLines.push(updatedLines[index + 1]);
-            }
-            
-            // 元の内容で関連する文脈を検索
-            const relatedOriginalContext = originalLines.filter(line => 
-              contextLines.some(contextLine => 
-                contextLine.includes(line) || line.includes(contextLine)
-              )
-            );
-            
-            const context = Array.from(new Set([...relatedOriginalContext, ...contextLines])).join('\n');
-            
-            diffsWithContext.push({
-              diff: updatedLine,
-              context: context || original.substring(0, 100) + '...', // フォールバック
-              fieldName,
-              fullOriginal: original,
-              fullUpdated: updated
-            });
-          }
-        });
-        
-        return diffsWithContext;
+        return {
+          fieldName,
+          originalContent: original.trim(),
+          updatedContent: updated.trim(),
+          isFieldChanged: true
+        };
       };
 
-      const allDiffsWithContext: Array<{
-        diff: string;
-        context: string;
+      const fieldChanges: Array<{
         fieldName: string;
-        fullOriginal: string;
-        fullUpdated: string;
+        originalContent: string;
+        updatedContent: string;
+        isFieldChanged: boolean;
       }> = [];
 
-      // 各フィールドの文字列差分を検出（文脈情報付き）
+      // 各フィールドの変更を検出（フィールド単位の一括処理）
       Object.keys(fieldMapping).forEach(field => {
         const originalValue = String(originalData[field] || "").trim();
         const updatedValue = String(updatedData[field] || "").trim();
         
-        if (originalValue !== updatedValue) {
-          const diffsWithContext = extractDiffWithContext(originalValue, updatedValue, fieldMapping[field]);
-          allDiffsWithContext.push(...diffsWithContext);
+        const change = extractFieldChanges(originalValue, updatedValue, fieldMapping[field]);
+        if (change) {
+          fieldChanges.push(change);
         }
       });
 
       // AIプロンプト用のデータを準備
       let changesText = "";
-      if (allDiffsWithContext.length > 0) {
-        const diffDetails = allDiffsWithContext.map(item => `
-**${item.fieldName}での修正**
-修正前の文脈:
-${item.fullOriginal}
+      if (fieldChanges.length > 0) {
+        const changeDetails = fieldChanges.map(change => `
+**${change.fieldName}の修正**
+修正前:
+${change.originalContent || "(空欄)"}
 
-修正後の内容:
-${item.fullUpdated}
-
-追加された差分:
-${item.diff}
+修正後:
+${change.updatedContent}
 `).join('\n');
         
-        changesText = `**確認・修正された内容の詳細**\n${diffDetails}`;
+        changesText = `**確認・修正された内容の詳細**\n${changeDetails}`;
       } else {
         changesText = "変更が検出されませんでした。";
       }
@@ -1463,15 +1448,19 @@ ${changesText}
 
 **議事録作成指示**
 - 議事録は「主要なアクションアイテムと背景」の項目のみを作成してください
-- 修正前後の文脈をよく読み取り、「何について」の修正なのかを明確にする
-- 追加された差分（→で始まる指示、新しいタスク等）について、その背景となる状況を含めて記録
-- 例：「外部インターフェース設計において、外部仕様待ちのため未着手の状況に対し、早急にリーダーに確認し、その結果をTeamsで報告することを指示」
+- 各フィールドの修正内容を全体として捉え、関連する複数の項目や指示をまとめて理解する
+- 修正前後の文脈から、追加された内容（→で始まる指示、新しいタスク等）の背景と目的を読み取る
+- 例：
+  「REACTのバージョンアップ
+   → VerXX→VerXXへのアップに伴う作業。計画とリスク、テスト手法など明確化する。
+     見積もりは？？」
+  のような複数行の関連内容は、一つのアクションアイテムとしてまとめて処理する
 - アクションアイテムは具体的な内容と背景を含めて記載
 - 後から見たときに何の件か分かるような文脈を含む内容にする
 - Markdownテーブルは使用せず、シンプルなテキスト形式で記載
 - 箇条書き（-）を使用してアクションアイテムを整理
 
-「主要なアクションアイテムと背景」のみの簡潔で実用的な議事録を作成してください。
+関連する複数行をまとめて理解し、「主要なアクションアイテムと背景」のみの簡潔で実用的な議事録を作成してください。
 `;
 
       // AIサービスを使用して議事録を生成
