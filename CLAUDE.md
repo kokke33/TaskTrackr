@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+# グローバル設定
+- すべての応答は日本語で行ってください
+- YOU MUST always respond in Japanese
+
+
 ## Development Commands
 
 ### Core Development

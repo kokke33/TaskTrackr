@@ -1463,26 +1463,8 @@ ${previousReportInfo}
           change.markedUpContent
         ).join('\n\n');
         
-        // 重要な関連フィールドを参考情報として追加
-        let contextualInfo = "";
-        const importantUnchangedFields = unchangedFields.filter(field => 
-          field.fieldName.includes("進捗") || 
-          field.fieldName.includes("課題") || 
-          field.fieldName.includes("リスク") ||
-          field.fieldName.includes("作業内容") ||
-          field.fieldName.includes("予定")
-        );
         
-        if (importantUnchangedFields.length > 0) {
-          contextualInfo = "\n\n**参考：関連する既存情報**\n";
-          importantUnchangedFields.forEach(field => {
-            if (field.content.length > 0) {
-              contextualInfo += `\n**${field.fieldName}（変更なし）**\n${field.content}\n`;
-            }
-          });
-        }
-        
-        changesText = `**週次報告の修正内容（文脈付き）**\n\n${changedFieldsContent}${contextualInfo}`;
+        changesText = `**週次報告の修正内容**\n\n${changedFieldsContent}`;
       } else {
         changesText = "変更が検出されませんでした。";
       }
