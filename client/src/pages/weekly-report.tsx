@@ -1518,8 +1518,6 @@ export default function WeeklyReport() {
                         </h3>
                       )}
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <h4 className="font-medium mb-2">{meeting.title}</h4>
-                        
                         {editingMeetings[meeting.id] ? (
                           // 編集モード
                           <div className="mb-4">
