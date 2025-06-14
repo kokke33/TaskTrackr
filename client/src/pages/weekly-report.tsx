@@ -1581,7 +1581,7 @@ export default function WeeklyReport() {
                         
                         <div className="mt-3 text-sm text-gray-500">
                           修正者: {meeting.modifiedBy} | 
-                          日時: {new Date(meeting.createdAt).toLocaleString('ja-JP')}
+                          日時: {new Date(meeting.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
                         </div>
                       </div>
                     </div>

@@ -1493,7 +1493,7 @@ ${previousReportInfo}
 - 対象報告: ${reportPeriod}
 - 対象案件: ${projectInfo}
 - 参加者: ${modifiedBy}（管理者）、報告者
-- 日時: ${new Date().toLocaleString('ja-JP')}
+- 日時: ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
 
 ${changesText}
 
@@ -1550,7 +1550,7 @@ ${changesText}
 # 週次報告修正会議議事録
 
 ## 会議概要
-- **日時**: ${new Date().toLocaleString('ja-JP')}
+- **日時**: ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
 - **修正者**: ${modifiedBy}
 - **対象報告**: ${updatedData.reportPeriodStart || "日付不明"} の週次報告
 
