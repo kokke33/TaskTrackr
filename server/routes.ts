@@ -1384,52 +1384,105 @@ ${previousReportInfo}
         businessOpportunities: "営業チャンス"
       };
 
-      // フィールド単位の変更検出機能（一括処理）
-      const extractFieldChanges = (original: string, updated: string, fieldName: string) => {
-        // フィールド全体が変更されている場合のみ処理
+      // フィールド内の変更箇所を文脈付きでマークアップする機能
+      const generateContextualFieldContent = (original: string, updated: string, fieldName: string) => {
         if (original.trim() === updated.trim()) {
           return null; // 変更なし
         }
         
+        const originalLines = original.split('\n').map(line => line.trim()).filter(line => line);
+        const updatedLines = updated.split('\n').map(line => line.trim()).filter(line => line);
+        
+        // 更新後の内容をベースに、各行の状態を判定してマークアップ
+        let markedUpContent = `**${fieldName}（変更あり）**\n`;
+        
+        updatedLines.forEach(updatedLine => {
+          const isNewLine = !originalLines.some(originalLine => originalLine === updatedLine);
+          
+          if (isNewLine) {
+            // 追加された行
+            markedUpContent += `**[追加]** ${updatedLine}\n`;
+          } else {
+            // 変更されていない既存の行
+            markedUpContent += `${updatedLine}\n`;
+          }
+        });
+        
+        // 削除された行があるかチェック
+        const deletedLines = originalLines.filter(originalLine => 
+          !updatedLines.some(updatedLine => updatedLine === originalLine)
+        );
+        
+        if (deletedLines.length > 0) {
+          markedUpContent += `\n**削除された内容:**\n`;
+          deletedLines.forEach(deletedLine => {
+            markedUpContent += `**[削除]** ${deletedLine}\n`;
+          });
+        }
+        
         return {
           fieldName,
-          originalContent: original.trim(),
-          updatedContent: updated.trim(),
-          isFieldChanged: true
+          markedUpContent: markedUpContent.trim(),
+          hasChanges: true
         };
       };
 
-      const fieldChanges: Array<{
+      const contextualChanges: Array<{
         fieldName: string;
-        originalContent: string;
-        updatedContent: string;
-        isFieldChanged: boolean;
+        markedUpContent: string;
+        hasChanges: boolean;
       }> = [];
 
-      // 各フィールドの変更を検出（フィールド単位の一括処理）
+      const unchangedFields: Array<{
+        fieldName: string;
+        content: string;
+      }> = [];
+
+      // 各フィールドの変更を文脈付きで検出
       Object.keys(fieldMapping).forEach(field => {
         const originalValue = String(originalData[field] || "").trim();
         const updatedValue = String(updatedData[field] || "").trim();
         
-        const change = extractFieldChanges(originalValue, updatedValue, fieldMapping[field]);
+        const change = generateContextualFieldContent(originalValue, updatedValue, fieldMapping[field]);
         if (change) {
-          fieldChanges.push(change);
+          contextualChanges.push(change);
+        } else if (updatedValue) {
+          // 変更がないが内容があるフィールドは参考情報として保存
+          unchangedFields.push({
+            fieldName: fieldMapping[field],
+            content: updatedValue
+          });
         }
       });
 
-      // AIプロンプト用のデータを準備
+      // AIプロンプト用のデータを準備（文脈を重視した変更箇所の表示）
       let changesText = "";
-      if (fieldChanges.length > 0) {
-        const changeDetails = fieldChanges.map(change => `
-**${change.fieldName}の修正**
-修正前:
-${change.originalContent || "(空欄)"}
-
-修正後:
-${change.updatedContent}
-`).join('\n');
+      if (contextualChanges.length > 0) {
+        // 変更があったフィールドの内容をマークアップ付きで表示
+        const changedFieldsContent = contextualChanges.map(change => 
+          change.markedUpContent
+        ).join('\n\n');
         
-        changesText = `**確認・修正された内容の詳細**\n${changeDetails}`;
+        // 重要な関連フィールドを参考情報として追加
+        let contextualInfo = "";
+        const importantUnchangedFields = unchangedFields.filter(field => 
+          field.fieldName.includes("進捗") || 
+          field.fieldName.includes("課題") || 
+          field.fieldName.includes("リスク") ||
+          field.fieldName.includes("作業内容") ||
+          field.fieldName.includes("予定")
+        );
+        
+        if (importantUnchangedFields.length > 0) {
+          contextualInfo = "\n\n**参考：関連する既存情報**\n";
+          importantUnchangedFields.forEach(field => {
+            if (field.content.length > 0) {
+              contextualInfo += `\n**${field.fieldName}（変更なし）**\n${field.content}\n`;
+            }
+          });
+        }
+        
+        changesText = `**週次報告の修正内容（文脈付き）**\n\n${changedFieldsContent}${contextualInfo}`;
       } else {
         changesText = "変更が検出されませんでした。";
       }
@@ -1448,19 +1501,27 @@ ${changesText}
 
 **議事録作成指示**
 - 議事録は「主要なアクションアイテムと背景」の項目のみを作成してください
-- 各フィールドの修正内容を全体として捉え、関連する複数の項目や指示をまとめて理解する
-- 修正前後の文脈から、追加された内容（→で始まる指示、新しいタスク等）の背景と目的を読み取る
+- **重要**: 変更された箇所（**[追加]**マーク付き）の内容と、その文脈（既存の作業内容）を理解した上でタスクを生成する
+- 変更がない既存の作業項目に対するタスクは生成しない
+- **[追加]**マークが付いた内容について、アクションアイテムを作成：
+
 - 例：
-  「REACTのバージョンアップ
-   → VerXX→VerXXへのアップに伴う作業。計画とリスク、テスト手法など明確化する。
-     見積もりは？？」
-  のような複数行の関連内容は、一つのアクションアイテムとしてまとめて処理する
-- アクションアイテムは具体的な内容と背景を含めて記載
-- 後から見たときに何の件か分かるような文脈を含む内容にする
+  **今週の作業内容（変更あり）**
+  ・システム設計書の作成
+  ・データベース設計
+  ・REACTのバージョンアップ
+  **[追加]** → VerXX→VerXXへのアップに伴う作業。計画とリスク、テスト手法など明確化する。
+  
+  →「システム設計とデータベース設計の進行中に新たにREACTバージョンアップが必要となったため、
+    既存の設計作業への影響を評価し、アップグレード計画を策定する必要がある」
+    という文脈を理解したタスクを生成
+
+- 関連する複数の追加内容は統合してアクションアイテムを作成
+- アクションアイテムには「具体的に何をするか」をシンプルに記載する。
 - Markdownテーブルは使用せず、シンプルなテキスト形式で記載
 - 箇条書き（-）を使用してアクションアイテムを整理
 
-関連する複数行をまとめて理解し、「主要なアクションアイテムと背景」のみの簡潔で実用的な議事録を作成してください。
+変更箇所を既存の作業内容との関連で理解し、文脈を踏まえた実用的な議事録を作成してください。
 `;
 
       // AIサービスを使用して議事録を生成
@@ -1469,7 +1530,7 @@ ${changesText}
       const response = await aiService.generateResponse([
         {
           role: "system",
-          content: "あなたは文脈を重視した実用的な議事録を作成するアシスタントです。修正前後の内容をよく読み取り、「何について」の修正なのかを明確にし、後から参照したときに理解しやすい議事録を作成できます。タスクや指示の背景となる状況も含めて記録します。"
+          content: "あなたは文脈を重視した実用的な議事録を作成する専門アシスタントです。週次報告の変更内容を、既存の作業フローとの関連性の中で理解し、以下の能力を持っています：\n\n1. 変更箇所が既存の作業にどのような影響を与えるかを分析\n2. プロジェクト全体の流れを理解した上でタスクの優先度と関連性を判断\n3. 「なぜその変更が必要になったか」の背景を推測\n4. 実行可能で具体的なアクションアイテムを生成\n5. 後から参照したときに変更の意図と対応策が明確に分かる議事録を作成\n\n変更箇所だけでなく、その文脈を十分に理解した上で、実用的で行動に移しやすいタスクリストを含む議事録を作成してください。"
         },
         { role: "user", content: prompt }
       ], undefined, {
