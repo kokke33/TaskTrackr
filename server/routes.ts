@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertWeeklyReportSchema, insertCaseSchema, insertProjectSchema, insertManagerMeetingSchema } from "@shared/schema";
+import { insertWeeklyReportSchema, insertCaseSchema, insertProjectSchema, insertManagerMeetingSchema, insertWeeklyReportMeetingSchema } from "@shared/schema";
 import { getAIService } from "./ai-service";
 import passport from "passport";
 import { isAuthenticated, isAdmin } from "./auth";
@@ -944,6 +944,105 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     }
   });
 
+  // 週次報告修正会議関連のエンドポイント
+  
+  // 管理者編集開始エンドポイント
+  app.post("/api/weekly-reports/:id/admin-edit-start", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const report = await storage.getWeeklyReport(id);
+      
+      if (!report) {
+        res.status(404).json({ message: "週次報告が見つかりません" });
+        return;
+      }
+
+      // 管理者編集モード用に元データを返却
+      res.json({
+        report,
+        message: "管理者編集モードを開始しました"
+      });
+    } catch (error) {
+      console.error("Error starting admin edit:", error);
+      res.status(500).json({ message: "管理者編集の開始に失敗しました" });
+    }
+  });
+
+  // 管理者編集完了＋議事録生成エンドポイント
+  app.put("/api/weekly-reports/:id/admin-edit-complete", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { originalData, updatedData } = req.body;
+      
+      if (!originalData || !updatedData) {
+        res.status(400).json({ message: "修正前後のデータが必要です" });
+        return;
+      }
+
+      const existingReport = await storage.getWeeklyReport(id);
+      if (!existingReport) {
+        res.status(404).json({ message: "週次報告が見つかりません" });
+        return;
+      }
+
+      // 1. 週次報告を更新
+      const updateData = insertWeeklyReportSchema.parse(updatedData);
+      const updatedReport = await storage.updateWeeklyReport(id, updateData);
+
+      // 2. AI分析を実行
+      const relatedCase = await storage.getCase(updatedReport.caseId);
+      const analysis = await analyzeWeeklyReport(updatedReport, relatedCase);
+      if (analysis) {
+        await storage.updateAIAnalysis(id, analysis);
+      }
+
+      // 3. 差分を計算してAIで議事録を生成
+      const meetingMinutes = await generateEditMeetingMinutes(
+        originalData, 
+        updatedData, 
+        req.user?.username || "管理者",
+        relatedCase
+      );
+
+      // 4. 修正会議議事録を保存
+      const meetingData = {
+        weeklyReportId: id,
+        meetingDate: new Date().toISOString().split('T')[0],
+        title: meetingMinutes.title,
+        content: meetingMinutes.content,
+        modifiedBy: req.user?.username || "管理者",
+        originalData: originalData,
+        modifiedData: updatedData
+      };
+
+      const meeting = await storage.upsertWeeklyReportMeeting(meetingData);
+
+      // 5. 最終的な週次報告データを取得
+      const finalReport = await storage.getWeeklyReport(id);
+      
+      res.json({
+        report: finalReport,
+        meeting,
+        message: "修正と議事録生成が完了しました"
+      });
+    } catch (error) {
+      console.error("Error completing admin edit:", error);
+      res.status(500).json({ message: "管理者編集の完了に失敗しました" });
+    }
+  });
+
+  // 週次報告の修正履歴を取得
+  app.get("/api/weekly-reports/:id/meetings", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const meetings = await storage.getWeeklyReportMeetingsByReportId(id);
+      res.json(meetings);
+    } catch (error) {
+      console.error("Error fetching report meetings:", error);
+      res.status(500).json({ message: "修正履歴の取得に失敗しました" });
+    }
+  });
+
   async function generateMonthlySummary(
     projectName: string,
     reports: any[],
@@ -1198,6 +1297,227 @@ ${previousReportInfo}
     } catch (error) {
       console.error("OpenAI API error:", error);
       return "AI分析中にエラーが発生しました。";
+    }
+  }
+
+  // AI議事録生成機能
+  async function generateEditMeetingMinutes(
+    originalData: any,
+    updatedData: any,
+    modifiedBy: string,
+    relatedCase: any
+  ): Promise<{ title: string; content: string }> {
+    try {
+      // 関連する案件・プロジェクト情報
+      const projectInfo = relatedCase
+        ? `${relatedCase.projectName} - ${relatedCase.caseName}`
+        : "案件情報取得不可";
+      
+      // 報告期間を取得
+      const reportPeriod = updatedData.reportPeriodStart && updatedData.reportPeriodEnd
+        ? `${updatedData.reportPeriodStart} 〜 ${updatedData.reportPeriodEnd}`
+        : "期間不明";
+
+      // タイトル生成
+      const title = `週次報告修正会議 - ${reportPeriod} - ${projectInfo}`;
+
+      // 変更フィールドを検出
+      const changes: Array<{field: string, fieldName: string, before: string, after: string}> = [];
+      
+      const fieldMapping: Record<string, string> = {
+        reporterName: "報告者名",
+        weeklyTasks: "今週の作業内容",
+        progressRate: "進捗率",
+        progressStatus: "進捗状況",
+        delayIssues: "遅延・問題の有無",
+        delayDetails: "遅延・問題の詳細",
+        issues: "課題・問題点",
+        newRisks: "新たなリスクの有無",
+        riskSummary: "リスクの概要",
+        riskCountermeasures: "リスク対策",
+        riskLevel: "リスクレベル",
+        qualityConcerns: "品質懸念の有無",
+        qualityDetails: "品質懸念の詳細",
+        testProgress: "テスト進捗",
+        changes: "変更の有無",
+        changeDetails: "変更詳細",
+        nextWeekPlan: "来週の予定",
+        supportRequests: "支援・判断要望",
+        resourceConcerns: "リソース懸念",
+        customerIssues: "顧客懸念",
+        environmentIssues: "環境懸念",
+        costIssues: "コスト懸念",
+        knowledgeIssues: "知識・スキル懸念",
+        trainingIssues: "教育懸念",
+        urgentIssues: "緊急課題懸念",
+        businessOpportunities: "営業チャンス"
+      };
+
+      // 文字列差分検出とタスク抽出機能（文脈情報付き）
+      const extractDiffWithContext = (original: string, updated: string, fieldName: string) => {
+        const originalLines = original.split('\n').map(line => line.trim()).filter(line => line);
+        const updatedLines = updated.split('\n').map(line => line.trim()).filter(line => line);
+        
+        const diffsWithContext: Array<{
+          diff: string;
+          context: string;
+          fieldName: string;
+          fullOriginal: string;
+          fullUpdated: string;
+        }> = [];
+        
+        // 更新後にあって元になかった行を差分として抽出
+        updatedLines.forEach((updatedLine, index) => {
+          const isNewLine = !originalLines.some(originalLine => 
+            originalLine === updatedLine || 
+            updatedLine.includes(originalLine) || 
+            originalLine.includes(updatedLine)
+          );
+          
+          if (isNewLine) {
+            // 文脈を取得（差分の前後の行を含む）
+            const contextLines: string[] = [];
+            
+            // 前の行（最大2行）
+            for (let i = Math.max(0, index - 2); i < index; i++) {
+              if (updatedLines[i]) contextLines.push(updatedLines[i]);
+            }
+            
+            // 次の行（最大1行）
+            if (updatedLines[index + 1]) {
+              contextLines.push(updatedLines[index + 1]);
+            }
+            
+            // 元の内容で関連する文脈を検索
+            const relatedOriginalContext = originalLines.filter(line => 
+              contextLines.some(contextLine => 
+                contextLine.includes(line) || line.includes(contextLine)
+              )
+            );
+            
+            const context = Array.from(new Set([...relatedOriginalContext, ...contextLines])).join('\n');
+            
+            diffsWithContext.push({
+              diff: updatedLine,
+              context: context || original.substring(0, 100) + '...', // フォールバック
+              fieldName,
+              fullOriginal: original,
+              fullUpdated: updated
+            });
+          }
+        });
+        
+        return diffsWithContext;
+      };
+
+      const allDiffsWithContext: Array<{
+        diff: string;
+        context: string;
+        fieldName: string;
+        fullOriginal: string;
+        fullUpdated: string;
+      }> = [];
+
+      // 各フィールドの文字列差分を検出（文脈情報付き）
+      Object.keys(fieldMapping).forEach(field => {
+        const originalValue = String(originalData[field] || "").trim();
+        const updatedValue = String(updatedData[field] || "").trim();
+        
+        if (originalValue !== updatedValue) {
+          const diffsWithContext = extractDiffWithContext(originalValue, updatedValue, fieldMapping[field]);
+          allDiffsWithContext.push(...diffsWithContext);
+        }
+      });
+
+      // AIプロンプト用のデータを準備
+      let changesText = "";
+      if (allDiffsWithContext.length > 0) {
+        const diffDetails = allDiffsWithContext.map(item => `
+**${item.fieldName}での修正**
+修正前の文脈:
+${item.fullOriginal}
+
+修正後の内容:
+${item.fullUpdated}
+
+追加された差分:
+${item.diff}
+`).join('\n');
+        
+        changesText = `**確認・修正された内容の詳細**\n${diffDetails}`;
+      } else {
+        changesText = "変更が検出されませんでした。";
+      }
+
+      const prompt = `
+以下の週次報告確認会の議事録を作成してください。
+
+**会議情報**
+- 会議: 週次報告確認会
+- 対象報告: ${reportPeriod}
+- 対象案件: ${projectInfo}
+- 参加者: ${modifiedBy}（管理者）、報告者
+- 日時: ${new Date().toLocaleString('ja-JP')}
+
+${changesText}
+
+**議事録作成指示**
+- 議事録は「主要なアクションアイテムと背景」の項目のみを作成してください
+- 修正前後の文脈をよく読み取り、「何について」の修正なのかを明確にする
+- 追加された差分（→で始まる指示、新しいタスク等）について、その背景となる状況を含めて記録
+- 例：「外部インターフェース設計において、外部仕様待ちのため未着手の状況に対し、早急にリーダーに確認し、その結果をTeamsで報告することを指示」
+- アクションアイテムは具体的な内容と背景を含めて記載
+- 後から見たときに何の件か分かるような文脈を含む内容にする
+- Markdownテーブルは使用せず、シンプルなテキスト形式で記載
+- 箇条書き（-）を使用してアクションアイテムを整理
+
+「主要なアクションアイテムと背景」のみの簡潔で実用的な議事録を作成してください。
+`;
+
+      // AIサービスを使用して議事録を生成
+      const aiService = getAIService();
+      
+      const response = await aiService.generateResponse([
+        {
+          role: "system",
+          content: "あなたは文脈を重視した実用的な議事録を作成するアシスタントです。修正前後の内容をよく読み取り、「何について」の修正なのかを明確にし、後から参照したときに理解しやすい議事録を作成できます。タスクや指示の背景となる状況も含めて記録します。"
+        },
+        { role: "user", content: prompt }
+      ], undefined, {
+        operation: 'generateEditMeetingMinutes',
+        projectName: relatedCase?.projectName,
+        reportPeriod
+      });
+
+      return {
+        title,
+        content: response.content
+      };
+    } catch (error) {
+      console.error("AI議事録生成エラー:", error);
+      
+      // エラー時はシンプルな議事録を生成
+      const fallbackTitle = `週次報告修正会議 - ${updatedData.reportPeriodStart || "日付不明"} - ${relatedCase?.projectName || "プロジェクト不明"}`;
+      const fallbackContent = `
+# 週次報告修正会議議事録
+
+## 会議概要
+- **日時**: ${new Date().toLocaleString('ja-JP')}
+- **修正者**: ${modifiedBy}
+- **対象報告**: ${updatedData.reportPeriodStart || "日付不明"} の週次報告
+
+## 修正内容
+管理者により週次報告の修正が実施されました。
+
+## 備考
+AI議事録生成中にエラーが発生したため、簡易版議事録を作成しました。
+詳細な修正内容については、修正履歴データをご確認ください。
+`;
+
+      return {
+        title: fallbackTitle,
+        content: fallbackContent
+      };
     }
   }
 

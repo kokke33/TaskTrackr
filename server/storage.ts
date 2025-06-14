@@ -1,4 +1,4 @@
-import { cases, weeklyReports, projects, users, managerMeetings, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting } from "@shared/schema";
+import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql } from "drizzle-orm";
 
@@ -1106,6 +1106,68 @@ export class DatabaseStorage implements IStorage {
       console.error("Error fetching available months:", error);
       return [];
     }
+  }
+
+  // 週次報告修正会議関連のメソッド
+  async createWeeklyReportMeeting(meetingData: InsertWeeklyReportMeeting): Promise<WeeklyReportMeeting> {
+    const [meeting] = await db
+      .insert(weeklyReportMeetings)
+      .values(meetingData)
+      .returning();
+    return meeting;
+  }
+
+  async upsertWeeklyReportMeeting(meetingData: InsertWeeklyReportMeeting): Promise<WeeklyReportMeeting> {
+    const [meeting] = await db
+      .insert(weeklyReportMeetings)
+      .values(meetingData)
+      .onConflictDoUpdate({
+        target: weeklyReportMeetings.weeklyReportId,
+        set: {
+          meetingDate: meetingData.meetingDate,
+          title: meetingData.title,
+          content: meetingData.content,
+          modifiedBy: meetingData.modifiedBy,
+          originalData: meetingData.originalData,
+          modifiedData: meetingData.modifiedData,
+          createdAt: new Date(), // 最新の更新時刻を記録
+        }
+      })
+      .returning();
+    return meeting;
+  }
+
+  async getWeeklyReportMeeting(id: number): Promise<WeeklyReportMeeting | undefined> {
+    const [meeting] = await db
+      .select()
+      .from(weeklyReportMeetings)
+      .where(eq(weeklyReportMeetings.id, id));
+    return meeting;
+  }
+
+  async getWeeklyReportMeetingsByReportId(weeklyReportId: number): Promise<WeeklyReportMeeting[]> {
+    return await db
+      .select()
+      .from(weeklyReportMeetings)
+      .where(eq(weeklyReportMeetings.weeklyReportId, weeklyReportId))
+      .orderBy(desc(weeklyReportMeetings.createdAt));
+  }
+
+  async updateWeeklyReportMeeting(id: number, meetingData: Partial<InsertWeeklyReportMeeting>): Promise<WeeklyReportMeeting> {
+    const [updated] = await db
+      .update(weeklyReportMeetings)
+      .set(meetingData)
+      .where(eq(weeklyReportMeetings.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteWeeklyReportMeeting(id: number): Promise<WeeklyReportMeeting> {
+    const [deleted] = await db
+      .delete(weeklyReportMeetings)
+      .where(eq(weeklyReportMeetings.id, id))
+      .returning();
+    return deleted;
   }
 }
 

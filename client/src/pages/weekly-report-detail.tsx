@@ -1,11 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link, useParams, useLocation } from "wouter";
 import { WeeklyReport } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Edit, Home, Briefcase, FileText, ChevronRight } from "lucide-react";
+import { Edit, Home, Briefcase, FileText, ChevronRight, ShieldCheck } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
+import { useAuth } from "@/lib/auth";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Breadcrumb,
   BreadcrumbItem,
@@ -18,6 +21,12 @@ import {
 
 export default function WeeklyReportDetail() {
   const { id } = useParams<{ id: string }>();
+  const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [originalData, setOriginalData] = useState<WeeklyReport | null>(null);
+  const { toast } = useToast();
+  
   const { data: report, isLoading } = useQuery<WeeklyReport>({
     queryKey: [`/api/weekly-reports/${id}`],
     staleTime: 0, // 常にデータを古いとみなす
@@ -31,6 +40,52 @@ export default function WeeklyReportDetail() {
     staleTime: 0,
     enabled: !!report, // レポートが取得できたら案件情報も取得
   });
+
+  // 議事録を取得
+  const { data: meetings } = useQuery<any[]>({
+    queryKey: [`/api/weekly-reports/${id}/meetings`],
+    staleTime: 0,
+    enabled: !!report, // レポートが取得できたら議事録も取得
+  });
+
+  // 管理者編集開始のミューテーション
+  const adminEditStartMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/weekly-reports/${id}/admin-edit-start`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('管理者編集の開始に失敗しました');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // 元データをReact stateに保存
+      setOriginalData(data.report);
+      // セッションストレージに元データを保存
+      sessionStorage.setItem(`adminEdit_original_${id}`, JSON.stringify(data.report));
+      // 編集画面に遷移（管理者編集モード）
+      setLocation(`/report/edit/${id}?adminEdit=true`);
+      toast({
+        title: "管理者編集モードを開始しました",
+        description: "修正作業を開始してください。",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "エラー",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // 管理者編集開始ハンドラー
+  const handleAdminEditStart = () => {
+    if (!report) return;
+    adminEditStartMutation.mutate();
+  };
 
   // ステータスの日本語マッピング
   const progressStatusMap = {
@@ -117,6 +172,17 @@ export default function WeeklyReportDetail() {
                   編集
                 </Button>
               </Link>
+              {user?.isAdmin && (
+                <Button 
+                  onClick={handleAdminEditStart}
+                  disabled={adminEditStartMutation.isPending}
+                  variant="default"
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  {adminEditStartMutation.isPending ? '準備中...' : '管理者編集'}
+                </Button>
+              )}
               <Link href={`/reports?projectName=${encodeURIComponent(projectName || '')}&caseId=${report.caseId || ''}`}>
                 <Button variant="outline">一覧に戻る</Button>
               </Link>
@@ -332,6 +398,33 @@ export default function WeeklyReportDetail() {
                 <div className="prose prose-sm max-w-none">
                   <ReactMarkdown>{report.aiAnalysis}</ReactMarkdown>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {meetings && meetings.length > 0 && (
+            <Card>
+              <CardContent className="p-6">
+                <h2 className="text-xl font-semibold mb-4 pb-2 border-b">■ 確認会議事録</h2>
+                {meetings.map((meeting, index) => (
+                  <div key={meeting.id} className="mb-6 last:mb-0">
+                    {meetings.length > 1 && (
+                      <h3 className="text-lg font-medium mb-3 text-gray-700">
+                        {meetings.length - index}回目の修正 ({new Date(meeting.createdAt).toLocaleDateString('ja-JP')})
+                      </h3>
+                    )}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="font-medium mb-2">{meeting.title}</h4>
+                      <div className="whitespace-pre-wrap text-sm">
+                        {meeting.content}
+                      </div>
+                      <div className="mt-3 text-sm text-gray-500">
+                        修正者: {meeting.modifiedBy} | 
+                        日時: {new Date(meeting.createdAt).toLocaleString('ja-JP')}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           )}

@@ -108,12 +108,26 @@ export const managerMeetings = pgTable("manager_meetings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// 週次報告修正会議議事録テーブル
+export const weeklyReportMeetings = pgTable("weekly_report_meetings", {
+  id: serial("id").primaryKey(),
+  weeklyReportId: integer("weekly_report_id").notNull().unique(), // 週次報告IDをユニークに設定
+  meetingDate: date("meeting_date").notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(), // AI生成された修正履歴議事録
+  modifiedBy: text("modified_by").notNull(), // 修正者名
+  originalData: jsonb("original_data").notNull(), // 修正前データ（JSON形式）
+  modifiedData: jsonb("modified_data").notNull(), // 修正後データ（JSON形式）
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // 週次報告と案件の関係定義
-export const weeklyReportsRelations = relations(weeklyReports, ({ one }) => ({
+export const weeklyReportsRelations = relations(weeklyReports, ({ one, many }) => ({
   case: one(cases, {
     fields: [weeklyReports.caseId],
     references: [cases.id],
   }),
+  meetings: many(weeklyReportMeetings),
 }));
 
 // マネージャ定例議事録とプロジェクトの関係定義
@@ -121,6 +135,14 @@ export const managerMeetingsRelations = relations(managerMeetings, ({ one }) => 
   project: one(projects, {
     fields: [managerMeetings.projectId],
     references: [projects.id],
+  }),
+}));
+
+// 週次報告修正会議議事録と週次報告の関係定義
+export const weeklyReportMeetingsRelations = relations(weeklyReportMeetings, ({ one }) => ({
+  weeklyReport: one(weeklyReports, {
+    fields: [weeklyReportMeetings.weeklyReportId],
+    references: [weeklyReports.id],
   }),
 }));
 
@@ -153,6 +175,11 @@ export const insertManagerMeetingSchema = createInsertSchema(managerMeetings).om
   updatedAt: true,
 });
 
+export const insertWeeklyReportMeetingSchema = createInsertSchema(weeklyReportMeetings).omit({
+  id: true,
+  createdAt: true,
+});
+
 // 型定義
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -167,3 +194,5 @@ export type WeeklyReport = typeof weeklyReports.$inferSelect & {
 };
 export type InsertManagerMeeting = z.infer<typeof insertManagerMeetingSchema>;
 export type ManagerMeeting = typeof managerMeetings.$inferSelect;
+export type InsertWeeklyReportMeeting = z.infer<typeof insertWeeklyReportMeetingSchema>;
+export type WeeklyReportMeeting = typeof weeklyReportMeetings.$inferSelect;

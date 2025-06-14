@@ -25,11 +25,24 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Send, Plus, Save } from "lucide-react";
+import { Send, Plus, Save, ShieldCheck } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
+  const { user } = useAuth();
+  
+  // URLパラメータから管理者編集モードを検出
+  const [location] = useLocation();
+  const urlParams = new URLSearchParams(window.location.search);
+  const isAdminEditMode = urlParams.get('adminEdit') === 'true' && user?.isAdmin;
+  
+  // デバッグログ
+  console.log('Debug - URL search:', window.location.search);
+  console.log('Debug - adminEdit param:', urlParams.get('adminEdit'));
+  console.log('Debug - user isAdmin:', user?.isAdmin);
+  console.log('Debug - isAdminEditMode:', isAdminEditMode);
 
   const { data: existingReport, isLoading: isLoadingReport } = useQuery<WeeklyReport>({
     queryKey: [`/api/weekly-reports/${id}`],
@@ -42,12 +55,21 @@ export default function WeeklyReport() {
     staleTime: 0,
   });
 
+  // 議事録を取得（編集モードの場合のみ）
+  const { data: meetings } = useQuery<any[]>({
+    queryKey: [`/api/weekly-reports/${id}/meetings`],
+    enabled: isEditMode,
+  });
+
   const { toast } = useToast();
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [isAutosaving, setIsAutosaving] = useState(false);
+  
+  // 管理者編集モード用の状態
+  const [originalData, setOriginalData] = useState<WeeklyReport | null>(null);
   // 自動保存タイマーのためのref
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   // フォームが変更されたかどうかの状態
@@ -196,11 +218,77 @@ export default function WeeklyReport() {
     }
   }, [existingReport, form, isEditMode]);
 
+  // 管理者編集モード用のuseEffect
+  useEffect(() => {
+    if (isAdminEditMode && isEditMode) {
+      // セッションストレージから元データを取得
+      const storedOriginalData = sessionStorage.getItem(`adminEdit_original_${id}`);
+      if (storedOriginalData) {
+        try {
+          const parsedData = JSON.parse(storedOriginalData);
+          setOriginalData(parsedData);
+          toast({
+            title: "管理者編集モード",
+            description: "管理者編集モードが有効になりました",
+          });
+        } catch (error) {
+          console.error('Failed to parse stored original data:', error);
+          toast({
+            title: "エラー",
+            description: "元データの取得に失敗しました",
+            variant: "destructive",
+          });
+        }
+      } else {
+        // セッションストレージにデータがない場合、詳細画面に戻る
+        toast({
+          title: "エラー",
+          description: "管理者編集モードの準備ができていません",
+          variant: "destructive",
+        });
+        setLocation(`/reports/${id}`);
+      }
+    }
+  }, [isAdminEditMode, isEditMode, id, setLocation]);
+
   const onSubmit = async (data: WeeklyReport) => {
     if (isSubmitting) return;
 
     try {
       setIsSubmitting(true);
+      
+      // 管理者編集モードの場合は専用のエンドポイントを使用
+      if (isAdminEditMode && originalData) {
+        const response = await fetch(`/api/weekly-reports/${id}/admin-edit-complete`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            originalData,
+            updatedData: data
+          }),
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error("管理者編集の完了に失敗しました");
+        }
+
+        const result = await response.json();
+
+        // セッションストレージをクリア
+        sessionStorage.removeItem(`adminEdit_original_${id}`);
+
+        toast({
+          title: "修正完了",
+          description: "修正と議事録生成が完了しました",
+        });
+        setLocation(`/reports/${id}`);
+        return;
+      }
+
+      // 通常の編集・新規作成
       const url = isEditMode ? `/api/weekly-reports/${id}` : "/api/weekly-reports";
       const method = isEditMode ? "PUT" : "POST";
 
@@ -210,7 +298,7 @@ export default function WeeklyReport() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-        credentials: "include", // 重要: クッキーを送信するために必要
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -231,7 +319,9 @@ export default function WeeklyReport() {
       console.error("Error submitting report:", error);
       toast({
         title: "エラー",
-        description: isEditMode
+        description: isAdminEditMode 
+          ? "管理者編集の完了に失敗しました。"
+          : isEditMode
           ? "週次報告の更新に失敗しました。"
           : "週次報告の送信に失敗しました。",
         variant: "destructive",
@@ -298,7 +388,12 @@ export default function WeeklyReport() {
         <div className="container mx-auto px-4">
           <div className="flex h-14 items-center justify-between">
             <h1 className="text-xl font-semibold">
-              {isEditMode ? "週次報告編集" : "週次報告フォーム"}
+              {isAdminEditMode ? (
+                <span className="flex items-center gap-2 text-red-600">
+                  <ShieldCheck className="h-5 w-5" />
+                  週次報告管理者編集
+                </span>
+              ) : isEditMode ? "週次報告編集" : "週次報告フォーム"}
             </h1>
             <Link href="/reports">
               <Button variant="ghost" size="sm">
@@ -318,7 +413,12 @@ export default function WeeklyReport() {
                 <div className="flex flex-col gap-4 mb-2">
                   <div className="flex items-center justify-between">
                     <h1 className="text-xl font-semibold">
-                      {isEditMode ? "週次報告編集" : "週次報告フォーム"}
+                      {isAdminEditMode ? (
+                        <span className="flex items-center gap-2 text-red-600">
+                          <ShieldCheck className="h-5 w-5" />
+                          週次報告管理者編集
+                        </span>
+                      ) : isEditMode ? "週次報告編集" : "週次報告フォーム"}
                     </h1>
                     <div className="flex items-center gap-2">
                       <Button
@@ -1341,14 +1441,76 @@ export default function WeeklyReport() {
               </Card>
             )}
 
+            {/* 議事録表示セクション（編集モード且つ議事録が存在する場合） */}
+            {isEditMode && meetings && meetings.length > 0 && (
+              <Card className="mt-8">
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-semibold mb-4 pb-2 border-b">■ 確認会議事録</h2>
+                  {meetings.map((meeting, index) => (
+                    <div key={meeting.id} className="mb-6 last:mb-0">
+                      {meetings.length > 1 && (
+                        <h3 className="text-lg font-medium mb-3 text-gray-700">
+                          {meetings.length - index}回目の修正 ({new Date(meeting.createdAt).toLocaleDateString('ja-JP')})
+                        </h3>
+                      )}
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h4 className="font-medium mb-2">{meeting.title}</h4>
+                        
+                        {/* 議事録内容表示 */}
+                        <div className="mb-4">
+                          <div className="whitespace-pre-wrap bg-white p-3 rounded border text-sm">
+                            {meeting.content}
+                          </div>
+                        </div>
+                        
+                        {/* 編集可能なテキストエリア（管理者編集モードの場合） */}
+                        {isAdminEditMode && (
+                          <div className="mt-4">
+                            <label className="block text-sm font-medium mb-2">議事録を編集:</label>
+                            <Textarea
+                              placeholder="議事録内容を編集..."
+                              defaultValue={meeting.content}
+                              className="min-h-[200px]"
+                              onChange={(e) => {
+                                // 議事録の編集内容を保存する処理（必要に応じて実装）
+                                console.log('Meeting content updated:', e.target.value);
+                              }}
+                            />
+                          </div>
+                        )}
+                        
+                        <div className="mt-3 text-sm text-gray-500">
+                          修正者: {meeting.modifiedBy} | 
+                          日時: {new Date(meeting.createdAt).toLocaleString('ja-JP')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
             <div className="flex justify-end mt-8">
               <Button
                 type="submit"
-                className="flex items-center gap-2"
+                className={`flex items-center gap-2 ${
+                  isAdminEditMode ? "bg-red-600 hover:bg-red-700" : ""
+                }`}
                 disabled={isSubmitting}
               >
-                <Send className="h-4 w-4" />
-                {isSubmitting ? "送信中..." : isEditMode ? "更新" : "送信"}
+                {isAdminEditMode ? (
+                  <ShieldCheck className="h-4 w-4" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {isSubmitting 
+                  ? "処理中..." 
+                  : isAdminEditMode 
+                  ? "修正完了・議事録生成" 
+                  : isEditMode 
+                  ? "更新" 
+                  : "送信"
+                }
               </Button>
             </div>
           </form>
