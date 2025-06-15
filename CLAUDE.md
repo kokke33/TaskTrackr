@@ -1,6 +1,20 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+TaskTrackrプロジェクトのClaude Code用設定ファイルです。このファイルは、Claude Codeがこのリポジトリで作業する際のガイダンスを提供します。
+
+## 知識管理システム
+
+このプロジェクトでは、以下のファイル構成で知識を体系的に管理しています：
+
+- **CLAUDE.md** (このファイル) - プロジェクト概要と開発ガイド
+- **.claude/context.md** - プロジェクトの背景と制約
+- **.claude/project-knowledge.md** - 技術的な洞察とパターン
+- **.claude/project-improvements.md** - 改善履歴と学習内容
+- **.claude/common-patterns.md** - よく使うコマンドパターン
+- **.claude/debug-log.md** - 重要なデバッグ記録
+- **.claude/debug/** - セッション固有のログとアーカイブ
+
+このシステムにより、プロジェクトの知識を継続的に蓄積・共有し、開発効率と品質の向上を目指しています。
 
 # グローバル設定
 - すべての応答は日本語で行ってください
