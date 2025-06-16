@@ -1413,9 +1413,17 @@ ${previousReportInfo}
         environmentIssues: "環境懸念",
         costIssues: "コスト懸念",
         knowledgeIssues: "知識・スキル懸念",
+        knowledgeDetails: "知識・スキル懸念の詳細",
         trainingIssues: "教育懸念",
+        trainingDetails: "教育懸念の詳細",
         urgentIssues: "緊急課題懸念",
-        businessOpportunities: "営業チャンス"
+        urgentDetails: "緊急課題懸念の詳細",
+        businessOpportunities: "営業チャンス",
+        businessDetails: "営業チャンスの詳細",
+        resourceDetails: "リソース懸念の詳細",
+        customerDetails: "顧客懸念の詳細",
+        environmentDetails: "環境懸念の詳細",
+        costDetails: "コスト懸念の詳細"
       };
 
       // フィールド内の変更箇所を文脈付きでマークアップする機能
