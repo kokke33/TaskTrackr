@@ -870,6 +870,24 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     }
   });
 
+  // 週次報告削除エンドポイント
+  app.delete("/api/weekly-reports/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existingReport = await storage.getWeeklyReport(id);
+      if (!existingReport) {
+        res.status(404).json({ message: "週次報告が見つかりません" });
+        return;
+      }
+
+      const deletedReport = await storage.deleteWeeklyReport(id);
+      res.json(deletedReport);
+    } catch (error) {
+      console.error("Error deleting weekly report:", error);
+      res.status(500).json({ message: "週次報告の削除に失敗しました" });
+    }
+  });
+
   // 新規作成用の自動保存エンドポイント
   app.post("/api/weekly-reports/autosave", isAuthenticated, async (req, res) => {
     try {

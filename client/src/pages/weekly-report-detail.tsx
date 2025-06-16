@@ -4,7 +4,7 @@ import { WeeklyReport } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Edit, Home, Briefcase, FileText, ChevronRight, ShieldCheck } from "lucide-react";
+import { Edit, Home, Briefcase, FileText, ChevronRight, ShieldCheck, Trash2 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from "@/lib/auth";
 import { useState } from "react";
@@ -18,6 +18,14 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 
 export default function WeeklyReportDetail() {
@@ -30,6 +38,9 @@ export default function WeeklyReportDetail() {
   
   // 議事録編集の状態管理
   const [editingMeetings, setEditingMeetings] = useState<{[key: number]: {title: string, content: string}}>({});
+  
+  // 削除確認モーダルの状態管理
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const { data: report, isLoading } = useQuery<WeeklyReport>({
     queryKey: [`/api/weekly-reports/${id}`],
@@ -86,6 +97,37 @@ export default function WeeklyReportDetail() {
     },
   });
 
+  // 週次報告削除のミューテーション
+  const deleteReportMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/weekly-reports/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('週次報告の削除に失敗しました');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/weekly-reports'] });
+      toast({
+        title: "成功",
+        description: "週次報告が削除されました",
+      });
+      setLocation('/reports');
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: "週次報告の削除に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
   // 管理者編集開始のミューテーション
   const adminEditStartMutation = useMutation({
     mutationFn: async () => {
@@ -123,6 +165,12 @@ export default function WeeklyReportDetail() {
   const handleAdminEditStart = () => {
     if (!report) return;
     adminEditStartMutation.mutate();
+  };
+
+  // 削除ハンドラー
+  const handleDelete = () => {
+    deleteReportMutation.mutate();
+    setShowDeleteDialog(false);
   };
 
   // ステータスの日本語マッピング
@@ -249,15 +297,26 @@ export default function WeeklyReportDetail() {
                 </Button>
               </Link>
               {user?.isAdmin && (
-                <Button 
-                  onClick={handleAdminEditStart}
-                  disabled={adminEditStartMutation.isPending}
-                  variant="default"
-                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  {adminEditStartMutation.isPending ? '準備中...' : '管理者編集'}
-                </Button>
+                <>
+                  <Button 
+                    onClick={handleAdminEditStart}
+                    disabled={adminEditStartMutation.isPending}
+                    variant="default"
+                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    {adminEditStartMutation.isPending ? '準備中...' : '管理者編集'}
+                  </Button>
+                  <Button 
+                    onClick={() => setShowDeleteDialog(true)}
+                    disabled={deleteReportMutation.isPending}
+                    variant="destructive"
+                    className="flex items-center gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    削除
+                  </Button>
+                </>
               )}
               <Link href={`/reports?projectName=${encodeURIComponent(projectName || '')}&caseId=${report.caseId || ''}`}>
                 <Button variant="outline">一覧に戻る</Button>
@@ -557,6 +616,53 @@ export default function WeeklyReportDetail() {
           )}
         </div>
       </div>
+
+      {/* 削除確認モーダル */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>本当に削除しますか？</DialogTitle>
+            <DialogDescription className="space-y-2">
+              <p className="font-medium text-red-600">
+                この操作は取り消すことができません。
+              </p>
+              <p>
+                以下の週次報告を完全に削除します：
+              </p>
+              <div className="bg-gray-50 p-3 rounded border">
+                <p className="font-medium">
+                  {report?.projectName} - {report?.caseName}
+                </p>
+                <p className="text-sm text-gray-600">
+                  期間: {report && new Date(report.reportPeriodStart).toLocaleDateString()} ～ {report && new Date(report.reportPeriodEnd).toLocaleDateString()}
+                </p>
+                <p className="text-sm text-gray-600">
+                  報告者: {report?.reporterName}
+                </p>
+              </div>
+              <p className="text-red-600 font-medium">
+                本当に削除してもよろしいですか？
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={deleteReportMutation.isPending}
+            >
+              キャンセル
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleteReportMutation.isPending}
+            >
+              {deleteReportMutation.isPending ? '削除中...' : '削除'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

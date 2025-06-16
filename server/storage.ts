@@ -989,6 +989,16 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async deleteWeeklyReport(id: number): Promise<WeeklyReport> {
+    return withRetry(async () => {
+      const [deleted] = await db
+        .delete(weeklyReports)
+        .where(eq(weeklyReports.id, id))
+        .returning();
+      return deleted;
+    });
+  }
+
   async getLatestReportByCase(caseId: number): Promise<WeeklyReport | undefined> {
     // 事前に案件が削除済みかチェック
     const [caseInfo] = await db
