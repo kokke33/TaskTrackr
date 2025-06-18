@@ -4,7 +4,7 @@ import { WeeklyReport } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Edit, Home, Briefcase, FileText, ChevronRight, ShieldCheck, Trash2 } from "lucide-react";
+import { Edit, Home, Briefcase, FileText, ChevronRight, ShieldCheck, Trash2, Target } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from "@/lib/auth";
 import { useState } from "react";
@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { MilestoneDialog } from "@/components/milestone-dialog";
 
 
 export default function WeeklyReportDetail() {
@@ -41,6 +42,9 @@ export default function WeeklyReportDetail() {
   
   // 削除確認モーダルの状態管理
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  // マイルストーンダイアログの状態管理
+  const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   
   const { data: report, isLoading } = useQuery<WeeklyReport>({
     queryKey: [`/api/weekly-reports/${id}`],
@@ -290,6 +294,14 @@ export default function WeeklyReportDetail() {
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-primary">週次報告詳細</h1>
             <div className="flex gap-4">
+              <Button 
+                onClick={() => setShowMilestoneDialog(true)}
+                variant="outline"
+                className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+              >
+                <Target className="h-4 w-4" />
+                マイルストーン
+              </Button>
               <Link href={`/report/edit/${id}`}>
                 <Button className="flex items-center gap-2">
                   <Edit className="h-4 w-4" />
@@ -663,6 +675,15 @@ export default function WeeklyReportDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* マイルストーンダイアログ */}
+      <MilestoneDialog
+        open={showMilestoneDialog}
+        onOpenChange={setShowMilestoneDialog}
+        milestone={relatedCase?.milestone}
+        projectName={projectName}
+        caseName={report.caseName || ''}
+      />
     </div>
   );
 }
