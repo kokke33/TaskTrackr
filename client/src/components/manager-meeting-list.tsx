@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Calendar, Edit, Trash2, FileText } from "lucide-react";
+import { Calendar, Edit, Trash2, FileText, Eye } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -54,6 +56,8 @@ export function ManagerMeetingList({ projectId, selectedMonth }: ManagerMeetingL
 
   // フルコンテンツ表示用のダイアログコンポーネント
   function FullContentDialog({ meeting }: { meeting: ManagerMeeting }) {
+    const [isMarkdownView, setIsMarkdownView] = useState(false);
+
     return (
       <Dialog>
         <DialogTrigger asChild>
@@ -70,14 +74,40 @@ export function ManagerMeetingList({ projectId, selectedMonth }: ManagerMeetingL
               <Calendar className="h-5 w-5" />
               {meeting.title}
             </DialogTitle>
-            <p className="text-sm text-gray-500">
-              {format(new Date(meeting.meetingDate), "yyyy年M月d日", { locale: ja })}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                {format(new Date(meeting.meetingDate), "yyyy年M月d日", { locale: ja })}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant={isMarkdownView ? "outline" : "default"}
+                  size="sm"
+                  onClick={() => setIsMarkdownView(false)}
+                >
+                  <FileText className="h-4 w-4 mr-1" />
+                  テキスト
+                </Button>
+                <Button 
+                  variant={isMarkdownView ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setIsMarkdownView(true)}
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  マークダウン
+                </Button>
+              </div>
+            </div>
           </DialogHeader>
           <div className="mt-4">
-            <div className="whitespace-pre-wrap text-sm text-gray-700 bg-gray-50 p-4 rounded border leading-relaxed">
-              {meeting.content}
-            </div>
+            {isMarkdownView ? (
+              <div className="prose prose-sm max-w-none text-gray-700 bg-gray-50 p-4 rounded border leading-relaxed">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{meeting.content}</ReactMarkdown>
+              </div>
+            ) : (
+              <div className="whitespace-pre-wrap text-sm text-gray-700 bg-gray-50 p-4 rounded border leading-relaxed">
+                {meeting.content}
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
