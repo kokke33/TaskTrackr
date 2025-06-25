@@ -1194,7 +1194,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // 週次報告修正会議関連のメソッド
+  // 週次報告会議関連のメソッド
   async createWeeklyReportMeeting(meetingData: InsertWeeklyReportMeeting): Promise<WeeklyReportMeeting> {
     const [meeting] = await db
       .insert(weeklyReportMeetings)

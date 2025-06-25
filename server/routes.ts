@@ -1,44 +1,52 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertWeeklyReportSchema, insertCaseSchema, insertProjectSchema, insertManagerMeetingSchema, insertWeeklyReportMeetingSchema } from "@shared/schema";
+import {
+  insertWeeklyReportSchema,
+  insertCaseSchema,
+  insertProjectSchema,
+  insertManagerMeetingSchema,
+  insertWeeklyReportMeetingSchema,
+} from "@shared/schema";
 import { getAIService } from "./ai-service";
 import passport from "passport";
 import { isAuthenticated, isAdmin } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // 検索API
-  app.get('/api/search', async (req, res) => {
+  app.get("/api/search", async (req, res) => {
     try {
       const query = req.query.q as string;
       const type = req.query.type as string | undefined;
 
-      if (!query || query.trim() === '') {
+      if (!query || query.trim() === "") {
         return res.json({ total: 0, results: [] });
       }
 
       const searchResults = await storage.search(query, type);
       return res.json(searchResults);
     } catch (error) {
-      console.error('Search error:', error);
-      return res.status(500).json({ error: '検索中にエラーが発生しました' });
+      console.error("Search error:", error);
+      return res.status(500).json({ error: "検索中にエラーが発生しました" });
     }
   });
 
   // 検索サジェストAPI
-  app.get('/api/search/suggest', async (req, res) => {
+  app.get("/api/search/suggest", async (req, res) => {
     try {
       const query = req.query.q as string;
 
-      if (!query || query.trim() === '') {
+      if (!query || query.trim() === "") {
         return res.json([]);
       }
 
       const suggestions = await storage.getSearchSuggestions(query);
       return res.json(suggestions);
     } catch (error) {
-      console.error('Search suggestion error:', error);
-      return res.status(500).json({ error: 'サジェスト取得中にエラーが発生しました' });
+      console.error("Search suggestion error:", error);
+      return res
+        .status(500)
+        .json({ error: "サジェスト取得中にエラーが発生しました" });
     }
   });
   // 認証関連のエンドポイント
@@ -48,14 +56,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Login success - user info:", {
         id: req.user.id,
         username: req.user.username,
-        isAdmin: req.user.isAdmin
+        isAdmin: req.user.isAdmin,
       });
     }
 
     // ユーザー情報と成功メッセージを返す
-    res.json({ 
+    res.json({
       message: "ログイン成功",
-      user: req.user
+      user: req.user,
     });
   });
 
@@ -68,21 +76,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/check-auth", (req, res) => {
     if (req.isAuthenticated() && req.user) {
       // セッションに保存されているユーザー情報をログ出力
-      const user = req.user as { id: number, username: string, isAdmin?: boolean };
+      const user = req.user as {
+        id: number;
+        username: string;
+        isAdmin?: boolean;
+      };
       console.log("Check-auth - authenticated user info:", {
         id: user.id,
         username: user.username,
-        isAdmin: user.isAdmin
+        isAdmin: user.isAdmin,
       });
 
       // 明確に管理者フラグを含めて返す
-      res.json({ 
+      res.json({
         authenticated: true,
         user: {
           id: user.id,
           username: user.username,
-          isAdmin: !!user.isAdmin // booleanとして確実に返す
-        }
+          isAdmin: !!user.isAdmin, // booleanとして確実に返す
+        },
       });
     } else {
       console.log("Check-auth - not authenticated");
@@ -113,9 +125,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/projects", async (req, res) => {
     try {
-      const includeDeleted = req.query.includeDeleted === 'true';
-      const fullData = req.query.fullData === 'true';
-      
+      const includeDeleted = req.query.includeDeleted === "true";
+      const fullData = req.query.fullData === "true";
+
       if (fullData) {
         // 詳細データが必要な場合
         const projects = await storage.getAllProjects(includeDeleted);
@@ -124,7 +136,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // デフォルトで軽量データを取得（パフォーマンス最適化）
         const projects = await storage.getAllProjectsForList(includeDeleted);
-        console.log(`[DEBUG] Returning ${projects.length} lightweight projects`);
+        console.log(
+          `[DEBUG] Returning ${projects.length} lightweight projects`,
+        );
         res.json(projects);
       }
     } catch (error) {
@@ -146,12 +160,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // 編集用データは管理者のみに提供し、一般ユーザーには表示用データのみ提供
-      const user = req.user as { id: number, username: string, isAdmin?: boolean };
+      const user = req.user as {
+        id: number;
+        username: string;
+        isAdmin?: boolean;
+      };
       if (req.query.edit === "true") {
-        console.log(`[DEBUG] Edit mode requested. User isAdmin:`, user?.isAdmin);
+        console.log(
+          `[DEBUG] Edit mode requested. User isAdmin:`,
+          user?.isAdmin,
+        );
         if (!user?.isAdmin) {
-          console.log(`[DEBUG] Access denied: non-admin user tried to access edit mode`);
-          return res.status(403).json({ message: "プロジェクト編集は管理者のみ許可されています" });
+          console.log(
+            `[DEBUG] Access denied: non-admin user tried to access edit mode`,
+          );
+          return res
+            .status(403)
+            .json({ message: "プロジェクト編集は管理者のみ許可されています" });
         }
       }
 
@@ -165,7 +190,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/by-name/:name", async (req, res) => {
     try {
       const name = req.params.name;
-      console.log(`[DEBUG] GET /api/projects/by-name/${name} - Query params:`, req.query);
+      console.log(
+        `[DEBUG] GET /api/projects/by-name/${name} - Query params:`,
+        req.query,
+      );
       console.log(`[DEBUG] User:`, req.user);
 
       const project = await storage.getProjectByName(name);
@@ -175,12 +203,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // 編集用データは管理者のみに提供し、一般ユーザーには表示用データのみ提供
-      const user = req.user as { id: number, username: string, isAdmin?: boolean };
+      const user = req.user as {
+        id: number;
+        username: string;
+        isAdmin?: boolean;
+      };
       if (req.query.edit === "true") {
-        console.log(`[DEBUG] Edit mode requested by name. User isAdmin:`, user?.isAdmin);
+        console.log(
+          `[DEBUG] Edit mode requested by name. User isAdmin:`,
+          user?.isAdmin,
+        );
         if (!user?.isAdmin) {
-          console.log(`[DEBUG] Access denied: non-admin user tried to access edit mode`);
-          return res.status(403).json({ message: "プロジェクト編集は管理者のみ許可されています" });
+          console.log(
+            `[DEBUG] Access denied: non-admin user tried to access edit mode`,
+          );
+          return res
+            .status(403)
+            .json({ message: "プロジェクト編集は管理者のみ許可されています" });
         }
       }
 
@@ -216,7 +255,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(recentReports);
     } catch (error) {
       console.error("Error fetching recent reports:", error);
-      res.status(500).json({ message: "最近の週次報告一覧の取得に失敗しました" });
+      res
+        .status(500)
+        .json({ message: "最近の週次報告一覧の取得に失敗しました" });
     }
   });
 
@@ -249,7 +290,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // プロジェクトが削除されていない場合
       if (!existingProject.isDeleted) {
-        return res.status(400).json({ message: "このプロジェクトは削除されていません" });
+        return res
+          .status(400)
+          .json({ message: "このプロジェクトは削除されていません" });
       }
 
       const restoredProject = await storage.restoreProject(id);
@@ -274,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/cases", async (req, res) => {
     try {
-      const includeDeleted = req.query.includeDeleted === 'true';
+      const includeDeleted = req.query.includeDeleted === "true";
       const cases = await storage.getAllCases(includeDeleted);
       res.json(cases);
     } catch (error) {
@@ -327,14 +370,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { milestone } = req.body;
       if (milestone === undefined) {
-        res.status(400).json({ message: "マイルストーン情報が含まれていません" });
+        res
+          .status(400)
+          .json({ message: "マイルストーン情報が含まれていません" });
         return;
       }
 
       // 既存のデータを保持しつつマイルストーンのみ更新
       const updatedCase = await storage.updateCase(id, {
         ...existingCase,
-        milestone
+        milestone,
       });
 
       res.json(updatedCase);
@@ -366,23 +411,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/monthly-summary/:projectName", async (req, res) => {
     try {
       const { projectName } = req.params;
-      const { startDate: startDateQuery, endDate: endDateQuery, caseId } = req.query;
+      const {
+        startDate: startDateQuery,
+        endDate: endDateQuery,
+        caseId,
+      } = req.query;
 
-      console.log(`[DEBUG] GET /api/monthly-summary/${projectName} - Query params:`, { 
-        startDate: startDateQuery, 
-        endDate: endDateQuery, 
-        caseId 
-      });
+      console.log(
+        `[DEBUG] GET /api/monthly-summary/${projectName} - Query params:`,
+        {
+          startDate: startDateQuery,
+          endDate: endDateQuery,
+          caseId,
+        },
+      );
 
       // クエリパラメータから日付を取得、なければデフォルトで直近1か月を使用
       let endDate = new Date();
       let startDate = new Date();
 
-      if (endDateQuery && typeof endDateQuery === 'string') {
+      if (endDateQuery && typeof endDateQuery === "string") {
         endDate = new Date(endDateQuery);
       }
 
-      if (startDateQuery && typeof startDateQuery === 'string') {
+      if (startDateQuery && typeof startDateQuery === "string") {
         startDate = new Date(startDateQuery);
       } else {
         // デフォルトで直近1か月
@@ -394,7 +446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[INFO] Using project name: ${projectName}`);
 
       // プロジェクト名がカンマ区切りの場合は複数プロジェクトとして処理
-      const projectNames = normalizedProjectName.split(',');
+      const projectNames = normalizedProjectName.split(",");
       let allProjectCases: any[] = [];
 
       // 各プロジェクトの案件を取得して結合
@@ -404,15 +456,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const trimmedName = name.trim();
         console.log(`[DEBUG] Fetching cases for project: "${trimmedName}"`);
         const projectCases = await storage.getCasesByProject(trimmedName);
-        console.log(`[DEBUG] Found ${projectCases.length} cases for project: "${trimmedName}"`);
+        console.log(
+          `[DEBUG] Found ${projectCases.length} cases for project: "${trimmedName}"`,
+        );
         allProjectCases.push(...projectCases);
       }
 
-      console.log(`[DEBUG] Total cases found for all projects: ${allProjectCases.length}`);
+      console.log(
+        `[DEBUG] Total cases found for all projects: ${allProjectCases.length}`,
+      );
 
       if (allProjectCases.length === 0) {
-        console.log(`[ERROR] No cases found for projects: ${projectNames.join(', ')}`);
-        res.status(404).json({ message: "指定されたプロジェクトに関連する案件が見つかりません" });
+        console.log(
+          `[ERROR] No cases found for projects: ${projectNames.join(", ")}`,
+        );
+        res
+          .status(404)
+          .json({
+            message: "指定されたプロジェクトに関連する案件が見つかりません",
+          });
         return;
       }
 
@@ -422,7 +484,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (caseId) {
         // 複数の案件IDが渡される場合は配列として処理
         if (Array.isArray(caseId)) {
-          targetCaseIds = caseId.map(id => parseInt(id.toString())).filter(id => !isNaN(id));
+          targetCaseIds = caseId
+            .map((id) => parseInt(id.toString()))
+            .filter((id) => !isNaN(id));
         } else {
           // 単一の案件IDの場合
           const parsedId = parseInt(caseId.toString());
@@ -432,61 +496,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // 対象の案件が取得したプロジェクトに含まれるものだけに絞る
-        const allProjectCaseIds = allProjectCases.map(c => c.id);
-        targetCaseIds = targetCaseIds.filter(id => allProjectCaseIds.includes(id));
+        const allProjectCaseIds = allProjectCases.map((c) => c.id);
+        targetCaseIds = targetCaseIds.filter((id) =>
+          allProjectCaseIds.includes(id),
+        );
       }
 
       // 対象の案件IDがない場合は全ての案件を対象にする
       if (targetCaseIds.length === 0) {
-        targetCaseIds = allProjectCases.map(c => c.id);
+        targetCaseIds = allProjectCases.map((c) => c.id);
       }
 
       // 対象案件に対して週次報告を一括取得（N+1問題を解決）
-      const lastMonthReports = await storage.getWeeklyReportsByCases(targetCaseIds, startDate, endDate);
-      
+      const lastMonthReports = await storage.getWeeklyReportsByCases(
+        targetCaseIds,
+        startDate,
+        endDate,
+      );
+
       // データがある案件のIDを記録
-      const casesWithReports = Array.from(new Set(lastMonthReports.map(report => report.caseId)));
+      const casesWithReports = Array.from(
+        new Set(lastMonthReports.map((report) => report.caseId)),
+      );
 
       if (lastMonthReports.length === 0 || casesWithReports.length === 0) {
-        const startDateStr = startDate.toISOString().split('T')[0];
-        const endDateStr = endDate.toISOString().split('T')[0];
-        console.log(`[ERROR] No reports found for the period ${startDateStr} to ${endDateStr}`);
-        res.status(404).json({ 
-          message: `指定された期間(${startDateStr}～${endDateStr})の週次報告が見つかりません` 
+        const startDateStr = startDate.toISOString().split("T")[0];
+        const endDateStr = endDate.toISOString().split("T")[0];
+        console.log(
+          `[ERROR] No reports found for the period ${startDateStr} to ${endDateStr}`,
+        );
+        res.status(404).json({
+          message: `指定された期間(${startDateStr}～${endDateStr})の週次報告が見つかりません`,
         });
         return;
       }
 
-      console.log(`[DEBUG] Found ${lastMonthReports.length} reports for ${casesWithReports.length} cases`);
-
+      console.log(
+        `[DEBUG] Found ${lastMonthReports.length} reports for ${casesWithReports.length} cases`,
+      );
 
       // データがある案件に関連するプロジェクト名だけを抽出
-      const projectsWithData: string[] = Array.from(new Set(
-        allProjectCases
-          .filter(c => casesWithReports.includes(c.id))
-          .map(c => c.projectName)
-      ));
+      const projectsWithData: string[] = Array.from(
+        new Set(
+          allProjectCases
+            .filter((c) => casesWithReports.includes(c.id))
+            .map((c) => c.projectName),
+        ),
+      );
 
       // 複数プロジェクトの場合は、プロジェクト名を「複数プロジェクト」とする
-      const displayProjectName = projectsWithData.length > 1 
-        ? `複数プロジェクト (${projectsWithData.join(', ')})` 
-        : projectsWithData[0] || projectName;
+      const displayProjectName =
+        projectsWithData.length > 1
+          ? `複数プロジェクト (${projectsWithData.join(", ")})`
+          : projectsWithData[0] || projectName;
 
       // データがある案件のみをOpenAIに渡す
-      const casesWithData = allProjectCases.filter(c => casesWithReports.includes(c.id));
+      const casesWithData = allProjectCases.filter((c) =>
+        casesWithReports.includes(c.id),
+      );
 
       // OpenAIを使用して月次レポートを生成
-      const summary = await generateMonthlySummary(displayProjectName, lastMonthReports, casesWithData);
+      const summary = await generateMonthlySummary(
+        displayProjectName,
+        lastMonthReports,
+        casesWithData,
+      );
 
-      res.json({ 
+      res.json({
         projectName: displayProjectName,
         period: {
-          start: startDate.toISOString().split('T')[0],
-          end: endDate.toISOString().split('T')[0],
+          start: startDate.toISOString().split("T")[0],
+          end: endDate.toISOString().split("T")[0],
         },
         summary,
         reportCount: lastMonthReports.length,
-        caseCount: casesWithData.length
+        caseCount: casesWithData.length,
       });
     } catch (error) {
       console.error("Error generating monthly summary:", error);
@@ -498,23 +582,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/monthly-summary-input/:projectName", async (req, res) => {
     try {
       const { projectName } = req.params;
-      const { startDate: startDateQuery, endDate: endDateQuery, caseId } = req.query;
+      const {
+        startDate: startDateQuery,
+        endDate: endDateQuery,
+        caseId,
+      } = req.query;
 
-      console.log(`[DEBUG] GET /api/monthly-summary-input/${projectName} - Query params:`, { 
-        startDate: startDateQuery, 
-        endDate: endDateQuery, 
-        caseId 
-      });
+      console.log(
+        `[DEBUG] GET /api/monthly-summary-input/${projectName} - Query params:`,
+        {
+          startDate: startDateQuery,
+          endDate: endDateQuery,
+          caseId,
+        },
+      );
 
       // クエリパラメータから日付を取得、なければデフォルトで直近1か月を使用
       let endDate = new Date();
       let startDate = new Date();
 
-      if (endDateQuery && typeof endDateQuery === 'string') {
+      if (endDateQuery && typeof endDateQuery === "string") {
         endDate = new Date(endDateQuery);
       }
 
-      if (startDateQuery && typeof startDateQuery === 'string') {
+      if (startDateQuery && typeof startDateQuery === "string") {
         startDate = new Date(startDateQuery);
       } else {
         // デフォルトで直近1か月
@@ -526,7 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[INFO] Using project name: ${projectName}`);
 
       // プロジェクト名がカンマ区切りの場合は複数プロジェクトとして処理
-      const projectNames = normalizedProjectName.split(',');
+      const projectNames = normalizedProjectName.split(",");
       let allProjectCases: any[] = [];
 
       // 各プロジェクトの案件を取得して結合
@@ -536,15 +627,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const trimmedName = name.trim();
         console.log(`[DEBUG] Fetching cases for project: "${trimmedName}"`);
         const projectCases = await storage.getCasesByProject(trimmedName);
-        console.log(`[DEBUG] Found ${projectCases.length} cases for project: "${trimmedName}"`);
+        console.log(
+          `[DEBUG] Found ${projectCases.length} cases for project: "${trimmedName}"`,
+        );
         allProjectCases.push(...projectCases);
       }
 
-      console.log(`[DEBUG] Total cases found for all projects: ${allProjectCases.length}`);
+      console.log(
+        `[DEBUG] Total cases found for all projects: ${allProjectCases.length}`,
+      );
 
       if (allProjectCases.length === 0) {
-        console.log(`[ERROR] No cases found for projects: ${projectNames.join(', ')}`);
-        res.status(404).json({ message: "指定されたプロジェクトに関連する案件が見つかりません" });
+        console.log(
+          `[ERROR] No cases found for projects: ${projectNames.join(", ")}`,
+        );
+        res
+          .status(404)
+          .json({
+            message: "指定されたプロジェクトに関連する案件が見つかりません",
+          });
         return;
       }
 
@@ -554,7 +655,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (caseId) {
         // 複数の案件IDが渡される場合は配列として処理
         if (Array.isArray(caseId)) {
-          targetCaseIds = caseId.map(id => parseInt(id.toString())).filter(id => !isNaN(id));
+          targetCaseIds = caseId
+            .map((id) => parseInt(id.toString()))
+            .filter((id) => !isNaN(id));
         } else {
           // 単一の案件IDの場合
           const parsedId = parseInt(caseId.toString());
@@ -564,13 +667,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // 対象の案件が取得したプロジェクトに含まれるものだけに絞る
-        const allProjectCaseIds = allProjectCases.map(c => c.id);
-        targetCaseIds = targetCaseIds.filter(id => allProjectCaseIds.includes(id));
+        const allProjectCaseIds = allProjectCases.map((c) => c.id);
+        targetCaseIds = targetCaseIds.filter((id) =>
+          allProjectCaseIds.includes(id),
+        );
       }
 
       // 対象の案件IDがない場合は全ての案件を対象にする
       if (targetCaseIds.length === 0) {
-        targetCaseIds = allProjectCases.map(c => c.id);
+        targetCaseIds = allProjectCases.map((c) => c.id);
       }
 
       // 対象案件に対して週次報告を取得
@@ -579,15 +684,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const caseId of targetCaseIds) {
         const reports = await storage.getWeeklyReportsByCase(caseId);
-        console.log(`[DEBUG] Case ID: ${caseId}, Reports count: ${reports.length}`);
+        console.log(
+          `[DEBUG] Case ID: ${caseId}, Reports count: ${reports.length}`,
+        );
 
         // 日付でフィルタリング
-        const filteredReports = reports.filter(report => {
+        const filteredReports = reports.filter((report) => {
           const reportDate = new Date(report.reportPeriodEnd);
           return reportDate >= startDate && reportDate <= endDate;
         });
 
-        console.log(`[DEBUG] Case ID: ${caseId}, Filtered reports count: ${filteredReports.length}`);
+        console.log(
+          `[DEBUG] Case ID: ${caseId}, Filtered reports count: ${filteredReports.length}`,
+        );
 
         // 報告があれば、その案件をデータありとして記録
         if (filteredReports.length > 0) {
@@ -598,60 +707,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // レポートがある案件が1つもない場合はエラーを返す
       if (casesWithReports.length === 0) {
-        const startDateStr = startDate.toISOString().split('T')[0];
-        const endDateStr = endDate.toISOString().split('T')[0];
-        console.log(`[ERROR] No reports found for the period ${startDateStr} to ${endDateStr}`);
-        res.status(404).json({ 
-          message: `指定された期間(${startDateStr}～${endDateStr})の週次報告が見つかりません` 
+        const startDateStr = startDate.toISOString().split("T")[0];
+        const endDateStr = endDate.toISOString().split("T")[0];
+        console.log(
+          `[ERROR] No reports found for the period ${startDateStr} to ${endDateStr}`,
+        );
+        res.status(404).json({
+          message: `指定された期間(${startDateStr}～${endDateStr})の週次報告が見つかりません`,
         });
         return;
       }
 
       // データがある案件のみのリストを作成
-      const casesWithData = allProjectCases.filter(c => casesWithReports.includes(c.id));
+      const casesWithData = allProjectCases.filter((c) =>
+        casesWithReports.includes(c.id),
+      );
 
       // 案件をID基準のマップとして整理（データがある案件のみ）
-      const caseMap: Record<number, { caseName: string; description: string | null; projectName: string; reports: any[] }> = {};
+      const caseMap: Record<
+        number,
+        {
+          caseName: string;
+          description: string | null;
+          projectName: string;
+          reports: any[];
+        }
+      > = {};
 
-      casesWithData.forEach(case_ => {
+      casesWithData.forEach((case_) => {
         caseMap[case_.id] = {
           caseName: case_.caseName,
           description: case_.description,
           projectName: case_.projectName,
-          reports: []
+          reports: [],
         };
       });
 
       // 週次報告を案件ごとに整理
-      periodReports.forEach(report => {
+      periodReports.forEach((report) => {
         if (caseMap[report.caseId]) {
           caseMap[report.caseId].reports.push(report);
         }
       });
 
       // データがある案件に関連するプロジェクト名だけを抽出
-      const projectsWithData: string[] = Array.from(new Set(
-        casesWithData.map(c => c.projectName)
-      ));
+      const projectsWithData: string[] = Array.from(
+        new Set(casesWithData.map((c) => c.projectName)),
+      );
 
       // 複数プロジェクトの場合は、プロジェクト名を「複数プロジェクト」とする
-      const displayProjectName = projectsWithData.length > 1 
-        ? `複数プロジェクト (${projectsWithData.join(', ')})` 
-        : projectsWithData[0] || "";
+      const displayProjectName =
+        projectsWithData.length > 1
+          ? `複数プロジェクト (${projectsWithData.join(", ")})`
+          : projectsWithData[0] || "";
 
       console.log(`[DEBUG] Cases with reports: ${casesWithReports.length}`);
 
       // データがある案件のみを対象とする
-      const selectedCases = allProjectCases.filter(c => casesWithReports.includes(c.id));
-      console.log(`[DEBUG] Selected cases: ${selectedCases.length}, Case map keys: ${Object.keys(caseMap).length}`);
+      const selectedCases = allProjectCases.filter((c) =>
+        casesWithReports.includes(c.id),
+      );
+      console.log(
+        `[DEBUG] Selected cases: ${selectedCases.length}, Case map keys: ${Object.keys(caseMap).length}`,
+      );
 
       // Empty prompt check - データがある案件が0件の場合は早期リターン
       if (selectedCases.length === 0 || Object.keys(caseMap).length === 0) {
-        const startDateStr = startDate.toISOString().split('T')[0];
-        const endDateStr = endDate.toISOString().split('T')[0];
-        console.log(`[ERROR] No cases with reports found for the period ${startDateStr} to ${endDateStr}`);
-        res.status(404).json({ 
-          message: `指定された期間(${startDateStr}～${endDateStr})に週次報告のある案件が見つかりません` 
+        const startDateStr = startDate.toISOString().split("T")[0];
+        const endDateStr = endDate.toISOString().split("T")[0];
+        console.log(
+          `[ERROR] No cases with reports found for the period ${startDateStr} to ${endDateStr}`,
+        );
+        res.status(404).json({
+          message: `指定された期間(${startDateStr}～${endDateStr})に週次報告のある案件が見つかりません`,
         });
         return;
       }
@@ -662,7 +790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 ## プロジェクト情報
 - **プロジェクト名**: ${displayProjectName}
-- **対象期間**: ${startDate.toISOString().split('T')[0]} ～ ${endDate.toISOString().split('T')[0]}
+- **対象期間**: ${startDate.toISOString().split("T")[0]} ～ ${endDate.toISOString().split("T")[0]}
 
 ## プロジェクト内の案件と週次報告データ
 `;
@@ -673,7 +801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const caseInfo = caseMap[caseId];
 
         // 該当するケースのフル情報を探す
-        const fullCaseInfo = selectedCases.find(c => c.id === caseId);
+        const fullCaseInfo = selectedCases.find((c) => c.id === caseId);
         if (!fullCaseInfo) {
           console.log(`[DEBUG] Case ${caseId} not found in selectedCases`);
           return; // データがない案件は表示しない
@@ -693,8 +821,10 @@ ${milestone ? `- **マイルストーン**: ${milestone}` : ""}
         // 各案件の報告内容をプロンプトに追加
         if (caseInfo.reports.length > 0) {
           // 日付順にソート
-          caseInfo.reports.sort((a: any, b: any) => 
-            new Date(a.reportPeriodEnd).getTime() - new Date(b.reportPeriodEnd).getTime()
+          caseInfo.reports.sort(
+            (a: any, b: any) =>
+              new Date(a.reportPeriodEnd).getTime() -
+              new Date(b.reportPeriodEnd).getTime(),
           );
 
           // 最大5件までの報告を表示
@@ -707,12 +837,28 @@ ${milestone ? `- **マイルストーン**: ${milestone}` : ""}
 - **進捗率**: ${report.progressRate}%
 - **進捗状況**: ${report.progressStatus}
 - **作業内容**:
-${report.weeklyTasks.split('\n').map((line: string) => `  - ${line.trim()}`).filter((line: string) => line.length > 3).join('\n')}
-${report.issues ? `- **課題・問題点**:\n${report.issues.split('\n').map((line: string) => `  - ${line.trim()}`).filter((line: string) => line.length > 3).join('\n')}` : ''}
+${report.weeklyTasks
+  .split("\n")
+  .map((line: string) => `  - ${line.trim()}`)
+  .filter((line: string) => line.length > 3)
+  .join("\n")}
+${
+  report.issues
+    ? `- **課題・問題点**:\n${report.issues
+        .split("\n")
+        .map((line: string) => `  - ${line.trim()}`)
+        .filter((line: string) => line.length > 3)
+        .join("\n")}`
+    : ""
+}
 - **リスク**: ${report.newRisks === "yes" ? report.riskSummary : "なし"}
 - **品質懸念**: ${report.qualityConcerns !== "none" ? report.qualityDetails : "なし"}
 - **来週予定**:
-${report.nextWeekPlan.split('\n').map((line: string) => `  - ${line.trim()}`).filter((line: string) => line.length > 3).join('\n')}
+${report.nextWeekPlan
+  .split("\n")
+  .map((line: string) => `  - ${line.trim()}`)
+  .filter((line: string) => line.length > 3)
+  .join("\n")}
 
 ---
 
@@ -727,28 +873,30 @@ ${report.nextWeekPlan.split('\n').map((line: string) => `  - ${line.trim()}`).fi
 1. 全体進捗状況のサマリー
 2. 主な成果と完了項目
 3. 直面している課題やリスク、その対応策
-4. ${Object.keys(caseMap).length > 1 ? 'プロジェクトごとの概要と各案件の状況（現状と予定）' : '各案件ごとの状況概要（現状と予定）'}
+4. ${Object.keys(caseMap).length > 1 ? "プロジェクトごとの概要と各案件の状況（現状と予定）" : "各案件ごとの状況概要（現状と予定）"}
 5. 品質状況のまとめ
 6. 今後のスケジュールと目標
 7. 経営層に伝えるべきその他重要事項
 
-最終的なレポートは経営層向けに簡潔にまとめ、${Object.keys(caseMap).length > 1 ? 'すべてのプロジェクト' : 'プロジェクト'}全体の健全性と今後の見通しが明確に伝わるように作成してください。
+最終的なレポートは経営層向けに簡潔にまとめ、${Object.keys(caseMap).length > 1 ? "すべてのプロジェクト" : "プロジェクト"}全体の健全性と今後の見通しが明確に伝わるように作成してください。
 Markdown形式で作成し、適切な見出しを使って整理してください。
 `;
 
-      res.json({ 
+      res.json({
         projectName: displayProjectName,
         period: {
-          start: startDate.toISOString().split('T')[0],
-          end: endDate.toISOString().split('T')[0],
+          start: startDate.toISOString().split("T")[0],
+          end: endDate.toISOString().split("T")[0],
         },
         prompt: prompt,
         reportCount: periodReports.length,
-        caseCount: selectedCases.length
+        caseCount: selectedCases.length,
       });
     } catch (error) {
       console.error("Error retrieving monthly summary input data:", error);
-      res.status(500).json({ message: "月次報告書の入力データの取得に失敗しました" });
+      res
+        .status(500)
+        .json({ message: "月次報告書の入力データの取得に失敗しました" });
     }
   });
 
@@ -778,11 +926,15 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
   app.get("/api/weekly-reports", async (req, res) => {
     try {
       // デフォルトで軽量データを返す（パフォーマンス最適化）
-      const fullData = req.query.fullData === 'true';
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-      
-      console.log(`[DEBUG] Weekly reports request - fullData: ${fullData}, limit: ${limit}`);
-      
+      const fullData = req.query.fullData === "true";
+      const limit = req.query.limit
+        ? parseInt(req.query.limit as string)
+        : undefined;
+
+      console.log(
+        `[DEBUG] Weekly reports request - fullData: ${fullData}, limit: ${limit}`,
+      );
+
       if (fullData) {
         // 詳細データが必要な場合（検索機能等で使用）
         const reports = await storage.getAllWeeklyReports();
@@ -791,7 +943,9 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       } else {
         // デフォルトで軽量データを取得（パフォーマンス最適化）
         const reports = await storage.getAllWeeklyReportsForList(limit || 50);
-        console.log(`[DEBUG] Returning ${reports.length} lightweight weekly reports`);
+        console.log(
+          `[DEBUG] Returning ${reports.length} lightweight weekly reports`,
+        );
         res.json(reports);
       }
     } catch (error) {
@@ -889,229 +1043,266 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
   });
 
   // 新規作成用の自動保存エンドポイント
-  app.post("/api/weekly-reports/autosave", isAuthenticated, async (req, res) => {
-    try {
-      // 必須項目のバリデーションをスキップし、新規報告として保存
-      const data = { ...req.body };
-      if (data.reporterName) {
-        data.reporterName = data.reporterName.replace(/\s+/g, "");
+  app.post(
+    "/api/weekly-reports/autosave",
+    isAuthenticated,
+    async (req, res) => {
+      try {
+        // 必須項目のバリデーションをスキップし、新規報告として保存
+        const data = { ...req.body };
+        if (data.reporterName) {
+          data.reporterName = data.reporterName.replace(/\s+/g, "");
+        }
+
+        // 最低限必要なフィールドだけバリデーション
+        if (!data.caseId) {
+          return res.status(400).json({ message: "案件IDは必須です" });
+        }
+
+        // 関連する案件が存在するか確認
+        const relatedCase = await storage.getCase(data.caseId);
+        if (!relatedCase) {
+          return res
+            .status(404)
+            .json({ message: "指定された案件が見つかりません" });
+        }
+
+        // 下書きとして保存（必須項目が不足していても保存できるように）
+        const createdReport = await storage.createWeeklyReport(data);
+
+        // 簡略化したレスポンスを返す
+        res.json({
+          id: createdReport.id,
+          message: "Auto-saved successfully",
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error("Error auto-saving new weekly report:", error);
+        res
+          .status(400)
+          .json({ message: "Failed to auto-save new weekly report" });
       }
-
-      // 最低限必要なフィールドだけバリデーション
-      if (!data.caseId) {
-        return res.status(400).json({ message: "案件IDは必須です" });
-      }
-
-      // 関連する案件が存在するか確認
-      const relatedCase = await storage.getCase(data.caseId);
-      if (!relatedCase) {
-        return res.status(404).json({ message: "指定された案件が見つかりません" });
-      }
-
-      // 下書きとして保存（必須項目が不足していても保存できるように）
-      const createdReport = await storage.createWeeklyReport(data);
-
-      // 簡略化したレスポンスを返す
-      res.json({ 
-        id: createdReport.id, 
-        message: "Auto-saved successfully",
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error("Error auto-saving new weekly report:", error);
-      res.status(400).json({ message: "Failed to auto-save new weekly report" });
-    }
-  });
+    },
+  );
 
   // 自動保存用の簡易エンドポイント
-  app.put("/api/weekly-reports/:id/autosave", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const existingReport = await storage.getWeeklyReport(id);
+  app.put(
+    "/api/weekly-reports/:id/autosave",
+    isAuthenticated,
+    async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const existingReport = await storage.getWeeklyReport(id);
 
-      if (!existingReport) {
-        res.status(404).json({ message: "Weekly report not found" });
-        return;
+        if (!existingReport) {
+          res.status(404).json({ message: "Weekly report not found" });
+          return;
+        }
+
+        // 必須項目のバリデーションをスキップ
+        const data = { ...req.body };
+        if (data.reporterName) {
+          data.reporterName = data.reporterName.replace(/\s+/g, "");
+        }
+
+        // 既存のデータと新しいデータをマージして必須フィールドが欠けないようにする
+        const mergedData = { ...existingReport, ...data };
+        delete mergedData.id; // idは更新対象外
+        delete mergedData.createdAt; // createdAtは更新対象外
+        delete mergedData.aiAnalysis; // aiAnalysisは更新対象外
+
+        const updatedReport = await storage.updateWeeklyReport(id, mergedData);
+
+        // 簡略化したレスポンスを返す
+        res.json({
+          id: updatedReport.id,
+          message: "Auto-saved successfully",
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error("Error auto-saving weekly report:", error);
+        res.status(400).json({ message: "Failed to auto-save weekly report" });
       }
+    },
+  );
 
-      // 必須項目のバリデーションをスキップ
-      const data = { ...req.body };
-      if (data.reporterName) {
-        data.reporterName = data.reporterName.replace(/\s+/g, "");
-      }
+  // 週次報告会議関連のエンドポイント
 
-      // 既存のデータと新しいデータをマージして必須フィールドが欠けないようにする
-      const mergedData = { ...existingReport, ...data };
-      delete mergedData.id; // idは更新対象外
-      delete mergedData.createdAt; // createdAtは更新対象外
-      delete mergedData.aiAnalysis; // aiAnalysisは更新対象外
-
-      const updatedReport = await storage.updateWeeklyReport(id, mergedData);
-
-      // 簡略化したレスポンスを返す
-      res.json({ 
-        id: updatedReport.id, 
-        message: "Auto-saved successfully",
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error("Error auto-saving weekly report:", error);
-      res.status(400).json({ message: "Failed to auto-save weekly report" });
-    }
-  });
-
-  // 週次報告修正会議関連のエンドポイント
-  
   // 管理者編集開始エンドポイント
-  app.post("/api/weekly-reports/:id/admin-edit-start", isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const report = await storage.getWeeklyReport(id);
-      
-      if (!report) {
-        res.status(404).json({ message: "週次報告が見つかりません" });
-        return;
-      }
+  app.post(
+    "/api/weekly-reports/:id/admin-edit-start",
+    isAuthenticated,
+    isAdmin,
+    async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const report = await storage.getWeeklyReport(id);
 
-      // 管理者編集モード用に元データを返却
-      res.json({
-        report,
-        message: "管理者編集モードを開始しました"
-      });
-    } catch (error) {
-      console.error("Error starting admin edit:", error);
-      res.status(500).json({ message: "管理者編集の開始に失敗しました" });
-    }
-  });
+        if (!report) {
+          res.status(404).json({ message: "週次報告が見つかりません" });
+          return;
+        }
+
+        // 管理者編集モード用に元データを返却
+        res.json({
+          report,
+          message: "管理者編集モードを開始しました",
+        });
+      } catch (error) {
+        console.error("Error starting admin edit:", error);
+        res.status(500).json({ message: "管理者編集の開始に失敗しました" });
+      }
+    },
+  );
 
   // 管理者編集完了＋議事録生成エンドポイント
-  app.put("/api/weekly-reports/:id/admin-edit-complete", isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const { originalData, updatedData } = req.body;
-      
-      if (!originalData || !updatedData) {
-        res.status(400).json({ message: "修正前後のデータが必要です" });
-        return;
+  app.put(
+    "/api/weekly-reports/:id/admin-edit-complete",
+    isAuthenticated,
+    isAdmin,
+    async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const { originalData, updatedData } = req.body;
+
+        if (!originalData || !updatedData) {
+          res.status(400).json({ message: "修正前後のデータが必要です" });
+          return;
+        }
+
+        const existingReport = await storage.getWeeklyReport(id);
+        if (!existingReport) {
+          res.status(404).json({ message: "週次報告が見つかりません" });
+          return;
+        }
+
+        // 1. 週次報告を更新
+        const updateData = insertWeeklyReportSchema.parse(updatedData);
+        const updatedReport = await storage.updateWeeklyReport(id, updateData);
+
+        // 2. 関連案件情報を取得
+        const relatedCase = await storage.getCase(updatedReport.caseId);
+
+        // 3. AI分析と議事録生成を並列実行（処理時間短縮）
+        console.log("Starting parallel AI processing...");
+        const parallelStartTime = Date.now();
+
+        const [analysis, meetingMinutes] = await Promise.all([
+          // AI分析処理
+          analyzeWeeklyReport(updatedReport, relatedCase),
+          // 議事録生成処理
+          generateEditMeetingMinutes(
+            originalData,
+            updatedData,
+            req.user?.username || "管理者",
+            relatedCase,
+          ),
+        ]);
+
+        const parallelEndTime = Date.now();
+        console.log(
+          `Parallel AI processing completed in ${parallelEndTime - parallelStartTime}ms`,
+        );
+
+        // 4. AI分析結果保存と議事録保存を並列実行
+        console.log("Starting parallel database operations...");
+        const dbStartTime = Date.now();
+
+        const meetingData = {
+          weeklyReportId: id,
+          meetingDate: new Date().toISOString().split("T")[0],
+          title: meetingMinutes.title,
+          content: meetingMinutes.content,
+          modifiedBy: req.user?.username || "管理者",
+          originalData: originalData,
+          modifiedData: updatedData,
+        };
+
+        const [, meeting] = await Promise.all([
+          // AI分析結果を保存（analysisが存在する場合のみ）
+          analysis ? storage.updateAIAnalysis(id, analysis) : Promise.resolve(),
+          // 修正会議議事録を保存
+          storage.upsertWeeklyReportMeeting(meetingData),
+        ]);
+
+        const dbEndTime = Date.now();
+        console.log(
+          `Parallel database operations completed in ${dbEndTime - dbStartTime}ms`,
+        );
+
+        // 5. 最終的な週次報告データを取得
+        const finalReport = await storage.getWeeklyReport(id);
+
+        res.json({
+          report: finalReport,
+          meeting,
+          message: "修正と議事録生成が完了しました",
+        });
+      } catch (error) {
+        console.error("Error completing admin edit:", error);
+        res.status(500).json({ message: "管理者編集の完了に失敗しました" });
       }
-
-      const existingReport = await storage.getWeeklyReport(id);
-      if (!existingReport) {
-        res.status(404).json({ message: "週次報告が見つかりません" });
-        return;
-      }
-
-      // 1. 週次報告を更新
-      const updateData = insertWeeklyReportSchema.parse(updatedData);
-      const updatedReport = await storage.updateWeeklyReport(id, updateData);
-
-      // 2. 関連案件情報を取得
-      const relatedCase = await storage.getCase(updatedReport.caseId);
-
-      // 3. AI分析と議事録生成を並列実行（処理時間短縮）
-      console.log("Starting parallel AI processing...");
-      const parallelStartTime = Date.now();
-      
-      const [analysis, meetingMinutes] = await Promise.all([
-        // AI分析処理
-        analyzeWeeklyReport(updatedReport, relatedCase),
-        // 議事録生成処理
-        generateEditMeetingMinutes(
-          originalData, 
-          updatedData, 
-          req.user?.username || "管理者",
-          relatedCase
-        )
-      ]);
-      
-      const parallelEndTime = Date.now();
-      console.log(`Parallel AI processing completed in ${parallelEndTime - parallelStartTime}ms`);
-
-      // 4. AI分析結果保存と議事録保存を並列実行
-      console.log("Starting parallel database operations...");
-      const dbStartTime = Date.now();
-      
-      const meetingData = {
-        weeklyReportId: id,
-        meetingDate: new Date().toISOString().split('T')[0],
-        title: meetingMinutes.title,
-        content: meetingMinutes.content,
-        modifiedBy: req.user?.username || "管理者",
-        originalData: originalData,
-        modifiedData: updatedData
-      };
-
-      const [, meeting] = await Promise.all([
-        // AI分析結果を保存（analysisが存在する場合のみ）
-        analysis ? storage.updateAIAnalysis(id, analysis) : Promise.resolve(),
-        // 修正会議議事録を保存
-        storage.upsertWeeklyReportMeeting(meetingData)
-      ]);
-      
-      const dbEndTime = Date.now();
-      console.log(`Parallel database operations completed in ${dbEndTime - dbStartTime}ms`);
-
-      // 5. 最終的な週次報告データを取得
-      const finalReport = await storage.getWeeklyReport(id);
-      
-      res.json({
-        report: finalReport,
-        meeting,
-        message: "修正と議事録生成が完了しました"
-      });
-    } catch (error) {
-      console.error("Error completing admin edit:", error);
-      res.status(500).json({ message: "管理者編集の完了に失敗しました" });
-    }
-  });
+    },
+  );
 
   // 週次報告の修正履歴を取得
-  app.get("/api/weekly-reports/:id/meetings", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const meetings = await storage.getWeeklyReportMeetingsByReportId(id);
-      res.json(meetings);
-    } catch (error) {
-      console.error("Error fetching report meetings:", error);
-      res.status(500).json({ message: "修正履歴の取得に失敗しました" });
-    }
-  });
+  app.get(
+    "/api/weekly-reports/:id/meetings",
+    isAuthenticated,
+    async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const meetings = await storage.getWeeklyReportMeetingsByReportId(id);
+        res.json(meetings);
+      } catch (error) {
+        console.error("Error fetching report meetings:", error);
+        res.status(500).json({ message: "修正履歴の取得に失敗しました" });
+      }
+    },
+  );
 
   // 議事録更新エンドポイント
-  app.put("/api/weekly-reports/meetings/:meetingId", isAuthenticated, async (req, res) => {
-    try {
-      const meetingId = parseInt(req.params.meetingId);
-      const { title, content } = req.body;
+  app.put(
+    "/api/weekly-reports/meetings/:meetingId",
+    isAuthenticated,
+    async (req, res) => {
+      try {
+        const meetingId = parseInt(req.params.meetingId);
+        const { title, content } = req.body;
 
-      // 議事録の存在確認
-      const existingMeeting = await storage.getWeeklyReportMeeting(meetingId);
-      if (!existingMeeting) {
-        return res.status(404).json({ message: "議事録が見つかりません" });
+        // 議事録の存在確認
+        const existingMeeting = await storage.getWeeklyReportMeeting(meetingId);
+        if (!existingMeeting) {
+          return res.status(404).json({ message: "議事録が見つかりません" });
+        }
+
+        // 更新データを準備
+        const updateData = {
+          title: title || existingMeeting.title,
+          content: content || existingMeeting.content,
+        };
+
+        // 議事録を更新
+        const updatedMeeting = await storage.updateWeeklyReportMeeting(
+          meetingId,
+          updateData,
+        );
+
+        res.json({
+          message: "議事録が更新されました",
+          meeting: updatedMeeting,
+        });
+      } catch (error) {
+        console.error("Error updating meeting:", error);
+        res.status(500).json({ message: "議事録の更新に失敗しました" });
       }
-
-      // 更新データを準備
-      const updateData = {
-        title: title || existingMeeting.title,
-        content: content || existingMeeting.content,
-      };
-
-      // 議事録を更新
-      const updatedMeeting = await storage.updateWeeklyReportMeeting(meetingId, updateData);
-      
-      res.json({ 
-        message: "議事録が更新されました",
-        meeting: updatedMeeting 
-      });
-    } catch (error) {
-      console.error("Error updating meeting:", error);
-      res.status(500).json({ message: "議事録の更新に失敗しました" });
-    }
-  });
+    },
+  );
 
   async function generateMonthlySummary(
     projectName: string,
     reports: any[],
-    cases: any[]
+    cases: any[],
   ): Promise<string> {
     try {
       // データがない場合は早期リターン
@@ -1120,28 +1311,42 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       }
 
       // 複数プロジェクトかどうかを判定
-      const isMultiProject = projectName.includes('複数プロジェクト');
+      const isMultiProject = projectName.includes("複数プロジェクト");
 
       // 各案件と報告を整理（データがある案件のみ）
-      const caseMap: Record<number, { caseName: string; description: string | null; projectName: string; reports: any[] }> = {};
+      const caseMap: Record<
+        number,
+        {
+          caseName: string;
+          description: string | null;
+          projectName: string;
+          reports: any[];
+        }
+      > = {};
 
       // レポートのある案件IDのセットを作成
-      const caseIdsWithReports = new Set(reports.map(report => report.caseId));
-      console.log(`[DEBUG] Monthly Summary - Report count: ${reports.length}, Case count: ${cases.length}, Cases with reports: ${caseIdsWithReports.size}`);
+      const caseIdsWithReports = new Set(
+        reports.map((report) => report.caseId),
+      );
+      console.log(
+        `[DEBUG] Monthly Summary - Report count: ${reports.length}, Case count: ${cases.length}, Cases with reports: ${caseIdsWithReports.size}`,
+      );
 
       // データがある案件のみを追加
       cases
-        .filter(c => caseIdsWithReports.has(c.id))
-        .forEach(c => {
+        .filter((c) => caseIdsWithReports.has(c.id))
+        .forEach((c) => {
           caseMap[c.id] = {
             caseName: c.caseName,
             description: c.description,
             projectName: c.projectName,
-            reports: []
+            reports: [],
           };
         });
 
-      console.log(`[DEBUG] Monthly Summary - Cases in map: ${Object.keys(caseMap).length}`);
+      console.log(
+        `[DEBUG] Monthly Summary - Cases in map: ${Object.keys(caseMap).length}`,
+      );
 
       // データがある案件がない場合は早期リターン
       if (Object.keys(caseMap).length === 0) {
@@ -1150,21 +1355,33 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       }
 
       // 週次報告を案件ごとに整理
-      reports.forEach(report => {
+      reports.forEach((report) => {
         if (caseMap[report.caseId]) {
           caseMap[report.caseId].reports.push(report);
         } else {
-          console.log(`[WARN] Monthly Summary - Report for case ID ${report.caseId} not found in case map`);
+          console.log(
+            `[WARN] Monthly Summary - Report for case ID ${report.caseId} not found in case map`,
+          );
         }
       });
 
       // 期間の計算
-      const startDate = reports.length > 0 
-        ? new Date(Math.min(...reports.map(r => new Date(r.reportPeriodStart).getTime())))
-        : new Date();
-      const endDate = reports.length > 0 
-        ? new Date(Math.max(...reports.map(r => new Date(r.reportPeriodEnd).getTime())))
-        : new Date();
+      const startDate =
+        reports.length > 0
+          ? new Date(
+              Math.min(
+                ...reports.map((r) => new Date(r.reportPeriodStart).getTime()),
+              ),
+            )
+          : new Date();
+      const endDate =
+        reports.length > 0
+          ? new Date(
+              Math.max(
+                ...reports.map((r) => new Date(r.reportPeriodEnd).getTime()),
+              ),
+            )
+          : new Date();
 
       // プロンプト作成
       let prompt = `
@@ -1173,7 +1390,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 
 【プロジェクト】 ${projectName}
 
-【対象期間】 ${startDate.toISOString().split('T')[0]} 〜 ${endDate.toISOString().split('T')[0]}
+【対象期間】 ${startDate.toISOString().split("T")[0]} 〜 ${endDate.toISOString().split("T")[0]}
 
 【プロジェクト内の案件と週次報告データ】
 `;
@@ -1184,13 +1401,13 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         const caseInfo = caseMap[caseId];
 
         // 該当する案件の完全な情報を取得
-        const fullCaseInfo = cases.find(c => c.id === caseId);
+        const fullCaseInfo = cases.find((c) => c.id === caseId);
         if (!fullCaseInfo) return; // 存在しない案件は表示しない
 
         const milestone = fullCaseInfo?.milestone || "";
 
         prompt += `
-${isMultiProject ? `■ プロジェクト: ${caseInfo.projectName}` : ''}
+${isMultiProject ? `■ プロジェクト: ${caseInfo.projectName}` : ""}
 ■ 案件: ${caseInfo.caseName}
 ${caseInfo.description ? `説明: ${caseInfo.description}` : ""}
 ${milestone ? `マイルストーン: ${milestone}` : ""}
@@ -1201,8 +1418,10 @@ ${milestone ? `マイルストーン: ${milestone}` : ""}
         // 各案件の報告内容をプロンプトに追加
         if (caseInfo.reports.length > 0) {
           // 日付順にソート
-          caseInfo.reports.sort((a: any, b: any) => 
-            new Date(a.reportPeriodEnd).getTime() - new Date(b.reportPeriodEnd).getTime()
+          caseInfo.reports.sort(
+            (a: any, b: any) =>
+              new Date(a.reportPeriodEnd).getTime() -
+              new Date(b.reportPeriodEnd).getTime(),
           );
 
           // 最大5件までの報告を表示
@@ -1231,26 +1450,37 @@ ${milestone ? `マイルストーン: ${milestone}` : ""}
 1. 全体進捗状況のサマリー
 2. 主な成果と完了項目
 3. 直面している課題やリスク、その対応策
-${isMultiProject ? '4. プロジェクトごとの概要と各案件の状況（現状と予定）' : '4. 各案件ごとの状況概要（現状と予定）'}
+${isMultiProject ? "4. プロジェクトごとの概要と各案件の状況（現状と予定）" : "4. 各案件ごとの状況概要（現状と予定）"}
 5. 品質状況のまとめ
 6. 今後のスケジュールと目標
 7. 経営層に伝えるべきその他重要事項
 
-最終的なレポートは経営層向けに簡潔にまとめ、${isMultiProject ? 'すべてのプロジェクト' : 'プロジェクト'}全体の健全性と今後の見通しが明確に伝わるように作成してください。
+最終的なレポートは経営層向けに簡潔にまとめ、${isMultiProject ? "すべてのプロジェクト" : "プロジェクト"}全体の健全性と今後の見通しが明確に伝わるように作成してください。
 Markdown形式で作成し、適切な見出しを使って整理してください。
 `;
 
       // AIサービスを使用してレポートを生成
       const aiService = getAIService();
-      console.log(`Using AI provider: ${process.env.AI_PROVIDER || 'openai'} for monthly summary`);
+      console.log(
+        `Using AI provider: ${process.env.AI_PROVIDER || "openai"} for monthly summary`,
+      );
 
-      const response = await aiService.generateResponse([
+      const response = await aiService.generateResponse(
+        [
+          {
+            role: "system",
+            content:
+              "あなたは経営層向けのプロジェクト状況報告書を作成する専門家です。複数の週次報告から重要な情報を抽出し、簡潔で要点を押さえた月次報告書を作成します。報告書は経営判断に必要な情報が過不足なく含まれるよう心がけてください。\n\n重要: 応答はマークダウン形式で直接出力してください。```markdown のようなコードブロックは使用しないでください。",
+          },
+          { role: "user", content: prompt },
+        ],
+        undefined,
         {
-          role: "system",
-          content: "あなたは経営層向けのプロジェクト状況報告書を作成する専門家です。複数の週次報告から重要な情報を抽出し、簡潔で要点を押さえた月次報告書を作成します。報告書は経営判断に必要な情報が過不足なく含まれるよう心がけてください。\n\n重要: 応答はマークダウン形式で直接出力してください。```markdown のようなコードブロックは使用しないでください。"
+          operation: "generateMonthlySummary",
+          projectName,
+          reportCount: reports.length,
         },
-        { role: "user", content: prompt }
-      ], undefined, { operation: 'generateMonthlySummary', projectName, reportCount: reports.length });
+      );
 
       return response.content;
     } catch (error) {
@@ -1344,19 +1574,24 @@ ${previousReportInfo}
 
       // AIサービスを使用して分析を実行
       const aiService = getAIService();
-      
-      const response = await aiService.generateResponse([
+
+      const response = await aiService.generateResponse(
+        [
+          {
+            role: "system",
+            content:
+              "あなたはプロジェクトマネージャーのアシスタントです。週次報告を詳細に分析し、改善点や注意点を明確に指摘できます。前回の報告と今回の報告を比較し、変化や傾向を把握します。",
+          },
+          { role: "user", content: prompt },
+        ],
+        undefined,
         {
-          role: "system",
-          content: "あなたはプロジェクトマネージャーのアシスタントです。週次報告を詳細に分析し、改善点や注意点を明確に指摘できます。前回の報告と今回の報告を比較し、変化や傾向を把握します。",
+          operation: "analyzeWeeklyReport",
+          reportId: report.id,
+          caseId: report.caseId,
+          projectName: relatedCase?.projectName,
         },
-        { role: "user", content: prompt },
-      ], undefined, { 
-        operation: 'analyzeWeeklyReport', 
-        reportId: report.id, 
-        caseId: report.caseId,
-        projectName: relatedCase?.projectName 
-      });
+      );
 
       return response.content;
     } catch (error) {
@@ -1370,25 +1605,31 @@ ${previousReportInfo}
     originalData: any,
     updatedData: any,
     modifiedBy: string,
-    relatedCase: any
+    relatedCase: any,
   ): Promise<{ title: string; content: string }> {
     try {
       // 関連する案件・プロジェクト情報
       const projectInfo = relatedCase
         ? `${relatedCase.projectName} - ${relatedCase.caseName}`
         : "案件情報取得不可";
-      
+
       // 報告期間を取得
-      const reportPeriod = updatedData.reportPeriodStart && updatedData.reportPeriodEnd
-        ? `${updatedData.reportPeriodStart} 〜 ${updatedData.reportPeriodEnd}`
-        : "期間不明";
+      const reportPeriod =
+        updatedData.reportPeriodStart && updatedData.reportPeriodEnd
+          ? `${updatedData.reportPeriodStart} 〜 ${updatedData.reportPeriodEnd}`
+          : "期間不明";
 
       // タイトル生成
-      const title = `週次報告修正会議 - ${reportPeriod} - ${projectInfo}`;
+      const title = `週次報告会議 - ${reportPeriod} - ${projectInfo}`;
 
       // 変更フィールドを検出
-      const changes: Array<{field: string, fieldName: string, before: string, after: string}> = [];
-      
+      const changes: Array<{
+        field: string;
+        fieldName: string;
+        before: string;
+        after: string;
+      }> = [];
+
       const fieldMapping: Record<string, string> = {
         reporterName: "報告者名",
         weeklyTasks: "今週の作業内容",
@@ -1423,24 +1664,36 @@ ${previousReportInfo}
         resourceDetails: "リソース懸念の詳細",
         customerDetails: "顧客懸念の詳細",
         environmentDetails: "環境懸念の詳細",
-        costDetails: "コスト懸念の詳細"
+        costDetails: "コスト懸念の詳細",
       };
 
       // フィールド内の変更箇所を文脈付きでマークアップする機能
-      const generateContextualFieldContent = (original: string, updated: string, fieldName: string) => {
+      const generateContextualFieldContent = (
+        original: string,
+        updated: string,
+        fieldName: string,
+      ) => {
         if (original.trim() === updated.trim()) {
           return null; // 変更なし
         }
-        
-        const originalLines = original.split('\n').map(line => line.trim()).filter(line => line);
-        const updatedLines = updated.split('\n').map(line => line.trim()).filter(line => line);
-        
+
+        const originalLines = original
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line);
+        const updatedLines = updated
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line);
+
         // 更新後の内容をベースに、各行の状態を判定してマークアップ
         let markedUpContent = `**${fieldName}（変更あり）**\n`;
-        
-        updatedLines.forEach(updatedLine => {
-          const isNewLine = !originalLines.some(originalLine => originalLine === updatedLine);
-          
+
+        updatedLines.forEach((updatedLine) => {
+          const isNewLine = !originalLines.some(
+            (originalLine) => originalLine === updatedLine,
+          );
+
           if (isNewLine) {
             // 追加された行
             markedUpContent += `**[追加]** ${updatedLine}\n`;
@@ -1449,23 +1702,24 @@ ${previousReportInfo}
             markedUpContent += `${updatedLine}\n`;
           }
         });
-        
+
         // 削除された行があるかチェック
-        const deletedLines = originalLines.filter(originalLine => 
-          !updatedLines.some(updatedLine => updatedLine === originalLine)
+        const deletedLines = originalLines.filter(
+          (originalLine) =>
+            !updatedLines.some((updatedLine) => updatedLine === originalLine),
         );
-        
+
         if (deletedLines.length > 0) {
           markedUpContent += `\n**削除された内容:**\n`;
-          deletedLines.forEach(deletedLine => {
+          deletedLines.forEach((deletedLine) => {
             markedUpContent += `**[削除]** ${deletedLine}\n`;
           });
         }
-        
+
         return {
           fieldName,
           markedUpContent: markedUpContent.trim(),
-          hasChanges: true
+          hasChanges: true,
         };
       };
 
@@ -1481,18 +1735,22 @@ ${previousReportInfo}
       }> = [];
 
       // 各フィールドの変更を文脈付きで検出
-      Object.keys(fieldMapping).forEach(field => {
+      Object.keys(fieldMapping).forEach((field) => {
         const originalValue = String(originalData[field] || "").trim();
         const updatedValue = String(updatedData[field] || "").trim();
-        
-        const change = generateContextualFieldContent(originalValue, updatedValue, fieldMapping[field]);
+
+        const change = generateContextualFieldContent(
+          originalValue,
+          updatedValue,
+          fieldMapping[field],
+        );
         if (change) {
           contextualChanges.push(change);
         } else if (updatedValue) {
           // 変更がないが内容があるフィールドは参考情報として保存
           unchangedFields.push({
             fieldName: fieldMapping[field],
-            content: updatedValue
+            content: updatedValue,
           });
         }
       });
@@ -1501,11 +1759,10 @@ ${previousReportInfo}
       let changesText = "";
       if (contextualChanges.length > 0) {
         // 変更があったフィールドの内容をマークアップ付きで表示
-        const changedFieldsContent = contextualChanges.map(change => 
-          change.markedUpContent
-        ).join('\n\n');
-        
-        
+        const changedFieldsContent = contextualChanges
+          .map((change) => change.markedUpContent)
+          .join("\n\n");
+
         changesText = `**週次報告の修正内容**\n\n${changedFieldsContent}`;
       } else {
         changesText = "変更が検出されませんでした。";
@@ -1519,7 +1776,7 @@ ${previousReportInfo}
 - 対象報告: ${reportPeriod}
 - 対象案件: ${projectInfo}
 - 参加者: ${modifiedBy}（管理者）、報告者
-- 日時: ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
+- 日時: ${new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
 
 ${changesText}
 
@@ -1550,33 +1807,38 @@ ${changesText}
 
       // AIサービスを使用して議事録を生成
       const aiService = getAIService();
-      
-      const response = await aiService.generateResponse([
+
+      const response = await aiService.generateResponse(
+        [
+          {
+            role: "system",
+            content:
+              "あなたは文脈を重視した実用的な議事録を作成する専門アシスタントです。週次報告の変更内容を、既存の作業フローとの関連性の中で理解し、以下の能力を持っています：\n\n1. 変更箇所が既存の作業にどのような影響を与えるかを分析\n2. プロジェクト全体の流れを理解した上でタスクの優先度と関連性を判断\n3. 「なぜその変更が必要になったか」の背景を推測\n4. 実行可能で具体的なアクションアイテムを生成\n5. 後から参照したときに変更の意図と対応策が明確に分かる議事録を作成\n\n変更箇所だけでなく、その文脈を十分に理解した上で、実用的で行動に移しやすいタスクリストを含む議事録を作成してください。",
+          },
+          { role: "user", content: prompt },
+        ],
+        undefined,
         {
-          role: "system",
-          content: "あなたは文脈を重視した実用的な議事録を作成する専門アシスタントです。週次報告の変更内容を、既存の作業フローとの関連性の中で理解し、以下の能力を持っています：\n\n1. 変更箇所が既存の作業にどのような影響を与えるかを分析\n2. プロジェクト全体の流れを理解した上でタスクの優先度と関連性を判断\n3. 「なぜその変更が必要になったか」の背景を推測\n4. 実行可能で具体的なアクションアイテムを生成\n5. 後から参照したときに変更の意図と対応策が明確に分かる議事録を作成\n\n変更箇所だけでなく、その文脈を十分に理解した上で、実用的で行動に移しやすいタスクリストを含む議事録を作成してください。"
+          operation: "generateEditMeetingMinutes",
+          projectName: relatedCase?.projectName,
+          reportPeriod,
         },
-        { role: "user", content: prompt }
-      ], undefined, {
-        operation: 'generateEditMeetingMinutes',
-        projectName: relatedCase?.projectName,
-        reportPeriod
-      });
+      );
 
       return {
         title,
-        content: response.content
+        content: response.content,
       };
     } catch (error) {
       console.error("AI議事録生成エラー:", error);
-      
+
       // エラー時はシンプルな議事録を生成
-      const fallbackTitle = `週次報告修正会議 - ${updatedData.reportPeriodStart || "日付不明"} - ${relatedCase?.projectName || "プロジェクト不明"}`;
+      const fallbackTitle = `週次報告会議 - ${updatedData.reportPeriodStart || "日付不明"} - ${relatedCase?.projectName || "プロジェクト不明"}`;
       const fallbackContent = `
-# 週次報告修正会議議事録
+# 週次報告会議議事録
 
 ## 会議概要
-- **日時**: ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
+- **日時**: ${new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
 - **修正者**: ${modifiedBy}
 - **対象報告**: ${updatedData.reportPeriodStart || "日付不明"} の週次報告
 
@@ -1590,143 +1852,198 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
 
       return {
         title: fallbackTitle,
-        content: fallbackContent
+        content: fallbackContent,
       };
     }
   }
 
   // マネージャ定例議事録関連のAPI
   // プロジェクト別議事録一覧取得（月指定可能）
-  app.get('/api/projects/:id/manager-meetings', isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id);
-      const yearMonth = req.query.yearMonth as string;
+  app.get(
+    "/api/projects/:id/manager-meetings",
+    isAuthenticated,
+    async (req, res) => {
+      try {
+        const projectId = parseInt(req.params.id);
+        const yearMonth = req.query.yearMonth as string;
 
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: 'Invalid project ID' });
+        if (isNaN(projectId)) {
+          return res.status(400).json({ error: "Invalid project ID" });
+        }
+
+        const meetings = await storage.getManagerMeetingsByProject(
+          projectId,
+          yearMonth,
+        );
+        res.json(meetings);
+      } catch (error) {
+        console.error("Manager meetings fetch error:", error);
+        res
+          .status(500)
+          .json({
+            error: "マネージャ定例議事録の取得中にエラーが発生しました",
+          });
       }
-
-      const meetings = await storage.getManagerMeetingsByProject(projectId, yearMonth);
-      res.json(meetings);
-    } catch (error) {
-      console.error('Manager meetings fetch error:', error);
-      res.status(500).json({ error: 'マネージャ定例議事録の取得中にエラーが発生しました' });
-    }
-  });
+    },
+  );
 
   // プロジェクトの利用可能月取得
-  app.get('/api/projects/:id/manager-meetings/months', isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id);
+  app.get(
+    "/api/projects/:id/manager-meetings/months",
+    isAuthenticated,
+    async (req, res) => {
+      try {
+        const projectId = parseInt(req.params.id);
 
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: 'Invalid project ID' });
+        if (isNaN(projectId)) {
+          return res.status(400).json({ error: "Invalid project ID" });
+        }
+
+        const months = await storage.getAvailableMonths(projectId);
+        res.json(months);
+      } catch (error) {
+        console.error("Available months fetch error:", error);
+        res
+          .status(500)
+          .json({ error: "利用可能月の取得中にエラーが発生しました" });
       }
-
-      const months = await storage.getAvailableMonths(projectId);
-      res.json(months);
-    } catch (error) {
-      console.error('Available months fetch error:', error);
-      res.status(500).json({ error: '利用可能月の取得中にエラーが発生しました' });
-    }
-  });
+    },
+  );
 
   // 新規議事録作成
-  app.post('/api/projects/:id/manager-meetings', isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id);
+  app.post(
+    "/api/projects/:id/manager-meetings",
+    isAuthenticated,
+    isAdmin,
+    async (req, res) => {
+      try {
+        const projectId = parseInt(req.params.id);
 
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: 'Invalid project ID' });
+        if (isNaN(projectId)) {
+          return res.status(400).json({ error: "Invalid project ID" });
+        }
+
+        // 開催日から年月を自動生成
+        const meetingDate = new Date(req.body.meetingDate);
+        const yearMonth = `${meetingDate.getFullYear()}-${String(meetingDate.getMonth() + 1).padStart(2, "0")}`;
+
+        const meetingData = insertManagerMeetingSchema.parse({
+          ...req.body,
+          projectId,
+          yearMonth,
+        });
+
+        console.log(
+          `[DEBUG] Creating manager meeting with yearMonth: ${yearMonth}`,
+        );
+
+        const meeting = await storage.createManagerMeeting(meetingData);
+        res.status(201).json(meeting);
+      } catch (error) {
+        console.error("Manager meeting creation error:", error);
+        res
+          .status(500)
+          .json({
+            error: "マネージャ定例議事録の作成中にエラーが発生しました",
+          });
       }
-
-      // 開催日から年月を自動生成
-      const meetingDate = new Date(req.body.meetingDate);
-      const yearMonth = `${meetingDate.getFullYear()}-${String(meetingDate.getMonth() + 1).padStart(2, '0')}`;
-
-      const meetingData = insertManagerMeetingSchema.parse({
-        ...req.body,
-        projectId,
-        yearMonth
-      });
-
-      console.log(`[DEBUG] Creating manager meeting with yearMonth: ${yearMonth}`);
-
-      const meeting = await storage.createManagerMeeting(meetingData);
-      res.status(201).json(meeting);
-    } catch (error) {
-      console.error('Manager meeting creation error:', error);
-      res.status(500).json({ error: 'マネージャ定例議事録の作成中にエラーが発生しました' });
-    }
-  });
+    },
+  );
 
   // 個別議事録取得
-  app.get('/api/manager-meetings/:id', isAuthenticated, async (req, res) => {
+  app.get("/api/manager-meetings/:id", isAuthenticated, async (req, res) => {
     try {
       const meetingId = parseInt(req.params.id);
 
       if (isNaN(meetingId)) {
-        return res.status(400).json({ error: 'Invalid meeting ID' });
+        return res.status(400).json({ error: "Invalid meeting ID" });
       }
 
       const meeting = await storage.getManagerMeeting(meetingId);
-      
+
       if (!meeting) {
-        return res.status(404).json({ error: 'マネージャ定例議事録が見つかりません' });
+        return res
+          .status(404)
+          .json({ error: "マネージャ定例議事録が見つかりません" });
       }
 
       res.json(meeting);
     } catch (error) {
-      console.error('Manager meeting fetch error:', error);
-      res.status(500).json({ error: 'マネージャ定例議事録の取得中にエラーが発生しました' });
+      console.error("Manager meeting fetch error:", error);
+      res
+        .status(500)
+        .json({ error: "マネージャ定例議事録の取得中にエラーが発生しました" });
     }
   });
 
   // 議事録更新
-  app.put('/api/manager-meetings/:id', isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const meetingId = parseInt(req.params.id);
+  app.put(
+    "/api/manager-meetings/:id",
+    isAuthenticated,
+    isAdmin,
+    async (req, res) => {
+      try {
+        const meetingId = parseInt(req.params.id);
 
-      if (isNaN(meetingId)) {
-        return res.status(400).json({ error: 'Invalid meeting ID' });
+        if (isNaN(meetingId)) {
+          return res.status(400).json({ error: "Invalid meeting ID" });
+        }
+
+        // 開催日から年月を自動生成
+        const meetingDate = new Date(req.body.meetingDate);
+        const yearMonth = `${meetingDate.getFullYear()}-${String(meetingDate.getMonth() + 1).padStart(2, "0")}`;
+
+        const meetingData = insertManagerMeetingSchema.parse({
+          ...req.body,
+          yearMonth,
+        });
+
+        console.log(
+          `[DEBUG] Updating manager meeting with yearMonth: ${yearMonth}`,
+        );
+
+        const updatedMeeting = await storage.updateManagerMeeting(
+          meetingId,
+          meetingData,
+        );
+
+        res.json(updatedMeeting);
+      } catch (error) {
+        console.error("Manager meeting update error:", error);
+        res
+          .status(500)
+          .json({
+            error: "マネージャ定例議事録の更新中にエラーが発生しました",
+          });
       }
-
-      // 開催日から年月を自動生成
-      const meetingDate = new Date(req.body.meetingDate);
-      const yearMonth = `${meetingDate.getFullYear()}-${String(meetingDate.getMonth() + 1).padStart(2, '0')}`;
-
-      const meetingData = insertManagerMeetingSchema.parse({
-        ...req.body,
-        yearMonth
-      });
-
-      console.log(`[DEBUG] Updating manager meeting with yearMonth: ${yearMonth}`);
-
-      const updatedMeeting = await storage.updateManagerMeeting(meetingId, meetingData);
-      
-      res.json(updatedMeeting);
-    } catch (error) {
-      console.error('Manager meeting update error:', error);
-      res.status(500).json({ error: 'マネージャ定例議事録の更新中にエラーが発生しました' });
-    }
-  });
+    },
+  );
 
   // 議事録削除
-  app.delete('/api/manager-meetings/:id', isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const meetingId = parseInt(req.params.id);
+  app.delete(
+    "/api/manager-meetings/:id",
+    isAuthenticated,
+    isAdmin,
+    async (req, res) => {
+      try {
+        const meetingId = parseInt(req.params.id);
 
-      if (isNaN(meetingId)) {
-        return res.status(400).json({ error: 'Invalid meeting ID' });
+        if (isNaN(meetingId)) {
+          return res.status(400).json({ error: "Invalid meeting ID" });
+        }
+
+        const deletedMeeting = await storage.deleteManagerMeeting(meetingId);
+        res.json(deletedMeeting);
+      } catch (error) {
+        console.error("Manager meeting deletion error:", error);
+        res
+          .status(500)
+          .json({
+            error: "マネージャ定例議事録の削除中にエラーが発生しました",
+          });
       }
-
-      const deletedMeeting = await storage.deleteManagerMeeting(meetingId);
-      res.json(deletedMeeting);
-    } catch (error) {
-      console.error('Manager meeting deletion error:', error);
-      res.status(500).json({ error: 'マネージャ定例議事録の削除中にエラーが発生しました' });
-    }
-  });
+    },
+  );
 
   const httpServer = createServer(app);
   return httpServer;
