@@ -114,6 +114,7 @@ export default function RecentWeeklyReportsList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>作成日時</TableHead>
                   <TableHead>報告期間</TableHead>
                   <TableHead>プロジェクト</TableHead>
                   <TableHead>案件名</TableHead>
@@ -126,6 +127,7 @@ export default function RecentWeeklyReportsList() {
               <TableBody>
                 {reports.map((report) => (
                   <TableRow key={report.id}>
+                    <TableCell>{formatDate(report.createdAt)}</TableCell>
                     <TableCell>{formatDate(report.reportPeriodStart)} 〜 {formatDate(report.reportPeriodEnd)}</TableCell>
                     <TableCell>{report.projectName}</TableCell>
                     <TableCell>{report.caseName}</TableCell>
