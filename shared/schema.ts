@@ -108,7 +108,7 @@ export const managerMeetings = pgTable("manager_meetings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// 週次報告修正会議議事録テーブル
+// 週次報告会議議事録テーブル
 export const weeklyReportMeetings = pgTable("weekly_report_meetings", {
   id: serial("id").primaryKey(),
   weeklyReportId: integer("weekly_report_id").notNull().unique(), // 週次報告IDをユニークに設定
@@ -138,7 +138,7 @@ export const managerMeetingsRelations = relations(managerMeetings, ({ one }) => 
   }),
 }));
 
-// 週次報告修正会議議事録と週次報告の関係定義
+// 週次報告会議議事録と週次報告の関係定義
 export const weeklyReportMeetingsRelations = relations(weeklyReportMeetings, ({ one }) => ({
   weeklyReport: one(weeklyReports, {
     fields: [weeklyReportMeetings.weeklyReportId],
