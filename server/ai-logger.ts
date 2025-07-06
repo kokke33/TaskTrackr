@@ -8,7 +8,7 @@ export enum LogLevel {
 export interface AILogEntry {
   timestamp: string;
   level: LogLevel;
-  provider: 'openai' | 'ollama';
+  provider: 'openai' | 'ollama' | 'gemini';
   operation: string;
   requestId: string;
   userId?: string;
@@ -136,7 +136,7 @@ export class AILogger {
   }
 
   logRequest(
-    provider: 'openai' | 'ollama',
+    provider: 'openai' | 'ollama' | 'gemini',
     operation: string,
     requestId: string,
     request: {
@@ -166,7 +166,7 @@ export class AILogger {
   }
 
   logResponse(
-    provider: 'openai' | 'ollama',
+    provider: 'openai' | 'ollama' | 'gemini',
     operation: string,
     requestId: string,
     response: {
@@ -203,7 +203,7 @@ export class AILogger {
   }
 
   logError(
-    provider: 'openai' | 'ollama',
+    provider: 'openai' | 'ollama' | 'gemini',
     operation: string,
     requestId: string,
     error: Error,
@@ -236,7 +236,7 @@ export class AILogger {
   }
 
   logDebug(
-    provider: 'openai' | 'ollama',
+    provider: 'openai' | 'ollama' | 'gemini',
     operation: string,
     requestId: string,
     message: string,

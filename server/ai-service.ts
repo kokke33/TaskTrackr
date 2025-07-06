@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
 import { aiConfig } from './config.js';
 import { aiLogger, generateRequestId } from './ai-logger.js';
 
@@ -21,9 +22,9 @@ export interface AIResponse {
 
 // Abstract AI service interface
 export abstract class AIService {
-  protected readonly provider: 'openai' | 'ollama';
+  protected readonly provider: 'openai' | 'ollama' | 'gemini';
 
-  constructor(provider: 'openai' | 'ollama') {
+  constructor(provider: 'openai' | 'ollama' | 'gemini') {
     this.provider = provider;
   }
 
@@ -338,6 +339,146 @@ export class OllamaService extends AIService {
   }
 }
 
+// Gemini implementation
+export class GeminiService extends AIService {
+  private client: GoogleGenerativeAI;
+  private model: string;
+
+  constructor() {
+    super('gemini');
+    this.client = new GoogleGenerativeAI(aiConfig.gemini.apiKey);
+    this.model = aiConfig.gemini.model;
+  }
+
+  async generateResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): Promise<AIResponse> {
+    const requestId = generateRequestId();
+    const startTime = Date.now();
+
+    const requestData = {
+      endpoint: 'https://generativelanguage.googleapis.com/v1/models/' + this.model,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: {
+        model: this.model,
+        contents: this.messagesToGeminiFormat(messages),
+        generationConfig: {
+          temperature: aiConfig.gemini.temperature,
+          maxOutputTokens: aiConfig.gemini.maxTokens,
+        },
+      }
+    };
+
+    // Log request
+    aiLogger.logRequest('gemini', 'generateResponse', requestId, requestData, userId, metadata);
+
+    try {
+      const model = this.client.getGenerativeModel({ 
+        model: this.model,
+        safetySettings: [
+          {
+            category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+          {
+            category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+          {
+            category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+          {
+            category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+        ],
+      });
+
+      // Convert messages to Gemini format
+      const prompt = this.messagesToPrompt(messages);
+      
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: aiConfig.gemini.temperature,
+          maxOutputTokens: aiConfig.gemini.maxTokens,
+        },
+      });
+
+      const duration = Date.now() - startTime;
+      const response = result.response;
+      const text = response.text();
+
+      if (!text) {
+        throw new Error('No response content from Gemini');
+      }
+
+      const responseData = {
+        status: 200,
+        headers: {},
+        body: {
+          model: this.model,
+          content: text,
+          usage: response.usageMetadata,
+        },
+        duration,
+      };
+
+      // Log response
+      aiLogger.logResponse('gemini', 'generateResponse', requestId, responseData, userId, metadata);
+
+      const aiResponse: AIResponse = {
+        content: text,
+        usage: response.usageMetadata ? {
+          promptTokens: response.usageMetadata.promptTokenCount || 0,
+          completionTokens: response.usageMetadata.candidatesTokenCount || 0,
+          totalTokens: response.usageMetadata.totalTokenCount || 0,
+        } : undefined,
+        requestId,
+        provider: 'gemini',
+        duration,
+      };
+
+      aiLogger.logDebug('gemini', 'generateResponse', requestId, 'Gemini response processed successfully', 
+        { tokens: aiResponse.usage?.totalTokens, duration }, userId);
+
+      return aiResponse;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      aiLogger.logError('gemini', 'generateResponse', requestId, error as Error, userId, 
+        { ...metadata, duration, model: this.model });
+      
+      throw new Error(`Gemini API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private messagesToPrompt(messages: AIMessage[]): string {
+    return messages
+      .map(msg => {
+        switch (msg.role) {
+          case 'system':
+            return `システム: ${msg.content}`;
+          case 'user':
+            return `ユーザー: ${msg.content}`;
+          case 'assistant':
+            return `アシスタント: ${msg.content}`;
+          default:
+            return msg.content;
+        }
+      })
+      .join('\n\n');
+  }
+
+  private messagesToGeminiFormat(messages: AIMessage[]): any[] {
+    return messages.map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
+  }
+}
+
 // Factory function to create the appropriate AI service
 export function createAIService(): AIService {
   switch (aiConfig.provider) {
@@ -345,6 +486,8 @@ export function createAIService(): AIService {
       return new OpenAIService();
     case 'ollama':
       return new OllamaService();
+    case 'gemini':
+      return new GeminiService();
     default:
       throw new Error(`Unsupported AI provider: ${aiConfig.provider}`);
   }
