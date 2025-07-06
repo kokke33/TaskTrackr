@@ -1498,13 +1498,16 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       const pastReports = await storage.getWeeklyReportsByCase(report.caseId);
       console.log(`取得した過去の報告数: ${pastReports.length}`);
 
-      // 現在の報告を除外して過去の報告を取得
-      const previousReports = pastReports.filter((pr) => pr.id !== report.id);
+      // 現在の報告より前の期間の報告のみを取得
+      const previousReports = pastReports.filter((pr) => 
+        pr.id !== report.id && 
+        new Date(pr.reportPeriodStart) < new Date(report.reportPeriodStart)
+      );
       console.log(
-        `現在の報告ID: ${report.id}, 比較対象となる過去の報告数: ${previousReports.length}`,
+        `現在の報告ID: ${report.id}, 報告期間: ${report.reportPeriodStart}, 比較対象となる前回報告数: ${previousReports.length}`,
       );
 
-      // 直近の過去の報告（レポート日付の降順でソート済みなので最初の要素を使用）
+      // 直近の前回報告（現在の報告期間より前で最新の報告）
       const previousReport =
         previousReports.length > 0 ? previousReports[0] : null;
       console.log(`直近の過去の報告ID: ${previousReport?.id || "なし"}`);
