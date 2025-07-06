@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import { aiConfig } from './config.js';
 import { aiLogger, generateRequestId } from './ai-logger.js';
 
@@ -22,9 +23,9 @@ export interface AIResponse {
 
 // Abstract AI service interface
 export abstract class AIService {
-  protected readonly provider: 'openai' | 'ollama' | 'gemini';
+  protected readonly provider: 'openai' | 'ollama' | 'gemini' | 'groq';
 
-  constructor(provider: 'openai' | 'ollama' | 'gemini') {
+  constructor(provider: 'openai' | 'ollama' | 'gemini' | 'groq') {
     this.provider = provider;
   }
 
@@ -479,6 +480,96 @@ export class GeminiService extends AIService {
   }
 }
 
+// Groq implementation
+export class GroqService extends AIService {
+  private client: Groq;
+
+  constructor() {
+    super('groq');
+    this.client = new Groq({
+      apiKey: aiConfig.groq.apiKey,
+    });
+  }
+
+  async generateResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): Promise<AIResponse> {
+    const requestId = generateRequestId();
+    const startTime = Date.now();
+
+    const requestData = {
+      endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${aiConfig.groq.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: {
+        model: aiConfig.groq.model,
+        messages: messages,
+        max_tokens: aiConfig.groq.maxTokens,
+        temperature: aiConfig.groq.temperature,
+      }
+    };
+
+    // Log request
+    aiLogger.logRequest('groq', 'generateResponse', requestId, requestData, userId, metadata);
+
+    try {
+      const response = await this.client.chat.completions.create({
+        model: aiConfig.groq.model,
+        messages: messages,
+        max_tokens: aiConfig.groq.maxTokens,
+        temperature: aiConfig.groq.temperature,
+      });
+
+      const duration = Date.now() - startTime;
+      const choice = response.choices[0];
+      
+      if (!choice?.message?.content) {
+        throw new Error('No response content from Groq');
+      }
+
+      const responseData = {
+        status: 200,
+        headers: {},
+        body: {
+          id: response.id,
+          model: response.model,
+          content: choice.message.content,
+          usage: response.usage,
+          finish_reason: choice.finish_reason,
+        },
+        duration,
+      };
+
+      // Log response
+      aiLogger.logResponse('groq', 'generateResponse', requestId, responseData, userId, metadata);
+
+      const result: AIResponse = {
+        content: choice.message.content,
+        usage: response.usage ? {
+          promptTokens: response.usage.prompt_tokens,
+          completionTokens: response.usage.completion_tokens,
+          totalTokens: response.usage.total_tokens,
+        } : undefined,
+        requestId,
+        provider: 'groq',
+        duration,
+      };
+
+      aiLogger.logDebug('groq', 'generateResponse', requestId, 'Groq response processed successfully', 
+        { tokens: result.usage?.totalTokens, duration }, userId);
+
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      aiLogger.logError('groq', 'generateResponse', requestId, error as Error, userId, 
+        { ...metadata, duration, model: aiConfig.groq.model });
+      
+      throw new Error(`Groq API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+}
+
 // Factory function to create the appropriate AI service
 export function createAIService(): AIService {
   switch (aiConfig.provider) {
@@ -488,6 +579,8 @@ export function createAIService(): AIService {
       return new OllamaService();
     case 'gemini':
       return new GeminiService();
+    case 'groq':
+      return new GroqService();
     default:
       throw new Error(`Unsupported AI provider: ${aiConfig.provider}`);
   }

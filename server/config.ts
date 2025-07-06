@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export interface AIConfig {
-  provider: 'openai' | 'ollama' | 'gemini';
+  provider: 'openai' | 'ollama' | 'gemini' | 'groq';
   openai: {
     apiKey: string;
     model: string;
@@ -23,10 +23,16 @@ export interface AIConfig {
     maxTokens: number;
     temperature: number;
   };
+  groq: {
+    apiKey: string;
+    model: string;
+    maxTokens: number;
+    temperature: number;
+  };
 }
 
 export const aiConfig: AIConfig = {
-  provider: (process.env.AI_PROVIDER as 'openai' | 'ollama' | 'gemini') || 'openai',
+  provider: (process.env.AI_PROVIDER as 'openai' | 'ollama' | 'gemini' | 'groq') || 'openai',
   openai: {
     apiKey: process.env.OPENAI_API_KEY || '',
     model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
@@ -45,6 +51,12 @@ export const aiConfig: AIConfig = {
     maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS || '1000'),
     temperature: parseFloat(process.env.GEMINI_TEMPERATURE || '0.7'),
   },
+  groq: {
+    apiKey: process.env.GROQ_API_KEY || '',
+    model: process.env.GROQ_MODEL || 'llama3-70b-8192',
+    maxTokens: parseInt(process.env.GROQ_MAX_TOKENS || '1000'),
+    temperature: parseFloat(process.env.GROQ_TEMPERATURE || '0.7'),
+  },
 };
 
 // Validation function
@@ -61,6 +73,10 @@ export function validateAIConfig(): void {
     throw new Error('GEMINI_API_KEY is required when using Gemini provider');
   }
   
+  if (aiConfig.provider === 'groq' && !aiConfig.groq.apiKey) {
+    throw new Error('GROQ_API_KEY is required when using Groq provider');
+  }
+  
   console.log(`AI Provider: ${aiConfig.provider}`);
   if (aiConfig.provider === 'openai') {
     console.log(`OpenAI Model: ${aiConfig.openai.model}`);
@@ -68,5 +84,7 @@ export function validateAIConfig(): void {
     console.log(`Ollama Model: ${aiConfig.ollama.model} at ${aiConfig.ollama.baseUrl}`);
   } else if (aiConfig.provider === 'gemini') {
     console.log(`Gemini Model: ${aiConfig.gemini.model}`);
+  } else if (aiConfig.provider === 'groq') {
+    console.log(`Groq Model: ${aiConfig.groq.model}`);
   }
 }
