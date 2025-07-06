@@ -8,13 +8,13 @@ import {
   insertManagerMeetingSchema,
   insertWeeklyReportMeetingSchema,
 } from "@shared/schema";
-import { getAIService } from "./ai-service";
+import { getAIServiceDynamic } from "./ai-service";
 import passport from "passport";
 import { isAuthenticated, isAdmin } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // 検索API
-  app.get("/api/search", async (req, res) => {
+  app.get("/api/search", isAuthenticated, async (req, res) => {
     try {
       const query = req.query.q as string;
       const type = req.query.type as string | undefined;
@@ -32,7 +32,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // 検索サジェストAPI
-  app.get("/api/search/suggest", async (req, res) => {
+  app.get("/api/search/suggest", isAuthenticated, async (req, res) => {
     try {
       const query = req.query.q as string;
 
@@ -326,7 +326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/cases/:id", async (req, res) => {
+  app.get("/api/cases/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const foundCase = await storage.getCase(id);
@@ -954,7 +954,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     }
   });
 
-  app.get("/api/weekly-reports/by-case/:caseId", async (req, res) => {
+  app.get("/api/weekly-reports/by-case/:caseId", isAuthenticated, async (req, res) => {
     try {
       const caseId = parseInt(req.params.caseId);
       const reports = await storage.getWeeklyReportsByCase(caseId);
@@ -989,7 +989,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     }
   });
 
-  app.put("/api/weekly-reports/:id", async (req, res) => {
+  app.put("/api/weekly-reports/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existingReport = await storage.getWeeklyReport(id);
@@ -1460,7 +1460,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 `;
 
       // AIサービスを使用してレポートを生成
-      const aiService = getAIService();
+      const aiService = await getAIServiceDynamic();
       console.log(
         `Using AI provider: ${process.env.AI_PROVIDER || "openai"} for monthly summary`,
       );
@@ -1573,7 +1573,7 @@ ${previousReportInfo}
 `;
 
       // AIサービスを使用して分析を実行
-      const aiService = getAIService();
+      const aiService = await getAIServiceDynamic();
 
       const response = await aiService.generateResponse(
         [
@@ -1806,7 +1806,7 @@ ${changesText}
 `;
 
       // AIサービスを使用して議事録を生成
-      const aiService = getAIService();
+      const aiService = await getAIServiceDynamic();
 
       const response = await aiService.generateResponse(
         [
@@ -2044,6 +2044,76 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
       }
     },
   );
+
+  // システム設定API
+  // 全システム設定の取得（管理者のみ）
+  app.get("/api/settings", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const settings = await storage.getAllSystemSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Settings fetch error:", error);
+      res.status(500).json({ error: "設定の取得中にエラーが発生しました" });
+    }
+  });
+
+  // 特定のシステム設定の取得
+  app.get("/api/settings/:key", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const key = req.params.key;
+      const setting = await storage.getSystemSetting(key);
+      if (!setting) {
+        return res.status(404).json({ error: "設定が見つかりません" });
+      }
+      res.json(setting);
+    } catch (error) {
+      console.error("Setting fetch error:", error);
+      res.status(500).json({ error: "設定の取得中にエラーが発生しました" });
+    }
+  });
+
+  // システム設定の更新または作成（管理者のみ）
+  app.put("/api/settings/:key", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const key = req.params.key;
+      const { value, description } = req.body;
+
+      if (!value) {
+        return res.status(400).json({ error: "値が必要です" });
+      }
+
+      // AI_PROVIDERの値をバリデーション
+      if (key === "AI_PROVIDER") {
+        const validProviders = ["openai", "ollama", "gemini", "groq"];
+        if (!validProviders.includes(value)) {
+          return res.status(400).json({ 
+            error: `無効なAIプロバイダーです。有効な値: ${validProviders.join(", ")}` 
+          });
+        }
+      }
+
+      const setting = await storage.setSystemSetting(key, value, description);
+      res.json(setting);
+    } catch (error) {
+      console.error("Setting update error:", error);
+      res.status(500).json({ error: "設定の更新中にエラーが発生しました" });
+    }
+  });
+
+  // システム設定の削除（管理者のみ）
+  app.delete("/api/settings/:key", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const key = req.params.key;
+      const deletedSetting = await storage.deleteSystemSetting(key);
+      if (!deletedSetting) {
+        return res.status(404).json({ error: "設定が見つかりません" });
+      }
+      res.json(deletedSetting);
+    } catch (error) {
+      console.error("Setting delete error:", error);
+      res.status(500).json({ error: "設定の削除中にエラーが発生しました" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

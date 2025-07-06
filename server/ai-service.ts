@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
 import Groq from 'groq-sdk';
-import { aiConfig } from './config.js';
+import { aiConfig, getDynamicAIConfig } from './config.js';
 import { aiLogger, generateRequestId } from './ai-logger.js';
 
 export interface AIMessage {
@@ -588,10 +588,41 @@ export function createAIService(): AIService {
 
 // Singleton instance
 let aiService: AIService | null = null;
+let currentProvider: string | null = null;
 
 export function getAIService(): AIService {
   if (!aiService) {
     aiService = createAIService();
+    currentProvider = aiConfig.provider;
   }
   return aiService;
+}
+
+// 動的設定に対応したAIサービス取得関数
+export async function getAIServiceDynamic(): Promise<AIService> {
+  const dynamicConfig = await getDynamicAIConfig();
+  
+  // プロバイダーが変わった場合は新しいサービスを作成
+  if (!aiService || currentProvider !== dynamicConfig.provider) {
+    aiService = createAIServiceWithConfig(dynamicConfig);
+    currentProvider = dynamicConfig.provider;
+  }
+  
+  return aiService;
+}
+
+// 設定を指定してAIサービスを作成する関数
+function createAIServiceWithConfig(config: typeof aiConfig): AIService {
+  switch (config.provider) {
+    case 'openai':
+      return new OpenAIService();
+    case 'ollama':
+      return new OllamaService();
+    case 'gemini':
+      return new GeminiService();
+    case 'groq':
+      return new GroqService();
+    default:
+      throw new Error(`Unsupported AI provider: ${config.provider}`);
+  }
 }

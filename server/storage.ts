@@ -1,4 +1,4 @@
-import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting } from "@shared/schema";
+import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, systemSettings, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting, type SystemSetting, type InsertSystemSetting } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql, gte, lte } from "drizzle-orm";
 
@@ -1272,6 +1272,62 @@ export class DatabaseStorage implements IStorage {
       .where(eq(weeklyReportMeetings.id, id))
       .returning();
     return deleted;
+  }
+
+  // システム設定の取得
+  async getSystemSetting(key: string): Promise<SystemSetting | null> {
+    return await withRetry(async () => {
+      const [setting] = await db
+        .select()
+        .from(systemSettings)
+        .where(eq(systemSettings.key, key));
+      return setting || null;
+    });
+  }
+
+  // 全システム設定の取得
+  async getAllSystemSettings(): Promise<SystemSetting[]> {
+    return await withRetry(async () => {
+      return await db
+        .select()
+        .from(systemSettings)
+        .orderBy(systemSettings.key);
+    });
+  }
+
+  // システム設定の更新または作成
+  async setSystemSetting(key: string, value: string, description?: string): Promise<SystemSetting> {
+    return await withRetry(async () => {
+      const [setting] = await db
+        .insert(systemSettings)
+        .values({
+          key,
+          value,
+          description,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: systemSettings.key,
+          set: {
+            value,
+            description,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+      return setting;
+    });
+  }
+
+  // システム設定の削除
+  async deleteSystemSetting(key: string): Promise<SystemSetting | null> {
+    return await withRetry(async () => {
+      const [deleted] = await db
+        .delete(systemSettings)
+        .where(eq(systemSettings.key, key))
+        .returning();
+      return deleted || null;
+    });
   }
 }
 

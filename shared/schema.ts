@@ -121,6 +121,16 @@ export const weeklyReportMeetings = pgTable("weekly_report_meetings", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// システム設定テーブル
+export const systemSettings = pgTable("system_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // 週次報告と案件の関係定義
 export const weeklyReportsRelations = relations(weeklyReports, ({ one, many }) => ({
   case: one(cases, {
@@ -180,6 +190,12 @@ export const insertWeeklyReportMeetingSchema = createInsertSchema(weeklyReportMe
   createdAt: true,
 });
 
+export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // 型定義
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -196,3 +212,5 @@ export type InsertManagerMeeting = z.infer<typeof insertManagerMeetingSchema>;
 export type ManagerMeeting = typeof managerMeetings.$inferSelect;
 export type InsertWeeklyReportMeeting = z.infer<typeof insertWeeklyReportMeetingSchema>;
 export type WeeklyReportMeeting = typeof weeklyReportMeetings.$inferSelect;
+export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
+export type SystemSetting = typeof systemSettings.$inferSelect;

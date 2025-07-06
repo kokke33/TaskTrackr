@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAIService, AIMessage } from './ai-service.js';
+import { getAIServiceDynamic, AIMessage } from './ai-service.js';
 
 const router = express.Router();
 
@@ -33,7 +33,7 @@ router.post('/api/ai/chat', async (req, res) => {
       });
     }
 
-    const aiService = getAIService();
+    const aiService = await getAIServiceDynamic();
     const response = await aiService.generateResponse(messages, userId, {
       endpoint: 'chat',
       userAgent: req.headers['user-agent'],
@@ -67,7 +67,7 @@ router.post('/api/ai/summarize', async (req, res) => {
       });
     }
 
-    const aiService = getAIService();
+    const aiService = await getAIServiceDynamic();
     const summary = await aiService.generateSummary(text, userId);
     
     res.json({
@@ -96,7 +96,7 @@ router.post('/api/ai/analyze-task', async (req, res) => {
       });
     }
 
-    const aiService = getAIService();
+    const aiService = await getAIServiceDynamic();
     const analysis = await aiService.analyzeTask(taskDescription, userId);
     
     res.json({
@@ -116,7 +116,6 @@ router.post('/api/ai/analyze-task', async (req, res) => {
 router.get('/api/ai/status', async (req, res) => {
   try {
     const userId = getUserId(req);
-    const aiService = getAIService();
     
     res.json({
       success: true,

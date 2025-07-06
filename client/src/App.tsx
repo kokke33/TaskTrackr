@@ -21,6 +21,7 @@ import NotFound from "@/pages/not-found";
 import SearchPage from "@/pages/search";
 import RecentCases from "@/pages/recent-cases";
 import RecentWeeklyReports from "@/pages/recent-weekly-reports";
+import AdminSettings from "@/pages/admin-settings";
 
 const CaseView = lazy(() => import('./pages/case-view')); //React.lazyを使用
 
@@ -50,6 +51,7 @@ function Router() {
       <ProtectedRoute path="/search" component={SearchPage} />
       <ProtectedRoute path="/recent-cases" component={RecentCases} />
       <ProtectedRoute path="/recent-weekly-reports" component={RecentWeeklyReports} />
+      <AdminRoute path="/admin/settings" component={AdminSettings} />
       <Route component={NotFound} />
     </Switch>
   );

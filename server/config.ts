@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { storage } from './storage';
 
 // Load environment variables
 dotenv.config();
@@ -86,5 +87,43 @@ export function validateAIConfig(): void {
     console.log(`Gemini Model: ${aiConfig.gemini.model}`);
   } else if (aiConfig.provider === 'groq') {
     console.log(`Groq Model: ${aiConfig.groq.model}`);
+  }
+}
+
+// 動的にAI設定を読み込む関数
+export async function getDynamicAIConfig(): Promise<AIConfig> {
+  try {
+    // データベースからAI_PROVIDERを取得
+    const providerSetting = await storage.getSystemSetting('AI_PROVIDER');
+    
+    if (providerSetting && providerSetting.value) {
+      const dynamicProvider = providerSetting.value as 'openai' | 'ollama' | 'gemini' | 'groq';
+      
+      // 設定をコピーしてプロバイダーを更新
+      const dynamicConfig: AIConfig = {
+        ...aiConfig,
+        provider: dynamicProvider,
+      };
+      
+      return dynamicConfig;
+    }
+    
+    // データベースに設定がない場合は環境変数の設定を使用
+    return aiConfig;
+  } catch (error) {
+    console.error('Error loading dynamic AI config:', error);
+    // エラーの場合は環境変数の設定を使用
+    return aiConfig;
+  }
+}
+
+// AI設定を更新する関数
+export async function updateAIProvider(provider: 'openai' | 'ollama' | 'gemini' | 'groq'): Promise<void> {
+  try {
+    await storage.setSystemSetting('AI_PROVIDER', provider, 'AIサービスプロバイダー');
+    console.log(`AI Provider updated to: ${provider}`);
+  } catch (error) {
+    console.error('Error updating AI provider:', error);
+    throw error;
   }
 }

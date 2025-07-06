@@ -133,13 +133,28 @@ export async function createInitialUsers() {
 
 // 認証ミドルウェア
 export function isAuthenticated(req: any, res: any, next: any) {
-  console.log(`[AUTH DEBUG] ${req.method} ${req.path} - Session ID: ${req.sessionID}, Authenticated: ${req.isAuthenticated()}, User: ${req.user ? JSON.stringify(req.user) : 'none'}`);
+  const sessionInfo = {
+    method: req.method,
+    path: req.path,
+    sessionID: req.sessionID,
+    authenticated: req.isAuthenticated(),
+    userAgent: req.headers['user-agent']?.substring(0, 50),
+    timestamp: new Date().toISOString()
+  };
+  
+  console.log(`[AUTH DEBUG] ${sessionInfo.method} ${sessionInfo.path} - Session: ${sessionInfo.sessionID}, Auth: ${sessionInfo.authenticated}, User: ${req.user ? JSON.stringify(req.user) : 'none'}, Time: ${sessionInfo.timestamp}`);
   
   if (req.isAuthenticated()) {
     return next();
   }
   
-  console.log(`[AUTH ERROR] Request denied - ${req.method} ${req.path}`);
+  console.log(`[AUTH ERROR] Request denied - ${sessionInfo.method} ${sessionInfo.path} at ${sessionInfo.timestamp}`);
+  console.log(`[AUTH ERROR] Session details:`, {
+    sessionID: sessionInfo.sessionID,
+    cookies: req.headers.cookie,
+    session: req.session ? Object.keys(req.session) : 'no session'
+  });
+  
   res.status(401).json({ message: "認証が必要です" });
 }
 

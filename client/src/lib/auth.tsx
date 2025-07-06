@@ -15,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   login: (userData?: User) => void;
   logout: () => void;
+  checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -61,8 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // セッションの確認
-  useEffect(() => {
-    async function checkAuth() {
+  const checkAuth = async () => {
       try {
         // サーバー側が未認証時も200で応答するため、apiRequestを使用可能
         const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
@@ -98,13 +98,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLocation("/login");
         }
       }
-    }
+  };
 
+  useEffect(() => {
     checkAuth();
   }, [setLocation]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, checkAuth }}>
       {children}
     </AuthContext.Provider>
   );
