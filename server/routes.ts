@@ -54,9 +54,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // ログのデバッグ情報を出力
     if (req.user) {
       console.log("Login success - user info:", {
-        id: req.user.id,
-        username: req.user.username,
-        isAdmin: req.user.isAdmin,
+        id: (req.user as any).id,
+        username: (req.user as any).username,
+        isAdmin: (req.user as any).isAdmin,
       });
     }
 
@@ -1194,7 +1194,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
           generateEditMeetingMinutes(
             originalData,
             updatedData,
-            req.user?.username || "管理者",
+            (req.user as any)?.username || "管理者",
             relatedCase,
           ),
         ]);
@@ -1213,7 +1213,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
           meetingDate: new Date().toISOString().split("T")[0],
           title: meetingMinutes.title,
           content: meetingMinutes.content,
-          modifiedBy: req.user?.username || "管理者",
+          modifiedBy: (req.user as any)?.username || "管理者",
           originalData: originalData,
           modifiedData: updatedData,
         };
