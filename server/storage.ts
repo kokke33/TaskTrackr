@@ -808,6 +808,15 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(projects.id, id))
       .returning();
+
+    // プロジェクトの削除時に、関連する案件も削除フラグを立てる
+    await db
+      .update(cases)
+      .set({ 
+        isDeleted: true
+      })
+      .where(eq(cases.projectName, deleted.name));
+
     return deleted;
   }
 
@@ -821,6 +830,15 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(projects.id, id))
       .returning();
+
+    // プロジェクトの復活時に、関連する案件も復活させる
+    await db
+      .update(cases)
+      .set({ 
+        isDeleted: false
+      })
+      .where(eq(cases.projectName, restored.name));
+
     return restored;
   }
 
