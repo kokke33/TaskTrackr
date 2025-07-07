@@ -84,15 +84,15 @@ export default function ProjectForm() {
     if (project) {
       form.reset({
         name: project.name,
-        overview: project.overview || "",
-        organization: project.organization || "",
-        personnel: project.personnel || "",
-        progress: project.progress || "",
-        businessDetails: project.businessDetails || "",
-        issues: project.issues || "",
-        documents: project.documents || "",
-        handoverNotes: project.handoverNotes || "",
-        remarks: project.remarks || "",
+        overview: project.overview ?? "",
+        organization: project.organization ?? "",
+        personnel: project.personnel ?? "",
+        progress: project.progress ?? "",
+        businessDetails: project.businessDetails ?? "",
+        issues: project.issues ?? "",
+        documents: project.documents ?? "",
+        handoverNotes: project.handoverNotes ?? "",
+        remarks: project.remarks ?? "",
         isDeleted: project.isDeleted,
       });
     }
@@ -305,6 +305,7 @@ export default function ProjectForm() {
                               placeholder="プロジェクトの目的、背景、範囲などを記載してください"
                               className="min-h-32"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </FormControl>
                           <FormMessage />
@@ -325,6 +326,7 @@ export default function ProjectForm() {
                               placeholder="プロジェクト体制や主要関係者を記載してください"
                               className="min-h-32"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </FormControl>
                           <FormMessage />
@@ -343,6 +345,7 @@ export default function ProjectForm() {
                               placeholder="要員計画や契約に関する情報を記載してください"
                               className="min-h-32"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </FormControl>
                           <FormMessage />
@@ -363,6 +366,7 @@ export default function ProjectForm() {
                               placeholder="現在の進捗状況やスケジュール情報を記載してください"
                               className="min-h-32"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </FormControl>
                           <FormMessage />
@@ -381,6 +385,7 @@ export default function ProjectForm() {
                               placeholder="業務内容やシステムの詳細を記載してください"
                               className="min-h-32"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </FormControl>
                           <FormMessage />
@@ -401,6 +406,7 @@ export default function ProjectForm() {
                               placeholder="現在の課題やリスク、懸念点を記載してください"
                               className="min-h-32"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </FormControl>
                           <FormMessage />
@@ -419,6 +425,7 @@ export default function ProjectForm() {
                               placeholder="関連するドキュメントやナレッジ情報を記載してください"
                               className="min-h-32"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </FormControl>
                           <FormMessage />
@@ -437,6 +444,7 @@ export default function ProjectForm() {
                               placeholder="引き継ぎ時に確認すべき重要事項を記載してください"
                               className="min-h-32"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </FormControl>
                           <FormMessage />
@@ -455,6 +463,7 @@ export default function ProjectForm() {
                               placeholder="その他、特記すべき事項があれば記載してください"
                               className="min-h-32"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </FormControl>
                           <FormMessage />
