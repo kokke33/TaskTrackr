@@ -795,6 +795,7 @@ export default function WeeklyReport() {
                             placeholder="遅延や問題の詳細、原因、影響範囲などを記述してください"
                             className="h-24"
                             {...field}
+                            value={field.value ?? ""} // nullの場合は空文字列を渡す
                           />
                         </FormControl>
                         <FormMessage />
@@ -879,6 +880,7 @@ export default function WeeklyReport() {
                               placeholder="新たに発見されたリスクの概要を記述してください"
                               className="h-24"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </FormControl>
                           <FormMessage />
@@ -897,6 +899,7 @@ export default function WeeklyReport() {
                               placeholder="リスクに対する対策を記述してください"
                               className="h-24"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </FormControl>
                           <FormMessage />
@@ -914,7 +917,7 @@ export default function WeeklyReport() {
                           </FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
+                            defaultValue={field.value ?? ""}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -984,6 +987,7 @@ export default function WeeklyReport() {
                             placeholder="品質に関する懸念事項の詳細を記述してください"
                             className="h-24"
                             {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1003,6 +1007,7 @@ export default function WeeklyReport() {
                           placeholder="テストの進捗状況を記述してください"
                           className="h-24"
                           {...field}
+                          value={field.value ?? ""}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1059,6 +1064,7 @@ export default function WeeklyReport() {
                             placeholder="変更内容、影響範囲、対応状況などを記述してください"
                             className="h-24"
                             {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1135,7 +1141,7 @@ export default function WeeklyReport() {
                       <FormLabel>リソースに関する懸念</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        defaultValue={field.value ?? ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1164,6 +1170,7 @@ export default function WeeklyReport() {
                             placeholder="リソースに関する懸念事項の詳細を記述してください"
                             className="h-24"
                             {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1183,7 +1190,7 @@ export default function WeeklyReport() {
                       <FormLabel>顧客に関する懸念</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        defaultValue={field.value ?? ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1212,6 +1219,7 @@ export default function WeeklyReport() {
                             placeholder="顧客に関する懸念事項の詳細を記述してください"
                             className="h-24"
                             {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1231,7 +1239,7 @@ export default function WeeklyReport() {
                       <FormLabel>環境に関する懸念</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        defaultValue={field.value ?? ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1260,6 +1268,7 @@ export default function WeeklyReport() {
                             placeholder="環境に関する懸念事項の詳細を記述してください"
                             className="h-24"
                             {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1279,7 +1288,7 @@ export default function WeeklyReport() {
                       <FormLabel>コストに関する懸念</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        defaultValue={field.value ?? ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1308,6 +1317,7 @@ export default function WeeklyReport() {
                             placeholder="コストに関する懸念事項の詳細を記述してください"
                             className="h-24"
                             {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1327,7 +1337,7 @@ export default function WeeklyReport() {
                       <FormLabel>知識・スキルに関する懸念</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        defaultValue={field.value ?? ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1356,6 +1366,7 @@ export default function WeeklyReport() {
                             placeholder="知識・スキルに関する懸念事項の詳細を記述してください"
                             className="h-24"
                             {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1375,7 +1386,7 @@ export default function WeeklyReport() {
                       <FormLabel>教育に関する懸念</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        defaultValue={field.value ?? ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1404,6 +1415,7 @@ export default function WeeklyReport() {
                             placeholder="教育に関する懸念の詳細を記述してください"
                             className="h-24"
                             {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1421,7 +1433,7 @@ export default function WeeklyReport() {
                       <FormLabel>緊急課題に関する懸念</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        defaultValue={field.value ?? ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1450,6 +1462,7 @@ export default function WeeklyReport() {
                             placeholder="緊急課題の詳細を記述してください"
                             className="h-24"
                             {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1469,7 +1482,7 @@ export default function WeeklyReport() {
                       <FormLabel>営業チャンス・顧客ニーズ</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        defaultValue={field.value ?? ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1498,6 +1511,7 @@ export default function WeeklyReport() {
                             placeholder="営業チャンス・顧客ニーズの詳細を記述してください"
                             className="h-24"
                             {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormMessage />
