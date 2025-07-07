@@ -36,6 +36,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -69,6 +70,7 @@ export default function CaseView() {
         caseName: caseData.caseName,
         description: caseData.description,
         milestone: caseData.milestone,
+        includeProgressAnalysis: caseData.includeProgressAnalysis,
       });
     }
   }, [caseData]);
@@ -122,6 +124,7 @@ export default function CaseView() {
         caseName: caseData.caseName,
         description: caseData.description,
         milestone: caseData.milestone,
+        includeProgressAnalysis: caseData.includeProgressAnalysis,
       });
     }
   }, [caseData, isEditing]);
@@ -192,6 +195,7 @@ export default function CaseView() {
         caseName: caseData.caseName,
         description: caseData.description,
         milestone: caseData.milestone,
+        includeProgressAnalysis: caseData.includeProgressAnalysis,
       });
     }
   };
@@ -201,6 +205,13 @@ export default function CaseView() {
     setEditedCase({
       ...editedCase,
       [name]: value,
+    });
+  };
+
+  const handleCheckboxChange = (checked: boolean) => {
+    setEditedCase({
+      ...editedCase,
+      includeProgressAnalysis: checked,
     });
   };
 
@@ -409,6 +420,23 @@ export default function CaseView() {
                 ) : (
                   <div className="bg-accent/50 p-3 rounded-md min-h-[100px] whitespace-pre-wrap">
                     {caseData.milestone || "マイルストーンはありません"}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-sm font-medium text-muted-foreground">進捗率分析設定</h2>
+                {isEditing ? (
+                  <div className="flex items-center space-x-2 bg-accent/50 p-3 rounded-md">
+                    <Checkbox
+                      checked={editedCase.includeProgressAnalysis ?? true}
+                      onCheckedChange={handleCheckboxChange}
+                    />
+                    <span>週次報告詳細やAI分析結果で進捗率を分析対象に含める</span>
+                  </div>
+                ) : (
+                  <div className="bg-accent/50 p-3 rounded-md">
+                    {caseData.includeProgressAnalysis !== false ? "✓ 進捗率分析を含める" : "✗ 進捗率分析を含めない"}
                   </div>
                 )}
               </div>

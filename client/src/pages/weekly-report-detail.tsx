@@ -409,10 +409,12 @@ export default function WeeklyReportDetail() {
             <CardContent className="p-6">
               <h2 className="text-xl font-semibold mb-4 pb-2 border-b">3. 進捗状況</h2>
               <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">進捗率</p>
-                  <p>{report.progressRate}%</p>
-                </div>
+                {relatedCase?.includeProgressAnalysis !== false && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">進捗率</p>
+                    <p>{report.progressRate}%</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-muted-foreground">進捗状況</p>
                   <p>{progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus}</p>

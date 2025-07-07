@@ -54,6 +54,7 @@ export default function CaseForm() {
       projectName: "",
       caseName: "",
       description: "",
+      includeProgressAnalysis: true,
       isDeleted: false,
     },
   });
@@ -65,6 +66,7 @@ export default function CaseForm() {
         projectName: existingCase.projectName,
         caseName: existingCase.caseName,
         description: existingCase.description || "",
+        includeProgressAnalysis: existingCase.includeProgressAnalysis ?? true,
         isDeleted: existingCase.isDeleted || false,
       });
     }
@@ -196,6 +198,27 @@ export default function CaseForm() {
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="includeProgressAnalysis"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>進捗率分析を含める</FormLabel>
+                        <FormDescription>
+                          週次報告詳細やAI分析結果で進捗率を分析対象に含めます。
+                        </FormDescription>
+                      </div>
                     </FormItem>
                   )}
                 />

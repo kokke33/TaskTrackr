@@ -37,6 +37,7 @@ export const cases = pgTable("cases", {
   caseName: text("case_name").notNull(),
   description: text("description"),
   milestone: text("milestone"),
+  includeProgressAnalysis: boolean("include_progress_analysis").notNull().default(true),
   isDeleted: boolean("is_deleted").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

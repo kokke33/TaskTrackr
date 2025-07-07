@@ -1527,8 +1527,15 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       if (previousReport) {
         previousReportInfo = `
 【前回の報告内容】
-報告期間: ${previousReport.reportPeriodStart} 〜 ${previousReport.reportPeriodEnd}
-進捗率: ${previousReport.progressRate}%
+報告期間: ${previousReport.reportPeriodStart} 〜 ${previousReport.reportPeriodEnd}`;
+        
+        // 進捗率分析フラグがtrueの場合のみ進捗率を含める
+        if (relatedCase?.includeProgressAnalysis !== false) {
+          previousReportInfo += `
+進捗率: ${previousReport.progressRate}%`;
+        }
+        
+        previousReportInfo += `
 進捗状況: ${previousReport.progressStatus}
 作業内容: ${previousReport.weeklyTasks}
 課題・問題点: ${previousReport.issues}
@@ -1546,8 +1553,8 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 ${projectInfo}
 
 【今回の報告内容】
-報告期間: ${report.reportPeriodStart} 〜 ${report.reportPeriodEnd}
-進捗率: ${report.progressRate}%
+報告期間: ${report.reportPeriodStart} 〜 ${report.reportPeriodEnd}${relatedCase?.includeProgressAnalysis !== false ? `
+進捗率: ${report.progressRate}%` : ""}
 進捗状況: ${report.progressStatus}
 作業内容: ${report.weeklyTasks}
 課題・問題点: ${report.issues}
