@@ -25,10 +25,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Send, Plus, Save, ShieldCheck } from "lucide-react";
+import { Send, Plus, Save, ShieldCheck, Target } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import CaseSelectorModal from "@/components/case-selector-modal";
 import ReactMarkdown from 'react-markdown';
+import { MilestoneDialog } from "@/components/milestone-dialog";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
@@ -83,6 +84,9 @@ export default function WeeklyReport() {
   
   // 案件選択モーダルの状態
   const [isCaseSelectorOpen, setIsCaseSelectorOpen] = useState(false);
+  
+  // マイルストーンダイアログの状態管理
+  const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
 
   // 議事録更新のミューテーション
   const updateMeetingMutation = useMutation({
@@ -467,11 +471,23 @@ export default function WeeklyReport() {
                 </span>
               ) : isEditMode ? "週次報告編集" : "週次報告フォーム"}
             </h1>
-            <Link href="/reports">
-              <Button variant="ghost" size="sm">
-                戻る
+            <div className="flex items-center gap-2">
+              <Button 
+                type="button"
+                onClick={() => setShowMilestoneDialog(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+              >
+                <Target className="h-4 w-4" />
+                マイルストーン
               </Button>
-            </Link>
+              <Link href={isEditMode ? `/reports/${id}` : "/reports"}>
+                <Button variant="ghost" size="sm">
+                  戻る
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -1626,6 +1642,15 @@ export default function WeeklyReport() {
         }}
         cases={cases || []}
         selectedCaseId={selectedCaseId || undefined}
+      />
+
+      {/* マイルストーンダイアログ */}
+      <MilestoneDialog
+        open={showMilestoneDialog}
+        onOpenChange={setShowMilestoneDialog}
+        milestone={cases?.find(c => c.id === selectedCaseId)?.milestone}
+        projectName={cases?.find(c => c.id === selectedCaseId)?.projectName || ''}
+        caseName={cases?.find(c => c.id === selectedCaseId)?.caseName || ''}
       />
     </div>
   );
