@@ -28,6 +28,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Send, Plus, Save, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import CaseSelectorModal from "@/components/case-selector-modal";
+import ReactMarkdown from 'react-markdown';
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
@@ -1498,8 +1499,8 @@ export default function WeeklyReport() {
                   <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
                     ■ AI分析結果
                   </h2>
-                  <div className="whitespace-pre-wrap text-sm">
-                    {existingReport.aiAnalysis}
+                  <div className="prose prose-sm max-w-none">
+                    <ReactMarkdown>{existingReport.aiAnalysis}</ReactMarkdown>
                   </div>
                 </CardContent>
               </Card>
@@ -1571,8 +1572,8 @@ export default function WeeklyReport() {
                                 編集
                               </Button>
                             </div>
-                            <div className="whitespace-pre-wrap bg-white p-3 rounded border text-sm">
-                              {meeting.content}
+                            <div className="prose prose-sm max-w-none bg-white p-3 rounded border">
+                              <ReactMarkdown>{meeting.content}</ReactMarkdown>
                             </div>
                           </div>
                         )}
