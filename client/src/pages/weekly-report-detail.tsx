@@ -611,8 +611,8 @@ export default function WeeklyReportDetail() {
                               編集
                             </Button>
                           </div>
-                          <div className="whitespace-pre-wrap text-sm">
-                            {meeting.content}
+                          <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown>{meeting.content}</ReactMarkdown>
                           </div>
                           <div className="mt-3 text-sm text-gray-500">
                             修正者: {meeting.modifiedBy} | 
