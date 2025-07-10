@@ -17,13 +17,21 @@ import {
   Copy,
   Home,
   Briefcase,
-  List
+  List,
+  Search,
+  Filter,
+  Building2,
+  FolderOpen,
+  Clock
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { 
   Dialog, 
   DialogContent, 
@@ -70,6 +78,11 @@ export default function CaseList() {
   const [monthlySummary, setMonthlySummary] = useState<string>("");
   const [monthlySummaryPeriod, setMonthlySummaryPeriod] = useState<{start: string, end: string} | null>(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("projects");
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [milestoneFilter, setMilestoneFilter] = useState<string>("");
   
   const { data: cases, isLoading, refetch } = useQuery<Case[]>({
     queryKey: ["/api/cases"],
@@ -271,6 +284,7 @@ export default function CaseList() {
     }
   }, [isMultiSelectMode]);
 
+
   // プロジェクト名でグループ化
   const groupedCases = cases?.reduce((acc, currentCase) => {
     const projectName = currentCase.projectName;
@@ -280,6 +294,56 @@ export default function CaseList() {
     acc[projectName].push(currentCase);
     return acc;
   }, {} as Record<string, Case[]>) ?? {};
+
+  // 利用可能なマイルストーン一覧
+  const availableMilestones = cases?.reduce((acc, case_) => {
+    if (case_.milestone && case_.milestone.trim() && !acc.includes(case_.milestone)) {
+      acc.push(case_.milestone);
+    }
+    return acc;
+  }, [] as string[])?.sort() ?? [];
+
+  // 検索でフィルタリングされた案件
+  const filteredCases = cases?.filter(case_ => {
+    // 削除済みフィルター
+    if (!showDeleted && case_.isDeleted) return false;
+    
+    // 検索クエリでフィルタリング
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matches = case_.caseName.toLowerCase().includes(query) ||
+        case_.projectName.toLowerCase().includes(query) ||
+        (case_.description && case_.description.toLowerCase().includes(query));
+      if (!matches) return false;
+    }
+    
+    // マイルストーンでフィルタリング
+    if (milestoneFilter && case_.milestone !== milestoneFilter) return false;
+    
+    return true;
+  }) ?? [];
+
+  // 検索でフィルタリングされたプロジェクト
+  const filteredProjects = Object.keys(groupedCases).filter(projectName => {
+    const projectCases = groupedCases[projectName];
+    return projectCases.some(case_ => filteredCases.includes(case_));
+  });
+
+  // プロジェクト別にフィルタリングされた案件
+  const filteredGroupedCases = Object.entries(groupedCases).reduce((acc, [projectName, projectCases]) => {
+    const filtered = projectCases.filter(case_ => filteredCases.includes(case_));
+    if (filtered.length > 0) {
+      acc[projectName] = filtered;
+    }
+    return acc;
+  }, {} as Record<string, Case[]>);
+
+  // プロジェクトが変更されたときに最初のプロジェクトを自動選択
+  useEffect(() => {
+    if (filteredProjects.length > 0 && !selectedProject) {
+      setSelectedProject(filteredProjects[0]);
+    }
+  }, [filteredProjects, selectedProject]);
 
   if (isLoading) {
     return (
@@ -291,7 +355,7 @@ export default function CaseList() {
     );
   }
   
-  // プロジェクトの選択状態を切り替える処理
+  // プロジェクトの選択状態を切り替える処理（月次報告書生成用）
   const toggleProjectSelection = (projectName: string) => {
     setSelectedProjects(prev => 
       prev.includes(projectName)
@@ -441,7 +505,29 @@ export default function CaseList() {
           <ThemeToggle />
         </div>
 
-        <div className="mb-4 flex items-center justify-between">
+        {/* 検索バーとフィルター */}
+        <div className="space-y-4 mb-6">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="プロジェクト名または案件名で検索..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowFilters(!showFilters)}
+              className={showFilters ? "bg-blue-50 border-blue-200" : ""}
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* 削除済み案件表示切り替え */}
           <div className="flex items-center gap-3">
             <Switch
               id="showDeleted"
@@ -451,40 +537,81 @@ export default function CaseList() {
             <Label htmlFor="showDeleted">削除済み案件を表示</Label>
           </div>
           
-          <div className="flex flex-col space-y-2">
-            <Button
-              onClick={() => {
-                // 全プロジェクトを選択
-                setSelectedProjects(Object.keys(groupedCases));
-                
-                // すべての非削除案件を選択
-                const allCaseIds = Object.values(groupedCases)
-                  .flatMap(cases => cases.filter(c => !c.isDeleted).map(c => c.id));
-                setSelectedCases(allCaseIds);
-                
-                handleMonthlyReportClick();
-              }}
-              disabled={monthlySummaryMutation.isPending}
-              className="flex items-center gap-2"
-            >
-              {monthlySummaryMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <FileText className="h-4 w-4" />
-              )}
-              {monthlySummaryMutation.isPending 
-                ? "生成中..." 
-                : "月次状況報告書"}
-            </Button>
-            
-            <AdminOnly>
-              <Link href="/case/new">
-                <Button className="flex items-center gap-1">
-                  <Plus className="h-4 w-4" />
-                  新規案件作成
+          {/* フィルターオプション */}
+          {showFilters && (
+            <div className="flex gap-4 p-3 bg-gray-50 rounded-lg">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  マイルストーン
+                </label>
+                <select
+                  value={milestoneFilter}
+                  onChange={(e) => setMilestoneFilter(e.target.value)}
+                  className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="">全て</option>
+                  {availableMilestones.map(milestone => (
+                    <option key={milestone} value={milestone}>
+                      {milestone}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="flex items-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setMilestoneFilter("");
+                    setSearchQuery("");
+                  }}
+                >
+                  クリア
                 </Button>
-              </Link>
-            </AdminOnly>
+              </div>
+            </div>
+          )}
+          
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-gray-500">
+              {filteredCases.length}件の案件が見つかりました
+            </div>
+            <div className="flex flex-col space-y-2">
+              <Button
+                onClick={() => {
+                  // 全プロジェクトを選択
+                  setSelectedProjects(Object.keys(groupedCases));
+                  
+                  // すべての非削除案件を選択
+                  const allCaseIds = Object.values(groupedCases)
+                    .flatMap(cases => cases.filter(c => !c.isDeleted).map(c => c.id));
+                  setSelectedCases(allCaseIds);
+                  
+                  handleMonthlyReportClick();
+                }}
+                disabled={monthlySummaryMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                {monthlySummaryMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4" />
+                )}
+                {monthlySummaryMutation.isPending 
+                  ? "生成中..." 
+                  : "月次状況報告書"}
+              </Button>
+              
+              <AdminOnly>
+                <Link href="/case/new">
+                  <Button className="flex items-center gap-1">
+                    <Plus className="h-4 w-4" />
+                    新規案件作成
+                  </Button>
+                </Link>
+              </AdminOnly>
+            </div>
           </div>
         </div>
 
@@ -493,22 +620,137 @@ export default function CaseList() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="space-y-8">
-            {Object.entries(groupedCases).map(([projectName, projectCases]) => (
-              <div key={projectName} className="space-y-4">
-                <div className="flex items-center gap-2">
-                  {isMultiSelectMode && (
-                    <Checkbox 
-                      checked={selectedProjects.includes(projectName)}
-                      onCheckedChange={() => toggleProjectSelection(projectName)}
-                    />
-                  )}
-                  <h2 className="text-xl font-semibold">{projectName}の案件一覧</h2>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="projects">
+                <Building2 className="h-4 w-4 mr-2" />
+                プロジェクト別
+              </TabsTrigger>
+              <TabsTrigger value="all">
+                <FolderOpen className="h-4 w-4 mr-2" />
+                全ての案件
+              </TabsTrigger>
+            </TabsList>
+
+            {/* プロジェクト別表示 */}
+            <TabsContent value="projects" className="flex-1 mt-4">
+              <div className="flex h-[600px] w-full border rounded-lg">
+                {/* プロジェクト一覧 */}
+                <div className="w-1/3 border-r">
+                  <div className="p-3 border-b font-medium text-sm bg-gray-50">プロジェクト一覧</div>
+                  <ScrollArea className="h-[550px]">
+                    <div className="space-y-1 p-2">
+                      {filteredProjects.map((projectName) => (
+                        <div
+                          key={projectName}
+                          className={`p-3 rounded cursor-pointer text-sm hover:bg-gray-100 transition-colors ${
+                            selectedProject === projectName ? 'bg-blue-100 text-blue-700' : ''
+                          }`}
+                          onClick={() => setSelectedProject(projectName)}
+                        >
+                          <div className="font-medium">{projectName}</div>
+                          <div className="text-xs text-gray-500">
+                            {filteredGroupedCases[projectName]?.length || 0}件の案件
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </div>
+
+                {/* 案件一覧 */}
+                <div className="w-2/3">
+                  <div className="p-3 border-b font-medium text-sm bg-gray-50">
+                    {selectedProject ? `${selectedProject}の案件` : '案件を表示するにはプロジェクトを選択してください'}
+                  </div>
+                  <ScrollArea className="h-[550px]">
+                    {selectedProject ? (
+                      <div className="space-y-3 p-3">
+                        {filteredGroupedCases[selectedProject]?.map((case_) => (
+                          <Card 
+                            key={case_.id} 
+                            className={`hover:bg-accent/5 ${case_.isDeleted ? 'border-destructive/30 bg-destructive/5' : ''}`}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex">
+                                {isMultiSelectMode && !case_.isDeleted && (
+                                  <div className="mr-2">
+                                    <Checkbox 
+                                      checked={selectedCases.includes(case_.id)}
+                                      onCheckedChange={() => toggleCaseSelection(case_.id, selectedProject)}
+                                    />
+                                  </div>
+                                )}
+                                <div className="flex-1">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <Link 
+                                        href={`/case/view/${case_.id}?from=cases`}
+                                        onClick={() => {
+                                          import("@/lib/queryClient").then(({ queryClient }) => {
+                                            queryClient.invalidateQueries({ queryKey: [`/api/cases/${case_.id}`] });
+                                          });
+                                        }}
+                                      >
+                                        <h3 className="font-medium hover:text-primary hover:underline">{case_.caseName}</h3>
+                                      </Link>
+                                      <p className="text-sm text-muted-foreground">
+                                        {case_.description || "説明なし"}
+                                      </p>
+                                    </div>
+                                    {case_.isDeleted && (
+                                      <div className="ml-auto flex items-center text-xs text-destructive">
+                                        <AlertCircle className="h-3 w-3 mr-1" />
+                                        削除済み
+                                      </div>
+                                    )}
+                                  </div>
+                                  {case_.milestone && (
+                                    <div className="mt-2 text-sm">
+                                      <span className="font-medium">マイルストーン: </span>
+                                      <div className="line-clamp-3 overflow-hidden">
+                                        {case_.milestone}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                            {!isMultiSelectMode && (
+                              <CardFooter className="p-4 pt-0 flex justify-end space-x-2">
+                                <Link href={`/reports?caseId=${case_.id}`}>
+                                  <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                    <List className="h-3 w-3" />
+                                    週次報告
+                                  </Button>
+                                </Link>
+                                <AdminOnly>
+                                  <Link href={`/case/edit/${case_.id}`}>
+                                    <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                      {case_.isDeleted ? '復元/編集' : '編集'} <ChevronRight className="h-3 w-3" />
+                                    </Button>
+                                  </Link>
+                                </AdminOnly>
+                              </CardFooter>
+                            )}
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center text-gray-500 py-16">
+                        左側からプロジェクトを選択してください
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* 全ての案件表示 */}
+            <TabsContent value="all" className="flex-1 mt-4">
+              <ScrollArea className="h-[600px]">
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {projectCases
-                    .filter(c => showDeleted || !c.isDeleted)
-                    .map((case_) => (
+                  {filteredCases.map((case_) => (
                     <Card 
                       key={case_.id} 
                       className={`hover:bg-accent/5 ${case_.isDeleted ? 'border-destructive/30 bg-destructive/5' : ''}`}
@@ -519,7 +761,7 @@ export default function CaseList() {
                             <div className="mr-2">
                               <Checkbox 
                                 checked={selectedCases.includes(case_.id)}
-                                onCheckedChange={() => toggleCaseSelection(case_.id, projectName)}
+                                onCheckedChange={() => toggleCaseSelection(case_.id, case_.projectName)}
                               />
                             </div>
                           )}
@@ -529,7 +771,6 @@ export default function CaseList() {
                                 <Link 
                                   href={`/case/view/${case_.id}?from=cases`}
                                   onClick={() => {
-                                    // 案件詳細ページに遷移する前に、個別の案件データを無効化して最新データを取得させる
                                     import("@/lib/queryClient").then(({ queryClient }) => {
                                       queryClient.invalidateQueries({ queryKey: [`/api/cases/${case_.id}`] });
                                     });
@@ -538,6 +779,9 @@ export default function CaseList() {
                                   <h3 className="font-medium hover:text-primary hover:underline">{case_.caseName}</h3>
                                 </Link>
                                 <p className="text-sm text-muted-foreground">
+                                  {case_.projectName}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
                                   {case_.description || "説明なし"}
                                 </p>
                               </div>
@@ -551,7 +795,7 @@ export default function CaseList() {
                             {case_.milestone && (
                               <div className="mt-2 text-sm">
                                 <span className="font-medium">マイルストーン: </span>
-                                <div className="line-clamp-5 overflow-hidden">
+                                <div className="line-clamp-3 overflow-hidden">
                                   {case_.milestone}
                                 </div>
                               </div>
@@ -579,9 +823,9 @@ export default function CaseList() {
                     </Card>
                   ))}
                 </div>
-              </div>
-            ))}
-          </div>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
         )}
         
         {/* 期間選択ダイアログ */}

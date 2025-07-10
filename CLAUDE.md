@@ -42,9 +42,9 @@ The TypeScript check currently fails with form value type errors in:
 - **Frontend**: React 18 + TypeScript + Vite + TailwindCSS + Wouter (routing)
 - **Backend**: Express + TypeScript + Drizzle ORM + PostgreSQL
 - **Authentication**: Passport.js with session-based auth
-- **UI**: Shadcn/ui components (Radix UI primitives)
+- **UI**: Shadcn/ui components (Radix UI primitives) - 48 components available
 - **State Management**: TanStack Query (React Query)
-- **AI Integration**: OpenAI API / Ollama with configurable providers
+- **AI Integration**: Multi-provider support (OpenAI, Ollama, Google Gemini, Groq)
 
 ### Project Structure
 ```
