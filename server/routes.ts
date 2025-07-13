@@ -2148,6 +2148,8 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
   // AIプロンプト管理API
   // 全プロンプト取得
   app.get("/api/ai-prompts", isAuthenticated, async (_req, res) => {
+    console.log("AI prompts API called - checking auth...");
+    console.log("Request auth status:", _req.isAuthenticated?.());
     try {
       const prompts = await storage.getAiPrompts();
       res.json(prompts);
