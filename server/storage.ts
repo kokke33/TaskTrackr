@@ -1,6 +1,6 @@
 import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, systemSettings, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting, type SystemSetting, type InsertSystemSetting } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, isNull, inArray, or, ne, sql, gte, lte } from "drizzle-orm";
+import { eq, desc, and, isNull, inArray, or, ne, sql, gte, lte, lt } from "drizzle-orm";
 
 // データベース操作のリトライ機能
 async function withRetry<T>(
@@ -124,6 +124,7 @@ export interface IStorage {
   updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport>;
   updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport>;
   getLatestReportByCase(caseId: number, excludeId?: number): Promise<WeeklyReport | undefined>;
+  getPreviousReportByCase(caseId: number, beforeDate: string, excludeId?: number): Promise<WeeklyReport | undefined>;
   getWeeklyReportsByCase(caseId: number): Promise<WeeklyReport[]>;
   getWeeklyReportsByCases(caseIds: number[], startDate?: Date, endDate?: Date): Promise<WeeklyReport[]>;
   getRecentWeeklyReports(limit?: number): Promise<WeeklyReport[]>;
@@ -1033,16 +1034,84 @@ export class DatabaseStorage implements IStorage {
       }
 
       // 除外IDが指定されている場合はそれを除外
-      let query = db
-        .select()
-        .from(weeklyReports)
-        .where(eq(weeklyReports.caseId, caseId));
-
+      let whereConditions = [eq(weeklyReports.caseId, caseId)];
       if (excludeId) {
-        query = query.where(ne(weeklyReports.id, excludeId));
+        whereConditions.push(ne(weeklyReports.id, excludeId));
       }
 
+      const query = db
+        .select()
+        .from(weeklyReports)
+        .where(and(...whereConditions));
+
       const [report] = await query.orderBy(desc(weeklyReports.reportPeriodStart));
+
+      return report;
+    });
+  }
+
+  async getPreviousReportByCase(caseId: number, beforeDate: string, excludeId?: number): Promise<WeeklyReport | undefined> {
+    return await withRetry(async () => {
+      console.log("getPreviousReportByCase開始:", { caseId, beforeDate, excludeId });
+      
+      // 事前に案件が削除済みかチェック
+      const [caseInfo] = await db
+        .select()
+        .from(cases)
+        .where(eq(cases.id, caseId));
+
+      console.log("案件情報:", { found: !!caseInfo, isDeleted: caseInfo?.isDeleted });
+
+      // 削除済みの案件の場合はundefinedを返す
+      if (caseInfo && caseInfo.isDeleted) {
+        console.log("削除済み案件のため処理を終了");
+        return undefined;
+      }
+
+      // デバッグ: この案件のすべての報告を確認
+      const allReports = await db
+        .select({
+          id: weeklyReports.id,
+          reportPeriodStart: weeklyReports.reportPeriodStart,
+          reportPeriodEnd: weeklyReports.reportPeriodEnd
+        })
+        .from(weeklyReports)
+        .where(eq(weeklyReports.caseId, caseId))
+        .orderBy(desc(weeklyReports.reportPeriodStart));
+      
+      console.log("この案件のすべての報告:", allReports);
+
+      // 指定された日付より前の報告を取得
+      let whereConditions = [
+        eq(weeklyReports.caseId, caseId),
+        lt(weeklyReports.reportPeriodStart, beforeDate)
+      ];
+      if (excludeId) {
+        whereConditions.push(ne(weeklyReports.id, excludeId));
+      }
+
+      console.log("検索条件:", {
+        caseId,
+        beforeDate,
+        excludeId,
+        sqlCondition: `caseId=${caseId} AND reportPeriodStart<'${beforeDate}'${excludeId ? ` AND id!=${excludeId}` : ''}`
+      });
+
+      const query = db
+        .select()
+        .from(weeklyReports)
+        .where(and(...whereConditions));
+
+      const results = await query.orderBy(desc(weeklyReports.reportPeriodStart));
+      const [report] = results;
+
+      console.log("検索結果:", {
+        foundCount: results.length,
+        firstResult: report ? {
+          id: report.id,
+          reportPeriod: `${report.reportPeriodStart} - ${report.reportPeriodEnd}`
+        } : null
+      });
 
       return report;
     });

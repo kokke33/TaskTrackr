@@ -428,6 +428,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 指定された日付より前の前回報告を取得するエンドポイント
+  app.get("/api/weekly-reports/previous/:caseId", async (req, res) => {
+    try {
+      const { caseId } = req.params;
+      const { beforeDate, excludeId } = req.query;
+      
+      console.log("前回報告取得API呼び出し:", {
+        caseId: parseInt(caseId),
+        beforeDate,
+        excludeId: excludeId ? parseInt(excludeId as string) : undefined
+      });
+      
+      if (!beforeDate) {
+        console.log("エラー: beforeDateパラメータが未指定");
+        res.status(400).json({ message: "beforeDate parameter is required" });
+        return;
+      }
+      
+      const excludeIdNumber = excludeId ? parseInt(excludeId as string) : undefined;
+      
+      const report = await storage.getPreviousReportByCase(
+        parseInt(caseId),
+        beforeDate as string,
+        excludeIdNumber
+      );
+      
+      console.log("前回報告取得結果:", {
+        found: !!report,
+        reportId: report?.id,
+        reportPeriod: report ? `${report.reportPeriodStart} - ${report.reportPeriodEnd}` : null
+      });
+      
+      if (!report) {
+        console.log("前回報告が見つかりませんでした");
+        res.status(404).json({ message: "No previous reports found for this case" });
+        return;
+      }
+      
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching previous report:", error);
+      res.status(500).json({ message: "Failed to fetch previous report" });
+    }
+  });
+
   // プロジェクト別月次報告書を生成するエンドポイント
   app.get("/api/monthly-summary/:projectName", async (req, res) => {
     try {

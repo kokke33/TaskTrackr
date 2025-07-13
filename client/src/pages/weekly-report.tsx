@@ -167,32 +167,7 @@ export default function WeeklyReport() {
     }));
   };
 
-  // 選択された案件の最新の報告を取得（編集中の報告を除外）
-  const { data: latestReport, isLoading: isLoadingLatest } = useQuery<WeeklyReport>({
-    queryKey: [`/api/weekly-reports/latest/${selectedCaseId}`, reportId],
-    queryFn: () => {
-      const excludeParam = reportId ? `?excludeId=${reportId}` : '';
-      return apiRequest<WeeklyReport>(`/api/weekly-reports/latest/${selectedCaseId}${excludeParam}`);
-    },
-    enabled: !!selectedCaseId,
-  });
-
-  // latestReportデータの確認用ログ
-  useEffect(() => {
-    if (latestReport) {
-      console.log("latestReport取得完了:", {
-        id: latestReport.id,
-        hasWeeklyTasks: !!latestReport.weeklyTasks,
-        hasIssues: !!latestReport.issues,
-        weeklyTasksLength: latestReport.weeklyTasks?.length,
-        issuesLength: latestReport.issues?.length,
-        reportPeriod: `${latestReport.reportPeriodStart} - ${latestReport.reportPeriodEnd}`
-      });
-    } else {
-      console.log("latestReport:", latestReport, "isLoading:", isLoadingLatest);
-    }
-  }, [latestReport, isLoadingLatest]);
-
+  // フォームの初期化
   const form = useForm<WeeklyReport>({
     resolver: zodResolver(insertWeeklyReportSchema),
     defaultValues: {
@@ -235,6 +210,81 @@ export default function WeeklyReport() {
       businessDetails: "",
     },
   });
+
+  // 選択された案件の前回報告を取得（編集対象の報告期間より前の最新報告）
+  const { data: latestReport, isLoading: isLoadingLatest } = useQuery<WeeklyReport>({
+    queryKey: [`/api/weekly-reports/previous/${selectedCaseId}`, reportId, existingReport?.reportPeriodStart],
+    queryFn: async () => {
+      // 編集モードでは必ずexistingReportのreportPeriodStartを使用
+      let reportPeriodStart: string | undefined;
+      
+      if (isEditMode && existingReport) {
+        reportPeriodStart = existingReport.reportPeriodStart;
+        console.log("前回報告取得 - 編集モード:", {
+          editingReportId: reportId,
+          editingReportPeriod: reportPeriodStart,
+          selectedCaseId
+        });
+      } else {
+        reportPeriodStart = form.getValues("reportPeriodStart");
+        console.log("前回報告取得 - 新規作成モード:", {
+          formReportPeriod: reportPeriodStart,
+          selectedCaseId
+        });
+      }
+      
+      if (!reportPeriodStart) {
+        // 報告期間が設定されていない場合は従来の最新報告を取得
+        const excludeParam = reportId ? `?excludeId=${reportId}` : '';
+        console.log("前回報告取得 - 最新報告フォールバック:", excludeParam);
+        return apiRequest(`/api/weekly-reports/latest/${selectedCaseId}${excludeParam}`, { method: "GET" });
+      }
+      
+      // 報告期間が設定されている場合は、その日付より前の前回報告を取得
+      const params = new URLSearchParams({
+        beforeDate: reportPeriodStart
+      });
+      if (reportId) {
+        params.append('excludeId', reportId.toString());
+      }
+      
+      console.log("前回報告取得 - 期間ベース:", {
+        beforeDate: reportPeriodStart,
+        excludeId: reportId,
+        url: `/api/weekly-reports/previous/${selectedCaseId}?${params.toString()}`
+      });
+      
+      try {
+        const result = await apiRequest(`/api/weekly-reports/previous/${selectedCaseId}?${params.toString()}`, { method: "GET" });
+        console.log("前回報告取得成功:", result);
+        return result;
+      } catch (error) {
+        console.error("前回報告取得エラー:", error);
+        throw error;
+      }
+    },
+    enabled: !!selectedCaseId && (!isEditMode || (!!existingReport && !!existingReport.reportPeriodStart)),
+  });
+
+  // latestReportデータの確認用ログ
+  useEffect(() => {
+    if (latestReport) {
+      console.log("latestReport取得完了:", {
+        id: latestReport.id,
+        hasWeeklyTasks: !!latestReport.weeklyTasks,
+        hasIssues: !!latestReport.issues,
+        weeklyTasksLength: latestReport.weeklyTasks?.length,
+        issuesLength: latestReport.issues?.length,
+        reportPeriod: `${latestReport.reportPeriodStart} - ${latestReport.reportPeriodEnd}`,
+        // デバッグ用: 現在編集中の報告との比較
+        isEditingReport: latestReport.id === reportId,
+        editingReportId: reportId,
+        editingReportPeriod: existingReport ? `${existingReport.reportPeriodStart} - ${existingReport.reportPeriodEnd}` : 'なし'
+      });
+    } else {
+      console.log("latestReport:", latestReport, "isLoading:", isLoadingLatest, "selectedCaseId:", selectedCaseId);
+    }
+  }, [latestReport, isLoadingLatest, reportId, existingReport]);
 
   // 自動保存処理
   const autoSave = useCallback(async () => {
