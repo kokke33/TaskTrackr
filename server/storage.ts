@@ -123,7 +123,7 @@ export interface IStorage {
   getAllWeeklyReportsForList(limit?: number): Promise<WeeklyReportSummary[]>; // 新規追加
   updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport>;
   updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport>;
-  getLatestReportByCase(caseId: number): Promise<WeeklyReport | undefined>;
+  getLatestReportByCase(caseId: number, excludeId?: number): Promise<WeeklyReport | undefined>;
   getWeeklyReportsByCase(caseId: number): Promise<WeeklyReport[]>;
   getWeeklyReportsByCases(caseIds: number[], startDate?: Date, endDate?: Date): Promise<WeeklyReport[]>;
   getRecentWeeklyReports(limit?: number): Promise<WeeklyReport[]>;
@@ -1019,25 +1019,33 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getLatestReportByCase(caseId: number): Promise<WeeklyReport | undefined> {
-    // 事前に案件が削除済みかチェック
-    const [caseInfo] = await db
-      .select()
-      .from(cases)
-      .where(eq(cases.id, caseId));
+  async getLatestReportByCase(caseId: number, excludeId?: number): Promise<WeeklyReport | undefined> {
+    return await withRetry(async () => {
+      // 事前に案件が削除済みかチェック
+      const [caseInfo] = await db
+        .select()
+        .from(cases)
+        .where(eq(cases.id, caseId));
 
-    // 削除済みの案件の場合はundefinedを返す
-    if (caseInfo && caseInfo.isDeleted) {
-      return undefined;
-    }
+      // 削除済みの案件の場合はundefinedを返す
+      if (caseInfo && caseInfo.isDeleted) {
+        return undefined;
+      }
 
-    const [report] = await db
-      .select()
-      .from(weeklyReports)
-      .where(eq(weeklyReports.caseId, caseId))
-      .orderBy(desc(weeklyReports.reportPeriodStart));
+      // 除外IDが指定されている場合はそれを除外
+      let query = db
+        .select()
+        .from(weeklyReports)
+        .where(eq(weeklyReports.caseId, caseId));
 
-    return report;
+      if (excludeId) {
+        query = query.where(ne(weeklyReports.id, excludeId));
+      }
+
+      const [report] = await query.orderBy(desc(weeklyReports.reportPeriodStart));
+
+      return report;
+    });
   }
 
   async getWeeklyReportsByCase(caseId: number): Promise<WeeklyReport[]> {

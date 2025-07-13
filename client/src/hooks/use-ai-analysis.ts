@@ -59,7 +59,29 @@ export function useAIAnalysis() {
           let reportComparison = "";
           hasPreviousReportComparison = true;
           
-          if (previousReportContent !== comparisonTarget) {
+          // 文字列比較の詳細なデバッグ情報を出力
+          const normalizedPrevious = previousReportContent.trim().replace(/\s+/g, ' ');
+          const normalizedCurrent = comparisonTarget.trim().replace(/\s+/g, ' ');
+          const areEqual = normalizedPrevious === normalizedCurrent;
+          
+          console.log("文字列比較デバッグ:", {
+            fieldName,
+            previousLength: previousReportContent.length,
+            currentLength: comparisonTarget.length,
+            normalizedPreviousLength: normalizedPrevious.length,
+            normalizedCurrentLength: normalizedCurrent.length,
+            areEqual,
+            strictEqual: previousReportContent === comparisonTarget,
+            // 最初の50文字を比較
+            previousStart: previousReportContent.substring(0, 50),
+            currentStart: comparisonTarget.substring(0, 50),
+            // 最後の50文字を比較
+            previousEnd: previousReportContent.substring(previousReportContent.length - 50),
+            currentEnd: comparisonTarget.substring(comparisonTarget.length - 50)
+          });
+          
+          // 正規化された内容で比較
+          if (!areEqual) {
             reportComparison = `\n\n【前回報告との比較】\n前回報告の内容:\n${previousReportContent}\n\n今回報告の内容:\n${comparisonTarget}`;
           } else {
             // 内容が同じ場合は更新不足のリスクとして扱う

@@ -411,8 +411,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/weekly-reports/latest/:projectName", async (req, res) => {
     try {
       const { projectName } = req.params;
+      const excludeId = req.query.excludeId ? parseInt(req.query.excludeId as string) : undefined;
+      
       const reports = await storage.getLatestReportByCase(
         parseInt(projectName),
+        excludeId
       );
       if (!reports) {
         res.status(404).json({ message: "No reports found for this project" });

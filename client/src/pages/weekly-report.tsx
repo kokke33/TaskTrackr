@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Send, Plus, Save, ShieldCheck, Target } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import CaseSelectorModal from "@/components/case-selector-modal";
@@ -165,9 +166,13 @@ export default function WeeklyReport() {
     }));
   };
 
-  // 選択された案件の最新の報告を取得
+  // 選択された案件の最新の報告を取得（編集中の報告を除外）
   const { data: latestReport, isLoading: isLoadingLatest } = useQuery<WeeklyReport>({
-    queryKey: [`/api/weekly-reports/latest/${selectedCaseId}`],
+    queryKey: [`/api/weekly-reports/latest/${selectedCaseId}`, reportId],
+    queryFn: () => {
+      const excludeParam = reportId ? `?excludeId=${reportId}` : '';
+      return apiRequest<WeeklyReport>(`/api/weekly-reports/latest/${selectedCaseId}${excludeParam}`);
+    },
     enabled: !!selectedCaseId,
   });
 
