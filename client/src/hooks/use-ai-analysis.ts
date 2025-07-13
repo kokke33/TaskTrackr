@@ -50,9 +50,8 @@ export function useAIAnalysis() {
         });
         
         // 編集モードでは原則として前回報告との比較を表示
-        // originalContentがある場合（編集モード）は、originalContentと前回報告を比較
-        // originalContentがない場合（新規作成モード）は、現在の入力内容と前回報告を比較
-        const comparisonTarget = originalContent || content;
+        // 常に現在の入力内容と前回報告を比較する
+        const comparisonTarget = content;
         let hasPreviousReportComparison = false;
         let isContentUnchanged = false;
         
@@ -61,11 +60,11 @@ export function useAIAnalysis() {
           hasPreviousReportComparison = true;
           
           if (previousReportContent !== comparisonTarget) {
-            reportComparison = `\n\n【前回報告との比較】\n前回報告の内容:\n${previousReportContent}\n\n${originalContent ? '現在保存されている内容' : '今回報告の内容'}:\n${comparisonTarget}`;
+            reportComparison = `\n\n【前回報告との比較】\n前回報告の内容:\n${previousReportContent}\n\n今回報告の内容:\n${comparisonTarget}`;
           } else {
             // 内容が同じ場合は更新不足のリスクとして扱う
             isContentUnchanged = true;
-            reportComparison = `\n\n【前回報告との比較】\n前回報告の内容:\n${previousReportContent}\n\n${originalContent ? '現在保存されている内容' : '今回報告の内容'}:\n${comparisonTarget}\n\n⚠️ 重要: 前回報告と全く同じ内容です。進捗や状況に変化がない場合でも、現在の状況を改めて記載することが重要です。`;
+            reportComparison = `\n\n【前回報告との比較】\n前回報告の内容:\n${previousReportContent}\n\n今回報告の内容:\n${comparisonTarget}\n\n⚠️ 重要: 前回報告と全く同じ内容です。進捗や状況に変化がない場合でも、現在の状況を改めて記載することが重要です。`;
           }
           changeAnalysis += reportComparison;
           console.log("前回報告比較セクション追加:", reportComparison);
