@@ -9,6 +9,7 @@ import {
   insertWeeklyReportMeetingSchema,
 } from "@shared/schema";
 import { getAIServiceDynamic } from "./ai-service";
+import { aiRoutes } from "./ai-routes";
 import passport from "passport";
 import { isAuthenticated, isAdmin } from "./auth";
 
@@ -2124,6 +2125,9 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
       res.status(500).json({ error: "設定の削除中にエラーが発生しました" });
     }
   });
+
+  // AI APIルートを登録
+  app.use(aiRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

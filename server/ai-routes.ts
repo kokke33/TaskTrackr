@@ -1,5 +1,6 @@
 import express from 'express';
 import { getAIServiceDynamic, AIMessage } from './ai-service.js';
+import { isAuthenticated } from './auth';
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ const getUserId = (req: express.Request): string | undefined => {
 };
 
 // AI chat endpoint
-router.post('/api/ai/chat', async (req, res) => {
+router.post('/api/ai/chat', isAuthenticated, async (req, res) => {
   try {
     const { messages } = req.body;
     const userId = getUserId(req);
@@ -55,7 +56,7 @@ router.post('/api/ai/chat', async (req, res) => {
 });
 
 // Text summarization endpoint
-router.post('/api/ai/summarize', async (req, res) => {
+router.post('/api/ai/summarize', isAuthenticated, async (req, res) => {
   try {
     const { text } = req.body;
     const userId = getUserId(req);
@@ -84,7 +85,7 @@ router.post('/api/ai/summarize', async (req, res) => {
 });
 
 // Task analysis endpoint
-router.post('/api/ai/analyze-task', async (req, res) => {
+router.post('/api/ai/analyze-task', isAuthenticated, async (req, res) => {
   try {
     const { taskDescription } = req.body;
     const userId = getUserId(req);
@@ -112,8 +113,37 @@ router.post('/api/ai/analyze-task', async (req, res) => {
   }
 });
 
+// Text analysis endpoint for weekly reports
+router.post('/api/ai/analyze-text', isAuthenticated, async (req, res) => {
+  try {
+    const { text } = req.body;
+    const userId = getUserId(req);
+
+    if (!text || typeof text !== 'string' || text.length < 5) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Text must be a string with at least 5 characters.' 
+      });
+    }
+
+    const aiService = await getAIServiceDynamic();
+    const analysis = await aiService.analyzeText(text, userId);
+    
+    res.json({
+      success: true,
+      data: analysis,
+    });
+  } catch (error) {
+    console.error('AI text analysis error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // AI provider status endpoint
-router.get('/api/ai/status', async (req, res) => {
+router.get('/api/ai/status', isAuthenticated, async (req, res) => {
   try {
     const userId = getUserId(req);
     

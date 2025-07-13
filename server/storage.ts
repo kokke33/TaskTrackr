@@ -1295,6 +1295,19 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // リアルタイム分析用AI設定の取得
+  async getRealtimeAnalysisConfig(): Promise<{
+    provider: string;
+  }> {
+    return await withRetry(async () => {
+      const provider = await this.getSystemSetting('REALTIME_AI_PROVIDER') || { value: 'gemini' };
+
+      return {
+        provider: provider.value,
+      };
+    });
+  }
+
   // システム設定の更新または作成
   async setSystemSetting(key: string, value: string, description?: string): Promise<SystemSetting> {
     return await withRetry(async () => {

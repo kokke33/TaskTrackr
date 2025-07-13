@@ -30,6 +30,8 @@ import { useAuth } from "@/lib/auth";
 import CaseSelectorModal from "@/components/case-selector-modal";
 import ReactMarkdown from 'react-markdown';
 import { MilestoneDialog } from "@/components/milestone-dialog";
+import { AIAnalysisResult } from "@/components/ai-analysis-result";
+import { useAIAnalysis } from "@/hooks/use-ai-analysis";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
@@ -87,6 +89,9 @@ export default function WeeklyReport() {
   
   // マイルストーンダイアログの状態管理
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
+
+  // AI分析機能
+  const { analyzeField, clearAnalysis, getAnalysisState } = useAIAnalysis();
 
   // 議事録更新のミューテーション
   const updateMeetingMutation = useMutation({
@@ -165,6 +170,22 @@ export default function WeeklyReport() {
     queryKey: [`/api/weekly-reports/latest/${selectedCaseId}`],
     enabled: !!selectedCaseId,
   });
+
+  // latestReportデータの確認用ログ
+  useEffect(() => {
+    if (latestReport) {
+      console.log("latestReport取得完了:", {
+        id: latestReport.id,
+        hasWeeklyTasks: !!latestReport.weeklyTasks,
+        hasIssues: !!latestReport.issues,
+        weeklyTasksLength: latestReport.weeklyTasks?.length,
+        issuesLength: latestReport.issues?.length,
+        reportPeriod: `${latestReport.reportPeriodStart} - ${latestReport.reportPeriodEnd}`
+      });
+    } else {
+      console.log("latestReport:", latestReport, "isLoading:", isLoadingLatest);
+    }
+  }, [latestReport, isLoadingLatest]);
 
   const form = useForm<WeeklyReport>({
     resolver: zodResolver(insertWeeklyReportSchema),
@@ -651,9 +672,26 @@ export default function WeeklyReport() {
                         placeholder="作業項目、計画との差異、遅延理由、リスク評価などを記述してください"
                         className="h-32"
                         {...field}
+                        onBlur={(e) => {
+                          field.onBlur?.();
+                          console.log("AI分析実行 - 今週の作業内容:", {
+                            currentValue: e.target.value,
+                            existingReport: existingReport?.weeklyTasks,
+                            latestReport: latestReport?.weeklyTasks,
+                            latestReportExists: !!latestReport
+                          });
+                          analyzeField("今週の作業内容", e.target.value, existingReport?.weeklyTasks || undefined, latestReport?.weeklyTasks || undefined);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
+                    <AIAnalysisResult
+                      analysis={getAnalysisState("今週の作業内容").analysis}
+                      isLoading={getAnalysisState("今週の作業内容").isLoading}
+                      error={getAnalysisState("今週の作業内容").error}
+                      onClear={() => clearAnalysis("今週の作業内容")}
+                      fieldName="今週の作業内容"
+                    />
                   </FormItem>
                 )}
               />
@@ -796,9 +834,20 @@ export default function WeeklyReport() {
                             className="h-24"
                             {...field}
                             value={field.value ?? ""} // nullの場合は空文字列を渡す
+                            onBlur={(e) => {
+                              field.onBlur?.();
+                              analyzeField("遅延・問題点の詳細", e.target.value, existingReport?.delayDetails || undefined, latestReport?.delayDetails || undefined);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
+                        <AIAnalysisResult
+                          fieldName="遅延・問題点の詳細"
+                          analysis={getAnalysisState("遅延・問題点の詳細").analysis}
+                          isLoading={getAnalysisState("遅延・問題点の詳細").isLoading}
+                          error={getAnalysisState("遅延・問題点の詳細").error}
+                          onClear={() => clearAnalysis("遅延・問題点の詳細")}
+                        />
                       </FormItem>
                     )}
                   />
@@ -822,9 +871,26 @@ export default function WeeklyReport() {
                         placeholder="現在直面している課題や問題点を記述してください"
                         className="h-24"
                         {...field}
+                        onBlur={(e) => {
+                          field.onBlur?.();
+                          console.log("AI分析実行 - 課題・問題点:", {
+                            currentValue: e.target.value,
+                            existingReport: existingReport?.issues,
+                            latestReport: latestReport?.issues,
+                            latestReportExists: !!latestReport
+                          });
+                          analyzeField("課題・問題点", e.target.value, existingReport?.issues || undefined, latestReport?.issues || undefined);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
+                    <AIAnalysisResult
+                      analysis={getAnalysisState("課題・問題点").analysis}
+                      isLoading={getAnalysisState("課題・問題点").isLoading}
+                      error={getAnalysisState("課題・問題点").error}
+                      onClear={() => clearAnalysis("課題・問題点")}
+                      fieldName="課題・問題点"
+                    />
                   </FormItem>
                 )}
               />
@@ -881,9 +947,20 @@ export default function WeeklyReport() {
                               className="h-24"
                               {...field}
                               value={field.value ?? ""}
+                              onBlur={(e) => {
+                                field.onBlur?.();
+                                analyzeField("リスクの概要", e.target.value, existingReport?.riskSummary || undefined, latestReport?.riskSummary || undefined);
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
+                          <AIAnalysisResult
+                            fieldName="リスクの概要"
+                            analysis={getAnalysisState("リスクの概要").analysis}
+                            isLoading={getAnalysisState("リスクの概要").isLoading}
+                            error={getAnalysisState("リスクの概要").error}
+                            onClear={() => clearAnalysis("リスクの概要")}
+                          />
                         </FormItem>
                       )}
                     />
@@ -900,9 +977,20 @@ export default function WeeklyReport() {
                               className="h-24"
                               {...field}
                               value={field.value ?? ""}
+                              onBlur={(e) => {
+                                field.onBlur?.();
+                                analyzeField("リスク対策", e.target.value, existingReport?.riskCountermeasures || undefined, latestReport?.riskCountermeasures || undefined);
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
+                          <AIAnalysisResult
+                            fieldName="リスク対策"
+                            analysis={getAnalysisState("リスク対策").analysis}
+                            isLoading={getAnalysisState("リスク対策").isLoading}
+                            error={getAnalysisState("リスク対策").error}
+                            onClear={() => clearAnalysis("リスク対策")}
+                          />
                         </FormItem>
                       )}
                     />
@@ -988,9 +1076,20 @@ export default function WeeklyReport() {
                             className="h-24"
                             {...field}
                             value={field.value ?? ""}
+                            onBlur={(e) => {
+                              field.onBlur?.();
+                              analyzeField("品質懸念事項の詳細", e.target.value, existingReport?.qualityDetails || undefined, latestReport?.qualityDetails || undefined);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
+                        <AIAnalysisResult
+                          fieldName="品質懸念事項の詳細"
+                          analysis={getAnalysisState("品質懸念事項の詳細").analysis}
+                          isLoading={getAnalysisState("品質懸念事項の詳細").isLoading}
+                          error={getAnalysisState("品質懸念事項の詳細").error}
+                          onClear={() => clearAnalysis("品質懸念事項の詳細")}
+                        />
                       </FormItem>
                     )}
                   />
@@ -1008,9 +1107,20 @@ export default function WeeklyReport() {
                           className="h-24"
                           {...field}
                           value={field.value ?? ""}
+                          onBlur={(e) => {
+                            field.onBlur?.();
+                            analyzeField("テスト進捗状況", e.target.value, existingReport?.testProgress || undefined, latestReport?.testProgress || undefined);
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
+                      <AIAnalysisResult
+                        fieldName="テスト進捗状況"
+                        analysis={getAnalysisState("テスト進捗状況").analysis}
+                        isLoading={getAnalysisState("テスト進捗状況").isLoading}
+                        error={getAnalysisState("テスト進捗状況").error}
+                        onClear={() => clearAnalysis("テスト進捗状況")}
+                      />
                     </FormItem>
                   )}
                 />
@@ -1065,9 +1175,20 @@ export default function WeeklyReport() {
                             className="h-24"
                             {...field}
                             value={field.value ?? ""}
+                            onBlur={(e) => {
+                              field.onBlur?.();
+                              analyzeField("変更内容の詳細", e.target.value, existingReport?.changeDetails || undefined, latestReport?.changeDetails || undefined);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
+                        <AIAnalysisResult
+                          fieldName="変更内容の詳細"
+                          analysis={getAnalysisState("変更内容の詳細").analysis}
+                          isLoading={getAnalysisState("変更内容の詳細").isLoading}
+                          error={getAnalysisState("変更内容の詳細").error}
+                          onClear={() => clearAnalysis("変更内容の詳細")}
+                        />
                       </FormItem>
                     )}
                   />
@@ -1091,9 +1212,20 @@ export default function WeeklyReport() {
                         placeholder="来週予定している作業内容を記述してください"
                         className="h-32"
                         {...field}
+                        onBlur={(e) => {
+                          field.onBlur?.();
+                          analyzeField("来週の作業予定", e.target.value, existingReport?.nextWeekPlan || undefined, latestReport?.nextWeekPlan || undefined);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
+                    <AIAnalysisResult
+                      analysis={getAnalysisState("来週の作業予定").analysis}
+                      isLoading={getAnalysisState("来週の作業予定").isLoading}
+                      error={getAnalysisState("来週の作業予定").error}
+                      onClear={() => clearAnalysis("来週の作業予定")}
+                      fieldName="来週の作業予定"
+                    />
                   </FormItem>
                 )}
               />
@@ -1117,9 +1249,20 @@ export default function WeeklyReport() {
                         placeholder="必要な支援や判断を仰ぎたい事項を記述してください"
                         className="h-32"
                         {...field}
+                        onBlur={(e) => {
+                          field.onBlur?.();
+                          analyzeField("支援・判断の要望事項", e.target.value, existingReport?.supportRequests || undefined, latestReport?.supportRequests || undefined);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
+                    <AIAnalysisResult
+                      analysis={getAnalysisState("支援・判断の要望事項").analysis}
+                      isLoading={getAnalysisState("支援・判断の要望事項").isLoading}
+                      error={getAnalysisState("支援・判断の要望事項").error}
+                      onClear={() => clearAnalysis("支援・判断の要望事項")}
+                      fieldName="支援・判断の要望事項"
+                    />
                   </FormItem>
                 )}
               />
@@ -1171,9 +1314,20 @@ export default function WeeklyReport() {
                             className="h-24"
                             {...field}
                             value={field.value ?? ""}
+                            onBlur={(e) => {
+                              field.onBlur?.();
+                              analyzeField("リソース懸念事項", e.target.value, existingReport?.resourceDetails || undefined, latestReport?.resourceDetails || undefined);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
+                        <AIAnalysisResult
+                          fieldName="リソース懸念事項"
+                          analysis={getAnalysisState("リソース懸念事項").analysis}
+                          isLoading={getAnalysisState("リソース懸念事項").isLoading}
+                          error={getAnalysisState("リソース懸念事項").error}
+                          onClear={() => clearAnalysis("リソース懸念事項")}
+                        />
                       </FormItem>
                     )}
                   />
@@ -1220,9 +1374,20 @@ export default function WeeklyReport() {
                             className="h-24"
                             {...field}
                             value={field.value ?? ""}
+                            onBlur={(e) => {
+                              field.onBlur?.();
+                              analyzeField("顧客懸念事項", e.target.value, existingReport?.customerDetails || undefined, latestReport?.customerDetails || undefined);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
+                        <AIAnalysisResult
+                          fieldName="顧客懸念事項"
+                          analysis={getAnalysisState("顧客懸念事項").analysis}
+                          isLoading={getAnalysisState("顧客懸念事項").isLoading}
+                          error={getAnalysisState("顧客懸念事項").error}
+                          onClear={() => clearAnalysis("顧客懸念事項")}
+                        />
                       </FormItem>
                     )}
                   />
@@ -1269,9 +1434,20 @@ export default function WeeklyReport() {
                             className="h-24"
                             {...field}
                             value={field.value ?? ""}
+                            onBlur={(e) => {
+                              field.onBlur?.();
+                              analyzeField("環境懸念事項", e.target.value, existingReport?.environmentDetails || undefined, latestReport?.environmentDetails || undefined);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
+                        <AIAnalysisResult
+                          fieldName="環境懸念事項"
+                          analysis={getAnalysisState("環境懸念事項").analysis}
+                          isLoading={getAnalysisState("環境懸念事項").isLoading}
+                          error={getAnalysisState("環境懸念事項").error}
+                          onClear={() => clearAnalysis("環境懸念事項")}
+                        />
                       </FormItem>
                     )}
                   />
@@ -1318,9 +1494,20 @@ export default function WeeklyReport() {
                             className="h-24"
                             {...field}
                             value={field.value ?? ""}
+                            onBlur={(e) => {
+                              field.onBlur?.();
+                              analyzeField("コスト懸念事項", e.target.value, existingReport?.costDetails || undefined, latestReport?.costDetails || undefined);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
+                        <AIAnalysisResult
+                          fieldName="コスト懸念事項"
+                          analysis={getAnalysisState("コスト懸念事項").analysis}
+                          isLoading={getAnalysisState("コスト懸念事項").isLoading}
+                          error={getAnalysisState("コスト懸念事項").error}
+                          onClear={() => clearAnalysis("コスト懸念事項")}
+                        />
                       </FormItem>
                     )}
                   />
@@ -1367,9 +1554,20 @@ export default function WeeklyReport() {
                             className="h-24"
                             {...field}
                             value={field.value ?? ""}
+                            onBlur={(e) => {
+                              field.onBlur?.();
+                              analyzeField("知識・スキル懸念事項", e.target.value, existingReport?.knowledgeDetails || undefined, latestReport?.knowledgeDetails || undefined);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
+                        <AIAnalysisResult
+                          fieldName="知識・スキル懸念事項"
+                          analysis={getAnalysisState("知識・スキル懸念事項").analysis}
+                          isLoading={getAnalysisState("知識・スキル懸念事項").isLoading}
+                          error={getAnalysisState("知識・スキル懸念事項").error}
+                          onClear={() => clearAnalysis("知識・スキル懸念事項")}
+                        />
                       </FormItem>
                     )}
                   />
@@ -1416,9 +1614,20 @@ export default function WeeklyReport() {
                             className="h-24"
                             {...field}
                             value={field.value ?? ""}
+                            onBlur={(e) => {
+                              field.onBlur?.();
+                              analyzeField("教育懸念事項", e.target.value, existingReport?.trainingDetails || undefined, latestReport?.trainingDetails || undefined);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
+                        <AIAnalysisResult
+                          fieldName="教育懸念事項"
+                          analysis={getAnalysisState("教育懸念事項").analysis}
+                          isLoading={getAnalysisState("教育懸念事項").isLoading}
+                          error={getAnalysisState("教育懸念事項").error}
+                          onClear={() => clearAnalysis("教育懸念事項")}
+                        />
                       </FormItem>
                     )}
                   />
@@ -1463,9 +1672,20 @@ export default function WeeklyReport() {
                             className="h-24"
                             {...field}
                             value={field.value ?? ""}
+                            onBlur={(e) => {
+                              field.onBlur?.();
+                              analyzeField("緊急課題の詳細", e.target.value, existingReport?.urgentDetails || undefined, latestReport?.urgentDetails || undefined);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
+                        <AIAnalysisResult
+                          fieldName="緊急課題の詳細"
+                          analysis={getAnalysisState("緊急課題の詳細").analysis}
+                          isLoading={getAnalysisState("緊急課題の詳細").isLoading}
+                          error={getAnalysisState("緊急課題の詳細").error}
+                          onClear={() => clearAnalysis("緊急課題の詳細")}
+                        />
                       </FormItem>
                     )}
                   />
@@ -1512,9 +1732,20 @@ export default function WeeklyReport() {
                             className="h-24"
                             {...field}
                             value={field.value ?? ""}
+                            onBlur={(e) => {
+                              field.onBlur?.();
+                              analyzeField("営業チャンス・顧客ニーズ", e.target.value, existingReport?.businessDetails || undefined, latestReport?.businessDetails || undefined);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
+                        <AIAnalysisResult
+                          fieldName="営業チャンス・顧客ニーズ"
+                          analysis={getAnalysisState("営業チャンス・顧客ニーズ").analysis}
+                          isLoading={getAnalysisState("営業チャンス・顧客ニーズ").isLoading}
+                          error={getAnalysisState("営業チャンス・顧客ニーズ").error}
+                          onClear={() => clearAnalysis("営業チャンス・顧客ニーズ")}
+                        />
                       </FormItem>
                     )}
                   />

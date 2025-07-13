@@ -125,6 +125,66 @@ export abstract class AIService {
       return fallback;
     }
   }
+
+  async analyzeText(text: string, userId?: string): Promise<string> {
+    const requestId = generateRequestId();
+    
+    // リアルタイム分析用の設定を使用
+    const { storage } = await import('./storage');
+    const realtimeConfig = await storage.getRealtimeAnalysisConfig();
+    
+    // リアルタイム分析専用のAIサービスを作成
+    let realtimeService: AIService;
+    switch (realtimeConfig.provider) {
+      case 'groq':
+        realtimeService = new GroqService();
+        break;
+      case 'openai':
+        realtimeService = new OpenAIService();
+        break;
+      case 'gemini':
+        realtimeService = new GeminiService();
+        break;
+      case 'ollama':
+        realtimeService = new OllamaService();
+        break;
+      default:
+        realtimeService = this; // フォールバック
+    }
+    
+    aiLogger.logDebug(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq', 'analyzeText', requestId, 'Starting text analysis with realtime provider', { textLength: text.length, realtimeProvider: realtimeConfig.provider }, userId);
+    
+    const messages: AIMessage[] = [
+      {
+        role: 'system',
+        content: `あなたは損害保険システム開発のプロジェクトマネージャーのアシスタントです。週次報告の内容を分析して、簡潔なフィードバックを提供してください。
+
+重要な指摘がある場合は以下の形式で400文字以内で返してください：
+**⚠️指摘**: [具体的な問題点]
+**💡提案**: [改善案]
+`,
+      },
+      {
+        role: 'user',
+        content: text,
+      },
+    ];
+    
+    try {
+      const response = await realtimeService.generateResponse(messages, userId, { operation: 'analyzeText', text, realtimeConfig });
+      
+      aiLogger.logDebug(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq', 'analyzeText', requestId, 'Text analysis completed', { analysisLength: response.content.length }, userId);
+      return response.content;
+    } catch (error) {
+      aiLogger.logError(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq', 'analyzeText', requestId, error as Error, userId, { text });
+      
+      // Fallback response
+      const fallback = "申し訳ございませんが、現在AI分析サービスに接続できません。しばらく後に再度お試しください。";
+      
+      aiLogger.logDebug(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq', 'analyzeText', requestId, 'Using fallback analysis result', { fallback }, userId);
+      return fallback;
+    }
+  }
 }
 
 // OpenAI implementation

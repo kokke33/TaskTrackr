@@ -3,10 +3,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { Settings, Save, RefreshCw, AlertCircle } from "lucide-react";
+import { Settings, Save, RefreshCw, AlertCircle, Zap } from "lucide-react";
 
 interface SystemSetting {
   id: number;
@@ -65,6 +66,9 @@ export default function AdminSettings() {
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [aiProvider, setAiProvider] = useState<string>("");
+  
+  // リアルタイム分析用の状態
+  const [realtimeProvider, setRealtimeProvider] = useState<string>("");
 
   // システム設定を取得
   const { data: settings, isLoading, error } = useQuery({
@@ -92,12 +96,40 @@ export default function AdminSettings() {
     },
   });
 
-  // 設定データから現在のAI_PROVIDERを取得
+  // リアルタイム分析設定を更新
+  const updateRealtimeMutation = useMutation({
+    mutationFn: (provider: string) => 
+      updateSystemSetting("REALTIME_AI_PROVIDER", provider, "リアルタイム分析用AIプロバイダー (openai, ollama, gemini, groq)"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["systemSettings"] });
+      toast({
+        title: "リアルタイム分析設定を更新しました",
+        description: "AIプロバイダーが正常に更新されました",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "更新に失敗しました",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // 設定データから現在の設定を取得
   useEffect(() => {
     if (settings) {
       const aiProviderSetting = settings.find(setting => setting.key === "AI_PROVIDER");
       if (aiProviderSetting) {
         setAiProvider(aiProviderSetting.value);
+      }
+
+      // リアルタイム分析設定を取得
+      const realtimeProviderSetting = settings.find(setting => setting.key === "REALTIME_AI_PROVIDER");
+      if (realtimeProviderSetting) {
+        setRealtimeProvider(realtimeProviderSetting.value);
+      } else {
+        setRealtimeProvider("gemini"); // デフォルト値
       }
     }
   }, [settings]);
@@ -109,6 +141,12 @@ export default function AdminSettings() {
   const handleSave = () => {
     if (aiProvider) {
       updateProviderMutation.mutate(aiProvider);
+    }
+  };
+
+  const handleRealtimeSave = () => {
+    if (realtimeProvider) {
+      updateRealtimeMutation.mutate(realtimeProvider);
     }
   };
 
@@ -206,6 +244,53 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
+        {/* リアルタイム分析設定セクション */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              リアルタイム分析設定
+            </CardTitle>
+            <CardDescription>
+              週次報告のフォーカスアウト時に実行されるAI分析の設定を管理します。モデルやパラメータの詳細設定は.envファイルで管理されます。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="realtime-provider">AIプロバイダー</Label>
+              <Select value={realtimeProvider} onValueChange={setRealtimeProvider}>
+                <SelectTrigger id="realtime-provider">
+                  <SelectValue placeholder="プロバイダーを選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gemini">Google Gemini (推奨)</SelectItem>
+                  <SelectItem value="openai">OpenAI (GPT)</SelectItem>
+                  <SelectItem value="groq">Groq (高速)</SelectItem>
+                  <SelectItem value="ollama">Ollama (ローカル)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                リアルタイム分析で使用するAIサービスプロバイダーを選択してください。モデルやパラメータの詳細は環境設定で管理されます。
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 pt-4">
+              <Button
+                onClick={handleRealtimeSave}
+                disabled={updateRealtimeMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                {updateRealtimeMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                リアルタイム分析設定を保存
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* 現在の設定一覧 */}
         <Card>
           <CardHeader>
@@ -217,7 +302,9 @@ export default function AdminSettings() {
           <CardContent>
             {settings && settings.length > 0 ? (
               <div className="space-y-3">
-                {settings.map((setting) => (
+                {settings
+                  .filter((setting) => setting.key !== 'REALTIME_AI_MODEL') // REALTIME_AI_MODELを非表示
+                  .map((setting) => (
                   <div key={setting.key} className="flex justify-between items-center p-3 border rounded-lg">
                     <div>
                       <div className="font-medium">{setting.key}</div>
