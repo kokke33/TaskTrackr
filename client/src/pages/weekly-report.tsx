@@ -33,6 +33,7 @@ import ReactMarkdown from 'react-markdown';
 import { MilestoneDialog } from "@/components/milestone-dialog";
 import { AIAnalysisResult } from "@/components/ai-analysis-result";
 import { useAIAnalysis } from "@/hooks/use-ai-analysis";
+import { PreviousReportTooltip } from "@/components/previous-report-tooltip";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
@@ -722,7 +723,13 @@ export default function WeeklyReport() {
                 name="weeklyTasks"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="required">今週の作業内容</FormLabel>
+                    <div className="flex items-center">
+                      <FormLabel className="required">今週の作業内容</FormLabel>
+                      <PreviousReportTooltip 
+                        previousContent={latestReport?.weeklyTasks}
+                        fieldName="今週の作業内容"
+                      />
+                    </div>
                     <FormControl>
                       <Textarea
                         placeholder="作業項目、計画との差異、遅延理由、リスク評価などを記述してください"
@@ -881,9 +888,15 @@ export default function WeeklyReport() {
                     name="delayDetails"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="required">
-                          遅延・問題点の詳細
-                        </FormLabel>
+                        <div className="flex items-center">
+                          <FormLabel className="required">
+                            遅延・問題点の詳細
+                          </FormLabel>
+                          <PreviousReportTooltip 
+                            previousContent={latestReport?.delayDetails}
+                            fieldName="遅延・問題点の詳細"
+                          />
+                        </div>
                         <FormControl>
                           <Textarea
                             placeholder="遅延や問題の詳細、原因、影響範囲などを記述してください"
@@ -921,7 +934,13 @@ export default function WeeklyReport() {
                 name="issues"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="required">課題・問題点</FormLabel>
+                    <div className="flex items-center">
+                      <FormLabel className="required">課題・問題点</FormLabel>
+                      <PreviousReportTooltip 
+                        previousContent={latestReport?.issues}
+                        fieldName="課題・問題点"
+                      />
+                    </div>
                     <FormControl>
                       <Textarea
                         placeholder="現在直面している課題や問題点を記述してください"
@@ -994,9 +1013,15 @@ export default function WeeklyReport() {
                       name="riskSummary"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="required">
-                            リスクの概要
-                          </FormLabel>
+                          <div className="flex items-center">
+                            <FormLabel className="required">
+                              リスクの概要
+                            </FormLabel>
+                            <PreviousReportTooltip 
+                              previousContent={latestReport?.riskSummary}
+                              fieldName="リスクの概要"
+                            />
+                          </div>
                           <FormControl>
                             <Textarea
                               placeholder="新たに発見されたリスクの概要を記述してください"
@@ -1026,7 +1051,13 @@ export default function WeeklyReport() {
                       name="riskCountermeasures"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="required">対策</FormLabel>
+                          <div className="flex items-center">
+                            <FormLabel className="required">対策</FormLabel>
+                            <PreviousReportTooltip 
+                              previousContent={latestReport?.riskCountermeasures}
+                              fieldName="リスク対策"
+                            />
+                          </div>
                           <FormControl>
                             <Textarea
                               placeholder="リスクに対する対策を記述してください"
@@ -1123,9 +1154,15 @@ export default function WeeklyReport() {
                     name="qualityDetails"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="required">
-                          品質懸念事項の詳細
-                        </FormLabel>
+                        <div className="flex items-center">
+                          <FormLabel className="required">
+                            品質懸念事項の詳細
+                          </FormLabel>
+                          <PreviousReportTooltip 
+                            previousContent={latestReport?.qualityDetails}
+                            fieldName="品質懸念事項の詳細"
+                          />
+                        </div>
                         <FormControl>
                           <Textarea
                             placeholder="品質に関する懸念事項の詳細を記述してください"
@@ -1156,7 +1193,13 @@ export default function WeeklyReport() {
                   name="testProgress"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>テスト進捗状況</FormLabel>
+                      <div className="flex items-center">
+                        <FormLabel>テスト進捗状況</FormLabel>
+                        <PreviousReportTooltip 
+                          previousContent={latestReport?.testProgress}
+                          fieldName="テスト進捗状況"
+                        />
+                      </div>
                       <FormControl>
                         <Textarea
                           placeholder="テストの進捗状況を記述してください"
@@ -1262,7 +1305,13 @@ export default function WeeklyReport() {
                 name="nextWeekPlan"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="required">来週の作業予定</FormLabel>
+                    <div className="flex items-center">
+                      <FormLabel className="required">来週の作業予定</FormLabel>
+                      <PreviousReportTooltip 
+                        previousContent={latestReport?.nextWeekPlan}
+                        fieldName="来週の作業予定"
+                      />
+                    </div>
                     <FormControl>
                       <Textarea
                         placeholder="来週予定している作業内容を記述してください"
@@ -1297,9 +1346,15 @@ export default function WeeklyReport() {
                 name="supportRequests"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="required">
-                      支援・判断の要望事項
-                    </FormLabel>
+                    <div className="flex items-center">
+                      <FormLabel className="required">
+                        支援・判断の要望事項
+                      </FormLabel>
+                      <PreviousReportTooltip 
+                        previousContent={latestReport?.supportRequests}
+                        fieldName="支援・判断の要望事項"
+                      />
+                    </div>
                     <FormControl>
                       <Textarea
                         placeholder="必要な支援や判断を仰ぎたい事項を記述してください"
