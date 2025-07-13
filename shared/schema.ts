@@ -132,20 +132,7 @@ export const systemSettings = pgTable("system_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// AIプロンプトテーブル
-export const aiPrompts = pgTable("ai_prompts", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
-  category: text("category").notNull(),
-  description: text("description"),
-  systemMessage: text("system_message"),
-  userMessageTemplate: text("user_message_template"),
-  isActive: boolean("is_active").notNull().default(true),
-  functionName: text("function_name"),
-  sourceLocation: text("source_location"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+
 
 // 週次報告と案件の関係定義
 export const weeklyReportsRelations = relations(weeklyReports, ({ one, many }) => ({
@@ -212,11 +199,7 @@ export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit
   updatedAt: true,
 });
 
-export const insertAiPromptSchema = createInsertSchema(aiPrompts).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+
 
 // 型定義
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -236,5 +219,3 @@ export type InsertWeeklyReportMeeting = z.infer<typeof insertWeeklyReportMeeting
 export type WeeklyReportMeeting = typeof weeklyReportMeetings.$inferSelect;
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
-export type InsertAiPrompt = z.infer<typeof insertAiPromptSchema>;
-export type AiPrompt = typeof aiPrompts.$inferSelect;

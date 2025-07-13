@@ -38,11 +38,7 @@ export function SiteHeader() {
                     <span className="transition-colors hover:text-foreground/80 cursor-pointer">設定</span>
                   </Link>
                 </AdminOnly>
-                <AdminOnly>
-                  <Link href="/admin/ai-prompts">
-                    <span className="transition-colors hover:text-foreground/80 cursor-pointer">AIプロンプト</span>
-                  </Link>
-                </AdminOnly>
+
               </>
             )}
           </nav>

@@ -7,7 +7,6 @@ import {
   insertProjectSchema,
   insertManagerMeetingSchema,
   insertWeeklyReportMeetingSchema,
-  insertAiPromptSchema,
 } from "@shared/schema";
 import { getAIServiceDynamic } from "./ai-service";
 import { aiRoutes } from "./ai-routes";

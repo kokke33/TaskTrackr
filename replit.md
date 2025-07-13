@@ -118,6 +118,7 @@ The application uses PostgreSQL with Drizzle ORM for type-safe database operatio
 Changelog:
 - June 14, 2025. Initial setup
 - July 13, 2025. AI prompt management system implemented with database-driven prompt storage and admin interface
+- July 13, 2025. Removed ai_prompts table and related AI prompt management functionality due to unused APIs
 
 ## User Preferences
 
