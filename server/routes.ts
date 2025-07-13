@@ -51,21 +51,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   // 認証関連のエンドポイント
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    // ログのデバッグ情報を出力
-    if (req.user) {
-      console.log("Login success - user info:", {
-        id: (req.user as any).id,
-        username: (req.user as any).username,
-        isAdmin: (req.user as any).isAdmin,
-      });
-    }
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
+      if (err) {
+        console.error("Login error:", err);
+        return res.status(500).json({ error: "認証中にエラーが発生しました" });
+      }
+      
+      if (!user) {
+        console.log("Login failed:", info);
+        return res.status(401).json({ error: info?.message || "認証に失敗しました" });
+      }
+      
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error("Session creation error:", err);
+          return res.status(500).json({ error: "セッション作成中にエラーが発生しました" });
+        }
+        
+        // ログのデバッグ情報を出力
+        console.log("Login success - user info:", {
+          id: user.id,
+          username: user.username,
+          isAdmin: user.isAdmin,
+        });
 
-    // ユーザー情報と成功メッセージを返す
-    res.json({
-      message: "ログイン成功",
-      user: req.user,
-    });
+        // ユーザー情報と成功メッセージを返す
+        res.json({
+          message: "ログイン成功",
+          user: user,
+        });
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res) => {
