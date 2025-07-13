@@ -2,21 +2,20 @@ import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Project } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
-import { Home, FolderKanban, Plus, ChevronRight, Edit, ExternalLink, RotateCcw, Search, Filter, Building2, FolderOpen } from "lucide-react";
+import { Home, FolderKanban, Plus, Edit, ExternalLink, RotateCcw, Search, Filter, Building2, FolderOpen } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { AdminOnly } from "@/lib/admin-only";
 import { apiRequest } from "@/lib/queryClient";
-import { useToast, toast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 export default function ProjectList() {
   const [, setLocation] = useLocation();
@@ -24,7 +23,7 @@ export default function ProjectList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
-  const { user } = useAuth();
+  useAuth();
   const queryClient = useQueryClient();
 
   // プロジェクト一覧を取得
@@ -204,86 +203,98 @@ export default function ProjectList() {
 
             {/* 全てのプロジェクト表示 */}
             <TabsContent value="all" className="flex-1 mt-4">
-              <ScrollArea className="h-[600px]">
-                {filteredProjects.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredProjects.map((project) => (
-                      <Card 
-                        key={project.id} 
-                        className={`
-                          overflow-hidden transition-all duration-300 hover:shadow-md
-                          ${project.isDeleted ? 'opacity-60 border-dashed' : ''}
-                        `}
-                      >
-                        <CardHeader className="pb-3">
-                          <div className="flex justify-between items-start">
-                            <CardTitle className="text-lg font-bold line-clamp-2 break-all">
-                              {project.name}
-                            </CardTitle>
-                            <AdminOnly>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setLocation(`/project/edit/${project.id}`);
-                                }}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </AdminOnly>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pb-3">
-                          <div className="space-y-3">
-                            <div>
-                              <h4 className="text-sm font-semibold mb-1">プロジェクト概要</h4>
-                              <p className="text-sm text-muted-foreground line-clamp-3">
-                                {project.overview || "未設定"}
-                              </p>
+              {filteredProjects.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>プロジェクト名</TableHead>
+                        <TableHead>概要</TableHead>
+                        <TableHead>ステータス</TableHead>
+                        <TableHead className="text-right">操作</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredProjects.map((project) => (
+                        <TableRow 
+                          key={project.id}
+                          className={`${
+                            project.isDeleted ? 'opacity-60 bg-gray-50/50' : 'hover:bg-muted/50'
+                          }`}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-semibold">{project.name}</span>
                             </div>
-                          </div>
-                        </CardContent>
-                        <CardFooter className="pt-0 flex flex-col gap-2">
-                          {project.isDeleted ? (
-                            <>
-                              {/* 管理者権限デバッグ表示 */}
-                              <div className="text-xs text-gray-500 mb-2">
-                                管理者: {user?.isAdmin ? "はい" : "いいえ"}
-                              </div>
-                              <AdminOnly>
-                                <Button 
-                                  variant="outline" 
-                                  className="w-full flex items-center justify-center gap-1 mb-2"
-                                  onClick={() => restoreMutation.mutate(project.id)}
-                                  disabled={restoreMutation.isPending}
-                                >
-                                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                                  プロジェクトを復活 (AdminOnly)
-                                </Button>
-                              </AdminOnly>
-                              {/* 直接テスト用のボタン */}
-                              <Button 
-                                variant="outline" 
-                                className="w-full flex items-center justify-center gap-1 bg-yellow-100 dark:bg-yellow-900"
-                                onClick={() => restoreMutation.mutate(project.id)}
-                                disabled={restoreMutation.isPending}
-                              >
-                                <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                                プロジェクトを復活 (直接テスト)
-                              </Button>
-                            </>
-                          ) : (
-                            <Link href={`/project/${project.id}`} className="w-full">
-                              <Button variant="default" className="w-full flex items-center justify-center gap-1">
-                                詳細を見る <ChevronRight className="h-3 w-3" />
-                              </Button>
-                            </Link>
-                          )}
-                        </CardFooter>
-                      </Card>
-                    ))}
-                  </div>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm text-muted-foreground max-w-md truncate">
+                              {project.overview || "未設定"}
+                            </p>
+                          </TableCell>
+                          <TableCell>
+                            {project.isDeleted ? (
+                              <Badge variant="destructive">削除済み</Badge>
+                            ) : (
+                              <Badge variant="default">有効</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              {project.isDeleted ? (
+                                <>
+                                  <AdminOnly>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => restoreMutation.mutate(project.id)}
+                                      disabled={restoreMutation.isPending}
+                                      className="flex items-center gap-1"
+                                    >
+                                      <RotateCcw className="h-3.5 w-3.5" />
+                                      復活
+                                    </Button>
+                                  </AdminOnly>
+                                  {/* 直接テスト用のボタン */}
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => restoreMutation.mutate(project.id)}
+                                    disabled={restoreMutation.isPending}
+                                    className="flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900"
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                    復活(テスト)
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Link href={`/project/${project.id}`}>
+                                    <Button variant="default" size="sm" className="flex items-center gap-1">
+                                      <ExternalLink className="h-3.5 w-3.5" />
+                                      詳細
+                                    </Button>
+                                  </Link>
+                                  <AdminOnly>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        setLocation(`/project/edit/${project.id}`);
+                                      }}
+                                    >
+                                      <Edit className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </AdminOnly>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-lg text-muted-foreground mb-4">
@@ -296,7 +307,6 @@ export default function ProjectList() {
                     </AdminOnly>
                   </div>
                 )}
-              </ScrollArea>
             </TabsContent>
           </Tabs>
         )}
