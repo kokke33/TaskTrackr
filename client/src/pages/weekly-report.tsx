@@ -37,6 +37,7 @@ import { useAIAnalysis } from "@/hooks/use-ai-analysis";
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
+  const reportId = id ? parseInt(id) : undefined;
   const { user } = useAuth();
   
   // URLパラメータから管理者編集モードを検出
