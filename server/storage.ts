@@ -1,4 +1,4 @@
-import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, systemSettings, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting, type SystemSetting, type InsertSystemSetting } from "@shared/schema";
+import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, systemSettings, aiPrompts, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting, type SystemSetting, type InsertSystemSetting, type AiPrompt, type InsertAiPrompt } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql, gte, lte } from "drizzle-orm";
 
@@ -139,6 +139,15 @@ export interface IStorage {
   updateManagerMeeting(id: number, meetingData: InsertManagerMeeting): Promise<ManagerMeeting>;
   deleteManagerMeeting(id: number): Promise<ManagerMeeting>;
   getAvailableMonths(projectId: number): Promise<string[]>;
+
+  // AIプロンプト関連
+  createAiPrompt(promptData: InsertAiPrompt): Promise<AiPrompt>;
+  getAiPrompt(id: number): Promise<AiPrompt | undefined>;
+  getAiPrompts(): Promise<AiPrompt[]>;
+  getAiPromptsByCategory(category: string): Promise<AiPrompt[]>;
+  updateAiPrompt(id: number, promptData: Partial<InsertAiPrompt>): Promise<AiPrompt>;
+  deleteAiPrompt(id: number): Promise<AiPrompt>;
+  getAiPromptByName(name: string): Promise<AiPrompt | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1340,6 +1349,83 @@ export class DatabaseStorage implements IStorage {
         .where(eq(systemSettings.key, key))
         .returning();
       return deleted || null;
+    });
+  }
+
+  // AIプロンプト関連のメソッド
+  async createAiPrompt(promptData: InsertAiPrompt): Promise<AiPrompt> {
+    return await withRetry(async () => {
+      const [prompt] = await db
+        .insert(aiPrompts)
+        .values({
+          ...promptData,
+          updatedAt: new Date(),
+        })
+        .returning();
+      return prompt;
+    });
+  }
+
+  async getAiPrompt(id: number): Promise<AiPrompt | undefined> {
+    return await withRetry(async () => {
+      const [prompt] = await db
+        .select()
+        .from(aiPrompts)
+        .where(eq(aiPrompts.id, id));
+      return prompt;
+    });
+  }
+
+  async getAiPrompts(): Promise<AiPrompt[]> {
+    return await withRetry(async () => {
+      return await db
+        .select()
+        .from(aiPrompts)
+        .orderBy(aiPrompts.category, aiPrompts.name);
+    });
+  }
+
+  async getAiPromptsByCategory(category: string): Promise<AiPrompt[]> {
+    return await withRetry(async () => {
+      return await db
+        .select()
+        .from(aiPrompts)
+        .where(eq(aiPrompts.category, category))
+        .orderBy(aiPrompts.name);
+    });
+  }
+
+  async updateAiPrompt(id: number, promptData: Partial<InsertAiPrompt>): Promise<AiPrompt> {
+    return await withRetry(async () => {
+      const [updated] = await db
+        .update(aiPrompts)
+        .set({
+          ...promptData,
+          updatedAt: new Date(),
+        })
+        .where(eq(aiPrompts.id, id))
+        .returning();
+      return updated;
+    });
+  }
+
+  async deleteAiPrompt(id: number): Promise<AiPrompt> {
+    return await withRetry(async () => {
+      const [deleted] = await db
+        .delete(aiPrompts)
+        .where(eq(aiPrompts.id, id))
+        .returning();
+      return deleted;
+    });
+  }
+
+  async getAiPromptByName(name: string): Promise<AiPrompt | undefined> {
+    return await withRetry(async () => {
+      const [prompt] = await db
+        .select()
+        .from(aiPrompts)
+        .where(eq(aiPrompts.name, name));
+      return prompt;
     });
   }
 }

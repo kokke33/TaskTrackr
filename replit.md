@@ -24,6 +24,7 @@ The application uses PostgreSQL with Drizzle ORM for type-safe database operatio
 - **Weekly Reports**: Progress reports with AI analysis capabilities
 - **Manager Meetings**: Meeting minutes and documentation
 - **Weekly Report Meetings**: Meeting records linked to weekly reports
+- **AI Prompts**: Database-managed AI prompt templates with categorization
 
 ### Authentication & Authorization
 - Session-based authentication using Passport.js with PostgreSQL session store
@@ -49,10 +50,11 @@ The application uses PostgreSQL with Drizzle ORM for type-safe database operatio
 - **Route Protection**: Authentication and authorization middleware
 
 ### AI Integration
-- **Provider Abstraction**: Configurable AI providers (OpenAI/Ollama)
+- **Provider Abstraction**: Configurable AI providers (OpenAI/Ollama/Gemini/Groq)
 - **AI Logger**: Comprehensive logging for AI interactions
 - **Content Analysis**: Weekly report analysis and meeting minute generation
 - **Performance Optimization**: Parallel processing for admin operations
+- **Prompt Management**: Database-driven AI prompt management with admin interface
 
 ## Data Flow
 
@@ -115,6 +117,7 @@ The application uses PostgreSQL with Drizzle ORM for type-safe database operatio
 
 Changelog:
 - June 14, 2025. Initial setup
+- July 13, 2025. AI prompt management system implemented with database-driven prompt storage and admin interface
 
 ## User Preferences
 

@@ -7,6 +7,7 @@ import {
   insertProjectSchema,
   insertManagerMeetingSchema,
   insertWeeklyReportMeetingSchema,
+  insertAiPromptSchema,
 } from "@shared/schema";
 import { getAIServiceDynamic } from "./ai-service";
 import { aiRoutes } from "./ai-routes";
@@ -2140,6 +2141,95 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
     } catch (error) {
       console.error("Setting delete error:", error);
       res.status(500).json({ error: "設定の削除中にエラーが発生しました" });
+    }
+  });
+
+  // AIプロンプト管理API
+  // 全プロンプト取得
+  app.get("/api/ai-prompts", isAuthenticated, async (_req, res) => {
+    try {
+      const prompts = await storage.getAiPrompts();
+      res.json(prompts);
+    } catch (error) {
+      console.error("AI prompts fetch error:", error);
+      res.status(500).json({ error: "AIプロンプトの取得中にエラーが発生しました" });
+    }
+  });
+
+  // カテゴリ別プロンプト取得
+  app.get("/api/ai-prompts/category/:category", isAuthenticated, async (req, res) => {
+    try {
+      const category = req.params.category;
+      const prompts = await storage.getAiPromptsByCategory(category);
+      res.json(prompts);
+    } catch (error) {
+      console.error("AI prompts by category fetch error:", error);
+      res.status(500).json({ error: "AIプロンプトの取得中にエラーが発生しました" });
+    }
+  });
+
+  // 個別プロンプト取得
+  app.get("/api/ai-prompts/:id", isAuthenticated, async (req, res) => {
+    try {
+      const promptId = parseInt(req.params.id);
+      if (isNaN(promptId)) {
+        return res.status(400).json({ error: "Invalid prompt ID" });
+      }
+
+      const prompt = await storage.getAiPrompt(promptId);
+      if (!prompt) {
+        return res.status(404).json({ error: "プロンプトが見つかりません" });
+      }
+
+      res.json(prompt);
+    } catch (error) {
+      console.error("AI prompt fetch error:", error);
+      res.status(500).json({ error: "AIプロンプトの取得中にエラーが発生しました" });
+    }
+  });
+
+  // プロンプト作成（管理者のみ）
+  app.post("/api/ai-prompts", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const promptData = insertAiPromptSchema.parse(req.body);
+      const newPrompt = await storage.createAiPrompt(promptData);
+      res.json(newPrompt);
+    } catch (error) {
+      console.error("AI prompt creation error:", error);
+      res.status(500).json({ error: "AIプロンプトの作成中にエラーが発生しました" });
+    }
+  });
+
+  // プロンプト更新（管理者のみ）
+  app.put("/api/ai-prompts/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const promptId = parseInt(req.params.id);
+      if (isNaN(promptId)) {
+        return res.status(400).json({ error: "Invalid prompt ID" });
+      }
+
+      const promptData = insertAiPromptSchema.partial().parse(req.body);
+      const updatedPrompt = await storage.updateAiPrompt(promptId, promptData);
+      res.json(updatedPrompt);
+    } catch (error) {
+      console.error("AI prompt update error:", error);
+      res.status(500).json({ error: "AIプロンプトの更新中にエラーが発生しました" });
+    }
+  });
+
+  // プロンプト削除（管理者のみ）
+  app.delete("/api/ai-prompts/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const promptId = parseInt(req.params.id);
+      if (isNaN(promptId)) {
+        return res.status(400).json({ error: "Invalid prompt ID" });
+      }
+
+      const deletedPrompt = await storage.deleteAiPrompt(promptId);
+      res.json(deletedPrompt);
+    } catch (error) {
+      console.error("AI prompt deletion error:", error);
+      res.status(500).json({ error: "AIプロンプトの削除中にエラーが発生しました" });
     }
   });
 
