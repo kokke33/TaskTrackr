@@ -173,8 +173,9 @@ export abstract class AIService {
     try {
       const response = await realtimeService.generateResponse(messages, userId, { operation: 'analyzeText', text, realtimeConfig });
       
-      aiLogger.logDebug(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq', 'analyzeText', requestId, 'Text analysis completed', { analysisLength: response.content.length }, userId);
-      return response.content;
+      const cleanedContent = this.cleanThinkTags(response.content);
+      aiLogger.logDebug(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq', 'analyzeText', requestId, 'Text analysis completed', { analysisLength: cleanedContent.length }, userId);
+      return cleanedContent;
     } catch (error) {
       aiLogger.logError(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq', 'analyzeText', requestId, error as Error, userId, { text });
       
