@@ -26,6 +26,7 @@ export interface AIConfig {
   };
   groq: {
     apiKey: string;
+    apiKeys: string[];
     model: string;
     maxTokens: number;
     temperature: number;
@@ -54,6 +55,9 @@ export const aiConfig: AIConfig = {
   },
   groq: {
     apiKey: process.env.GROQ_API_KEY || '',
+    apiKeys: process.env.GROQ_API_KEYS ? 
+      process.env.GROQ_API_KEYS.split(',').map(key => key.trim()).filter(key => key) : 
+      (process.env.GROQ_API_KEY ? [process.env.GROQ_API_KEY] : []),
     model: process.env.GROQ_MODEL || 'llama3-70b-8192',
     maxTokens: parseInt(process.env.GROQ_MAX_TOKENS || '1000'),
     temperature: parseFloat(process.env.GROQ_TEMPERATURE || '0.7'),
@@ -74,8 +78,8 @@ export function validateAIConfig(): void {
     throw new Error('GEMINI_API_KEY is required when using Gemini provider');
   }
   
-  if (aiConfig.provider === 'groq' && !aiConfig.groq.apiKey) {
-    throw new Error('GROQ_API_KEY is required when using Groq provider');
+  if (aiConfig.provider === 'groq' && (!aiConfig.groq.apiKey && aiConfig.groq.apiKeys.length === 0)) {
+    throw new Error('GROQ_API_KEY or GROQ_API_KEYS is required when using Groq provider');
   }
   
   console.log(`AI Provider: ${aiConfig.provider}`);
