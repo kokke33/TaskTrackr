@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useAuth } from "@/lib/auth";
 
 interface AIAnalysisState {
   [fieldName: string]: {
@@ -12,6 +13,7 @@ interface AIAnalysisState {
 export function useAIAnalysis() {
   const [analysisState, setAnalysisState] = useState<AIAnalysisState>({});
   const debounceTimeouts = useRef<{ [fieldName: string]: NodeJS.Timeout }>({});
+  const { checkAuth } = useAuth();
 
   const analyzeField = useCallback(async (fieldName: string, content: string, originalContent?: string, previousReportContent?: string) => {
     if (!content || content.trim().length < 10) {
@@ -126,6 +128,16 @@ export function useAIAnalysis() {
         });
 
         if (!response.ok) {
+          // 401エラー（認証切れ）の特別処理
+          if (response.status === 401) {
+            console.log("セッション期限切れ検出、認証状態を確認中...");
+            try {
+              await checkAuth();
+            } catch (authError) {
+              console.error("認証確認エラー:", authError);
+            }
+            throw new Error("セッションが期限切れです。ページを更新して再ログインしてください。");
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
@@ -161,7 +173,7 @@ export function useAIAnalysis() {
         }));
       }
     }, 100);
-  }, [analysisState]);
+  }, [analysisState, checkAuth]);
 
   const clearAnalysis = useCallback((fieldName: string) => {
     // タイマーをクリア

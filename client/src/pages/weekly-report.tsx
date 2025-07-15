@@ -1028,10 +1028,7 @@ export default function WeeklyReport() {
                               className="h-24"
                               {...field}
                               value={field.value ?? ""}
-                              onBlur={(e) => {
-                                field.onBlur?.();
-                                analyzeField("リスクの概要", e.target.value, existingReport?.riskSummary || undefined, latestReport?.riskSummary || undefined);
-                              }}
+                              onBlur={field.onBlur}
                             />
                           </FormControl>
                           <FormMessage />
@@ -1066,17 +1063,36 @@ export default function WeeklyReport() {
                               value={field.value ?? ""}
                               onBlur={(e) => {
                                 field.onBlur?.();
-                                analyzeField("リスク対策", e.target.value, existingReport?.riskCountermeasures || undefined, latestReport?.riskCountermeasures || undefined);
+                                // リスクの概要と対策を組み合わせてAI分析
+                                const riskSummary = form.getValues("riskSummary") || "";
+                                const riskCountermeasures = e.target.value || "";
+                                const combinedContent = `【リスクの概要】\n${riskSummary}\n\n【対策】\n${riskCountermeasures}`;
+                                
+                                // 前回報告の組み合わせコンテンツも作成
+                                const prevRiskSummary = latestReport?.riskSummary || "";
+                                const prevRiskCountermeasures = latestReport?.riskCountermeasures || "";
+                                const prevCombinedContent = prevRiskSummary || prevRiskCountermeasures 
+                                  ? `【リスクの概要】\n${prevRiskSummary}\n\n【対策】\n${prevRiskCountermeasures}`
+                                  : undefined;
+                                
+                                // 既存報告の組み合わせコンテンツも作成
+                                const existingRiskSummary = existingReport?.riskSummary || "";
+                                const existingRiskCountermeasures = existingReport?.riskCountermeasures || "";
+                                const existingCombinedContent = existingRiskSummary || existingRiskCountermeasures
+                                  ? `【リスクの概要】\n${existingRiskSummary}\n\n【対策】\n${existingRiskCountermeasures}`
+                                  : undefined;
+                                
+                                analyzeField("新たなリスク（総合分析）", combinedContent, existingCombinedContent, prevCombinedContent);
                               }}
                             />
                           </FormControl>
                           <FormMessage />
                           <AIAnalysisResult
-                            fieldName="リスク対策"
-                            analysis={getAnalysisState("リスク対策").analysis}
-                            isLoading={getAnalysisState("リスク対策").isLoading}
-                            error={getAnalysisState("リスク対策").error}
-                            onClear={() => clearAnalysis("リスク対策")}
+                            fieldName="新たなリスク（総合分析）"
+                            analysis={getAnalysisState("新たなリスク（総合分析）").analysis}
+                            isLoading={getAnalysisState("新たなリスク（総合分析）").isLoading}
+                            error={getAnalysisState("新たなリスク（総合分析）").error}
+                            onClear={() => clearAnalysis("新たなリスク（総合分析）")}
                           />
                         </FormItem>
                       )}
@@ -1169,10 +1185,7 @@ export default function WeeklyReport() {
                             className="h-24"
                             {...field}
                             value={field.value ?? ""}
-                            onBlur={(e) => {
-                              field.onBlur?.();
-                              analyzeField("品質懸念事項の詳細", e.target.value, existingReport?.qualityDetails || undefined, latestReport?.qualityDetails || undefined);
-                            }}
+                            onBlur={field.onBlur}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1208,17 +1221,36 @@ export default function WeeklyReport() {
                           value={field.value ?? ""}
                           onBlur={(e) => {
                             field.onBlur?.();
-                            analyzeField("テスト進捗状況", e.target.value, existingReport?.testProgress || undefined, latestReport?.testProgress || undefined);
+                            // 品質懸念事項の詳細とテスト進捗状況を組み合わせてAI分析
+                            const qualityDetails = form.getValues("qualityDetails") || "";
+                            const testProgress = e.target.value || "";
+                            const combinedContent = `【品質懸念事項の詳細】\n${qualityDetails}\n\n【テスト進捗状況】\n${testProgress}`;
+                            
+                            // 前回報告の組み合わせコンテンツも作成
+                            const prevQualityDetails = latestReport?.qualityDetails || "";
+                            const prevTestProgress = latestReport?.testProgress || "";
+                            const prevCombinedContent = prevQualityDetails || prevTestProgress
+                              ? `【品質懸念事項の詳細】\n${prevQualityDetails}\n\n【テスト進捗状況】\n${prevTestProgress}`
+                              : undefined;
+                            
+                            // 既存報告の組み合わせコンテンツも作成
+                            const existingQualityDetails = existingReport?.qualityDetails || "";
+                            const existingTestProgress = existingReport?.testProgress || "";
+                            const existingCombinedContent = existingQualityDetails || existingTestProgress
+                              ? `【品質懸念事項の詳細】\n${existingQualityDetails}\n\n【テスト進捗状況】\n${existingTestProgress}`
+                              : undefined;
+                            
+                            analyzeField("品質（総合分析）", combinedContent, existingCombinedContent, prevCombinedContent);
                           }}
                         />
                       </FormControl>
                       <FormMessage />
                       <AIAnalysisResult
-                        fieldName="テスト進捗状況"
-                        analysis={getAnalysisState("テスト進捗状況").analysis}
-                        isLoading={getAnalysisState("テスト進捗状況").isLoading}
-                        error={getAnalysisState("テスト進捗状況").error}
-                        onClear={() => clearAnalysis("テスト進捗状況")}
+                        fieldName="品質（総合分析）"
+                        analysis={getAnalysisState("品質（総合分析）").analysis}
+                        isLoading={getAnalysisState("品質（総合分析）").isLoading}
+                        error={getAnalysisState("品質（総合分析）").error}
+                        onClear={() => clearAnalysis("品質（総合分析）")}
                       />
                     </FormItem>
                   )}
