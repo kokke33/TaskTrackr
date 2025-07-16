@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Form,
@@ -29,6 +29,7 @@ export default function Login() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { login, isAuthenticated } = useAuth();
+  const usernameInputRef = useRef<HTMLInputElement>(null);
 
   // 既に認証済みの場合はホームページにリダイレクト
   useEffect(() => {
@@ -36,6 +37,13 @@ export default function Login() {
       setLocation("/");
     }
   }, [isAuthenticated, setLocation]);
+
+  // ページ読み込み時にユーザー名フィールドにフォーカス
+  useEffect(() => {
+    if (usernameInputRef.current && !isAuthenticated) {
+      usernameInputRef.current.focus();
+    }
+  }, [isAuthenticated]);
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -103,7 +111,11 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>ユーザー名</FormLabel>
                     <FormControl>
-                      <Input {...field} autoComplete="username" />
+                      <Input 
+                        {...field} 
+                        ref={usernameInputRef}
+                        autoComplete="username" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
