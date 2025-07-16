@@ -155,8 +155,10 @@ SESSION_SECRET=your-session-secret
 
 # AIプロバイダー
 AI_PROVIDER=openai  # または "ollama", "gemini", "groq"
-AI_LOG_LEVEL=info
-AI_LOG_CONSOLE=true
+AI_LOG_LEVEL=info   # debug, info, warn, error (本番環境では自動的にwarnに設定)
+AI_LOG_CONSOLE=true # 本番環境では自動的にfalseに設定
+AI_LOG_FILE=false   # ファイルログを有効にする場合はtrueに設定
+AI_LOG_MASK_SENSITIVE=true  # 機密データのマスク化を有効にする
 
 # OpenAI（使用する場合）
 OPENAI_API_KEY=sk-...
@@ -255,6 +257,14 @@ const form = useForm<z.infer<typeof insertProjectSchema>>({
 
 ### 前回レポートデータ
 履歴比較には週次レポートクエリの`latestReport`を使用。レポートは`/api/weekly-reports/previous/:caseId`エンドポイント経由でケースと日付関係に基づいて取得。
+
+### AIログ機能
+AIサービスのログは本番環境で自動的に最適化されます：
+- ログレベルが自動的にWARNINGに設定
+- コンソールログが自動的に無効化
+- 大きなレスポンスボディは1000文字で切り詰め
+- APIキーは自動的にマスク化（OpenAI、Groq、Gemini対応）
+- リクエストデータはキャッシュされ、レスポンス/エラーログで再利用
 
 ## デバッグとトラブルシューティング
 

@@ -39,12 +39,30 @@ export class AILogger {
   private enableConsole: boolean;
   private enableFile: boolean;
   private maskSensitiveData: boolean;
+  private requestCache: Map<string, {
+    endpoint: string;
+    method: string;
+    headers: Record<string, any>;
+    body: any;
+    size: number;
+  }> = new Map();
 
   constructor() {
-    this.logLevel = (process.env.AI_LOG_LEVEL as LogLevel) || LogLevel.INFO;
-    this.enableConsole = process.env.AI_LOG_CONSOLE !== 'false';
+    // Default to WARNING level in production, INFO in development
+    const defaultLogLevel = process.env.NODE_ENV === 'production' ? LogLevel.WARN : LogLevel.INFO;
+    this.logLevel = (process.env.AI_LOG_LEVEL as LogLevel) || defaultLogLevel;
+    
+    // Default to disabled console logging in production
+    const defaultConsoleLogging = process.env.NODE_ENV === 'production' ? 'false' : 'true';
+    this.enableConsole = (process.env.AI_LOG_CONSOLE || defaultConsoleLogging) === 'true';
+    
     this.enableFile = process.env.AI_LOG_FILE === 'true';
     this.maskSensitiveData = process.env.AI_LOG_MASK_SENSITIVE !== 'false';
+    
+    // Set up periodic cache cleanup to prevent memory leaks
+    setInterval(() => {
+      this.cleanupCache();
+    }, 60000); // Clean up every minute
   }
 
   private shouldLog(level: LogLevel): boolean {
@@ -59,13 +77,19 @@ export class AILogger {
     
     const sensitiveKeys = [
       'apikey', 'api_key', 'authorization', 'password', 'secret', 'token',
-      'api-key', 'x-api-key', 'openai-api-key'
+      'api-key', 'x-api-key', 'openai-api-key', 'gemini-api-key', 'groq-api-key'
     ];
 
     if (typeof data === 'string') {
-      // API Key pattern matching
-      return data.replace(/sk-[a-zA-Z0-9]{20,}/g, 'sk-***MASKED***')
-                 .replace(/Bearer\s+[a-zA-Z0-9\-._~+/]+=*/g, 'Bearer ***MASKED***');
+      // API Key pattern matching for various providers
+      return data.replace(/sk-[a-zA-Z0-9]{20,}/g, 'sk-***MASKED***')  // OpenAI
+                 .replace(/gsk_[a-zA-Z0-9]{20,}/g, 'gsk_***MASKED***')  // Groq
+                 .replace(/AIzaSy[a-zA-Z0-9_-]{33}/g, 'AIzaSy***MASKED***')  // Google/Gemini
+                 .replace(/Bearer\s+[a-zA-Z0-9\-._~+/]+=*/g, 'Bearer ***MASKED***')
+                 .replace(/[a-zA-Z0-9]{32,}/g, (match) => {
+                   // Generic long token masking
+                   return match.length > 32 ? match.substring(0, 8) + '***MASKED***' : match;
+                 });
     }
 
     if (Array.isArray(data)) {
@@ -102,7 +126,19 @@ export class AILogger {
       } : undefined
     };
 
-    return JSON.stringify(maskedEntry, null, 2);
+    // In production, use compact format and truncate large bodies
+    if (process.env.NODE_ENV === 'production') {
+      // Truncate large request/response bodies to prevent log bloat
+      if (maskedEntry.request.body && typeof maskedEntry.request.body === 'string' && maskedEntry.request.body.length > 1000) {
+        maskedEntry.request.body = maskedEntry.request.body.substring(0, 1000) + '... [truncated]';
+      }
+      if (maskedEntry.response?.body && typeof maskedEntry.response.body === 'string' && maskedEntry.response.body.length > 1000) {
+        maskedEntry.response.body = maskedEntry.response.body.substring(0, 1000) + '... [truncated]';
+      }
+      return JSON.stringify(maskedEntry); // Compact format
+    }
+
+    return JSON.stringify(maskedEntry, null, 2); // Pretty format for development
   }
 
   private writeLog(entry: AILogEntry): void {
@@ -148,6 +184,17 @@ export class AILogger {
     userId?: string,
     metadata?: Record<string, any>
   ): void {
+    const requestData = {
+      endpoint: request.endpoint,
+      method: request.method,
+      headers: request.headers,
+      body: request.body,
+      size: JSON.stringify(request.body || {}).length
+    };
+
+    // Cache the request data for use in response/error logging
+    this.requestCache.set(requestId, requestData);
+
     const entry: AILogEntry = {
       timestamp: new Date().toISOString(),
       level: LogLevel.INFO,
@@ -155,10 +202,7 @@ export class AILogger {
       operation,
       requestId,
       userId,
-      request: {
-        ...request,
-        size: JSON.stringify(request.body).length
-      },
+      request: requestData,
       metadata
     };
 
@@ -178,6 +222,15 @@ export class AILogger {
     userId?: string,
     metadata?: Record<string, any>
   ): void {
+    // Get cached request data or use empty fallback
+    const cachedRequest = this.requestCache.get(requestId) || {
+      endpoint: '',
+      method: '',
+      headers: {},
+      body: null,
+      size: 0
+    };
+
     const entry: AILogEntry = {
       timestamp: new Date().toISOString(),
       level: LogLevel.INFO,
@@ -185,21 +238,18 @@ export class AILogger {
       operation,
       requestId,
       userId,
-      request: {
-        endpoint: '',
-        method: '',
-        headers: {},
-        body: null,
-        size: 0
-      },
+      request: cachedRequest,
       response: {
         ...response,
-        size: JSON.stringify(response.body).length
+        size: JSON.stringify(response.body || {}).length
       },
       metadata
     };
 
     this.writeLog(entry);
+    
+    // Clean up cache after response is logged
+    this.requestCache.delete(requestId);
   }
 
   logError(
@@ -210,6 +260,15 @@ export class AILogger {
     userId?: string,
     metadata?: Record<string, any>
   ): void {
+    // Get cached request data or use empty fallback
+    const cachedRequest = this.requestCache.get(requestId) || {
+      endpoint: '',
+      method: '',
+      headers: {},
+      body: null,
+      size: 0
+    };
+
     const entry: AILogEntry = {
       timestamp: new Date().toISOString(),
       level: LogLevel.ERROR,
@@ -217,22 +276,19 @@ export class AILogger {
       operation,
       requestId,
       userId,
-      request: {
-        endpoint: '',
-        method: '',
-        headers: {},
-        body: null,
-        size: 0
-      },
+      request: cachedRequest,
       error: {
         message: error.message,
-        stack: error.stack,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
         code: (error as any).code
       },
       metadata
     };
 
     this.writeLog(entry);
+    
+    // Clean up cache after error is logged
+    this.requestCache.delete(requestId);
   }
 
   logDebug(
@@ -243,6 +299,15 @@ export class AILogger {
     data?: any,
     userId?: string
   ): void {
+    // Get cached request data or use empty fallback
+    const cachedRequest = this.requestCache.get(requestId) || {
+      endpoint: '',
+      method: '',
+      headers: {},
+      body: null,
+      size: 0
+    };
+
     const entry: AILogEntry = {
       timestamp: new Date().toISOString(),
       level: LogLevel.DEBUG,
@@ -250,13 +315,7 @@ export class AILogger {
       operation,
       requestId,
       userId,
-      request: {
-        endpoint: '',
-        method: '',
-        headers: {},
-        body: null,
-        size: 0
-      },
+      request: cachedRequest,
       metadata: {
         message,
         data: this.maskSensitiveInfo(data)
@@ -265,6 +324,24 @@ export class AILogger {
 
     this.writeLog(entry);
   }
+
+  // Clean up old cache entries to prevent memory leaks
+  private cleanupCache(): void {
+    // Clear cache entries older than 5 minutes
+    const fiveMinutesAgo = Date.now() - 300000;
+    const keysToDelete: string[] = [];
+    
+    this.requestCache.forEach((value, requestId) => {
+      const timestamp = parseInt(requestId.split('_')[1]);
+      if (timestamp < fiveMinutesAgo) {
+        keysToDelete.push(requestId);
+      }
+    });
+    
+    keysToDelete.forEach(key => {
+      this.requestCache.delete(key);
+    });
+  }
 }
 
 // シングルトンインスタンス
@@ -272,5 +349,5 @@ export const aiLogger = new AILogger();
 
 // Request ID generator
 export function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }

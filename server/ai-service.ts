@@ -30,6 +30,26 @@ export abstract class AIService {
   }
 
   abstract generateResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): Promise<AIResponse>;
+
+  // Helper method to mask sensitive data before logging
+  protected maskSensitiveHeaders(headers: Record<string, any>): Record<string, any> {
+    const masked = { ...headers };
+    const sensitiveKeys = ['authorization', 'x-api-key', 'api-key', 'openai-api-key', 'gemini-api-key', 'groq-api-key'];
+    
+    for (const key of Object.keys(masked)) {
+      if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+        if (typeof masked[key] === 'string') {
+          // Mask API keys based on their patterns
+          masked[key] = masked[key]
+            .replace(/sk-[a-zA-Z0-9]{20,}/g, 'sk-***MASKED***')  // OpenAI
+            .replace(/gsk_[a-zA-Z0-9]{20,}/g, 'gsk_***MASKED***')  // Groq
+            .replace(/AIzaSy[a-zA-Z0-9_-]{33}/g, 'AIzaSy***MASKED***')  // Google/Gemini
+            .replace(/Bearer\s+[a-zA-Z0-9\-._~+/]+=*/g, 'Bearer ***MASKED***');
+        }
+      }
+    }
+    return masked;
+  }
   
   protected cleanThinkTags(content: string): string {
     // Remove <think>...</think> tags and their content - default implementation
@@ -204,13 +224,15 @@ export class OpenAIService extends AIService {
     const requestId = generateRequestId();
     const startTime = Date.now();
 
+    const headers = {
+      'Authorization': `Bearer ${aiConfig.openai.apiKey}`,
+      'Content-Type': 'application/json',
+    };
+
     const requestData = {
       endpoint: 'https://api.openai.com/v1/chat/completions',
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${aiConfig.openai.apiKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: this.maskSensitiveHeaders(headers),
       body: {
         model: aiConfig.openai.model,
         messages: messages,
@@ -659,13 +681,15 @@ export class GroqService extends AIService {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       const currentKey = this.keyManager.getCurrentKey();
       
+      const headers = {
+        'Authorization': `Bearer ${currentKey}`,
+        'Content-Type': 'application/json',
+      };
+
       const requestData = {
         endpoint: 'https://api.groq.com/openai/v1/chat/completions',
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${currentKey}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.maskSensitiveHeaders(headers),
         body: {
           model: aiConfig.groq.model,
           messages: messages,
