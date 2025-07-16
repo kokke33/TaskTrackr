@@ -26,11 +26,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Send, Plus, Save, ShieldCheck, Target } from "lucide-react";
+import { Send, Plus, Save, ShieldCheck, Target, FileText } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import CaseSelectorModal from "@/components/case-selector-modal";
 import ReactMarkdown from 'react-markdown';
 import { MilestoneDialog } from "@/components/milestone-dialog";
+import { SampleReportDialog } from "@/components/sample-report-dialog";
 import { AIAnalysisResult } from "@/components/ai-analysis-result";
 import { useAIAnalysis } from "@/hooks/use-ai-analysis";
 import { PreviousReportTooltip } from "@/components/previous-report-tooltip";
@@ -92,6 +93,9 @@ export default function WeeklyReport() {
   
   // マイルストーンダイアログの状態管理
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
+  
+  // 記載サンプルダイアログの状態管理
+  const [showSampleDialog, setShowSampleDialog] = useState(false);
 
   // AI分析機能
   const { analyzeField, clearAnalysis, getAnalysisState } = useAIAnalysis();
@@ -559,6 +563,16 @@ export default function WeeklyReport() {
               >
                 <Target className="h-4 w-4" />
                 マイルストーン
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setShowSampleDialog(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 text-green-600 border-green-200 hover:bg-green-50"
+              >
+                <FileText className="h-4 w-4" />
+                記載サンプル
               </Button>
               <Link href={isEditMode ? `/reports/${id}` : "/reports"}>
                 <Button variant="ghost" size="sm">
@@ -2036,9 +2050,12 @@ export default function WeeklyReport() {
       <MilestoneDialog
         open={showMilestoneDialog}
         onOpenChange={setShowMilestoneDialog}
-        milestone={cases?.find(c => c.id === selectedCaseId)?.milestone}
-        projectName={cases?.find(c => c.id === selectedCaseId)?.projectName || ''}
-        caseName={cases?.find(c => c.id === selectedCaseId)?.caseName || ''}
+      />
+
+      {/* 記載サンプルダイアログ */}
+      <SampleReportDialog
+        open={showSampleDialog}
+        onOpenChange={setShowSampleDialog}
       />
     </div>
   );
