@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-このファイルは、Claude Code (claude.ai/code) がこのリポジトリでコードを扱う際のガイダンスを提供します。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 TaskTrackrプロジェクトのClaude Code用設定ファイルです。このファイルは、Claude Codeがこのリポジトリで作業する際のガイダンスを提供します。
 
@@ -45,26 +45,48 @@ TypeScriptチェックは以下のフォーム値型エラーで現在失敗し�
 - **UI**: Shadcn/uiコンポーネント（Radix UIプリミティブ） - 48+コンポーネント利用可能
 - **状態管理**: TanStack Query（React Query）
 - **AI統合**: マルチプロバイダー対応（OpenAI、Ollama、Google Gemini、Groq）
+- **フォーム処理**: React Hook Form + Zod バリデーション
+- **スタイリング**: TailwindCSS + Tailwind Animate + class-variance-authority
 
 ### プロジェクト構造
 ```
 TaskTrackr/
 ├── client/src/           # Reactフロントエンド
 │   ├── components/       # 再利用可能なReactコンポーネント
-│   │   └── ui/          # Shadcn/uiコンポーネント
+│   │   ├── ui/          # Shadcn/uiコンポーネント（48+コンポーネント）
+│   │   ├── ai-analysis-result.tsx      # AI分析結果表示
+│   │   ├── case-selector-modal.tsx     # 案件選択モーダル
+│   │   ├── previous-report-tooltip.tsx # 前回レポート比較機能
+│   │   └── search-bar.tsx              # 全文検索機能
 │   ├── pages/           # ルートコンポーネント（Wouterルーティング）
 │   ├── lib/             # ユーティリティと認証ヘルパー
-│   └── hooks/           # カスタムReactフック
+│   │   ├── auth.tsx     # 認証コンテキスト
+│   │   ├── queryClient.ts # API リクエスト共通処理
+│   │   └── utils.ts     # ユーティリティ関数
+│   ├── hooks/           # カスタムReactフック
+│   │   ├── use-ai-analysis.ts # AI分析フック
+│   │   └── use-toast.ts       # トースト通知フック
+│   └── utils/           # その他ユーティリティ
 ├── server/              # Expressバックエンド
 │   ├── routes.ts        # APIルート定義
 │   ├── storage.ts       # データベース操作（Drizzle ORM）
 │   ├── ai-service.ts    # AIプロバイダー抽象化
 │   ├── ai-logger.ts     # AIインタラクションログ
+│   ├── ai-routes.ts     # AI専用ルート
 │   ├── auth.ts          # Passport.js認証設定
 │   ├── config.ts        # 設定バリデーション
-│   └── migrations/      # データベースマイグレーションファイル
+│   ├── db.ts            # データベース接続設定
+│   ├── migrations/      # データベースマイグレーションファイル
+│   └── prompts/         # AI プロンプトテンプレート
+│       ├── config/      # 設定用プロンプト
+│       ├── core/        # 基本プロンプト
+│       └── reports/     # レポート用プロンプト
 ├── shared/              # 共有TypeScript型定義
 │   └── schema.ts        # Drizzle ORMスキーマ定義
+├── .claude/             # Claude Code 知識管理
+│   ├── context.md       # プロジェクトコンテキスト
+│   ├── project-knowledge.md # 技術知識
+│   └── common-patterns.md   # 共通パターン
 ```
 
 ### データベーススキーマ
@@ -153,6 +175,10 @@ GEMINI_MODEL=gemini-2.5-flash
 # Groq（使用する場合）
 GROQ_API_KEY=your-key
 GROQ_MODEL=llama-3.1-70b-versatile
+
+# 開発環境設定
+PORT=3000
+NODE_ENV=development
 ```
 
 ## 開発パターン
@@ -180,6 +206,23 @@ GROQ_MODEL=llama-3.1-70b-versatile
 - aiLoggerを通じてすべてのAIインタラクションをログ
 - cleanThinkTagsメソッドでコンテンツをクリーニング
 - 設定によるプロバイダー切り替えを処理
+
+### フォーム開発パターン
+```typescript
+// React Hook Form + Zod バリデーション
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertProjectSchema } from "@shared/schema";
+
+const form = useForm<z.infer<typeof insertProjectSchema>>({
+  resolver: zodResolver(insertProjectSchema),
+  defaultValues: {
+    name: "",
+    overview: "",
+    // null値対応: value={field.value ?? ""}
+  },
+});
+```
 
 ## 特別な設定
 
@@ -212,3 +255,81 @@ GROQ_MODEL=llama-3.1-70b-versatile
 
 ### 前回レポートデータ
 履歴比較には週次レポートクエリの`latestReport`を使用。レポートは`/api/weekly-reports/previous/:caseId`エンドポイント経由でケースと日付関係に基づいて取得。
+
+## デバッグとトラブルシューティング
+
+### 一般的な問題と解決策
+
+#### 1. TypeScript型エラー
+```bash
+# 型チェックを実行
+npm run check
+
+# 既知の問題：
+# - client/src/pages/weekly-report.tsx の TextArea null値エラー
+# - server/routes.ts のユーザーオブジェクトプロパティアクセス
+```
+
+#### 2. データベース接続エラー
+```bash
+# スキーマをプッシュ
+npm run db:push
+
+# 接続確認
+# 環境変数 DATABASE_URL を確認
+# PostgreSQL/Neon.tech への接続状況を確認
+```
+
+#### 3. AI機能のデバッグ
+```bash
+# AI ログの確認
+# 環境変数 AI_LOG_LEVEL=debug に設定
+# AI_LOG_CONSOLE=true でコンソール出力を有効化
+
+# プロバイダー別のトラブルシューティング：
+# - OpenAI: API キーと利用制限を確認
+# - Ollama: ローカルサーバーの起動状況を確認
+# - Gemini: APIキーと地域制限を確認
+# - Groq: APIキーとレート制限を確認
+```
+
+#### 4. セッション認証エラー
+```bash
+# セッションストレージの確認
+# PostgreSQL セッションテーブルの状況を確認
+# MemoryStore フォールバック動作を確認
+```
+
+### 開発サーバーの再起動手順
+```bash
+# 完全な再起動
+npm run dev
+
+# 個別に起動する場合
+# 1. サーバーサイド
+npm run dev:server
+
+# 2. クライアントサイド
+npm run dev:client
+```
+
+### パフォーマンス監視
+- React Query DevTools を使用してキャッシュ状況を確認
+- ブラウザの Network タブでAPI呼び出しを監視
+- AI分析処理の応答時間を `ai-logger.ts` で確認
+- データベースクエリのパフォーマンスを監視
+
+## 知識管理と継続的改善
+
+### 知識の記録場所
+- **.claude/context.md** - プロジェクトの背景と制約情報
+- **.claude/project-knowledge.md** - 技術的な洞察と実装パターン
+- **.claude/project-improvements.md** - 改善履歴と学習内容
+- **.claude/common-patterns.md** - 頻繁に使用するコマンドとパターン
+- **.claude/debug-log.md** - 重要なデバッグ記録
+
+### 継続的改善のプロセス
+1. **新しい技術パターンの発見** → `.claude/project-knowledge.md` に記録
+2. **問題解決の手順** → `.claude/debug-log.md` に記録
+3. **改善された実装** → `.claude/project-improvements.md` に記録
+4. **よく使うコマンド** → `.claude/common-patterns.md` に記録
