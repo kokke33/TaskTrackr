@@ -167,10 +167,10 @@ export function SampleReportDialog({ open, onOpenChange }: SampleReportDialogPro
               </CardContent>
             </Card>
 
-            {/* 今週の進捗 */}
+            {/* 2. 今週の作業内容 */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">今週の進捗</CardTitle>
+                <CardTitle className="text-lg">2. 今週の作業内容</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -191,10 +191,10 @@ export function SampleReportDialog({ open, onOpenChange }: SampleReportDialogPro
               </CardContent>
             </Card>
 
-            {/* 遅延・問題点 */}
+            {/* 3. 進捗状況 */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">遅延・問題点</CardTitle>
+                <CardTitle className="text-lg">3. 進捗状況</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -212,10 +212,10 @@ export function SampleReportDialog({ open, onOpenChange }: SampleReportDialogPro
               </CardContent>
             </Card>
 
-            {/* 課題・リスク */}
+            {/* 4. 課題・問題点 */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">課題・リスク</CardTitle>
+                <CardTitle className="text-lg">4. 課題・問題点</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -224,6 +224,15 @@ export function SampleReportDialog({ open, onOpenChange }: SampleReportDialogPro
                     {sampleReport.issues}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* 5. 新たなリスク */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">5. 新たなリスク</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="font-medium">新たなリスクの有無:</span>
@@ -249,10 +258,10 @@ export function SampleReportDialog({ open, onOpenChange }: SampleReportDialogPro
               </CardContent>
             </Card>
 
-            {/* 品質状況 */}
+            {/* 6. 品質 */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">品質状況</CardTitle>
+                <CardTitle className="text-lg">6. 品質</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -276,10 +285,10 @@ export function SampleReportDialog({ open, onOpenChange }: SampleReportDialogPro
               </CardContent>
             </Card>
 
-            {/* 変更管理 */}
+            {/* 7. 変更管理 */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">変更管理</CardTitle>
+                <CardTitle className="text-lg">7. 変更管理</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -297,10 +306,10 @@ export function SampleReportDialog({ open, onOpenChange }: SampleReportDialogPro
               </CardContent>
             </Card>
 
-            {/* 今後の計画 */}
+            {/* 8. 来週の予定 */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">今後の計画</CardTitle>
+                <CardTitle className="text-lg">8. 来週の予定</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -309,8 +318,17 @@ export function SampleReportDialog({ open, onOpenChange }: SampleReportDialogPro
                     {sampleReport.nextWeekPlan}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* 9. 支援・判断要望 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">9. 支援・判断要望</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <h4 className="font-medium mb-2">支援・判断の要望事項:</h4>
+                  <h4 className="font-medium mb-2">支援・判断要望:</h4>
                   <div className="bg-gray-50 p-3 rounded whitespace-pre-wrap text-sm">
                     {sampleReport.supportRequests}
                   </div>
@@ -318,10 +336,10 @@ export function SampleReportDialog({ open, onOpenChange }: SampleReportDialogPro
               </CardContent>
             </Card>
 
-            {/* 懸念事項 */}
+            {/* 10. その他の懸念事項 */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">懸念事項</CardTitle>
+                <CardTitle className="text-lg">10. その他の懸念事項</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
