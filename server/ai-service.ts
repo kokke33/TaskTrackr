@@ -149,30 +149,10 @@ export abstract class AIService {
   async analyzeText(text: string, userId?: string): Promise<string> {
     const requestId = generateRequestId();
     
-    // リアルタイム分析用の設定を使用
-    const { storage } = await import('./storage');
-    const realtimeConfig = await storage.getRealtimeAnalysisConfig();
+    // 呼び出されたサービス自体を使用（セッション設定やプロバイダー選択は呼び出し元で処理済み）
+    const realtimeService = this;
     
-    // リアルタイム分析専用のAIサービスを作成
-    let realtimeService: AIService;
-    switch (realtimeConfig.provider) {
-      case 'groq':
-        realtimeService = new GroqService();
-        break;
-      case 'openai':
-        realtimeService = new OpenAIService();
-        break;
-      case 'gemini':
-        realtimeService = new GeminiService();
-        break;
-      case 'ollama':
-        realtimeService = new OllamaService();
-        break;
-      default:
-        realtimeService = this; // フォールバック
-    }
-    
-    aiLogger.logDebug(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq', 'analyzeText', requestId, 'Starting text analysis with realtime provider', { textLength: text.length, realtimeProvider: realtimeConfig.provider }, userId);
+    aiLogger.logDebug(this.provider, 'analyzeText', requestId, 'Starting text analysis', { textLength: text.length, provider: this.provider }, userId);
     
     const messages: AIMessage[] = [
       {
@@ -192,18 +172,18 @@ export abstract class AIService {
     ];
     
     try {
-      const response = await realtimeService.generateResponse(messages, userId, { operation: 'analyzeText', text, realtimeConfig });
+      const response = await realtimeService.generateResponse(messages, userId, { operation: 'analyzeText', text });
       
       const cleanedContent = this.cleanThinkTags(response.content);
-      aiLogger.logDebug(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq', 'analyzeText', requestId, 'Text analysis completed', { analysisLength: cleanedContent.length }, userId);
+      aiLogger.logDebug(this.provider, 'analyzeText', requestId, 'Text analysis completed', { analysisLength: cleanedContent.length }, userId);
       return cleanedContent;
     } catch (error) {
-      aiLogger.logError(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq', 'analyzeText', requestId, error as Error, userId, { text });
+      aiLogger.logError(this.provider, 'analyzeText', requestId, error as Error, userId, { text });
       
       // Fallback response
       const fallback = "申し訳ございませんが、現在AI分析サービスに接続できません。しばらく後に再度お試しください。";
       
-      aiLogger.logDebug(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq', 'analyzeText', requestId, 'Using fallback analysis result', { fallback }, userId);
+      aiLogger.logDebug(this.provider, 'analyzeText', requestId, 'Using fallback analysis result', { fallback }, userId);
       return fallback;
     }
   }
@@ -854,5 +834,21 @@ function createAIServiceWithConfig(config: typeof aiConfig): AIService {
       return new GroqService();
     default:
       throw new Error(`Unsupported AI provider: ${config.provider}`);
+  }
+}
+
+// 指定されたプロバイダーでAIサービスを取得する関数（お試し機能用）
+export async function getAIServiceForProvider(provider: 'openai' | 'ollama' | 'gemini' | 'groq'): Promise<AIService> {
+  switch (provider) {
+    case 'openai':
+      return new OpenAIService();
+    case 'ollama':
+      return new OllamaService();
+    case 'gemini':
+      return new GeminiService();
+    case 'groq':
+      return new GroqService();
+    default:
+      throw new Error(`Unsupported AI provider: ${provider}`);
   }
 }

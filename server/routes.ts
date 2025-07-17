@@ -2121,6 +2121,65 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
     },
   );
 
+  // セッション一時AI設定API（お試し機能）
+  // セッション一時設定の取得
+  app.get("/api/session-ai-settings", isAuthenticated, async (req, res) => {
+    try {
+      const sessionSettings = (req.session as any).aiSettings || {};
+      res.json(sessionSettings);
+    } catch (error) {
+      console.error("Session AI settings fetch error:", error);
+      res.status(500).json({ error: "セッション設定の取得中にエラーが発生しました" });
+    }
+  });
+
+  // セッション一時設定の更新
+  app.put("/api/session-ai-settings", isAuthenticated, async (req, res) => {
+    try {
+      const { realtimeProvider } = req.body;
+
+      if (!realtimeProvider) {
+        return res.status(400).json({ error: "realtimeProviderが必要です" });
+      }
+
+      // プロバイダーの値をバリデーション
+      const validProviders = ["openai", "ollama", "gemini", "groq"];
+      if (!validProviders.includes(realtimeProvider)) {
+        return res.status(400).json({ 
+          error: `無効なAIプロバイダーです。有効な値: ${validProviders.join(", ")}` 
+        });
+      }
+
+      // セッションに保存
+      if (!req.session) {
+        return res.status(500).json({ error: "セッションが初期化されていません" });
+      }
+      (req.session as any).aiSettings = { realtimeProvider };
+
+      res.json({ 
+        success: true, 
+        message: "セッション設定を更新しました",
+        settings: { realtimeProvider }
+      });
+    } catch (error) {
+      console.error("Session AI settings update error:", error);
+      res.status(500).json({ error: "セッション設定の更新中にエラーが発生しました" });
+    }
+  });
+
+  // セッション一時設定のクリア
+  app.delete("/api/session-ai-settings", isAuthenticated, async (req, res) => {
+    try {
+      if (req.session) {
+        delete (req.session as any).aiSettings;
+      }
+      res.json({ success: true, message: "セッション設定をクリアしました" });
+    } catch (error) {
+      console.error("Session AI settings clear error:", error);
+      res.status(500).json({ error: "セッション設定のクリア中にエラーが発生しました" });
+    }
+  });
+
   // システム設定API
   // 全システム設定の取得（管理者のみ）
   app.get("/api/settings", isAuthenticated, isAdmin, async (_req, res) => {

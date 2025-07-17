@@ -142,6 +142,49 @@ router.post('/api/ai/analyze-text', isAuthenticated, async (req, res) => {
   }
 });
 
+// Text analysis endpoint with session-based AI provider (trial mode)
+router.post('/api/ai/analyze-text-trial', isAuthenticated, async (req, res) => {
+  try {
+    const { text } = req.body;
+    const userId = getUserId(req);
+
+    if (!text || typeof text !== 'string' || text.length < 5) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Text must be a string with at least 5 characters.' 
+      });
+    }
+
+    // セッションからAI設定を取得
+    const sessionSettings = (req.session as any)?.aiSettings;
+    let aiService;
+
+    if (sessionSettings?.realtimeProvider) {
+      // セッション設定を使用してAIサービスを取得
+      const { getAIServiceForProvider } = await import('./ai-service.js');
+      aiService = await getAIServiceForProvider(sessionSettings.realtimeProvider);
+    } else {
+      // デフォルトの設定を使用
+      aiService = await getAIServiceDynamic();
+    }
+
+    const analysis = await aiService.analyzeText(text, userId);
+    
+    res.json({
+      success: true,
+      data: analysis,
+      usingTrialSettings: !!sessionSettings?.realtimeProvider,
+      trialProvider: sessionSettings?.realtimeProvider,
+    });
+  } catch (error) {
+    console.error('AI text analysis (trial) error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // AI provider status endpoint
 router.get('/api/ai/status', isAuthenticated, async (req, res) => {
   try {

@@ -120,7 +120,24 @@ export function useAIAnalysis() {
           });
         }
 
-        const response = await fetch("/api/ai/analyze-text", {
+        // セッション設定があるかチェックして適切なエンドポイントを使用
+        let endpoint = "/api/ai/analyze-text";
+        try {
+          const sessionResponse = await fetch("/api/session-ai-settings", {
+            credentials: "include",
+          });
+          if (sessionResponse.ok) {
+            const sessionSettings = await sessionResponse.json();
+            if (sessionSettings.realtimeProvider) {
+              endpoint = "/api/ai/analyze-text-trial";
+            }
+          }
+        } catch (error) {
+          console.log("セッション設定チェック中にエラー:", error);
+          // エラーの場合は通常のエンドポイントを使用
+        }
+
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
