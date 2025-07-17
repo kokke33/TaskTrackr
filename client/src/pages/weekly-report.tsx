@@ -98,7 +98,7 @@ export default function WeeklyReport() {
   const [showSampleDialog, setShowSampleDialog] = useState(false);
 
   // AI分析機能
-  const { analyzeField, clearAnalysis, getAnalysisState } = useAIAnalysis();
+  const { analyzeField, clearAnalysis, getAnalysisState, regenerateAnalysis } = useAIAnalysis();
 
   // 議事録更新のミューテーション
   const updateMeetingMutation = useMutation({
@@ -290,6 +290,63 @@ export default function WeeklyReport() {
       console.log("latestReport:", latestReport, "isLoading:", isLoadingLatest, "selectedCaseId:", selectedCaseId);
     }
   }, [latestReport, isLoadingLatest, reportId, existingReport]);
+
+  // フィールド名マッピング（日本語 → 英語フィールド名）
+  const fieldNameMapping: Record<string, keyof WeeklyReport> = {
+    "今週の作業内容": "weeklyTasks",
+    "遅延・問題点の詳細": "delayDetails",
+    "課題・問題点": "issues",
+    "リスクの概要": "riskSummary",
+    "新たなリスク（総合分析）": "riskSummary", // 総合分析は同じフィールドを使用
+    "品質懸念事項の詳細": "qualityDetails",
+    "品質（総合分析）": "qualityDetails", // 総合分析は同じフィールドを使用
+    "変更内容の詳細": "changeDetails",
+    "来週の作業予定": "nextWeekPlan",
+    "支援・判断の要望事項": "supportRequests",
+    "リソース懸念事項": "resourceDetails",
+    "顧客懸念事項": "customerDetails",
+    "環境懸念事項": "environmentDetails",
+    "コスト懸念事項": "costDetails",
+    "知識・スキル懸念事項": "knowledgeDetails",
+    "教育懸念事項": "trainingDetails",
+    "緊急課題の詳細": "urgentDetails",
+    "営業チャンス・顧客ニーズ": "businessDetails",
+  };
+
+  // 再生成機能のヘルパー関数
+  const createRegenerateHandler = useCallback((fieldName: string) => {
+    return () => {
+      console.log("createRegenerateHandler called for field:", fieldName);
+      
+      // 日本語フィールド名を英語フィールド名にマッピング
+      const englishFieldName = fieldNameMapping[fieldName];
+      if (!englishFieldName) {
+        console.error("Field mapping not found for:", fieldName);
+        return;
+      }
+      
+      const formValues = form.getValues();
+      const currentValue = formValues[englishFieldName] as string;
+      const originalValue = originalData?.[englishFieldName] as string;
+      const previousReportValue = latestReport?.[englishFieldName] as string;
+      
+      console.log("regenerate values:", {
+        fieldName,
+        englishFieldName,
+        currentValue,
+        currentValueLength: currentValue?.length,
+        originalValue,
+        previousReportValue
+      });
+      
+      if (currentValue && currentValue.trim().length >= 10) {
+        console.log("Calling regenerateAnalysis...");
+        regenerateAnalysis(fieldName, currentValue, originalValue, previousReportValue);
+      } else {
+        console.log("Skipping regeneration - content too short or empty");
+      }
+    };
+  }, [form, regenerateAnalysis, originalData, latestReport]);
 
   // 自動保存処理
   const autoSave = useCallback(async () => {
@@ -767,6 +824,7 @@ export default function WeeklyReport() {
                       isLoading={getAnalysisState("今週の作業内容").isLoading}
                       error={getAnalysisState("今週の作業内容").error}
                       onClear={() => clearAnalysis("今週の作業内容")}
+                      onRegenerate={createRegenerateHandler("今週の作業内容")}
                       fieldName="今週の作業内容"
                     />
                   </FormItem>
@@ -930,6 +988,7 @@ export default function WeeklyReport() {
                           isLoading={getAnalysisState("遅延・問題点の詳細").isLoading}
                           error={getAnalysisState("遅延・問題点の詳細").error}
                           onClear={() => clearAnalysis("遅延・問題点の詳細")}
+                          onRegenerate={createRegenerateHandler("遅延・問題点の詳細")}
                         />
                       </FormItem>
                     )}
@@ -978,6 +1037,7 @@ export default function WeeklyReport() {
                       isLoading={getAnalysisState("課題・問題点").isLoading}
                       error={getAnalysisState("課題・問題点").error}
                       onClear={() => clearAnalysis("課題・問題点")}
+                      onRegenerate={createRegenerateHandler("課題・問題点")}
                       fieldName="課題・問題点"
                     />
                   </FormItem>
@@ -1052,6 +1112,7 @@ export default function WeeklyReport() {
                             isLoading={getAnalysisState("リスクの概要").isLoading}
                             error={getAnalysisState("リスクの概要").error}
                             onClear={() => clearAnalysis("リスクの概要")}
+                            onRegenerate={createRegenerateHandler("リスクの概要")}
                           />
                         </FormItem>
                       )}
@@ -1107,6 +1168,7 @@ export default function WeeklyReport() {
                             isLoading={getAnalysisState("新たなリスク（総合分析）").isLoading}
                             error={getAnalysisState("新たなリスク（総合分析）").error}
                             onClear={() => clearAnalysis("新たなリスク（総合分析）")}
+                            onRegenerate={createRegenerateHandler("新たなリスク（総合分析）")}
                           />
                         </FormItem>
                       )}
@@ -1209,6 +1271,7 @@ export default function WeeklyReport() {
                           isLoading={getAnalysisState("品質懸念事項の詳細").isLoading}
                           error={getAnalysisState("品質懸念事項の詳細").error}
                           onClear={() => clearAnalysis("品質懸念事項の詳細")}
+                          onRegenerate={createRegenerateHandler("品質懸念事項の詳細")}
                         />
                       </FormItem>
                     )}
@@ -1265,6 +1328,7 @@ export default function WeeklyReport() {
                         isLoading={getAnalysisState("品質（総合分析）").isLoading}
                         error={getAnalysisState("品質（総合分析）").error}
                         onClear={() => clearAnalysis("品質（総合分析）")}
+                        onRegenerate={createRegenerateHandler("品質（総合分析）")}
                       />
                     </FormItem>
                   )}
@@ -1333,6 +1397,7 @@ export default function WeeklyReport() {
                           isLoading={getAnalysisState("変更内容の詳細").isLoading}
                           error={getAnalysisState("変更内容の詳細").error}
                           onClear={() => clearAnalysis("変更内容の詳細")}
+                          onRegenerate={createRegenerateHandler("変更内容の詳細")}
                         />
                       </FormItem>
                     )}
@@ -1375,6 +1440,7 @@ export default function WeeklyReport() {
                       isLoading={getAnalysisState("来週の作業予定").isLoading}
                       error={getAnalysisState("来週の作業予定").error}
                       onClear={() => clearAnalysis("来週の作業予定")}
+                      onRegenerate={createRegenerateHandler("来週の作業予定")}
                       fieldName="来週の作業予定"
                     />
                   </FormItem>
@@ -1418,6 +1484,7 @@ export default function WeeklyReport() {
                       isLoading={getAnalysisState("支援・判断の要望事項").isLoading}
                       error={getAnalysisState("支援・判断の要望事項").error}
                       onClear={() => clearAnalysis("支援・判断の要望事項")}
+                      onRegenerate={createRegenerateHandler("支援・判断の要望事項")}
                       fieldName="支援・判断の要望事項"
                     />
                   </FormItem>
@@ -1484,6 +1551,7 @@ export default function WeeklyReport() {
                           isLoading={getAnalysisState("リソース懸念事項").isLoading}
                           error={getAnalysisState("リソース懸念事項").error}
                           onClear={() => clearAnalysis("リソース懸念事項")}
+                          onRegenerate={createRegenerateHandler("リソース懸念事項")}
                         />
                       </FormItem>
                     )}
@@ -1544,6 +1612,7 @@ export default function WeeklyReport() {
                           isLoading={getAnalysisState("顧客懸念事項").isLoading}
                           error={getAnalysisState("顧客懸念事項").error}
                           onClear={() => clearAnalysis("顧客懸念事項")}
+                          onRegenerate={createRegenerateHandler("顧客懸念事項")}
                         />
                       </FormItem>
                     )}
@@ -1604,6 +1673,7 @@ export default function WeeklyReport() {
                           isLoading={getAnalysisState("環境懸念事項").isLoading}
                           error={getAnalysisState("環境懸念事項").error}
                           onClear={() => clearAnalysis("環境懸念事項")}
+                          onRegenerate={createRegenerateHandler("環境懸念事項")}
                         />
                       </FormItem>
                     )}
@@ -1664,6 +1734,7 @@ export default function WeeklyReport() {
                           isLoading={getAnalysisState("コスト懸念事項").isLoading}
                           error={getAnalysisState("コスト懸念事項").error}
                           onClear={() => clearAnalysis("コスト懸念事項")}
+                          onRegenerate={createRegenerateHandler("コスト懸念事項")}
                         />
                       </FormItem>
                     )}
@@ -1724,6 +1795,7 @@ export default function WeeklyReport() {
                           isLoading={getAnalysisState("知識・スキル懸念事項").isLoading}
                           error={getAnalysisState("知識・スキル懸念事項").error}
                           onClear={() => clearAnalysis("知識・スキル懸念事項")}
+                          onRegenerate={createRegenerateHandler("知識・スキル懸念事項")}
                         />
                       </FormItem>
                     )}
@@ -1784,6 +1856,7 @@ export default function WeeklyReport() {
                           isLoading={getAnalysisState("教育懸念事項").isLoading}
                           error={getAnalysisState("教育懸念事項").error}
                           onClear={() => clearAnalysis("教育懸念事項")}
+                          onRegenerate={createRegenerateHandler("教育懸念事項")}
                         />
                       </FormItem>
                     )}
@@ -1842,6 +1915,7 @@ export default function WeeklyReport() {
                           isLoading={getAnalysisState("緊急課題の詳細").isLoading}
                           error={getAnalysisState("緊急課題の詳細").error}
                           onClear={() => clearAnalysis("緊急課題の詳細")}
+                          onRegenerate={createRegenerateHandler("緊急課題の詳細")}
                         />
                       </FormItem>
                     )}
@@ -1902,6 +1976,7 @@ export default function WeeklyReport() {
                           isLoading={getAnalysisState("営業チャンス・顧客ニーズ").isLoading}
                           error={getAnalysisState("営業チャンス・顧客ニーズ").error}
                           onClear={() => clearAnalysis("営業チャンス・顧客ニーズ")}
+                          onRegenerate={createRegenerateHandler("営業チャンス・顧客ニーズ")}
                         />
                       </FormItem>
                     )}

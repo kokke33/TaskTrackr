@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, X, Loader2, Lightbulb } from "lucide-react";
+import { ChevronDown, ChevronUp, X, Loader2, Lightbulb, RotateCcw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface AIAnalysisResultProps {
@@ -9,6 +9,7 @@ interface AIAnalysisResultProps {
   isLoading: boolean;
   error: string | null;
   onClear: () => void;
+  onRegenerate: () => void;
   fieldName: string;
 }
 
@@ -17,6 +18,7 @@ export function AIAnalysisResult({
   isLoading,
   error,
   onClear,
+  onRegenerate,
   fieldName,
 }: AIAnalysisResultProps) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -36,6 +38,21 @@ export function AIAnalysisResult({
             </span>
           </div>
           <div className="flex items-center gap-1">
+            {(analysis || error) && !isLoading && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  console.log("Regenerate button clicked for field:", fieldName);
+                  onRegenerate();
+                }}
+                className="h-6 w-6 p-0 text-green-600 hover:bg-green-100"
+                title="AI分析を再生成"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </Button>
+            )}
             <Button
               type="button"
               variant="ghost"

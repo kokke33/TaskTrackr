@@ -15,7 +15,7 @@ export function useAIAnalysis() {
   const debounceTimeouts = useRef<{ [fieldName: string]: NodeJS.Timeout }>({});
   const { checkAuth } = useAuth();
 
-  const analyzeField = useCallback(async (fieldName: string, content: string, originalContent?: string, previousReportContent?: string) => {
+  const analyzeField = useCallback(async (fieldName: string, content: string, originalContent?: string, previousReportContent?: string, forceAnalysis: boolean = false) => {
     if (!content || content.trim().length < 10) {
       return;
     }
@@ -25,7 +25,8 @@ export function useAIAnalysis() {
       clearTimeout(debounceTimeouts.current[fieldName]);
     }
 
-    // 新しいタイマーを設定（0.1秒後に実行）
+    // 再生成の場合は即座に実行、それ以外は0.1秒後に実行
+    const delay = forceAnalysis ? 0 : 100;
     debounceTimeouts.current[fieldName] = setTimeout(async () => {
       try {
         const currentState = analysisState[fieldName];
@@ -192,7 +193,7 @@ export function useAIAnalysis() {
           },
         }));
       }
-    }, 100);
+    }, delay);
   }, [analysisState, checkAuth]);
 
   const clearAnalysis = useCallback((fieldName: string) => {
@@ -219,9 +220,28 @@ export function useAIAnalysis() {
     };
   }, [analysisState]);
 
+  const regenerateAnalysis = useCallback((fieldName: string, content: string, originalContent?: string, previousReportContent?: string) => {
+    console.log("regenerateAnalysis called:", { fieldName, contentLength: content?.length, originalContent, previousReportContent });
+    
+    // 既存の分析をクリアしてから再生成
+    setAnalysisState(prev => ({
+      ...prev,
+      [fieldName]: {
+        analysis: null,
+        isLoading: false,
+        error: null,
+        previousContent: prev[fieldName]?.previousContent,
+      },
+    }));
+
+    // 強制的に分析を実行
+    analyzeField(fieldName, content, originalContent, previousReportContent, true);
+  }, [analyzeField]);
+
   return {
     analyzeField,
     clearAnalysis,
     getAnalysisState,
+    regenerateAnalysis,
   };
 }
