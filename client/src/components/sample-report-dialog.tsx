@@ -1,10 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { X } from "lucide-react";
 
 interface SampleReportDialogProps {
   open: boolean;
@@ -130,16 +127,7 @@ export function SampleReportDialog({ open, onOpenChange }: SampleReportDialogPro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>週次報告記載サンプル</span>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => onOpenChange(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogTitle>
+          <DialogTitle>週次報告記載サンプル</DialogTitle>
         </DialogHeader>
         
         <ScrollArea className="h-[calc(90vh-120px)]">
