@@ -118,7 +118,7 @@ export default function RecentWeeklyReportsList() {
                   <TableHead>報告期間</TableHead>
                   <TableHead>プロジェクト</TableHead>
                   <TableHead>案件名</TableHead>
-                  <TableHead>報告者</TableHead>
+                  <TableHead className="w-16">報告者</TableHead>
                   <TableHead>進捗率</TableHead>
                   <TableHead>状況</TableHead>
                   <TableHead className="text-right">操作</TableHead>
