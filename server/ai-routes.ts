@@ -126,12 +126,21 @@ router.post('/api/ai/analyze-text', isAuthenticated, async (req, res) => {
       });
     }
 
-    const aiService = await getAIServiceDynamic();
+    // リアルタイム分析設定を取得
+    const { storage } = await import('./storage');
+    const realtimeConfig = await storage.getRealtimeAnalysisConfig();
+    
+    // リアルタイム分析専用のAIサービスを取得
+    const { getAIServiceForProvider } = await import('./ai-service.js');
+    const aiService = await getAIServiceForProvider(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq');
+    
     const analysis = await aiService.analyzeText(text, userId);
     
     res.json({
       success: true,
       data: analysis,
+      usingRealtimeSettings: true,
+      realtimeProvider: realtimeConfig.provider,
     });
   } catch (error) {
     console.error('AI text analysis error:', error);
