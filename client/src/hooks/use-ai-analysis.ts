@@ -52,9 +52,9 @@ export function useAIAnalysis() {
           if (areEqual) {
             // 内容が同じ場合は更新不足のリスクとして扱う
             isContentUnchanged = true;
-            changeAnalysis += `\n\n【前回報告との比較】\n前回報告の内容:\n${previousReportContent}\n\n今回報告の内容:\n${content}\n\n⚠️ 重要: 前回報告と全く同じ内容です。進捗や状況に変化がない場合でも、現在の状況を改めて記載することが重要です。`;
+            changeAnalysis += `\n\n【前回報告との比較】\n前回報告の内容:\n${previousReportContent}\n\n⚠️ 重要: 前回報告と全く同じ内容です。進捗や状況に変化がない場合でも、現在の状況を改めて記載することが重要です。`;
           } else {
-            changeAnalysis += `\n\n【前回報告との比較】\n前回報告の内容:\n${previousReportContent}\n\n今回報告の内容:\n${content}`;
+            changeAnalysis += `\n\n【前回報告との比較】\n前回報告の内容:\n${previousReportContent}`;
           }
         }
 
