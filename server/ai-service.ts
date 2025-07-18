@@ -645,17 +645,33 @@ class GroqKeyManager {
 export class GroqService extends AIService {
   private client: Groq;
   private keyManager: GroqKeyManager;
+  private model: string;
 
-  constructor() {
+  constructor(model?: string) {
     super('groq');
     
     // Initialize key manager with multiple API keys
     const apiKeys = aiConfig.groq.apiKeys.length > 0 ? aiConfig.groq.apiKeys : [aiConfig.groq.apiKey];
     this.keyManager = new GroqKeyManager(apiKeys);
     
+    // Use provided model or default from config
+    this.model = model || aiConfig.groq.model;
+    
     this.client = new Groq({
       apiKey: this.keyManager.getCurrentKey(),
     });
+  }
+
+  // モデル別の最大トークン数を取得
+  private getMaxTokensForModel(model: string): number {
+    const modelLimits: Record<string, number> = {
+      'meta-llama/llama-4-scout-17b-16e-instruct': 8192,
+      'qwen/qwen3-32b': 32768,
+      // デフォルト値
+      'default': Math.min(aiConfig.groq.maxTokens, 8192)
+    };
+    
+    return modelLimits[model] || modelLimits['default'];
   }
 
   async generateResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): Promise<AIResponse> {
@@ -671,14 +687,16 @@ export class GroqService extends AIService {
         'Content-Type': 'application/json',
       };
 
+      const maxTokens = this.getMaxTokensForModel(this.model);
+      
       const requestData = {
         endpoint: 'https://api.groq.com/openai/v1/chat/completions',
         method: 'POST',
         headers: this.maskSensitiveHeaders(headers),
         body: {
-          model: aiConfig.groq.model,
+          model: this.model,
           messages: messages,
-          max_tokens: aiConfig.groq.maxTokens,
+          max_tokens: maxTokens,
           temperature: aiConfig.groq.temperature,
         }
       };
@@ -693,9 +711,9 @@ export class GroqService extends AIService {
         });
 
         const response = await this.client.chat.completions.create({
-          model: aiConfig.groq.model,
+          model: this.model,
           messages: messages,
-          max_tokens: aiConfig.groq.maxTokens,
+          max_tokens: maxTokens,
           temperature: aiConfig.groq.temperature,
         });
 
@@ -735,7 +753,7 @@ export class GroqService extends AIService {
         };
 
         aiLogger.logDebug('groq', 'generateResponse', requestId, 'Groq response processed successfully', 
-          { tokens: result.usage?.totalTokens, duration, keyUsed: currentKey.substring(0, 10) + '...' }, userId);
+          { tokens: result.usage?.totalTokens, duration, maxTokens, model: this.model, keyUsed: currentKey.substring(0, 10) + '...' }, userId);
 
         return result;
       } catch (error: any) {
@@ -774,7 +792,7 @@ export class GroqService extends AIService {
         // If this is the last attempt or not a rate limit error, throw
         if (attempt === maxRetries - 1) {
           aiLogger.logError('groq', 'generateResponse', requestId, error as Error, userId, 
-            { ...metadata, duration, model: aiConfig.groq.model, attempt: attempt + 1 });
+            { ...metadata, duration, model: this.model, attempt: attempt + 1 });
           
           throw new Error(`Groq API error after ${maxRetries} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
@@ -843,7 +861,7 @@ function createAIServiceWithConfig(config: typeof aiConfig): AIService {
 }
 
 // 指定されたプロバイダーでAIサービスを取得する関数（お試し機能用）
-export async function getAIServiceForProvider(provider: 'openai' | 'ollama' | 'gemini' | 'groq'): Promise<AIService> {
+export async function getAIServiceForProvider(provider: 'openai' | 'ollama' | 'gemini' | 'groq', groqModel?: string): Promise<AIService> {
   switch (provider) {
     case 'openai':
       return new OpenAIService();
@@ -852,7 +870,7 @@ export async function getAIServiceForProvider(provider: 'openai' | 'ollama' | 'g
     case 'gemini':
       return new GeminiService();
     case 'groq':
-      return new GroqService();
+      return new GroqService(groqModel);
     default:
       throw new Error(`Unsupported AI provider: ${provider}`);
   }

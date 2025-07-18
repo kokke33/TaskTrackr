@@ -1377,12 +1377,15 @@ export class DatabaseStorage implements IStorage {
   // リアルタイム分析用AI設定の取得
   async getRealtimeAnalysisConfig(): Promise<{
     provider: string;
+    groqModel?: string;
   }> {
     return await withRetry(async () => {
       const provider = await this.getSystemSetting('REALTIME_AI_PROVIDER') || { value: 'gemini' };
+      const groqModel = await this.getSystemSetting('REALTIME_GROQ_MODEL') || { value: 'qwen/qwen3-32b' };
 
       return {
         provider: provider.value,
+        groqModel: groqModel.value,
       };
     });
   }

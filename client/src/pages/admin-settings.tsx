@@ -62,7 +62,7 @@ async function updateSystemSetting(key: string, value: string, description?: str
 }
 
 // セッション設定を取得する関数
-async function getSessionAISettings(): Promise<{ realtimeProvider?: string }> {
+async function getSessionAISettings(): Promise<{ realtimeProvider?: string; groqModel?: string }> {
   const response = await fetch("/api/session-ai-settings", {
     credentials: "include",
   });
@@ -73,14 +73,19 @@ async function getSessionAISettings(): Promise<{ realtimeProvider?: string }> {
 }
 
 // セッション設定を更新する関数
-async function updateSessionAISettings(realtimeProvider: string): Promise<{ success: boolean; settings: { realtimeProvider: string } }> {
+async function updateSessionAISettings(realtimeProvider: string, groqModel?: string): Promise<{ success: boolean; settings: { realtimeProvider: string; groqModel?: string } }> {
+  const body: any = { realtimeProvider };
+  if (realtimeProvider === "groq" && groqModel) {
+    body.groqModel = groqModel;
+  }
+  
   const response = await fetch("/api/session-ai-settings", {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
     },
     credentials: "include",
-    body: JSON.stringify({ realtimeProvider }),
+    body: JSON.stringify(body),
   });
   
   if (!response.ok) {
@@ -119,9 +124,11 @@ export default function AdminSettings() {
   
   // リアルタイム分析用の状態
   const [realtimeProvider, setRealtimeProvider] = useState<string>("");
+  const [realtimeGroqModel, setRealtimeGroqModel] = useState<string>("");
   
   // お試し設定用の状態
   const [trialRealtimeProvider, setTrialRealtimeProvider] = useState<string>("");
+  const [trialGroqModel, setTrialGroqModel] = useState<string>("");
   const [isTrialMode, setIsTrialMode] = useState<boolean>(false);
 
   // システム設定を取得
@@ -158,8 +165,15 @@ export default function AdminSettings() {
 
   // リアルタイム分析設定を更新
   const updateRealtimeMutation = useMutation({
-    mutationFn: (provider: string) => 
-      updateSystemSetting("REALTIME_AI_PROVIDER", provider, "リアルタイム分析用AIプロバイダー (openai, ollama, gemini, groq)"),
+    mutationFn: async ({ provider, groqModel }: { provider: string; groqModel?: string }) => {
+      // プロバイダーを更新
+      await updateSystemSetting("REALTIME_AI_PROVIDER", provider, "リアルタイム分析用AIプロバイダー (openai, ollama, gemini, groq)");
+      
+      // Groqの場合はモデルも更新
+      if (provider === "groq" && groqModel) {
+        await updateSystemSetting("REALTIME_GROQ_MODEL", groqModel, "リアルタイム分析用Groqモデル");
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["systemSettings"] });
       toast({
@@ -178,7 +192,8 @@ export default function AdminSettings() {
 
   // お試しセッション設定を更新
   const updateTrialMutation = useMutation({
-    mutationFn: (provider: string) => updateSessionAISettings(provider),
+    mutationFn: ({ provider, groqModel }: { provider: string; groqModel?: string }) => 
+      updateSessionAISettings(provider, groqModel),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessionAISettings"] });
       setIsTrialMode(true);
@@ -203,6 +218,7 @@ export default function AdminSettings() {
       queryClient.invalidateQueries({ queryKey: ["sessionAISettings"] });
       setIsTrialMode(false);
       setTrialRealtimeProvider("");
+      setTrialGroqModel("qwen/qwen3-32b");
       toast({
         title: "お試し設定をクリアしました",
         description: "通常のシステム設定が使用されます",
@@ -232,6 +248,14 @@ export default function AdminSettings() {
       } else {
         setRealtimeProvider("gemini"); // デフォルト値
       }
+
+      // リアルタイムGroqモデル設定を取得
+      const realtimeGroqModelSetting = settings.find(setting => setting.key === "REALTIME_GROQ_MODEL");
+      if (realtimeGroqModelSetting) {
+        setRealtimeGroqModel(realtimeGroqModelSetting.value);
+      } else {
+        setRealtimeGroqModel("qwen/qwen3-32b"); // デフォルト値
+      }
     }
   }, [settings]);
 
@@ -240,6 +264,7 @@ export default function AdminSettings() {
     if (sessionSettings) {
       if (sessionSettings.realtimeProvider) {
         setTrialRealtimeProvider(sessionSettings.realtimeProvider);
+        setTrialGroqModel(sessionSettings.groqModel || "qwen/qwen3-32b");
         setIsTrialMode(true);
       } else {
         setIsTrialMode(false);
@@ -259,13 +284,19 @@ export default function AdminSettings() {
 
   const handleRealtimeSave = () => {
     if (realtimeProvider) {
-      updateRealtimeMutation.mutate(realtimeProvider);
+      updateRealtimeMutation.mutate({ 
+        provider: realtimeProvider, 
+        groqModel: realtimeProvider === "groq" ? realtimeGroqModel : undefined 
+      });
     }
   };
 
   const handleTrialSave = () => {
     if (trialRealtimeProvider) {
-      updateTrialMutation.mutate(trialRealtimeProvider);
+      updateTrialMutation.mutate({ 
+        provider: trialRealtimeProvider, 
+        groqModel: trialRealtimeProvider === "groq" ? trialGroqModel : undefined 
+      });
     }
   };
 
@@ -393,9 +424,28 @@ export default function AdminSettings() {
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
-                リアルタイム分析で使用するAIサービスプロバイダーを選択してください。モデルやパラメータの詳細は環境設定で管理されます。
+                リアルタイム分析で使用するAIサービスプロバイダーを選択してください。
               </p>
             </div>
+
+            {/* Groqモデル選択（Groqプロバイダーの場合のみ表示） */}
+            {realtimeProvider === "groq" && (
+              <div className="space-y-2">
+                <Label htmlFor="realtime-groq-model">Groqモデル</Label>
+                <Select value={realtimeGroqModel} onValueChange={setRealtimeGroqModel}>
+                  <SelectTrigger id="realtime-groq-model">
+                    <SelectValue placeholder="モデルを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="qwen/qwen3-32b">Qwen3 32B (推奨)</SelectItem>
+                    <SelectItem value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  リアルタイム分析で使用するGroqモデルを選択してください。
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 pt-4">
               <Button
@@ -455,6 +505,29 @@ export default function AdminSettings() {
                 }
               </p>
             </div>
+
+            {/* お試し用Groqモデル選択（Groqプロバイダーの場合のみ表示） */}
+            {trialRealtimeProvider === "groq" && (
+              <div className="space-y-2">
+                <Label htmlFor="trial-groq-model">お試し用Groqモデル</Label>
+                <Select 
+                  value={trialGroqModel} 
+                  onValueChange={setTrialGroqModel}
+                  disabled={updateTrialMutation.isPending}
+                >
+                  <SelectTrigger id="trial-groq-model">
+                    <SelectValue placeholder="モデルを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="qwen/qwen3-32b">Qwen3 32B (推奨)</SelectItem>
+                    <SelectItem value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  お試し用Groqモデルを選択してください。DB保存はされません。
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 pt-4">
               {isTrialMode ? (

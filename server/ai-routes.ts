@@ -132,7 +132,10 @@ router.post('/api/ai/analyze-text', isAuthenticated, async (req, res) => {
     
     // リアルタイム分析専用のAIサービスを取得
     const { getAIServiceForProvider } = await import('./ai-service.js');
-    const aiService = await getAIServiceForProvider(realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq');
+    const aiService = await getAIServiceForProvider(
+      realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq',
+      realtimeConfig.provider === 'groq' ? realtimeConfig.groqModel : undefined
+    );
     
     const analysis = await aiService.analyzeText(text, userId);
     
@@ -171,7 +174,10 @@ router.post('/api/ai/analyze-text-trial', isAuthenticated, async (req, res) => {
     if (sessionSettings?.realtimeProvider) {
       // セッション設定を使用してAIサービスを取得
       const { getAIServiceForProvider } = await import('./ai-service.js');
-      aiService = await getAIServiceForProvider(sessionSettings.realtimeProvider);
+      aiService = await getAIServiceForProvider(
+        sessionSettings.realtimeProvider,
+        sessionSettings.realtimeProvider === 'groq' ? sessionSettings.groqModel : undefined
+      );
     } else {
       // デフォルトの設定を使用
       aiService = await getAIServiceDynamic();

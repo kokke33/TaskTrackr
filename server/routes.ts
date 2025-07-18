@@ -2136,7 +2136,7 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
   // セッション一時設定の更新
   app.put("/api/session-ai-settings", isAuthenticated, async (req, res) => {
     try {
-      const { realtimeProvider } = req.body;
+      const { realtimeProvider, groqModel } = req.body;
 
       if (!realtimeProvider) {
         return res.status(400).json({ error: "realtimeProviderが必要です" });
@@ -2150,16 +2150,32 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
         });
       }
 
+      // Groqの場合はモデルのバリデーション
+      if (realtimeProvider === "groq" && groqModel) {
+        const validGroqModels = ["qwen/qwen3-32b", "meta-llama/llama-4-scout-17b-16e-instruct"];
+        if (!validGroqModels.includes(groqModel)) {
+          return res.status(400).json({ 
+            error: `無効なGroqモデルです。有効な値: ${validGroqModels.join(", ")}` 
+          });
+        }
+      }
+
       // セッションに保存
       if (!req.session) {
         return res.status(500).json({ error: "セッションが初期化されていません" });
       }
-      (req.session as any).aiSettings = { realtimeProvider };
+      
+      const sessionSettings: any = { realtimeProvider };
+      if (realtimeProvider === "groq" && groqModel) {
+        sessionSettings.groqModel = groqModel;
+      }
+      
+      (req.session as any).aiSettings = sessionSettings;
 
       res.json({ 
         success: true, 
         message: "セッション設定を更新しました",
-        settings: { realtimeProvider }
+        settings: sessionSettings
       });
     } catch (error) {
       console.error("Session AI settings update error:", error);
@@ -2223,6 +2239,26 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
         if (!validProviders.includes(value)) {
           return res.status(400).json({ 
             error: `無効なAIプロバイダーです。有効な値: ${validProviders.join(", ")}` 
+          });
+        }
+      }
+
+      // REALTIME_AI_PROVIDERの値をバリデーション
+      if (key === "REALTIME_AI_PROVIDER") {
+        const validProviders = ["openai", "ollama", "gemini", "groq"];
+        if (!validProviders.includes(value)) {
+          return res.status(400).json({ 
+            error: `無効なリアルタイムAIプロバイダーです。有効な値: ${validProviders.join(", ")}` 
+          });
+        }
+      }
+
+      // REALTIME_GROQ_MODELの値をバリデーション
+      if (key === "REALTIME_GROQ_MODEL") {
+        const validGroqModels = ["qwen/qwen3-32b", "meta-llama/llama-4-scout-17b-16e-instruct"];
+        if (!validGroqModels.includes(value)) {
+          return res.status(400).json({ 
+            error: `無効なリアルタイムGroqモデルです。有効な値: ${validGroqModels.join(", ")}` 
           });
         }
       }
