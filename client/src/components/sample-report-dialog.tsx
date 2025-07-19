@@ -264,7 +264,7 @@ export function SampleReportDialog({ open, onOpenChange }: SampleReportDialogPro
                     </div>
                   </div>
                   <div className="mt-4">
-                    <span className="font-medium">テスト進捗状況:</span>
+                    <span className="font-medium">進捗状況:</span>
                     <div className="bg-gray-50 p-3 rounded whitespace-pre-wrap text-sm mt-2">
                       {sampleReport.testProgress}
                     </div>
