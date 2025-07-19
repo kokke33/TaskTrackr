@@ -143,8 +143,15 @@ export function isAuthenticated(req: any, res: any, next: any) {
   };
   
   console.log(`[AUTH DEBUG] ${sessionInfo.method} ${sessionInfo.path} - Session: ${sessionInfo.sessionID}, Auth: ${sessionInfo.authenticated}, User: ${req.user ? JSON.stringify(req.user) : 'none'}, Time: ${sessionInfo.timestamp}`);
+  console.log(`[AUTH DEBUG] Full session data:`, req.session);
+  console.log(`[AUTH DEBUG] Request headers:`, {
+    cookie: req.headers.cookie,
+    origin: req.headers.origin,
+    referer: req.headers.referer
+  });
   
   if (req.isAuthenticated()) {
+    console.log(`[AUTH DEBUG] ✅ Authentication passed for ${req.user?.username}`);
     return next();
   }
   
@@ -152,7 +159,8 @@ export function isAuthenticated(req: any, res: any, next: any) {
   console.log(`[AUTH ERROR] Session details:`, {
     sessionID: sessionInfo.sessionID,
     cookies: req.headers.cookie,
-    session: req.session ? Object.keys(req.session) : 'no session'
+    session: req.session ? Object.keys(req.session) : 'no session',
+    sessionData: req.session
   });
   
   res.status(401).json({ message: "認証が必要です" });

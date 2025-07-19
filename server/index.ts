@@ -61,7 +61,8 @@ app.use(
       secure: false, // HTTPS環境でのみtrueにする
       sameSite: 'lax', // 開発・本番環境で統一
       maxAge: 24 * 60 * 60 * 1000, // 24時間
-      httpOnly: true
+      httpOnly: false, // デバッグのため一時的にfalseに設定
+      domain: undefined // 開発環境ではdomainを指定しない
     },
     proxy: true,
     name: 'sessionId' // クッキー名を明示的に指定

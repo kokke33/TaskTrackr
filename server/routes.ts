@@ -93,6 +93,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/check-auth", (req, res) => {
+    console.log("[CHECK-AUTH] Session debug:", {
+      sessionID: req.sessionID,
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user,
+      session: req.session,
+      cookies: req.headers.cookie
+    });
+    
     if (req.isAuthenticated() && req.user) {
       // セッションに保存されているユーザー情報をログ出力
       const user = req.user as {
@@ -116,7 +124,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
     } else {
-      console.log("Check-auth - not authenticated");
+      console.log("Check-auth - not authenticated", {
+        isAuthenticated: req.isAuthenticated(),
+        hasUser: !!req.user,
+        sessionData: req.session
+      });
       // 未認証でも200ステータスで応答（エラーではなく正常な状態として扱う）
       res.json({
         authenticated: false,

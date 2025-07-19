@@ -26,11 +26,23 @@ export async function apiRequest<T = any>(
     data?: unknown;
   }
 ): Promise<T> {
+  console.log(`[API REQUEST] ${options.method} ${url}`, {
+    data: options.data,
+    cookies: document.cookie,
+    timestamp: new Date().toISOString()
+  });
+
   const res = await fetch(url, {
     method: options.method,
     headers: options.data ? { "Content-Type": "application/json" } : {},
     body: options.data ? JSON.stringify(options.data) : undefined,
     credentials: "include",  // 常にクレデンシャルを送信
+  });
+
+  console.log(`[API RESPONSE] ${options.method} ${url} - Status: ${res.status}`, {
+    status: res.status,
+    statusText: res.statusText,
+    headers: Object.fromEntries(res.headers.entries())
   });
 
   await throwIfResNotOk(res);
