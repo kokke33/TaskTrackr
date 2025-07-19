@@ -649,7 +649,7 @@ export default function WeeklyReport() {
               <header className="mb-8">
                 <div className="flex flex-col gap-4 mb-2">
                   <div className="flex items-center justify-between">
-                    <h1 className="text-xl font-semibold">
+                    <h1 className="text-3xl font-bold text-primary">
                       {isAdminEditMode ? (
                         <span className="flex items-center gap-2 text-red-600">
                           <ShieldCheck className="h-5 w-5" />
