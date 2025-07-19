@@ -1511,6 +1511,11 @@ export class DatabaseStorage implements IStorage {
         return null;
       }
 
+      // adminユーザの削除を防ぐ
+      if (userToDelete.username === 'admin') {
+        throw new Error("Cannot delete admin user");
+      }
+
       // 最後の管理者ユーザーの削除を防ぐ
       if (userToDelete.isAdmin) {
         const adminCount = await db

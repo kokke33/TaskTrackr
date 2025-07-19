@@ -2361,7 +2361,9 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
       res.json(deletedUser);
     } catch (error: any) {
       console.error("User delete error:", error);
-      if (error?.message?.includes("Cannot delete last admin")) {
+      if (error?.message?.includes("Cannot delete admin user")) {
+        res.status(400).json({ error: "adminユーザは削除できません" });
+      } else if (error?.message?.includes("Cannot delete last admin")) {
         res.status(400).json({ error: "最後の管理者ユーザは削除できません" });
       } else {
         res.status(400).json({ error: "ユーザの削除中にエラーが発生しました" });

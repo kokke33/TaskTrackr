@@ -218,6 +218,15 @@ export default function AdminUsers() {
   };
 
   const handleDelete = (user: User) => {
+    // adminユーザの削除を防ぐ
+    if (user.username === 'admin') {
+      toast({
+        title: "削除できません",
+        description: "adminユーザは削除できません",
+        variant: "destructive",
+      });
+      return;
+    }
     setDeletingUser(user);
   };
 
@@ -416,7 +425,9 @@ export default function AdminUsers() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDelete(user)}
-                        className="flex items-center gap-1 text-destructive hover:text-destructive"
+                        disabled={user.username === 'admin'}
+                        className="flex items-center gap-1 text-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={user.username === 'admin' ? 'adminユーザは削除できません' : '削除'}
                       >
                         <Trash2 className="h-3 w-3" />
                         削除
@@ -523,6 +534,11 @@ export default function AdminUsers() {
             <DialogTitle>ユーザ削除の確認</DialogTitle>
             <DialogDescription>
               本当に「{deletingUser?.username}」を削除しますか？この操作は取り消せません。
+              {deletingUser?.username === 'admin' && (
+                <div className="mt-2 p-2 bg-destructive/10 text-destructive rounded text-sm">
+                  ⚠️ adminユーザは削除できません
+                </div>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -535,7 +551,7 @@ export default function AdminUsers() {
             <Button
               variant="destructive"
               onClick={confirmDelete}
-              disabled={deleteMutation.isPending}
+              disabled={deleteMutation.isPending || deletingUser?.username === 'admin'}
               className="flex items-center gap-2"
             >
               {deleteMutation.isPending ? (
