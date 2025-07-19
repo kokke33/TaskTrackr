@@ -95,7 +95,14 @@ export function AIAnalysisResult({
 
             {analysis && !isLoading && (
               <div className="prose prose-sm max-w-none text-gray-700">
-                <ReactMarkdown>{analysis}</ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="mb-2">{children}</p>,
+                    strong: ({ children }) => <strong className="font-bold text-gray-900">{children}</strong>,
+                  }}
+                >
+                  {analysis.replace(/\n/g, '  \n')}
+                </ReactMarkdown>
               </div>
             )}
           </div>

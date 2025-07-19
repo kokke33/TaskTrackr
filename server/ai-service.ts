@@ -160,8 +160,6 @@ export abstract class AIService {
         content: `あなたは損害保険システム開発のプロジェクトマネージャーのアシスタントです。週次報告の内容を分析して、適切な記載レベルの報告になるように簡潔なフィードバックを提供してください。
 
 重要な指摘がある場合は以下の形式で700文字以内で返してください。その際は、前回の内容を考慮してください：
-**⚠️指摘**: [具体的な問題点]
-**💡提案**: [改善案]
 **📝修正例**: [元のテキストの問題部分を具体的に書き直した例。実際にコピー&ペーストで使用できる形で提示してください]
 
 注意事項：
@@ -179,7 +177,8 @@ export abstract class AIService {
     try {
       const response = await realtimeService.generateResponse(messages, userId, { operation: 'analyzeText', text });
       
-      const cleanedContent = this.cleanThinkTags(response.content);
+      // analyzeTextでは<think>タグのみを削除し、マークダウンフォーマットを保持
+      const cleanedContent = response.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
       aiLogger.logDebug(this.provider, 'analyzeText', requestId, 'Text analysis completed', { analysisLength: cleanedContent.length }, userId);
       return cleanedContent;
     } catch (error) {

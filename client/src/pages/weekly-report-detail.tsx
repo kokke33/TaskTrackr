@@ -279,8 +279,8 @@ export default function WeeklyReportDetail() {
     if (!content) return null;
     return (
       <div className="mb-4">
-        <h3 className="font-semibold mb-2">{title}</h3>
-        <p className="whitespace-pre-wrap">{content}</p>
+        <h3 className="font-semibold mb-2 text-sm">{title}</h3>
+        <p className="whitespace-pre-wrap text-sm">{content}</p>
       </div>
     );
   };
@@ -381,18 +381,18 @@ export default function WeeklyReportDetail() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">報告期間</p>
-                  <p>
+                  <p className="text-sm">
                     {new Date(report.reportPeriodStart).toLocaleDateString()} ～{" "}
                     {new Date(report.reportPeriodEnd).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">担当現場名</p>
-                  <p>{report.projectName} - {report.caseName}</p>
+                  <p className="text-sm">{report.projectName} - {report.caseName}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">報告者名</p>
-                  <p>{report.reporterName}</p>
+                  <p className="text-sm">{report.reporterName}</p>
                 </div>
               </div>
             </CardContent>
@@ -412,12 +412,12 @@ export default function WeeklyReportDetail() {
                 {relatedCase?.includeProgressAnalysis !== false && (
                   <div>
                     <p className="text-sm text-muted-foreground">進捗率</p>
-                    <p>{report.progressRate}%</p>
+                    <p className="text-sm">{report.progressRate}%</p>
                   </div>
                 )}
                 <div>
                   <p className="text-sm text-muted-foreground">進捗状況</p>
-                  <p>{progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus}</p>
+                  <p className="text-sm">{progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus}</p>
                 </div>
                 {report.delayIssues === "yes" && renderSection("遅延・問題点の詳細", report.delayDetails)}
               </div>
@@ -440,7 +440,7 @@ export default function WeeklyReportDetail() {
                   {renderSection("対策", report.riskCountermeasures)}
                   <div>
                     <p className="text-sm text-muted-foreground">リスクレベル</p>
-                    <p>{riskLevelMap[report.riskLevel as keyof typeof riskLevelMap] || report.riskLevel}</p>
+                    <p className="text-sm">{riskLevelMap[report.riskLevel as keyof typeof riskLevelMap] || report.riskLevel}</p>
                   </div>
                 </div>
               </CardContent>
@@ -453,10 +453,10 @@ export default function WeeklyReportDetail() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-muted-foreground">品質懸念事項の有無</p>
-                  <p>{qualityConcernsMap[report.qualityConcerns as keyof typeof qualityConcernsMap] || report.qualityConcerns}</p>
+                  <p className="text-sm">{qualityConcernsMap[report.qualityConcerns as keyof typeof qualityConcernsMap] || report.qualityConcerns}</p>
                 </div>
                 {report.qualityConcerns !== "none" && renderSection("品質懸念事項の詳細", report.qualityDetails)}
-                {renderSection("テスト進捗状況", report.testProgress)}
+                {renderSection("進捗状況", report.testProgress)}
               </div>
             </CardContent>
           </Card>
