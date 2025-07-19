@@ -135,6 +135,7 @@ router.post('/api/ai/analyze-text', isAuthenticated, async (req, res) => {
     const aiService = await getAIServiceForProvider(
       realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter',
       realtimeConfig.provider === 'groq' ? realtimeConfig.groqModel : undefined,
+      realtimeConfig.provider === 'gemini' ? realtimeConfig.geminiModel : undefined,
       realtimeConfig.provider === 'openrouter' ? realtimeConfig.openrouterModel : undefined
     );
     
@@ -178,6 +179,7 @@ router.post('/api/ai/analyze-text-trial', isAuthenticated, async (req, res) => {
       aiService = await getAIServiceForProvider(
         sessionSettings.realtimeProvider,
         sessionSettings.realtimeProvider === 'groq' ? sessionSettings.groqModel : undefined,
+        sessionSettings.realtimeProvider === 'gemini' ? sessionSettings.geminiModel : undefined,
         sessionSettings.realtimeProvider === 'openrouter' ? sessionSettings.openrouterModel : undefined
       );
     } else {

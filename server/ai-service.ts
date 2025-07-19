@@ -415,10 +415,10 @@ export class GeminiService extends AIService {
   private client: GoogleGenerativeAI;
   private model: string;
 
-  constructor() {
+  constructor(model?: string) {
     super('gemini');
     this.client = new GoogleGenerativeAI(aiConfig.gemini.apiKey);
-    this.model = aiConfig.gemini.model;
+    this.model = model || aiConfig.gemini.model;
   }
 
   async generateResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): Promise<AIResponse> {
@@ -953,7 +953,7 @@ function createAIServiceWithConfig(config: typeof aiConfig): AIService {
     case 'ollama':
       return new OllamaService();
     case 'gemini':
-      return new GeminiService();
+      return new GeminiService(config.gemini.model);
     case 'groq':
       return new GroqService();
     case 'openrouter':
@@ -964,14 +964,14 @@ function createAIServiceWithConfig(config: typeof aiConfig): AIService {
 }
 
 // 指定されたプロバイダーでAIサービスを取得する関数（お試し機能用）
-export async function getAIServiceForProvider(provider: AIProvider, groqModel?: string, openrouterModel?: string): Promise<AIService> {
+export async function getAIServiceForProvider(provider: AIProvider, groqModel?: string, geminiModel?: string, openrouterModel?: string): Promise<AIService> {
   switch (provider) {
     case 'openai':
       return new OpenAIService();
     case 'ollama':
       return new OllamaService();
     case 'gemini':
-      return new GeminiService();
+      return new GeminiService(geminiModel);
     case 'groq':
       return new GroqService(groqModel);
     case 'openrouter':

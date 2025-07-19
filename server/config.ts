@@ -127,6 +127,14 @@ export async function getDynamicAIConfig(): Promise<AIConfig> {
         provider: dynamicProvider,
       };
       
+      // Geminiの場合はモデルもデータベースから取得
+      if (dynamicProvider === 'gemini') {
+        const geminiModelSetting = await storage.getSystemSetting('AI_GEMINI_MODEL');
+        if (geminiModelSetting && geminiModelSetting.value) {
+          dynamicConfig.gemini.model = geminiModelSetting.value;
+        }
+      }
+      
       // OpenRouterの場合はモデルもデータベースから取得
       if (dynamicProvider === 'openrouter') {
         const openrouterModelSetting = await storage.getSystemSetting('AI_OPENROUTER_MODEL');

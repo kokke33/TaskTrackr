@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { Settings, Save, RefreshCw, AlertCircle, Zap, X } from "lucide-react";
-import { AI_PROVIDER_OPTIONS, GROQ_MODEL_OPTIONS, OPENROUTER_MODEL_OPTIONS, DEFAULT_VALUES } from "@shared/ai-constants";
+import { AI_PROVIDER_OPTIONS, GROQ_MODEL_OPTIONS, GEMINI_MODEL_OPTIONS, OPENROUTER_MODEL_OPTIONS, DEFAULT_VALUES } from "@shared/ai-constants";
 
 interface SystemSetting {
   id: number;
@@ -63,7 +63,7 @@ async function updateSystemSetting(key: string, value: string, description?: str
 }
 
 // セッション設定を取得する関数
-async function getSessionAISettings(): Promise<{ realtimeProvider?: string; groqModel?: string; openrouterModel?: string }> {
+async function getSessionAISettings(): Promise<{ realtimeProvider?: string; groqModel?: string; geminiModel?: string; openrouterModel?: string }> {
   const response = await fetch("/api/session-ai-settings", {
     credentials: "include",
   });
@@ -74,10 +74,13 @@ async function getSessionAISettings(): Promise<{ realtimeProvider?: string; groq
 }
 
 // セッション設定を更新する関数
-async function updateSessionAISettings(realtimeProvider: string, groqModel?: string, openrouterModel?: string): Promise<{ success: boolean; settings: { realtimeProvider: string; groqModel?: string; openrouterModel?: string } }> {
+async function updateSessionAISettings(realtimeProvider: string, groqModel?: string, geminiModel?: string, openrouterModel?: string): Promise<{ success: boolean; settings: { realtimeProvider: string; groqModel?: string; geminiModel?: string; openrouterModel?: string } }> {
   const body: any = { realtimeProvider };
   if (realtimeProvider === "groq" && groqModel) {
     body.groqModel = groqModel;
+  }
+  if (realtimeProvider === "gemini" && geminiModel) {
+    body.geminiModel = geminiModel;
   }
   if (realtimeProvider === "openrouter" && openrouterModel) {
     body.openrouterModel = openrouterModel;
@@ -125,16 +128,20 @@ export default function AdminSettings() {
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [aiProvider, setAiProvider] = useState<string>("");
+  const [aiGroqModel, setAiGroqModel] = useState<string>("");
+  const [aiGeminiModel, setAiGeminiModel] = useState<string>("");
   const [aiOpenRouterModel, setAiOpenRouterModel] = useState<string>("");
   
   // リアルタイム分析用の状態
   const [realtimeProvider, setRealtimeProvider] = useState<string>("");
   const [realtimeGroqModel, setRealtimeGroqModel] = useState<string>("");
+  const [realtimeGeminiModel, setRealtimeGeminiModel] = useState<string>("");
   const [realtimeOpenRouterModel, setRealtimeOpenRouterModel] = useState<string>("");
   
   // お試し設定用の状態
   const [trialRealtimeProvider, setTrialRealtimeProvider] = useState<string>("");
   const [trialGroqModel, setTrialGroqModel] = useState<string>("");
+  const [trialGeminiModel, setTrialGeminiModel] = useState<string>("");
   const [trialOpenRouterModel, setTrialOpenRouterModel] = useState<string>("");
   const [isTrialMode, setIsTrialMode] = useState<boolean>(false);
 
@@ -152,9 +159,19 @@ export default function AdminSettings() {
 
   // AI_PROVIDER設定を更新
   const updateProviderMutation = useMutation({
-    mutationFn: async ({ provider, openrouterModel }: { provider: string; openrouterModel?: string }) => {
+    mutationFn: async ({ provider, groqModel, geminiModel, openrouterModel }: { provider: string; groqModel?: string; geminiModel?: string; openrouterModel?: string }) => {
       // プロバイダーを更新
       await updateSystemSetting("AI_PROVIDER", provider, "AIサービスプロバイダー (openai, ollama, gemini, groq, openrouter)");
+      
+      // Groqの場合はモデルも更新
+      if (provider === "groq" && groqModel) {
+        await updateSystemSetting("AI_GROQ_MODEL", groqModel, "基本AI設定用Groqモデル");
+      }
+      
+      // Geminiの場合はモデルも更新
+      if (provider === "gemini" && geminiModel) {
+        await updateSystemSetting("AI_GEMINI_MODEL", geminiModel, "基本AI設定用Geminiモデル");
+      }
       
       // OpenRouterの場合はモデルも更新
       if (provider === "openrouter" && openrouterModel) {
@@ -179,13 +196,18 @@ export default function AdminSettings() {
 
   // リアルタイム分析設定を更新
   const updateRealtimeMutation = useMutation({
-    mutationFn: async ({ provider, groqModel, openrouterModel }: { provider: string; groqModel?: string; openrouterModel?: string }) => {
+    mutationFn: async ({ provider, groqModel, geminiModel, openrouterModel }: { provider: string; groqModel?: string; geminiModel?: string; openrouterModel?: string }) => {
       // プロバイダーを更新
       await updateSystemSetting("REALTIME_AI_PROVIDER", provider, "リアルタイム分析用AIプロバイダー (openai, ollama, gemini, groq, openrouter)");
       
       // Groqの場合はモデルも更新
       if (provider === "groq" && groqModel) {
         await updateSystemSetting("REALTIME_GROQ_MODEL", groqModel, "リアルタイム分析用Groqモデル");
+      }
+      
+      // Geminiの場合はモデルも更新
+      if (provider === "gemini" && geminiModel) {
+        await updateSystemSetting("REALTIME_GEMINI_MODEL", geminiModel, "リアルタイム分析用Geminiモデル");
       }
       
       // OpenRouterの場合はモデルも更新
@@ -211,8 +233,8 @@ export default function AdminSettings() {
 
   // お試しセッション設定を更新
   const updateTrialMutation = useMutation({
-    mutationFn: ({ provider, groqModel, openrouterModel }: { provider: string; groqModel?: string; openrouterModel?: string }) => 
-      updateSessionAISettings(provider, groqModel, openrouterModel),
+    mutationFn: ({ provider, groqModel, geminiModel, openrouterModel }: { provider: string; groqModel?: string; geminiModel?: string; openrouterModel?: string }) => 
+      updateSessionAISettings(provider, groqModel, geminiModel, openrouterModel),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessionAISettings"] });
       setIsTrialMode(true);
@@ -238,6 +260,7 @@ export default function AdminSettings() {
       setIsTrialMode(false);
       setTrialRealtimeProvider("");
       setTrialGroqModel(DEFAULT_VALUES.GROQ_MODEL);
+      setTrialGeminiModel(DEFAULT_VALUES.GEMINI_MODEL);
       setTrialOpenRouterModel(DEFAULT_VALUES.OPENROUTER_MODEL);
       toast({
         title: "お試し設定をクリアしました",
@@ -259,6 +282,22 @@ export default function AdminSettings() {
       const aiProviderSetting = settings.find(setting => setting.key === "AI_PROVIDER");
       if (aiProviderSetting) {
         setAiProvider(aiProviderSetting.value);
+      }
+
+      // 基本AI設定のGroqモデル設定を取得
+      const aiGroqModelSetting = settings.find(setting => setting.key === "AI_GROQ_MODEL");
+      if (aiGroqModelSetting) {
+        setAiGroqModel(aiGroqModelSetting.value);
+      } else {
+        setAiGroqModel(DEFAULT_VALUES.GROQ_MODEL); // デフォルト値
+      }
+
+      // 基本AI設定のGeminiモデル設定を取得
+      const aiGeminiModelSetting = settings.find(setting => setting.key === "AI_GEMINI_MODEL");
+      if (aiGeminiModelSetting) {
+        setAiGeminiModel(aiGeminiModelSetting.value);
+      } else {
+        setAiGeminiModel(DEFAULT_VALUES.GEMINI_MODEL); // デフォルト値
       }
 
       // 基本AI設定のOpenRouterモデル設定を取得
@@ -285,6 +324,14 @@ export default function AdminSettings() {
         setRealtimeGroqModel(DEFAULT_VALUES.GROQ_MODEL); // デフォルト値
       }
 
+      // リアルタイムGeminiモデル設定を取得
+      const realtimeGeminiModelSetting = settings.find(setting => setting.key === "REALTIME_GEMINI_MODEL");
+      if (realtimeGeminiModelSetting) {
+        setRealtimeGeminiModel(realtimeGeminiModelSetting.value);
+      } else {
+        setRealtimeGeminiModel(DEFAULT_VALUES.GEMINI_MODEL); // デフォルト値
+      }
+
       // リアルタイムOpenRouterモデル設定を取得
       const realtimeOpenRouterModelSetting = settings.find(setting => setting.key === "REALTIME_OPENROUTER_MODEL");
       if (realtimeOpenRouterModelSetting) {
@@ -301,6 +348,7 @@ export default function AdminSettings() {
       if (sessionSettings.realtimeProvider) {
         setTrialRealtimeProvider(sessionSettings.realtimeProvider);
         setTrialGroqModel(sessionSettings.groqModel || DEFAULT_VALUES.GROQ_MODEL);
+        setTrialGeminiModel(sessionSettings.geminiModel || DEFAULT_VALUES.GEMINI_MODEL);
         setTrialOpenRouterModel(sessionSettings.openrouterModel || DEFAULT_VALUES.OPENROUTER_MODEL);
         setIsTrialMode(true);
       } else {
@@ -317,6 +365,8 @@ export default function AdminSettings() {
     if (aiProvider) {
       updateProviderMutation.mutate({ 
         provider: aiProvider,
+        groqModel: aiProvider === "groq" ? aiGroqModel : undefined,
+        geminiModel: aiProvider === "gemini" ? aiGeminiModel : undefined,
         openrouterModel: aiProvider === "openrouter" ? aiOpenRouterModel : undefined
       });
     }
@@ -327,6 +377,7 @@ export default function AdminSettings() {
       updateRealtimeMutation.mutate({ 
         provider: realtimeProvider, 
         groqModel: realtimeProvider === "groq" ? realtimeGroqModel : undefined,
+        geminiModel: realtimeProvider === "gemini" ? realtimeGeminiModel : undefined,
         openrouterModel: realtimeProvider === "openrouter" ? realtimeOpenRouterModel : undefined
       });
     }
@@ -337,6 +388,7 @@ export default function AdminSettings() {
       updateTrialMutation.mutate({ 
         provider: trialRealtimeProvider, 
         groqModel: trialRealtimeProvider === "groq" ? trialGroqModel : undefined,
+        geminiModel: trialRealtimeProvider === "gemini" ? trialGeminiModel : undefined,
         openrouterModel: trialRealtimeProvider === "openrouter" ? trialOpenRouterModel : undefined
       });
     }
@@ -423,6 +475,50 @@ export default function AdminSettings() {
                 使用するAIサービスプロバイダーを選択してください
               </p>
             </div>
+
+            {/* Geminiモデル選択（Geminiプロバイダーの場合のみ表示） */}
+            {aiProvider === "gemini" && (
+              <div className="space-y-2">
+                <Label htmlFor="ai-gemini-model">Geminiモデル</Label>
+                <Select value={aiGeminiModel} onValueChange={setAiGeminiModel}>
+                  <SelectTrigger id="ai-gemini-model">
+                    <SelectValue placeholder="モデルを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GEMINI_MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  基本AI設定で使用するGeminiモデルを選択してください。
+                </p>
+              </div>
+            )}
+
+            {/* Groqモデル選択（Groqプロバイダーの場合のみ表示） */}
+            {aiProvider === "groq" && (
+              <div className="space-y-2">
+                <Label htmlFor="ai-groq-model">Groqモデル</Label>
+                <Select value={aiGroqModel} onValueChange={setAiGroqModel}>
+                  <SelectTrigger id="ai-groq-model">
+                    <SelectValue placeholder="モデルを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GROQ_MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  基本AI設定で使用するGroqモデルを選択してください。
+                </p>
+              </div>
+            )}
 
             {/* OpenRouterモデル選択（OpenRouterプロバイダーの場合のみ表示） */}
             {aiProvider === "openrouter" && (
@@ -512,6 +608,28 @@ export default function AdminSettings() {
                 </Select>
                 <p className="text-sm text-muted-foreground">
                   リアルタイム分析で使用するGroqモデルを選択してください。
+                </p>
+              </div>
+            )}
+
+            {/* Geminiモデル選択（Geminiプロバイダーの場合のみ表示） */}
+            {realtimeProvider === "gemini" && (
+              <div className="space-y-2">
+                <Label htmlFor="realtime-gemini-model">Geminiモデル</Label>
+                <Select value={realtimeGeminiModel} onValueChange={setRealtimeGeminiModel}>
+                  <SelectTrigger id="realtime-gemini-model">
+                    <SelectValue placeholder="モデルを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GEMINI_MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  リアルタイム分析で使用するGeminiモデルを選択してください。
                 </p>
               </div>
             )}
@@ -620,6 +738,32 @@ export default function AdminSettings() {
                 </Select>
                 <p className="text-sm text-muted-foreground">
                   お試し用Groqモデルを選択してください。DB保存はされません。
+                </p>
+              </div>
+            )}
+
+            {/* お試し用Geminiモデル選択（Geminiプロバイダーの場合のみ表示） */}
+            {trialRealtimeProvider === "gemini" && (
+              <div className="space-y-2">
+                <Label htmlFor="trial-gemini-model">お試し用Geminiモデル</Label>
+                <Select 
+                  value={trialGeminiModel} 
+                  onValueChange={setTrialGeminiModel}
+                  disabled={updateTrialMutation.isPending}
+                >
+                  <SelectTrigger id="trial-gemini-model">
+                    <SelectValue placeholder="モデルを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GEMINI_MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  お試し用Geminiモデルを選択してください。DB保存はされません。
                 </p>
               </div>
             )}

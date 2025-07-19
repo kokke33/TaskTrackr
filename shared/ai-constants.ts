@@ -9,6 +9,10 @@ export type AIProvider = typeof AI_PROVIDERS[number];
 export const GROQ_MODELS = ["qwen/qwen3-32b", "meta-llama/llama-4-scout-17b-16e-instruct"] as const;
 export type GroqModel = typeof GROQ_MODELS[number];
 
+// Geminiモデル
+export const GEMINI_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash"] as const;
+export type GeminiModel = typeof GEMINI_MODELS[number];
+
 // OpenRouterモデル
 export const OPENROUTER_MODELS = [
   "anthropic/claude-3.5-sonnet",
@@ -24,6 +28,7 @@ export const DEFAULT_VALUES = {
   AI_PROVIDER: "gemini" as AIProvider,
   REALTIME_AI_PROVIDER: "gemini" as AIProvider,
   GROQ_MODEL: "qwen/qwen3-32b" as GroqModel,
+  GEMINI_MODEL: "gemini-2.5-flash" as GeminiModel,
   OPENROUTER_MODEL: "anthropic/claude-3.5-sonnet" as OpenRouterModel,
 } as const;
 
@@ -42,6 +47,12 @@ export const GROQ_MODEL_OPTIONS = [
   { value: "meta-llama/llama-4-scout-17b-16e-instruct", label: "Llama 4 Scout 17B" },
 ] as const;
 
+// UI表示用のGeminiモデル選択肢（ラベル付き）
+export const GEMINI_MODEL_OPTIONS = [
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (推奨)" },
+  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+] as const;
+
 // UI表示用のOpenRouterモデル選択肢（ラベル付き）
 export const OPENROUTER_MODEL_OPTIONS = [
   { value: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet (推奨)" },
@@ -58,6 +69,10 @@ export const isValidAIProvider = (value: string): value is AIProvider => {
 
 export const isValidGroqModel = (value: string): value is GroqModel => {
   return GROQ_MODELS.includes(value as GroqModel);
+};
+
+export const isValidGeminiModel = (value: string): value is GeminiModel => {
+  return GEMINI_MODELS.includes(value as GeminiModel);
 };
 
 export const isValidOpenRouterModel = (value: string): value is OpenRouterModel => {

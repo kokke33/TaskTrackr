@@ -12,9 +12,11 @@ import {
 import {
   AI_PROVIDERS,
   GROQ_MODELS,
+  GEMINI_MODELS,
   OPENROUTER_MODELS,
   isValidAIProvider,
   isValidGroqModel,
+  isValidGeminiModel,
   isValidOpenRouterModel,
 } from "@shared/ai-constants";
 import { getAIServiceDynamic } from "./ai-service";
@@ -2157,7 +2159,7 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
   // セッション一時設定の更新
   app.put("/api/session-ai-settings", isAuthenticated, async (req, res) => {
     try {
-      const { realtimeProvider, groqModel, openrouterModel } = req.body;
+      const { realtimeProvider, groqModel, geminiModel, openrouterModel } = req.body;
 
       if (!realtimeProvider) {
         return res.status(400).json({ error: "realtimeProviderが必要です" });
@@ -2179,6 +2181,15 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
         }
       }
 
+      // Geminiの場合はモデルのバリデーション
+      if (realtimeProvider === "gemini" && geminiModel) {
+        if (!isValidGeminiModel(geminiModel)) {
+          return res.status(400).json({ 
+            error: `無効なGeminiモデルです。有効な値: ${GEMINI_MODELS.join(", ")}` 
+          });
+        }
+      }
+
       // OpenRouterの場合はモデルのバリデーション
       if (realtimeProvider === "openrouter" && openrouterModel) {
         if (!isValidOpenRouterModel(openrouterModel)) {
@@ -2196,6 +2207,9 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
       const sessionSettings: any = { realtimeProvider };
       if (realtimeProvider === "groq" && groqModel) {
         sessionSettings.groqModel = groqModel;
+      }
+      if (realtimeProvider === "gemini" && geminiModel) {
+        sessionSettings.geminiModel = geminiModel;
       }
       if (realtimeProvider === "openrouter" && openrouterModel) {
         sessionSettings.openrouterModel = openrouterModel;
@@ -2287,6 +2301,24 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
         if (!isValidGroqModel(value)) {
           return res.status(400).json({ 
             error: `無効なリアルタイムGroqモデルです。有効な値: ${GROQ_MODELS.join(", ")}` 
+          });
+        }
+      }
+
+      // AI_GEMINI_MODELの値をバリデーション
+      if (key === "AI_GEMINI_MODEL") {
+        if (!isValidGeminiModel(value)) {
+          return res.status(400).json({ 
+            error: `無効なGeminiモデルです。有効な値: ${GEMINI_MODELS.join(", ")}` 
+          });
+        }
+      }
+
+      // REALTIME_GEMINI_MODELの値をバリデーション
+      if (key === "REALTIME_GEMINI_MODEL") {
+        if (!isValidGeminiModel(value)) {
+          return res.status(400).json({ 
+            error: `無効なリアルタイムGeminiモデルです。有効な値: ${GEMINI_MODELS.join(", ")}` 
           });
         }
       }
