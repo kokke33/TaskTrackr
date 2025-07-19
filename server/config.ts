@@ -127,6 +127,14 @@ export async function getDynamicAIConfig(): Promise<AIConfig> {
         provider: dynamicProvider,
       };
       
+      // Groqの場合はモデルもデータベースから取得
+      if (dynamicProvider === 'groq') {
+        const groqModelSetting = await storage.getSystemSetting('AI_GROQ_MODEL');
+        if (groqModelSetting && groqModelSetting.value) {
+          dynamicConfig.groq.model = groqModelSetting.value;
+        }
+      }
+      
       // Geminiの場合はモデルもデータベースから取得
       if (dynamicProvider === 'gemini') {
         const geminiModelSetting = await storage.getSystemSetting('AI_GEMINI_MODEL');

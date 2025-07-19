@@ -955,7 +955,7 @@ function createAIServiceWithConfig(config: typeof aiConfig): AIService {
     case 'gemini':
       return new GeminiService(config.gemini.model);
     case 'groq':
-      return new GroqService();
+      return new GroqService(config.groq.model);
     case 'openrouter':
       return new OpenRouterService(config.openrouter.model);
     default:

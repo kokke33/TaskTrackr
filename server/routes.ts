@@ -2296,6 +2296,15 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
         }
       }
 
+      // AI_GROQ_MODELの値をバリデーション
+      if (key === "AI_GROQ_MODEL") {
+        if (!isValidGroqModel(value)) {
+          return res.status(400).json({ 
+            error: `無効なGroqモデルです。有効な値: ${GROQ_MODELS.join(", ")}` 
+          });
+        }
+      }
+
       // REALTIME_GROQ_MODELの値をバリデーション
       if (key === "REALTIME_GROQ_MODEL") {
         if (!isValidGroqModel(value)) {
