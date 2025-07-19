@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { Settings, Save, RefreshCw, AlertCircle, Zap, X } from "lucide-react";
+import { AI_PROVIDER_OPTIONS, GROQ_MODEL_OPTIONS, OPENROUTER_MODEL_OPTIONS, DEFAULT_VALUES } from "@shared/ai-constants";
 
 interface SystemSetting {
   id: number;
@@ -236,8 +237,8 @@ export default function AdminSettings() {
       queryClient.invalidateQueries({ queryKey: ["sessionAISettings"] });
       setIsTrialMode(false);
       setTrialRealtimeProvider("");
-      setTrialGroqModel("qwen/qwen3-32b");
-      setTrialOpenRouterModel("anthropic/claude-3.5-sonnet");
+      setTrialGroqModel(DEFAULT_VALUES.GROQ_MODEL);
+      setTrialOpenRouterModel(DEFAULT_VALUES.OPENROUTER_MODEL);
       toast({
         title: "お試し設定をクリアしました",
         description: "通常のシステム設定が使用されます",
@@ -265,7 +266,7 @@ export default function AdminSettings() {
       if (aiOpenRouterModelSetting) {
         setAiOpenRouterModel(aiOpenRouterModelSetting.value);
       } else {
-        setAiOpenRouterModel("anthropic/claude-3.5-sonnet"); // デフォルト値
+        setAiOpenRouterModel(DEFAULT_VALUES.OPENROUTER_MODEL); // デフォルト値
       }
 
       // リアルタイム分析設定を取得
@@ -273,7 +274,7 @@ export default function AdminSettings() {
       if (realtimeProviderSetting) {
         setRealtimeProvider(realtimeProviderSetting.value);
       } else {
-        setRealtimeProvider("gemini"); // デフォルト値
+        setRealtimeProvider(DEFAULT_VALUES.REALTIME_AI_PROVIDER); // デフォルト値
       }
 
       // リアルタイムGroqモデル設定を取得
@@ -281,7 +282,7 @@ export default function AdminSettings() {
       if (realtimeGroqModelSetting) {
         setRealtimeGroqModel(realtimeGroqModelSetting.value);
       } else {
-        setRealtimeGroqModel("qwen/qwen3-32b"); // デフォルト値
+        setRealtimeGroqModel(DEFAULT_VALUES.GROQ_MODEL); // デフォルト値
       }
 
       // リアルタイムOpenRouterモデル設定を取得
@@ -289,7 +290,7 @@ export default function AdminSettings() {
       if (realtimeOpenRouterModelSetting) {
         setRealtimeOpenRouterModel(realtimeOpenRouterModelSetting.value);
       } else {
-        setRealtimeOpenRouterModel("anthropic/claude-3.5-sonnet"); // デフォルト値
+        setRealtimeOpenRouterModel(DEFAULT_VALUES.OPENROUTER_MODEL); // デフォルト値
       }
     }
   }, [settings]);
@@ -299,8 +300,8 @@ export default function AdminSettings() {
     if (sessionSettings) {
       if (sessionSettings.realtimeProvider) {
         setTrialRealtimeProvider(sessionSettings.realtimeProvider);
-        setTrialGroqModel(sessionSettings.groqModel || "qwen/qwen3-32b");
-        setTrialOpenRouterModel(sessionSettings.openrouterModel || "anthropic/claude-3.5-sonnet");
+        setTrialGroqModel(sessionSettings.groqModel || DEFAULT_VALUES.GROQ_MODEL);
+        setTrialOpenRouterModel(sessionSettings.openrouterModel || DEFAULT_VALUES.OPENROUTER_MODEL);
         setIsTrialMode(true);
       } else {
         setIsTrialMode(false);
@@ -411,11 +412,11 @@ export default function AdminSettings() {
                   <SelectValue placeholder="AIプロバイダーを選択" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="openai">OpenAI (GPT)</SelectItem>
-                  <SelectItem value="ollama">Ollama (ローカル)</SelectItem>
-                  <SelectItem value="gemini">Google Gemini</SelectItem>
-                  <SelectItem value="groq">Groq</SelectItem>
-                  <SelectItem value="openrouter">OpenRouter</SelectItem>
+                  {AI_PROVIDER_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
@@ -432,11 +433,11 @@ export default function AdminSettings() {
                     <SelectValue placeholder="モデルを選択" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (推奨)</SelectItem>
-                    <SelectItem value="anthropic/claude-sonnet-4">Claude Sonnet 4</SelectItem>
-                    <SelectItem value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</SelectItem>
-                    <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                    <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                    {OPENROUTER_MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
@@ -481,11 +482,11 @@ export default function AdminSettings() {
                   <SelectValue placeholder="プロバイダーを選択" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="gemini">Google Gemini (推奨)</SelectItem>
-                  <SelectItem value="openai">OpenAI (GPT)</SelectItem>
-                  <SelectItem value="groq">Groq (高速)</SelectItem>
-                  <SelectItem value="openrouter">OpenRouter</SelectItem>
-                  <SelectItem value="ollama">Ollama (ローカル)</SelectItem>
+                  {AI_PROVIDER_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
@@ -502,8 +503,11 @@ export default function AdminSettings() {
                     <SelectValue placeholder="モデルを選択" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="qwen/qwen3-32b">Qwen3 32B (推奨)</SelectItem>
-                    <SelectItem value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</SelectItem>
+                    {GROQ_MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
@@ -521,11 +525,11 @@ export default function AdminSettings() {
                     <SelectValue placeholder="モデルを選択" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (推奨)</SelectItem>
-                    <SelectItem value="anthropic/claude-sonnet-4">Claude Sonnet 4</SelectItem>
-                    <SelectItem value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</SelectItem>
-                    <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                    <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                    {OPENROUTER_MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
@@ -579,11 +583,11 @@ export default function AdminSettings() {
                   <SelectValue placeholder="プロバイダーを選択" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="gemini">Google Gemini (推奨)</SelectItem>
-                  <SelectItem value="openai">OpenAI (GPT)</SelectItem>
-                  <SelectItem value="groq">Groq (高速)</SelectItem>
-                  <SelectItem value="openrouter">OpenRouter</SelectItem>
-                  <SelectItem value="ollama">Ollama (ローカル)</SelectItem>
+                  {AI_PROVIDER_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
@@ -607,8 +611,11 @@ export default function AdminSettings() {
                     <SelectValue placeholder="モデルを選択" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="qwen/qwen3-32b">Qwen3 32B (推奨)</SelectItem>
-                    <SelectItem value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</SelectItem>
+                    {GROQ_MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
@@ -630,11 +637,11 @@ export default function AdminSettings() {
                     <SelectValue placeholder="モデルを選択" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (推奨)</SelectItem>
-                    <SelectItem value="anthropic/claude-sonnet-4">Claude Sonnet 4</SelectItem>
-                    <SelectItem value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</SelectItem>
-                    <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                    <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                    {OPENROUTER_MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">

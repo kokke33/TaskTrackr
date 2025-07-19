@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
 import Groq from 'groq-sdk';
+import { type AIProvider } from '@shared/ai-constants';
 import { aiConfig, getDynamicAIConfig } from './config.js';
 import { aiLogger, generateRequestId } from './ai-logger.js';
 
@@ -23,9 +24,9 @@ export interface AIResponse {
 
 // Abstract AI service interface
 export abstract class AIService {
-  protected readonly provider: 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter';
+  protected readonly provider: AIProvider;
 
-  constructor(provider: 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter') {
+  constructor(provider: AIProvider) {
     this.provider = provider;
   }
 
@@ -963,7 +964,7 @@ function createAIServiceWithConfig(config: typeof aiConfig): AIService {
 }
 
 // 指定されたプロバイダーでAIサービスを取得する関数（お試し機能用）
-export async function getAIServiceForProvider(provider: 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter', groqModel?: string, openrouterModel?: string): Promise<AIService> {
+export async function getAIServiceForProvider(provider: AIProvider, groqModel?: string, openrouterModel?: string): Promise<AIService> {
   switch (provider) {
     case 'openai':
       return new OpenAIService();

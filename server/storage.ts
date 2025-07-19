@@ -1,4 +1,5 @@
 import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, systemSettings, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting, type SystemSetting, type InsertSystemSetting } from "@shared/schema";
+import { DEFAULT_VALUES } from "@shared/ai-constants";
 import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql, gte, lte, lt } from "drizzle-orm";
 import { hash } from "bcryptjs";
@@ -1367,9 +1368,9 @@ export class DatabaseStorage implements IStorage {
     openrouterModel?: string;
   }> {
     return await withRetry(async () => {
-      const provider = await this.getSystemSetting('REALTIME_AI_PROVIDER') || { value: 'gemini' };
-      const groqModel = await this.getSystemSetting('REALTIME_GROQ_MODEL') || { value: 'qwen/qwen3-32b' };
-      const openrouterModel = await this.getSystemSetting('REALTIME_OPENROUTER_MODEL') || { value: 'anthropic/claude-3.5-sonnet' };
+      const provider = await this.getSystemSetting('REALTIME_AI_PROVIDER') || { value: DEFAULT_VALUES.REALTIME_AI_PROVIDER };
+      const groqModel = await this.getSystemSetting('REALTIME_GROQ_MODEL') || { value: DEFAULT_VALUES.GROQ_MODEL };
+      const openrouterModel = await this.getSystemSetting('REALTIME_OPENROUTER_MODEL') || { value: DEFAULT_VALUES.OPENROUTER_MODEL };
 
       return {
         provider: provider.value,

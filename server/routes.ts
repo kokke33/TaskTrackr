@@ -9,6 +9,14 @@ import {
   insertWeeklyReportMeetingSchema,
   insertUserSchema,
 } from "@shared/schema";
+import {
+  AI_PROVIDERS,
+  GROQ_MODELS,
+  OPENROUTER_MODELS,
+  isValidAIProvider,
+  isValidGroqModel,
+  isValidOpenRouterModel,
+} from "@shared/ai-constants";
 import { getAIServiceDynamic } from "./ai-service";
 import { aiRoutes } from "./ai-routes";
 import passport from "passport";
@@ -2156,35 +2164,26 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
       }
 
       // プロバイダーの値をバリデーション
-      const validProviders = ["openai", "ollama", "gemini", "groq", "openrouter"];
-      if (!validProviders.includes(realtimeProvider)) {
+      if (!isValidAIProvider(realtimeProvider)) {
         return res.status(400).json({ 
-          error: `無効なAIプロバイダーです。有効な値: ${validProviders.join(", ")}` 
+          error: `無効なAIプロバイダーです。有効な値: ${AI_PROVIDERS.join(", ")}` 
         });
       }
 
       // Groqの場合はモデルのバリデーション
       if (realtimeProvider === "groq" && groqModel) {
-        const validGroqModels = ["qwen/qwen3-32b", "meta-llama/llama-4-scout-17b-16e-instruct"];
-        if (!validGroqModels.includes(groqModel)) {
+        if (!isValidGroqModel(groqModel)) {
           return res.status(400).json({ 
-            error: `無効なGroqモデルです。有効な値: ${validGroqModels.join(", ")}` 
+            error: `無効なGroqモデルです。有効な値: ${GROQ_MODELS.join(", ")}` 
           });
         }
       }
 
       // OpenRouterの場合はモデルのバリデーション
       if (realtimeProvider === "openrouter" && openrouterModel) {
-        const validOpenRouterModels = [
-          "anthropic/claude-3.5-sonnet",
-          "anthropic/claude-sonnet-4",
-          "google/gemini-2.0-flash-001",
-          "google/gemini-2.5-flash",
-          "google/gemini-2.5-pro"
-        ];
-        if (!validOpenRouterModels.includes(openrouterModel)) {
+        if (!isValidOpenRouterModel(openrouterModel)) {
           return res.status(400).json({ 
-            error: `無効なOpenRouterモデルです。有効な値: ${validOpenRouterModels.join(", ")}` 
+            error: `無効なOpenRouterモデルです。有効な値: ${OPENROUTER_MODELS.join(", ")}` 
           });
         }
       }
@@ -2267,30 +2266,27 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
 
       // AI_PROVIDERの値をバリデーション
       if (key === "AI_PROVIDER") {
-        const validProviders = ["openai", "ollama", "gemini", "groq", "openrouter"];
-        if (!validProviders.includes(value)) {
+        if (!isValidAIProvider(value)) {
           return res.status(400).json({ 
-            error: `無効なAIプロバイダーです。有効な値: ${validProviders.join(", ")}` 
+            error: `無効なAIプロバイダーです。有効な値: ${AI_PROVIDERS.join(", ")}` 
           });
         }
       }
 
       // REALTIME_AI_PROVIDERの値をバリデーション
       if (key === "REALTIME_AI_PROVIDER") {
-        const validProviders = ["openai", "ollama", "gemini", "groq", "openrouter"];
-        if (!validProviders.includes(value)) {
+        if (!isValidAIProvider(value)) {
           return res.status(400).json({ 
-            error: `無効なリアルタイムAIプロバイダーです。有効な値: ${validProviders.join(", ")}` 
+            error: `無効なリアルタイムAIプロバイダーです。有効な値: ${AI_PROVIDERS.join(", ")}` 
           });
         }
       }
 
       // REALTIME_GROQ_MODELの値をバリデーション
       if (key === "REALTIME_GROQ_MODEL") {
-        const validGroqModels = ["qwen/qwen3-32b", "meta-llama/llama-4-scout-17b-16e-instruct"];
-        if (!validGroqModels.includes(value)) {
+        if (!isValidGroqModel(value)) {
           return res.status(400).json({ 
-            error: `無効なリアルタイムGroqモデルです。有効な値: ${validGroqModels.join(", ")}` 
+            error: `無効なリアルタイムGroqモデルです。有効な値: ${GROQ_MODELS.join(", ")}` 
           });
         }
       }
