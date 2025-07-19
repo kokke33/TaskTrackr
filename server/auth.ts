@@ -160,8 +160,22 @@ export function isAuthenticated(req: any, res: any, next: any) {
 
 // 管理者権限チェックミドルウェア
 export function isAdmin(req: any, res: any, next: any) {
+  console.log(`[ADMIN CHECK] ${req.method} ${req.path}`, {
+    isAuthenticated: req.isAuthenticated(),
+    user: req.user ? { id: req.user.id, username: req.user.username, isAdmin: req.user.isAdmin } : null,
+    sessionID: req.sessionID,
+    timestamp: new Date().toISOString()
+  });
+  
   if (req.isAuthenticated() && req.user && req.user.isAdmin) {
+    console.log(`[ADMIN CHECK] ✅ Admin access granted for user ${req.user.username}`);
     return next();
   }
+  
+  console.log(`[ADMIN CHECK] ❌ Admin access denied`, {
+    isAuthenticated: req.isAuthenticated(),
+    hasUser: !!req.user,
+    isAdmin: req.user?.isAdmin
+  });
   res.status(403).json({ message: "この操作には管理者権限が必要です" });
 }

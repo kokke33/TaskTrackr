@@ -52,7 +52,15 @@ type UserEditData = z.infer<typeof userEditSchema>;
 
 // ユーザ一覧を取得する関数
 async function getUsers(): Promise<User[]> {
-  return await apiRequest("/api/users", { method: "GET" });
+  console.log("[ADMIN-USERS] Requesting user list...");
+  try {
+    const result = await apiRequest("/api/users", { method: "GET" });
+    console.log("[ADMIN-USERS] User list retrieved successfully:", result);
+    return result;
+  } catch (error) {
+    console.error("[ADMIN-USERS] Failed to get user list:", error);
+    throw error;
+  }
 }
 
 // 新規ユーザ作成
@@ -63,12 +71,21 @@ async function createUser(userData: UserFormData): Promise<User> {
 
 // ユーザ更新
 async function updateUser(id: number, userData: UserEditData): Promise<User> {
+  console.log(`[ADMIN-USERS] Updating user ${id}...`, userData);
   const { confirmPassword, ...data } = userData;
   // パスワードが空の場合は除外
   if (!data.password) {
     delete data.password;
   }
-  return await apiRequest(`/api/users/${id}`, { method: "PUT", data });
+  console.log(`[ADMIN-USERS] Sending update request for user ${id}:`, data);
+  try {
+    const result = await apiRequest(`/api/users/${id}`, { method: "PUT", data });
+    console.log(`[ADMIN-USERS] User ${id} updated successfully:`, result);
+    return result;
+  } catch (error) {
+    console.error(`[ADMIN-USERS] Failed to update user ${id}:`, error);
+    throw error;
+  }
 }
 
 // ユーザ削除
@@ -80,6 +97,12 @@ export default function AdminUsers() {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
+  
+  console.log("[ADMIN-USERS] Page loaded with auth state:", {
+    isAuthenticated,
+    user: user ? { id: user.id, username: user.username, isAdmin: user.isAdmin } : null,
+    timestamp: new Date().toISOString()
+  });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
