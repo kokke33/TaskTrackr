@@ -1364,14 +1364,17 @@ export class DatabaseStorage implements IStorage {
   async getRealtimeAnalysisConfig(): Promise<{
     provider: string;
     groqModel?: string;
+    openrouterModel?: string;
   }> {
     return await withRetry(async () => {
       const provider = await this.getSystemSetting('REALTIME_AI_PROVIDER') || { value: 'gemini' };
       const groqModel = await this.getSystemSetting('REALTIME_GROQ_MODEL') || { value: 'qwen/qwen3-32b' };
+      const openrouterModel = await this.getSystemSetting('REALTIME_OPENROUTER_MODEL') || { value: 'anthropic/claude-3.5-sonnet' };
 
       return {
         provider: provider.value,
         groqModel: groqModel.value,
+        openrouterModel: openrouterModel.value,
       };
     });
   }

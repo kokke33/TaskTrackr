@@ -122,7 +122,7 @@ Drizzle ORMで管理される主要エンティティ：
 
 #### AIサービスアーキテクチャ
 `server/ai-service.ts`の抽象`AIService`クラスが複数プロバイダーをサポート：
-- OpenAI、Ollama、Google Gemini、Groq実装
+- OpenAI、Ollama、Google Gemini、Groq、OpenRouter実装
 - `ai-logger.ts`による包括的ログ
 - コンテンツクリーニング（`<think>`タグ、マークダウンブロックを除去）
 - トークン使用量追跡とリクエストID生成
@@ -154,7 +154,7 @@ DATABASE_URL=postgres://user:pass@localhost:5432/tasktrackr
 SESSION_SECRET=your-session-secret
 
 # AIプロバイダー
-AI_PROVIDER=openai  # または "ollama", "gemini", "groq"
+AI_PROVIDER=openai  # または "ollama", "gemini", "groq", "openrouter"
 AI_LOG_LEVEL=info   # debug, info, warn, error (本番環境では自動的にwarnに設定)
 AI_LOG_CONSOLE=true # 本番環境では自動的にfalseに設定
 AI_LOG_FILE=false   # ファイルログを有効にする場合はtrueに設定
@@ -177,6 +177,12 @@ GEMINI_MODEL=gemini-2.5-flash
 # Groq（使用する場合）
 GROQ_API_KEY=your-key
 GROQ_MODEL=llama-3.1-70b-versatile
+
+# OpenRouter（使用する場合）
+OPENROUTER_API_KEY=sk-or-your-key
+OPENROUTER_MODEL=anthropic/claude-3.5-sonnet  # または "anthropic/claude-sonnet-4", "google/gemini-2.0-flash-001", "google/gemini-2.5-flash", "google/gemini-2.5-pro"
+OPENROUTER_MAX_TOKENS=4000
+OPENROUTER_TEMPERATURE=0.7
 
 # 開発環境設定
 PORT=3000

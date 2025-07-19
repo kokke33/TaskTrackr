@@ -2149,14 +2149,14 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
   // セッション一時設定の更新
   app.put("/api/session-ai-settings", isAuthenticated, async (req, res) => {
     try {
-      const { realtimeProvider, groqModel } = req.body;
+      const { realtimeProvider, groqModel, openrouterModel } = req.body;
 
       if (!realtimeProvider) {
         return res.status(400).json({ error: "realtimeProviderが必要です" });
       }
 
       // プロバイダーの値をバリデーション
-      const validProviders = ["openai", "ollama", "gemini", "groq"];
+      const validProviders = ["openai", "ollama", "gemini", "groq", "openrouter"];
       if (!validProviders.includes(realtimeProvider)) {
         return res.status(400).json({ 
           error: `無効なAIプロバイダーです。有効な値: ${validProviders.join(", ")}` 
@@ -2173,6 +2173,22 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
         }
       }
 
+      // OpenRouterの場合はモデルのバリデーション
+      if (realtimeProvider === "openrouter" && openrouterModel) {
+        const validOpenRouterModels = [
+          "anthropic/claude-3.5-sonnet",
+          "anthropic/claude-sonnet-4",
+          "google/gemini-2.0-flash-001",
+          "google/gemini-2.5-flash",
+          "google/gemini-2.5-pro"
+        ];
+        if (!validOpenRouterModels.includes(openrouterModel)) {
+          return res.status(400).json({ 
+            error: `無効なOpenRouterモデルです。有効な値: ${validOpenRouterModels.join(", ")}` 
+          });
+        }
+      }
+
       // セッションに保存
       if (!req.session) {
         return res.status(500).json({ error: "セッションが初期化されていません" });
@@ -2181,6 +2197,9 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
       const sessionSettings: any = { realtimeProvider };
       if (realtimeProvider === "groq" && groqModel) {
         sessionSettings.groqModel = groqModel;
+      }
+      if (realtimeProvider === "openrouter" && openrouterModel) {
+        sessionSettings.openrouterModel = openrouterModel;
       }
       
       (req.session as any).aiSettings = sessionSettings;
@@ -2248,7 +2267,7 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
 
       // AI_PROVIDERの値をバリデーション
       if (key === "AI_PROVIDER") {
-        const validProviders = ["openai", "ollama", "gemini", "groq"];
+        const validProviders = ["openai", "ollama", "gemini", "groq", "openrouter"];
         if (!validProviders.includes(value)) {
           return res.status(400).json({ 
             error: `無効なAIプロバイダーです。有効な値: ${validProviders.join(", ")}` 
@@ -2258,7 +2277,7 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
 
       // REALTIME_AI_PROVIDERの値をバリデーション
       if (key === "REALTIME_AI_PROVIDER") {
-        const validProviders = ["openai", "ollama", "gemini", "groq"];
+        const validProviders = ["openai", "ollama", "gemini", "groq", "openrouter"];
         if (!validProviders.includes(value)) {
           return res.status(400).json({ 
             error: `無効なリアルタイムAIプロバイダーです。有効な値: ${validProviders.join(", ")}` 

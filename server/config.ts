@@ -5,7 +5,7 @@ import { storage } from './storage';
 dotenv.config();
 
 export interface AIConfig {
-  provider: 'openai' | 'ollama' | 'gemini' | 'groq';
+  provider: 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter';
   openai: {
     apiKey: string;
     model: string;
@@ -31,10 +31,16 @@ export interface AIConfig {
     maxTokens: number;
     temperature: number;
   };
+  openrouter: {
+    apiKey: string;
+    model: string;
+    maxTokens: number;
+    temperature: number;
+  };
 }
 
 export const aiConfig: AIConfig = {
-  provider: (process.env.AI_PROVIDER as 'openai' | 'ollama' | 'gemini' | 'groq') || 'openai',
+  provider: (process.env.AI_PROVIDER as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter') || 'openai',
   openai: {
     apiKey: process.env.OPENAI_API_KEY || '',
     model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
@@ -62,6 +68,12 @@ export const aiConfig: AIConfig = {
     maxTokens: parseInt(process.env.GROQ_MAX_TOKENS || '1000'),
     temperature: parseFloat(process.env.GROQ_TEMPERATURE || '0.7'),
   },
+  openrouter: {
+    apiKey: process.env.OPENROUTER_API_KEY || '',
+    model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet',
+    maxTokens: parseInt(process.env.OPENROUTER_MAX_TOKENS || '4000'),
+    temperature: parseFloat(process.env.OPENROUTER_TEMPERATURE || '0.7'),
+  },
 };
 
 // Validation function
@@ -82,6 +94,10 @@ export function validateAIConfig(): void {
     throw new Error('GROQ_API_KEY or GROQ_API_KEYS is required when using Groq provider');
   }
   
+  if (aiConfig.provider === 'openrouter' && !aiConfig.openrouter.apiKey) {
+    throw new Error('OPENROUTER_API_KEY is required when using OpenRouter provider');
+  }
+  
   console.log(`AI Provider: ${aiConfig.provider}`);
   if (aiConfig.provider === 'openai') {
     console.log(`OpenAI Model: ${aiConfig.openai.model}`);
@@ -91,6 +107,8 @@ export function validateAIConfig(): void {
     console.log(`Gemini Model: ${aiConfig.gemini.model}`);
   } else if (aiConfig.provider === 'groq') {
     console.log(`Groq Model: ${aiConfig.groq.model}`);
+  } else if (aiConfig.provider === 'openrouter') {
+    console.log(`OpenRouter Model: ${aiConfig.openrouter.model}`);
   }
 }
 
@@ -101,13 +119,21 @@ export async function getDynamicAIConfig(): Promise<AIConfig> {
     const providerSetting = await storage.getSystemSetting('AI_PROVIDER');
     
     if (providerSetting && providerSetting.value) {
-      const dynamicProvider = providerSetting.value as 'openai' | 'ollama' | 'gemini' | 'groq';
+      const dynamicProvider = providerSetting.value as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter';
       
       // 設定をコピーしてプロバイダーを更新
       const dynamicConfig: AIConfig = {
         ...aiConfig,
         provider: dynamicProvider,
       };
+      
+      // OpenRouterの場合はモデルもデータベースから取得
+      if (dynamicProvider === 'openrouter') {
+        const openrouterModelSetting = await storage.getSystemSetting('AI_OPENROUTER_MODEL');
+        if (openrouterModelSetting && openrouterModelSetting.value) {
+          dynamicConfig.openrouter.model = openrouterModelSetting.value;
+        }
+      }
       
       return dynamicConfig;
     }
@@ -122,7 +148,7 @@ export async function getDynamicAIConfig(): Promise<AIConfig> {
 }
 
 // AI設定を更新する関数
-export async function updateAIProvider(provider: 'openai' | 'ollama' | 'gemini' | 'groq'): Promise<void> {
+export async function updateAIProvider(provider: 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter'): Promise<void> {
   try {
     await storage.setSystemSetting('AI_PROVIDER', provider, 'AIサービスプロバイダー');
     console.log(`AI Provider updated to: ${provider}`);

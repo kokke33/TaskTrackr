@@ -62,7 +62,7 @@ async function updateSystemSetting(key: string, value: string, description?: str
 }
 
 // セッション設定を取得する関数
-async function getSessionAISettings(): Promise<{ realtimeProvider?: string; groqModel?: string }> {
+async function getSessionAISettings(): Promise<{ realtimeProvider?: string; groqModel?: string; openrouterModel?: string }> {
   const response = await fetch("/api/session-ai-settings", {
     credentials: "include",
   });
@@ -73,10 +73,13 @@ async function getSessionAISettings(): Promise<{ realtimeProvider?: string; groq
 }
 
 // セッション設定を更新する関数
-async function updateSessionAISettings(realtimeProvider: string, groqModel?: string): Promise<{ success: boolean; settings: { realtimeProvider: string; groqModel?: string } }> {
+async function updateSessionAISettings(realtimeProvider: string, groqModel?: string, openrouterModel?: string): Promise<{ success: boolean; settings: { realtimeProvider: string; groqModel?: string; openrouterModel?: string } }> {
   const body: any = { realtimeProvider };
   if (realtimeProvider === "groq" && groqModel) {
     body.groqModel = groqModel;
+  }
+  if (realtimeProvider === "openrouter" && openrouterModel) {
+    body.openrouterModel = openrouterModel;
   }
   
   const response = await fetch("/api/session-ai-settings", {
@@ -121,14 +124,17 @@ export default function AdminSettings() {
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [aiProvider, setAiProvider] = useState<string>("");
+  const [aiOpenRouterModel, setAiOpenRouterModel] = useState<string>("");
   
   // リアルタイム分析用の状態
   const [realtimeProvider, setRealtimeProvider] = useState<string>("");
   const [realtimeGroqModel, setRealtimeGroqModel] = useState<string>("");
+  const [realtimeOpenRouterModel, setRealtimeOpenRouterModel] = useState<string>("");
   
   // お試し設定用の状態
   const [trialRealtimeProvider, setTrialRealtimeProvider] = useState<string>("");
   const [trialGroqModel, setTrialGroqModel] = useState<string>("");
+  const [trialOpenRouterModel, setTrialOpenRouterModel] = useState<string>("");
   const [isTrialMode, setIsTrialMode] = useState<boolean>(false);
 
   // システム設定を取得
@@ -145,8 +151,15 @@ export default function AdminSettings() {
 
   // AI_PROVIDER設定を更新
   const updateProviderMutation = useMutation({
-    mutationFn: (provider: string) => 
-      updateSystemSetting("AI_PROVIDER", provider, "AIサービスプロバイダー (openai, ollama, gemini, groq)"),
+    mutationFn: async ({ provider, openrouterModel }: { provider: string; openrouterModel?: string }) => {
+      // プロバイダーを更新
+      await updateSystemSetting("AI_PROVIDER", provider, "AIサービスプロバイダー (openai, ollama, gemini, groq, openrouter)");
+      
+      // OpenRouterの場合はモデルも更新
+      if (provider === "openrouter" && openrouterModel) {
+        await updateSystemSetting("AI_OPENROUTER_MODEL", openrouterModel, "基本AI設定用OpenRouterモデル");
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["systemSettings"] });
       toast({
@@ -165,13 +178,18 @@ export default function AdminSettings() {
 
   // リアルタイム分析設定を更新
   const updateRealtimeMutation = useMutation({
-    mutationFn: async ({ provider, groqModel }: { provider: string; groqModel?: string }) => {
+    mutationFn: async ({ provider, groqModel, openrouterModel }: { provider: string; groqModel?: string; openrouterModel?: string }) => {
       // プロバイダーを更新
-      await updateSystemSetting("REALTIME_AI_PROVIDER", provider, "リアルタイム分析用AIプロバイダー (openai, ollama, gemini, groq)");
+      await updateSystemSetting("REALTIME_AI_PROVIDER", provider, "リアルタイム分析用AIプロバイダー (openai, ollama, gemini, groq, openrouter)");
       
       // Groqの場合はモデルも更新
       if (provider === "groq" && groqModel) {
         await updateSystemSetting("REALTIME_GROQ_MODEL", groqModel, "リアルタイム分析用Groqモデル");
+      }
+      
+      // OpenRouterの場合はモデルも更新
+      if (provider === "openrouter" && openrouterModel) {
+        await updateSystemSetting("REALTIME_OPENROUTER_MODEL", openrouterModel, "リアルタイム分析用OpenRouterモデル");
       }
     },
     onSuccess: () => {
@@ -192,8 +210,8 @@ export default function AdminSettings() {
 
   // お試しセッション設定を更新
   const updateTrialMutation = useMutation({
-    mutationFn: ({ provider, groqModel }: { provider: string; groqModel?: string }) => 
-      updateSessionAISettings(provider, groqModel),
+    mutationFn: ({ provider, groqModel, openrouterModel }: { provider: string; groqModel?: string; openrouterModel?: string }) => 
+      updateSessionAISettings(provider, groqModel, openrouterModel),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessionAISettings"] });
       setIsTrialMode(true);
@@ -219,6 +237,7 @@ export default function AdminSettings() {
       setIsTrialMode(false);
       setTrialRealtimeProvider("");
       setTrialGroqModel("qwen/qwen3-32b");
+      setTrialOpenRouterModel("anthropic/claude-3.5-sonnet");
       toast({
         title: "お試し設定をクリアしました",
         description: "通常のシステム設定が使用されます",
@@ -241,6 +260,14 @@ export default function AdminSettings() {
         setAiProvider(aiProviderSetting.value);
       }
 
+      // 基本AI設定のOpenRouterモデル設定を取得
+      const aiOpenRouterModelSetting = settings.find(setting => setting.key === "AI_OPENROUTER_MODEL");
+      if (aiOpenRouterModelSetting) {
+        setAiOpenRouterModel(aiOpenRouterModelSetting.value);
+      } else {
+        setAiOpenRouterModel("anthropic/claude-3.5-sonnet"); // デフォルト値
+      }
+
       // リアルタイム分析設定を取得
       const realtimeProviderSetting = settings.find(setting => setting.key === "REALTIME_AI_PROVIDER");
       if (realtimeProviderSetting) {
@@ -256,6 +283,14 @@ export default function AdminSettings() {
       } else {
         setRealtimeGroqModel("qwen/qwen3-32b"); // デフォルト値
       }
+
+      // リアルタイムOpenRouterモデル設定を取得
+      const realtimeOpenRouterModelSetting = settings.find(setting => setting.key === "REALTIME_OPENROUTER_MODEL");
+      if (realtimeOpenRouterModelSetting) {
+        setRealtimeOpenRouterModel(realtimeOpenRouterModelSetting.value);
+      } else {
+        setRealtimeOpenRouterModel("anthropic/claude-3.5-sonnet"); // デフォルト値
+      }
     }
   }, [settings]);
 
@@ -265,6 +300,7 @@ export default function AdminSettings() {
       if (sessionSettings.realtimeProvider) {
         setTrialRealtimeProvider(sessionSettings.realtimeProvider);
         setTrialGroqModel(sessionSettings.groqModel || "qwen/qwen3-32b");
+        setTrialOpenRouterModel(sessionSettings.openrouterModel || "anthropic/claude-3.5-sonnet");
         setIsTrialMode(true);
       } else {
         setIsTrialMode(false);
@@ -278,7 +314,10 @@ export default function AdminSettings() {
 
   const handleSave = () => {
     if (aiProvider) {
-      updateProviderMutation.mutate(aiProvider);
+      updateProviderMutation.mutate({ 
+        provider: aiProvider,
+        openrouterModel: aiProvider === "openrouter" ? aiOpenRouterModel : undefined
+      });
     }
   };
 
@@ -286,7 +325,8 @@ export default function AdminSettings() {
     if (realtimeProvider) {
       updateRealtimeMutation.mutate({ 
         provider: realtimeProvider, 
-        groqModel: realtimeProvider === "groq" ? realtimeGroqModel : undefined 
+        groqModel: realtimeProvider === "groq" ? realtimeGroqModel : undefined,
+        openrouterModel: realtimeProvider === "openrouter" ? realtimeOpenRouterModel : undefined
       });
     }
   };
@@ -295,7 +335,8 @@ export default function AdminSettings() {
     if (trialRealtimeProvider) {
       updateTrialMutation.mutate({ 
         provider: trialRealtimeProvider, 
-        groqModel: trialRealtimeProvider === "groq" ? trialGroqModel : undefined 
+        groqModel: trialRealtimeProvider === "groq" ? trialGroqModel : undefined,
+        openrouterModel: trialRealtimeProvider === "openrouter" ? trialOpenRouterModel : undefined
       });
     }
   };
@@ -374,12 +415,35 @@ export default function AdminSettings() {
                   <SelectItem value="ollama">Ollama (ローカル)</SelectItem>
                   <SelectItem value="gemini">Google Gemini</SelectItem>
                   <SelectItem value="groq">Groq</SelectItem>
+                  <SelectItem value="openrouter">OpenRouter</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
                 使用するAIサービスプロバイダーを選択してください
               </p>
             </div>
+
+            {/* OpenRouterモデル選択（OpenRouterプロバイダーの場合のみ表示） */}
+            {aiProvider === "openrouter" && (
+              <div className="space-y-2">
+                <Label htmlFor="ai-openrouter-model">OpenRouterモデル</Label>
+                <Select value={aiOpenRouterModel} onValueChange={setAiOpenRouterModel}>
+                  <SelectTrigger id="ai-openrouter-model">
+                    <SelectValue placeholder="モデルを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (推奨)</SelectItem>
+                    <SelectItem value="anthropic/claude-sonnet-4">Claude Sonnet 4</SelectItem>
+                    <SelectItem value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</SelectItem>
+                    <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                    <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  基本AI設定で使用するOpenRouterモデルを選択してください。
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 pt-4">
               <Button
@@ -420,6 +484,7 @@ export default function AdminSettings() {
                   <SelectItem value="gemini">Google Gemini (推奨)</SelectItem>
                   <SelectItem value="openai">OpenAI (GPT)</SelectItem>
                   <SelectItem value="groq">Groq (高速)</SelectItem>
+                  <SelectItem value="openrouter">OpenRouter</SelectItem>
                   <SelectItem value="ollama">Ollama (ローカル)</SelectItem>
                 </SelectContent>
               </Select>
@@ -443,6 +508,28 @@ export default function AdminSettings() {
                 </Select>
                 <p className="text-sm text-muted-foreground">
                   リアルタイム分析で使用するGroqモデルを選択してください。
+                </p>
+              </div>
+            )}
+
+            {/* OpenRouterモデル選択（OpenRouterプロバイダーの場合のみ表示） */}
+            {realtimeProvider === "openrouter" && (
+              <div className="space-y-2">
+                <Label htmlFor="realtime-openrouter-model">OpenRouterモデル</Label>
+                <Select value={realtimeOpenRouterModel} onValueChange={setRealtimeOpenRouterModel}>
+                  <SelectTrigger id="realtime-openrouter-model">
+                    <SelectValue placeholder="モデルを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (推奨)</SelectItem>
+                    <SelectItem value="anthropic/claude-sonnet-4">Claude Sonnet 4</SelectItem>
+                    <SelectItem value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</SelectItem>
+                    <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                    <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  リアルタイム分析で使用するOpenRouterモデルを選択してください。
                 </p>
               </div>
             )}
@@ -495,6 +582,7 @@ export default function AdminSettings() {
                   <SelectItem value="gemini">Google Gemini (推奨)</SelectItem>
                   <SelectItem value="openai">OpenAI (GPT)</SelectItem>
                   <SelectItem value="groq">Groq (高速)</SelectItem>
+                  <SelectItem value="openrouter">OpenRouter</SelectItem>
                   <SelectItem value="ollama">Ollama (ローカル)</SelectItem>
                 </SelectContent>
               </Select>
@@ -525,6 +613,32 @@ export default function AdminSettings() {
                 </Select>
                 <p className="text-sm text-muted-foreground">
                   お試し用Groqモデルを選択してください。DB保存はされません。
+                </p>
+              </div>
+            )}
+
+            {/* お試し用OpenRouterモデル選択（OpenRouterプロバイダーの場合のみ表示） */}
+            {trialRealtimeProvider === "openrouter" && (
+              <div className="space-y-2">
+                <Label htmlFor="trial-openrouter-model">お試し用OpenRouterモデル</Label>
+                <Select 
+                  value={trialOpenRouterModel} 
+                  onValueChange={setTrialOpenRouterModel}
+                  disabled={updateTrialMutation.isPending}
+                >
+                  <SelectTrigger id="trial-openrouter-model">
+                    <SelectValue placeholder="モデルを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (推奨)</SelectItem>
+                    <SelectItem value="anthropic/claude-sonnet-4">Claude Sonnet 4</SelectItem>
+                    <SelectItem value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</SelectItem>
+                    <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                    <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  お試し用OpenRouterモデルを選択してください。DB保存はされません。
                 </p>
               </div>
             )}

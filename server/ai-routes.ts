@@ -133,8 +133,9 @@ router.post('/api/ai/analyze-text', isAuthenticated, async (req, res) => {
     // リアルタイム分析専用のAIサービスを取得
     const { getAIServiceForProvider } = await import('./ai-service.js');
     const aiService = await getAIServiceForProvider(
-      realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq',
-      realtimeConfig.provider === 'groq' ? realtimeConfig.groqModel : undefined
+      realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter',
+      realtimeConfig.provider === 'groq' ? realtimeConfig.groqModel : undefined,
+      realtimeConfig.provider === 'openrouter' ? realtimeConfig.openrouterModel : undefined
     );
     
     const analysis = await aiService.analyzeText(text, userId);
@@ -176,7 +177,8 @@ router.post('/api/ai/analyze-text-trial', isAuthenticated, async (req, res) => {
       const { getAIServiceForProvider } = await import('./ai-service.js');
       aiService = await getAIServiceForProvider(
         sessionSettings.realtimeProvider,
-        sessionSettings.realtimeProvider === 'groq' ? sessionSettings.groqModel : undefined
+        sessionSettings.realtimeProvider === 'groq' ? sessionSettings.groqModel : undefined,
+        sessionSettings.realtimeProvider === 'openrouter' ? sessionSettings.openrouterModel : undefined
       );
     } else {
       // デフォルトの設定を使用
