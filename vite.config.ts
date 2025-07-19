@@ -27,10 +27,16 @@ export default defineConfig({
       "@": path.resolve(__dirname, "client", "src"),
       "@shared": path.resolve(__dirname, "shared"),
     },
+    dedupe: ["react", "react-dom", "wouter"],
   },
   root: path.resolve(__dirname, "client"),
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+  },
+  server: {
+    hmr: {
+      port: 5000,
+    },
   },
 });
