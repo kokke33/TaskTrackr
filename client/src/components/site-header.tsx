@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { ThemeToggle } from './theme-toggle';
 import { SearchBar } from './search-bar';
 import { AdminOnly } from '@/lib/admin-only';
-import { User, LogOut, Settings } from 'lucide-react';
+import { User, LogOut, Settings, Users } from 'lucide-react';
 
 export function SiteHeader() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -38,6 +38,11 @@ export function SiteHeader() {
                     <span className="transition-colors hover:text-foreground/80 cursor-pointer">設定</span>
                   </Link>
                 </AdminOnly>
+                <AdminOnly>
+                  <Link href="/admin/users">
+                    <span className="transition-colors hover:text-foreground/80 cursor-pointer">ユーザ管理</span>
+                  </Link>
+                </AdminOnly>
 
               </>
             )}
@@ -66,6 +71,13 @@ export function SiteHeader() {
                   <Link href="/admin/settings">
                     <Button variant="ghost" size="icon" title="システム設定">
                       <Settings className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </AdminOnly>
+                <AdminOnly>
+                  <Link href="/admin/users">
+                    <Button variant="ghost" size="icon" title="ユーザ管理">
+                      <Users className="h-4 w-4" />
                     </Button>
                   </Link>
                 </AdminOnly>

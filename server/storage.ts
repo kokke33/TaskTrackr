@@ -1,6 +1,7 @@
 import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, systemSettings, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting, type SystemSetting, type InsertSystemSetting } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql, gte, lte, lt } from "drizzle-orm";
+import { hash } from "bcryptjs";
 
 // データベース操作のリトライ機能
 async function withRetry<T>(
@@ -94,8 +95,10 @@ export interface IStorage {
   // ユーザー関連
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(userData: InsertUser): Promise<User>;
-  updateUser(id: number, userData: Partial<InsertUser>): Promise<User>;
+  getAllUsers(): Promise<Omit<User, 'password'>[]>;
+  createUser(userData: InsertUser): Promise<Omit<User, 'password'>>;
+  updateUser(id: number, userData: Partial<InsertUser>): Promise<Omit<User, 'password'> | null>;
+  deleteUser(id: number): Promise<Omit<User, 'password'> | null>;
 
   // プロジェクト関連
   createProject(projectData: InsertProject): Promise<Project>;
@@ -159,23 +162,6 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(users)
       .where(eq(users.username, username));
-    return user;
-  }
-
-  async createUser(userData: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .returning();
-    return user;
-  }
-
-  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set(userData)
-      .where(eq(users.id, id))
-      .returning();
     return user;
   }
 
@@ -1422,6 +1408,131 @@ export class DatabaseStorage implements IStorage {
         .where(eq(systemSettings.key, key))
         .returning();
       return deleted || null;
+    });
+  }
+
+  // ユーザ管理メソッド
+
+  // 全ユーザを取得（パスワードは除外）
+  async getAllUsers(): Promise<Omit<User, 'password'>[]> {
+    return await withRetry(async () => {
+      const userList = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          isAdmin: users.isAdmin,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .orderBy(desc(users.createdAt));
+      return userList;
+    });
+  }
+
+  // 新規ユーザ作成
+  async createUser(userData: InsertUser): Promise<Omit<User, 'password'>> {
+    return await withRetry(async () => {
+      // パスワードをハッシュ化
+      const hashedPassword = await hash(userData.password, 10);
+      
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          ...userData,
+          password: hashedPassword,
+        })
+        .returning({
+          id: users.id,
+          username: users.username,
+          isAdmin: users.isAdmin,
+          createdAt: users.createdAt,
+        });
+      return newUser;
+    });
+  }
+
+  // ユーザ情報更新
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<Omit<User, 'password'> | null> {
+    return await withRetry(async () => {
+      // パスワードが含まれている場合はハッシュ化
+      const updateData: any = { ...userData };
+      if (updateData.password) {
+        updateData.password = await hash(updateData.password, 10);
+      }
+
+      // 管理者権限を削除しようとしている場合、最後の管理者でないかチェック
+      if (updateData.isAdmin === false) {
+        const adminCount = await db
+          .select({ count: sql`count(*)` })
+          .from(users)
+          .where(eq(users.isAdmin, true));
+        
+        const currentUser = await db
+          .select({ isAdmin: users.isAdmin })
+          .from(users)
+          .where(eq(users.id, id))
+          .limit(1);
+
+        if (currentUser[0]?.isAdmin && Number(adminCount[0].count) <= 1) {
+          throw new Error("Cannot remove last admin user");
+        }
+      }
+
+      const [updatedUser] = await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, id))
+        .returning({
+          id: users.id,
+          username: users.username,
+          isAdmin: users.isAdmin,
+          createdAt: users.createdAt,
+        });
+      return updatedUser || null;
+    });
+  }
+
+  // ユーザ削除
+  async deleteUser(id: number): Promise<Omit<User, 'password'> | null> {
+    return await withRetry(async () => {
+      // 削除対象のユーザ情報を取得
+      const [userToDelete] = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          isAdmin: users.isAdmin,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+
+      if (!userToDelete) {
+        return null;
+      }
+
+      // 最後の管理者ユーザーの削除を防ぐ
+      if (userToDelete.isAdmin) {
+        const adminCount = await db
+          .select({ count: sql`count(*)` })
+          .from(users)
+          .where(eq(users.isAdmin, true));
+        
+        if (Number(adminCount[0].count) <= 1) {
+          throw new Error("Cannot delete last admin user");
+        }
+      }
+
+      const [deletedUser] = await db
+        .delete(users)
+        .where(eq(users.id, id))
+        .returning({
+          id: users.id,
+          username: users.username,
+          isAdmin: users.isAdmin,
+          createdAt: users.createdAt,
+        });
+      return deletedUser || null;
     });
   }
 

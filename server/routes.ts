@@ -7,6 +7,7 @@ import {
   insertProjectSchema,
   insertManagerMeetingSchema,
   insertWeeklyReportMeetingSchema,
+  insertUserSchema,
 } from "@shared/schema";
 import { getAIServiceDynamic } from "./ai-service";
 import { aiRoutes } from "./ai-routes";
@@ -2283,6 +2284,88 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
     } catch (error) {
       console.error("Setting delete error:", error);
       res.status(500).json({ error: "設定の削除中にエラーが発生しました" });
+    }
+  });
+
+  // ユーザ管理API（管理者のみ）
+  
+  // ユーザ一覧取得
+  app.get("/api/users", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Users list error:", error);
+      res.status(500).json({ error: "ユーザ一覧の取得中にエラーが発生しました" });
+    }
+  });
+
+  // 新規ユーザ作成
+  app.post("/api/users", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      const newUser = await storage.createUser(userData);
+      res.json(newUser);
+    } catch (error: any) {
+      console.error("User creation error:", error);
+      if (error?.message?.includes("duplicate key")) {
+        res.status(400).json({ error: "そのユーザ名は既に使用されています" });
+      } else {
+        res.status(400).json({ error: "ユーザの作成中にエラーが発生しました" });
+      }
+    }
+  });
+
+  // ユーザ情報更新
+  app.put("/api/users/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "無効なユーザIDです" });
+      }
+
+      const userData = req.body;
+      const updatedUser = await storage.updateUser(userId, userData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "ユーザが見つかりません" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error: any) {
+      console.error("User update error:", error);
+      if (error?.message?.includes("duplicate key")) {
+        res.status(400).json({ error: "そのユーザ名は既に使用されています" });
+      } else if (error?.message?.includes("Cannot remove last admin")) {
+        res.status(400).json({ error: "最後の管理者ユーザの管理者権限は削除できません" });
+      } else {
+        res.status(400).json({ error: "ユーザの更新中にエラーが発生しました" });
+      }
+    }
+  });
+
+  // ユーザ削除
+  app.delete("/api/users/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "無効なユーザIDです" });
+      }
+
+      const deletedUser = await storage.deleteUser(userId);
+      
+      if (!deletedUser) {
+        return res.status(404).json({ error: "ユーザが見つかりません" });
+      }
+      
+      res.json(deletedUser);
+    } catch (error: any) {
+      console.error("User delete error:", error);
+      if (error?.message?.includes("Cannot delete last admin")) {
+        res.status(400).json({ error: "最後の管理者ユーザは削除できません" });
+      } else {
+        res.status(400).json({ error: "ユーザの削除中にエラーが発生しました" });
+      }
     }
   });
 
