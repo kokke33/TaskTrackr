@@ -1284,37 +1284,37 @@ export default function WeeklyReport() {
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex items-center">
-                        <FormLabel>テスト進捗状況</FormLabel>
+                        <FormLabel>進捗状況</FormLabel>
                         <PreviousReportTooltip 
                           previousContent={latestReport?.testProgress}
-                          fieldName="テスト進捗状況"
+                          fieldName="進捗状況"
                         />
                       </div>
                       <FormControl>
                         <Textarea
-                          placeholder="テストの進捗状況を記述してください"
+                          placeholder="進捗状況を記述してください"
                           className="h-24"
                           {...field}
                           value={field.value ?? ""}
                           onBlur={(e) => {
                             field.onBlur?.();
-                            // 品質懸念事項の詳細とテスト進捗状況を組み合わせてAI分析
+                            // 品質懸念事項の詳細と進捗状況を組み合わせてAI分析
                             const qualityDetails = form.getValues("qualityDetails") || "";
                             const testProgress = e.target.value || "";
-                            const combinedContent = `【品質懸念事項の詳細】\n${qualityDetails}\n\n【テスト進捗状況】\n${testProgress}`;
+                            const combinedContent = `【品質懸念事項の詳細】\n${qualityDetails}\n\n【進捗状況】\n${testProgress}`;
                             
                             // 前回報告の組み合わせコンテンツも作成
                             const prevQualityDetails = latestReport?.qualityDetails || "";
                             const prevTestProgress = latestReport?.testProgress || "";
                             const prevCombinedContent = prevQualityDetails || prevTestProgress
-                              ? `【品質懸念事項の詳細】\n${prevQualityDetails}\n\n【テスト進捗状況】\n${prevTestProgress}`
+                              ? `【品質懸念事項の詳細】\n${prevQualityDetails}\n\n【進捗状況】\n${prevTestProgress}`
                               : undefined;
                             
                             // 既存報告の組み合わせコンテンツも作成
                             const existingQualityDetails = existingReport?.qualityDetails || "";
                             const existingTestProgress = existingReport?.testProgress || "";
                             const existingCombinedContent = existingQualityDetails || existingTestProgress
-                              ? `【品質懸念事項の詳細】\n${existingQualityDetails}\n\n【テスト進捗状況】\n${existingTestProgress}`
+                              ? `【品質懸念事項の詳細】\n${existingQualityDetails}\n\n【進捗状況】\n${existingTestProgress}`
                               : undefined;
                             
                             analyzeField("品質（総合分析）", combinedContent, existingCombinedContent, prevCombinedContent);
