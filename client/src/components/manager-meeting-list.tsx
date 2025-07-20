@@ -5,6 +5,7 @@ import { ja } from "date-fns/locale";
 import { Calendar, Edit, Trash2, FileText, Eye } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -101,7 +102,7 @@ export function ManagerMeetingList({ projectId, selectedMonth }: ManagerMeetingL
           <div className="mt-4">
             {isMarkdownView ? (
               <div className="prose prose-sm max-w-none text-gray-700 bg-gray-50 p-4 rounded border leading-relaxed">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{meeting.content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{meeting.content}</ReactMarkdown>
               </div>
             ) : (
               <div className="whitespace-pre-wrap text-sm text-gray-700 bg-gray-50 p-4 rounded border leading-relaxed">
