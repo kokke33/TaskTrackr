@@ -44,7 +44,7 @@ TypeScriptチェックは以下のフォーム値型エラーで現在失敗し�
 - **認証**: Passport.jsによるセッションベース認証
 - **UI**: Shadcn/uiコンポーネント（Radix UIプリミティブ） - 48+コンポーネント利用可能
 - **状態管理**: TanStack Query（React Query）
-- **AI統合**: マルチプロバイダー対応（OpenAI、Ollama、Google Gemini、Groq）
+- **AI統合**: マルチプロバイダー対応（OpenAI、Ollama、Google Gemini、Groq、OpenRouter）
 - **フォーム処理**: React Hook Form + Zod バリデーション
 - **スタイリング**: TailwindCSS + Tailwind Animate + class-variance-authority
 
@@ -259,17 +259,20 @@ const form = useForm<z.infer<typeof insertProjectSchema>>({
 常に`apiRequest(url, { method: "GET"|"POST"|"PUT"|"DELETE", data? })`を使用 - fetchを直接呼び出さない。
 
 ### AI分析統合
-週次レポートフィールドはblur時に自動的にAI分析をトリガー。`analyzeField(fieldName, content, originalContent?, previousReportContent?)`パターンを使用。
+週次レポートフィールドは初回編集時のみblur時に自動的にAI分析をトリガー。2回目以降は手動再生成ボタンでのみ実行。`analyzeField(fieldName, content, originalContent?, previousReportContent?)`パターンを使用。`useAIAnalysis`フックの`hasRunAnalysis`フラグで初回実行を追跡。
 
 ### 前回レポートデータ
 履歴比較には週次レポートクエリの`latestReport`を使用。レポートは`/api/weekly-reports/previous/:caseId`エンドポイント経由でケースと日付関係に基づいて取得。
+
+### 設定キー名の整合性
+リアルタイム分析設定は`REALTIME_PROVIDER`キーを使用（`REALTIME_AI_PROVIDER`ではない）。画面表示、DB保存、サーバー読み込み全てで統一。
 
 ### AIログ機能
 AIサービスのログは本番環境で自動的に最適化されます：
 - ログレベルが自動的にWARNINGに設定
 - コンソールログが自動的に無効化
 - 大きなレスポンスボディは1000文字で切り詰め
-- APIキーは自動的にマスク化（OpenAI、Groq、Gemini対応）
+- APIキーは自動的にマスク化（OpenAI、Groq、Gemini、OpenRouter対応）
 - リクエストデータはキャッシュされ、レスポンス/エラーログで再利用
 
 ## デバッグとトラブルシューティング
@@ -318,15 +321,11 @@ npm run db:push
 
 ### 開発サーバーの再起動手順
 ```bash
-# 完全な再起動
+# 完全な再起動（推奨）
 npm run dev
 
-# 個別に起動する場合
-# 1. サーバーサイド
-npm run dev:server
-
-# 2. クライアントサイド
-npm run dev:client
+# 注意：個別起動コマンドは存在しません
+# npm run dev で統合サーバーが localhost:5000 で起動
 ```
 
 ### パフォーマンス監視
