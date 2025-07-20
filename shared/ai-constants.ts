@@ -6,7 +6,12 @@ export const AI_PROVIDERS = ["openai", "ollama", "gemini", "groq", "openrouter"]
 export type AIProvider = typeof AI_PROVIDERS[number];
 
 // Groqモデル
-export const GROQ_MODELS = ["qwen/qwen3-32b", "meta-llama/llama-4-scout-17b-16e-instruct"] as const;
+export const GROQ_MODELS = [
+  "qwen/qwen3-32b", 
+  "meta-llama/llama-4-scout-17b-16e-instruct",
+  "llama-3.3-70b-versatile",
+  "moonshotai/kimi-k2-instruct"
+] as const;
 export type GroqModel = typeof GROQ_MODELS[number];
 
 // Geminiモデル
@@ -27,7 +32,7 @@ export type OpenRouterModel = typeof OPENROUTER_MODELS[number];
 export const DEFAULT_VALUES = {
   AI_PROVIDER: "gemini" as AIProvider,
   REALTIME_PROVIDER: "gemini" as AIProvider,
-  GROQ_MODEL: "qwen/qwen3-32b" as GroqModel,
+  GROQ_MODEL: "llama-3.3-70b-versatile" as GroqModel,
   GEMINI_MODEL: "gemini-2.5-flash" as GeminiModel,
   OPENROUTER_MODEL: "anthropic/claude-3.5-sonnet" as OpenRouterModel,
 } as const;
@@ -43,7 +48,9 @@ export const AI_PROVIDER_OPTIONS = [
 
 // UI表示用のGroqモデル選択肢（ラベル付き）
 export const GROQ_MODEL_OPTIONS = [
-  { value: "qwen/qwen3-32b", label: "Qwen3 32B (推奨)" },
+  { value: "llama-3.3-70b-versatile", label: "Llama 3.3 70B Versatile (最新・推奨)" },
+  { value: "qwen/qwen3-32b", label: "Qwen3 32B" },
+  { value: "moonshotai/kimi-k2-instruct", label: "Moonshot Kimi K2 Instruct" },
   { value: "meta-llama/llama-4-scout-17b-16e-instruct", label: "Llama 4 Scout 17B" },
 ] as const;
 
