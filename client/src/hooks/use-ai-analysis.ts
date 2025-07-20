@@ -120,7 +120,7 @@ export function useAIAnalysis() {
 
         const layoutRequirements = getLayoutRequirements(fieldName);
         
-        const analysisText = `週次報告の「${fieldName}」フィールドの記載内容を正しいレイアウトで改善してください。\n\n現在の記載内容:\n${content}${changeAnalysis}\n\n【分析目的】\n正しいレイアウトで記載内容のレベルを上げることが目的です。\n\n【分析指示】\n1. 現在の記載内容が正しいレイアウトに準拠しているかチェックしてください\n2. レイアウトに問題がある場合は、正しいレイアウトでの記載例を提示してください\n3. 記載内容のレベルアップのため、より具体的で有用な内容への改善提案を行ってください${layoutRequirements}${isContentUnchanged ? "\n\n⚠️ 前回報告から内容が変更されていません。レイアウトを維持しつつ、最新の状況を反映した内容に更新してください。" : ""}`;
+        const analysisText = `週次報告の「${fieldName}」フィールドの記載内容を正しいレイアウトで改善してください。複数トピックがある場合は目次を作成しトピックごとにまとめてください。\n\n現在の記載内容:\n${content}${changeAnalysis}\n\n【分析目的】\n正しいレイアウトで記載内容のレベルを上げることが目的です。\n\n【分析指示】\n1. 現在の記載内容が正しいレイアウトに準拠しているかチェックしてください\n2. レイアウトに問題がある場合は、正しいレイアウトでの記載例を提示してください\n3. 記載内容のレベルアップのため、より具体的で有用な内容への改善提案を行ってください${layoutRequirements}${isContentUnchanged ? "\n\n⚠️ 前回報告から内容が変更されていません。レイアウトを維持しつつ、最新の状況を反映した内容に更新してください。" : ""}`;
 
         if (process.env.NODE_ENV === 'development') {
           console.log("AI分析プロンプト生成:", {
