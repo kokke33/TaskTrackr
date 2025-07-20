@@ -17,7 +17,7 @@ export function useWeeklyReportForm({ id }: UseWeeklyReportFormProps) {
   const reportId = id ? parseInt(id) : undefined;
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
-  const urlParams = new URLSearchParams(location);
+  const urlParams = new URLSearchParams(window.location.search);
   const isAdminEditMode = urlParams.get('adminEdit') === 'true' && user?.isAdmin;
 
   const { data: existingReport, isLoading: isLoadingReport } = useQuery<WeeklyReport>({
@@ -158,6 +158,8 @@ export function useWeeklyReportForm({ id }: UseWeeklyReportFormProps) {
           title: "修正完了",
           description: "修正と議事録生成が完了しました",
         });
+        // 管理者編集完了時は result.report.id を使用
+        setLocation(`/reports/${result.report?.id || id}`);
       } else {
         toast({
           title: isEditMode ? "報告が更新されました" : "報告が送信されました",
@@ -165,8 +167,9 @@ export function useWeeklyReportForm({ id }: UseWeeklyReportFormProps) {
             ? "週次報告が正常に更新されました。"
             : "週次報告が正常に送信されました。",
         });
+        // 通常の編集・作成時は result.id を使用
+        setLocation(`/reports/${result.id}`);
       }
-      setLocation(`/reports/${result.id}`);
     },
     onError: () => {
       toast({
