@@ -157,7 +157,7 @@ export default function AdminSettings() {
       ));
 
       // リアルタイム分析設定の読み込み
-      const realtimeProvider = settings.find(s => s.key === "REALTIME_AI_PROVIDER")?.value || DEFAULT_VALUES.REALTIME_AI_PROVIDER;
+      const realtimeProvider = settings.find(s => s.key === "REALTIME_PROVIDER")?.value || DEFAULT_VALUES.REALTIME_PROVIDER;
       const realtimeGroqModel = settings.find(s => s.key === "REALTIME_GROQ_MODEL")?.value || DEFAULT_VALUES.GROQ_MODEL;
       const realtimeGeminiModel = settings.find(s => s.key === "REALTIME_GEMINI_MODEL")?.value || DEFAULT_VALUES.GEMINI_MODEL;
       const realtimeOpenRouterModel = settings.find(s => s.key === "REALTIME_OPENROUTER_MODEL")?.value || DEFAULT_VALUES.OPENROUTER_MODEL;

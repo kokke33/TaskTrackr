@@ -1369,7 +1369,7 @@ export class DatabaseStorage implements IStorage {
     openrouterModel?: string;
   }> {
     return await withRetry(async () => {
-      const provider = await this.getSystemSetting('REALTIME_AI_PROVIDER') || { value: DEFAULT_VALUES.REALTIME_AI_PROVIDER };
+      const provider = await this.getSystemSetting('REALTIME_PROVIDER') || { value: DEFAULT_VALUES.REALTIME_PROVIDER };
       const groqModel = await this.getSystemSetting('REALTIME_GROQ_MODEL') || { value: DEFAULT_VALUES.GROQ_MODEL };
       const geminiModel = await this.getSystemSetting('REALTIME_GEMINI_MODEL') || { value: DEFAULT_VALUES.GEMINI_MODEL };
       const openrouterModel = await this.getSystemSetting('REALTIME_OPENROUTER_MODEL') || { value: DEFAULT_VALUES.OPENROUTER_MODEL };

@@ -19,7 +19,7 @@ export interface AISettingEndpoints {
     openrouterModel: 'AI_OPENROUTER_MODEL';
   };
   realtime: {
-    provider: 'REALTIME_AI_PROVIDER';
+    provider: 'REALTIME_PROVIDER';
     groqModel: 'REALTIME_GROQ_MODEL';
     geminiModel: 'REALTIME_GEMINI_MODEL';
     openrouterModel: 'REALTIME_OPENROUTER_MODEL';

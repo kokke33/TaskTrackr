@@ -26,7 +26,7 @@ export type OpenRouterModel = typeof OPENROUTER_MODELS[number];
 // デフォルト値
 export const DEFAULT_VALUES = {
   AI_PROVIDER: "gemini" as AIProvider,
-  REALTIME_AI_PROVIDER: "gemini" as AIProvider,
+  REALTIME_PROVIDER: "gemini" as AIProvider,
   GROQ_MODEL: "qwen/qwen3-32b" as GroqModel,
   GEMINI_MODEL: "gemini-2.5-flash" as GeminiModel,
   OPENROUTER_MODEL: "anthropic/claude-3.5-sonnet" as OpenRouterModel,

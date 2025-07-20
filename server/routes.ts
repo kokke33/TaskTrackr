@@ -2287,8 +2287,8 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
         }
       }
 
-      // REALTIME_AI_PROVIDERの値をバリデーション
-      if (key === "REALTIME_AI_PROVIDER") {
+      // REALTIME_PROVIDERの値をバリデーション
+      if (key === "REALTIME_PROVIDER") {
         if (!isValidAIProvider(value)) {
           return res.status(400).json({ 
             error: `無効なリアルタイムAIプロバイダーです。有効な値: ${AI_PROVIDERS.join(", ")}` 

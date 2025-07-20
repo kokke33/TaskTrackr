@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "./queryClient";
 
@@ -14,7 +13,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   login: (userData?: User) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
 
@@ -23,7 +22,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const login = (userData?: User) => {
@@ -45,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setIsAuthenticated(false);
       setUser(null);
-      setLocation("/login");
+      window.location.href = "/login";
       
       toast({
         title: "ログアウト成功",
@@ -85,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // ログインページ以外にいる場合はリダイレクト
           if (window.location.pathname !== "/login") {
-            setLocation("/login");
+            window.location.href = "/login";
           }
         }
       } catch (error) {
@@ -95,14 +93,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // ログインページ以外にいる場合はリダイレクト
         if (window.location.pathname !== "/login") {
-          setLocation("/login");
+          window.location.href = "/login";
         }
       }
   };
 
   useEffect(() => {
     checkAuth();
-  }, [setLocation]);
+  }, []); // 認証チェックを初回のみ実行
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, user, login, logout, checkAuth }}>
