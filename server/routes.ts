@@ -19,7 +19,7 @@ import {
   isValidGeminiModel,
   isValidOpenRouterModel,
 } from "@shared/ai-constants";
-import { getAIServiceDynamic } from "./ai-service";
+import { getAIService } from "./ai-service";
 import { aiRoutes } from "./ai-routes";
 import passport from "passport";
 import { isAuthenticated, isAdmin } from "./auth";
@@ -1549,7 +1549,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 `;
 
       // AIサービスを使用してレポートを生成
-      const aiService = await getAIServiceDynamic();
+      const aiService = await getAIService();
       console.log(
         `Using AI provider: ${process.env.AI_PROVIDER || "openai"} for monthly summary`,
       );
@@ -1672,7 +1672,7 @@ ${previousReportInfo}
 `;
 
       // AIサービスを使用して分析を実行
-      const aiService = await getAIServiceDynamic();
+      const aiService = await getAIService();
 
       const response = await aiService.generateResponse(
         [
@@ -1905,7 +1905,7 @@ ${changesText}
 `;
 
       // AIサービスを使用して議事録を生成
-      const aiService = await getAIServiceDynamic();
+      const aiService = await getAIService();
 
       const response = await aiService.generateResponse(
         [

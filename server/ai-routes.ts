@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAIServiceDynamic, AIMessage } from './ai-service.js';
+import { getAIService, getAIServiceForProvider, AIMessage, analyzeTask, analyzeText, generateSummary } from './ai-service.js';
 import { isAuthenticated } from './auth';
 
 const router = express.Router();
@@ -34,7 +34,7 @@ router.post('/api/ai/chat', isAuthenticated, async (req, res) => {
       });
     }
 
-    const aiService = await getAIServiceDynamic();
+    const aiService = await getAIService();
     const response = await aiService.generateResponse(messages, userId, {
       endpoint: 'chat',
       userAgent: req.headers['user-agent'],
@@ -68,8 +68,8 @@ router.post('/api/ai/summarize', isAuthenticated, async (req, res) => {
       });
     }
 
-    const aiService = await getAIServiceDynamic();
-    const summary = await aiService.generateSummary(text, userId);
+    const aiService = await getAIService();
+    const summary = await generateSummary(aiService, text, userId);
     
     res.json({
       success: true,
@@ -97,8 +97,8 @@ router.post('/api/ai/analyze-task', isAuthenticated, async (req, res) => {
       });
     }
 
-    const aiService = await getAIServiceDynamic();
-    const analysis = await aiService.analyzeTask(taskDescription, userId);
+    const aiService = await getAIService();
+    const analysis = await analyzeTask(aiService, taskDescription, userId);
     
     res.json({
       success: true,
@@ -116,13 +116,13 @@ router.post('/api/ai/analyze-task', isAuthenticated, async (req, res) => {
 // Text analysis endpoint for weekly reports
 router.post('/api/ai/analyze-text', isAuthenticated, async (req, res) => {
   try {
-    const { text } = req.body;
+    const { content, fieldType, originalContent, previousReportContent } = req.body;
     const userId = getUserId(req);
 
-    if (!text || typeof text !== 'string' || text.length < 5) {
-      return res.status(400).json({ 
+    if (!content || typeof content !== 'string' || content.length < 5 || !fieldType || typeof fieldType !== 'string') {
+      return res.status(400).json({
         success: false,
-        error: 'Text must be a string with at least 5 characters.' 
+        error: 'Request must include content (string, min 5 chars) and fieldType (string).'
       });
     }
 
@@ -131,15 +131,14 @@ router.post('/api/ai/analyze-text', isAuthenticated, async (req, res) => {
     const realtimeConfig = await storage.getRealtimeAnalysisConfig();
     
     // リアルタイム分析専用のAIサービスを取得
-    const { getAIServiceForProvider } = await import('./ai-service.js');
-    const aiService = await getAIServiceForProvider(
+    const aiService = getAIServiceForProvider(
       realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter',
       realtimeConfig.provider === 'groq' ? realtimeConfig.groqModel : undefined,
       realtimeConfig.provider === 'gemini' ? realtimeConfig.geminiModel : undefined,
       realtimeConfig.provider === 'openrouter' ? realtimeConfig.openrouterModel : undefined
     );
     
-    const analysis = await aiService.analyzeText(text, userId);
+    const analysis = await analyzeText(aiService, content, fieldType, originalContent, previousReportContent, userId);
     
     res.json({
       success: true,
@@ -159,13 +158,13 @@ router.post('/api/ai/analyze-text', isAuthenticated, async (req, res) => {
 // Text analysis endpoint with session-based AI provider (trial mode)
 router.post('/api/ai/analyze-text-trial', isAuthenticated, async (req, res) => {
   try {
-    const { text } = req.body;
+    const { content, fieldType, originalContent, previousReportContent } = req.body;
     const userId = getUserId(req);
 
-    if (!text || typeof text !== 'string' || text.length < 5) {
-      return res.status(400).json({ 
+    if (!content || typeof content !== 'string' || content.length < 5 || !fieldType || typeof fieldType !== 'string') {
+      return res.status(400).json({
         success: false,
-        error: 'Text must be a string with at least 5 characters.' 
+        error: 'Request must include content (string, min 5 chars) and fieldType (string).'
       });
     }
 
@@ -175,8 +174,7 @@ router.post('/api/ai/analyze-text-trial', isAuthenticated, async (req, res) => {
 
     if (sessionSettings?.realtimeProvider) {
       // セッション設定を使用してAIサービスを取得
-      const { getAIServiceForProvider } = await import('./ai-service.js');
-      aiService = await getAIServiceForProvider(
+      aiService = getAIServiceForProvider(
         sessionSettings.realtimeProvider,
         sessionSettings.realtimeProvider === 'groq' ? sessionSettings.groqModel : undefined,
         sessionSettings.realtimeProvider === 'gemini' ? sessionSettings.geminiModel : undefined,
@@ -184,10 +182,10 @@ router.post('/api/ai/analyze-text-trial', isAuthenticated, async (req, res) => {
       );
     } else {
       // デフォルトの設定を使用
-      aiService = await getAIServiceDynamic();
+      aiService = await getAIService();
     }
 
-    const analysis = await aiService.analyzeText(text, userId);
+    const analysis = await analyzeText(aiService, content, fieldType, originalContent, previousReportContent, userId);
     
     res.json({
       success: true,

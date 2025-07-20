@@ -247,13 +247,9 @@ export default function WeeklyReportList() {
   const fetchLatestCaseData = useCallback(async (caseId: number) => {
     try {
       // API経由で最新の案件情報を取得
-      const response = await fetch(`/api/cases/${caseId}`);
-
-      if (!response.ok) {
-        throw new Error('案件情報の取得に失敗しました');
-      }
-
-      const latestCaseData = await response.json();
+      const latestCaseData = await apiRequest<Case>(`/api/cases/${caseId}`, {
+        method: "GET",
+      });
 
       // マイルストーン情報を更新
       setMilestone(latestCaseData.milestone || "");

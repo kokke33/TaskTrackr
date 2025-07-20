@@ -73,6 +73,28 @@ export const OPENROUTER_MODEL_OPTIONS = [
   { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
 ] as const;
 
+// 分析フィールドのキー
+export const ANALYSIS_FIELD_TYPES = {
+  weeklyTasks: "今週の作業内容",
+  delayDetails: "遅延・問題点の詳細",
+  issues: "課題・問題点",
+  riskAnalysis: "新たなリスク（総合分析）",
+  qualityAnalysis: "品質（総合分析）",
+  changeDetails: "変更内容の詳細",
+  nextWeekPlan: "来週の作業予定",
+  supportRequests: "支援・判断の要望事項",
+  resourceConcerns: "リソース懸念事項",
+  customerConcerns: "顧客懸念事項",
+  environmentConcerns: "環境懸念事項",
+  costConcerns: "コスト懸念事項",
+  knowledgeConcerns: "知識・スキル懸念事項",
+  trainingConcerns: "教育懸念事項",
+  urgentIssues: "緊急課題の詳細",
+  businessOpportunities: "営業チャンス・顧客ニーズ",
+} as const;
+
+export type AnalysisFieldType = typeof ANALYSIS_FIELD_TYPES[keyof typeof ANALYSIS_FIELD_TYPES];
+
 // バリデーション用ヘルパー関数
 export const isValidAIProvider = (value: string): value is AIProvider => {
   return AI_PROVIDERS.includes(value as AIProvider);
