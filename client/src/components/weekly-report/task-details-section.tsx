@@ -405,7 +405,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                           const riskCountermeasures = e.target.value || "";
                           const combinedContent = `【リスクの概要】\n${riskSummary}\n\n【対策】\n${riskCountermeasures}`;
                           
-                          if (combinedContent.trim().length >= 10) {
+                          if ((riskSummary.trim() + riskCountermeasures.trim()).length >= 10) {
                             const prevRiskSummary = latestReport?.riskSummary || "";
                             const prevRiskCountermeasures = latestReport?.riskCountermeasures || "";
                             const prevCombinedContent = prevRiskSummary || prevRiskCountermeasures
@@ -551,7 +551,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       const testProgress = e.target.value || "";
                       const combinedContent = `【品質懸念事項の詳細】\n${qualityDetails}\n\n【進捗状況】\n${testProgress}`;
                       
-                      if (combinedContent.trim().length >= 10) {
+                      if ((qualityDetails.trim() + testProgress.trim()).length >= 10) {
                         const prevQualityDetails = latestReport?.qualityDetails || "";
                         const prevTestProgress = latestReport?.testProgress || "";
                         const prevCombinedContent = prevQualityDetails || prevTestProgress
