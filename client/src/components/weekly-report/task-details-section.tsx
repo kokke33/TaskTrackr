@@ -37,9 +37,8 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
     [ANALYSIS_FIELD_TYPES.weeklyTasks]: "weeklyTasks",
     [ANALYSIS_FIELD_TYPES.delayDetails]: "delayDetails",
     [ANALYSIS_FIELD_TYPES.issues]: "issues",
-    "リスクの概要": "riskSummary", // Note: This seems to be a label, not a field type for analysis
     [ANALYSIS_FIELD_TYPES.riskAnalysis]: "riskSummary",
-    "品質懸念事項の詳細": "qualityDetails", // Note: This seems to be a label
+    [ANALYSIS_FIELD_TYPES.riskCountermeasures]: "riskCountermeasures",
     [ANALYSIS_FIELD_TYPES.qualityAnalysis]: "qualityDetails",
     [ANALYSIS_FIELD_TYPES.changeDetails]: "changeDetails",
     [ANALYSIS_FIELD_TYPES.nextWeekPlan]: "nextWeekPlan",
@@ -379,14 +378,6 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       />
                     </FormControl>
                     <FormMessage />
-                    <AIAnalysisResult
-                      fieldName={ANALYSIS_FIELD_TYPES.riskAnalysis}
-                      analysis={getAnalysisState(ANALYSIS_FIELD_TYPES.riskAnalysis).analysis}
-                      isLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.riskAnalysis).isLoading}
-                      error={getAnalysisState(ANALYSIS_FIELD_TYPES.riskAnalysis).error}
-                      onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.riskAnalysis)}
-                      onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.riskAnalysis)}
-                    />
                   </FormItem>
                 )}
               />
@@ -413,28 +404,31 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                           const riskSummary = form.getValues("riskSummary") || "";
                           const riskCountermeasures = e.target.value || "";
                           const combinedContent = `【リスクの概要】\n${riskSummary}\n\n【対策】\n${riskCountermeasures}`;
-                          const prevRiskSummary = latestReport?.riskSummary || "";
-                          const prevRiskCountermeasures = latestReport?.riskCountermeasures || "";
-                          const prevCombinedContent = prevRiskSummary || prevRiskCountermeasures 
-                            ? `【リスクの概要】\n${prevRiskSummary}\n\n【対策】\n${prevRiskCountermeasures}`
-                            : undefined;
-                          const existingRiskSummary = existingReport?.riskSummary || "";
-                          const existingRiskCountermeasures = existingReport?.riskCountermeasures || "";
-                          const existingCombinedContent = existingRiskSummary || existingRiskCountermeasures
-                            ? `【リスクの概要】\n${existingRiskSummary}\n\n【対策】\n${existingRiskCountermeasures}`
-                            : undefined;
-                          analyzeField(ANALYSIS_FIELD_TYPES.riskAnalysis, combinedContent, existingCombinedContent, prevCombinedContent);
+                          
+                          if (combinedContent.trim().length >= 10) {
+                            const prevRiskSummary = latestReport?.riskSummary || "";
+                            const prevRiskCountermeasures = latestReport?.riskCountermeasures || "";
+                            const prevCombinedContent = prevRiskSummary || prevRiskCountermeasures
+                              ? `【リスクの概要】\n${prevRiskSummary}\n\n【対策】\n${prevRiskCountermeasures}`
+                              : undefined;
+                            const existingRiskSummary = existingReport?.riskSummary || "";
+                            const existingRiskCountermeasures = existingReport?.riskCountermeasures || "";
+                            const existingCombinedContent = existingRiskSummary || existingRiskCountermeasures
+                              ? `【リスクの概要】\n${existingRiskSummary}\n\n【対策】\n${existingRiskCountermeasures}`
+                              : undefined;
+                            analyzeField(ANALYSIS_FIELD_TYPES.riskCountermeasures, combinedContent, existingCombinedContent, prevCombinedContent);
+                          }
                         }}
                       />
                     </FormControl>
                     <FormMessage />
                     <AIAnalysisResult
-                      fieldName={ANALYSIS_FIELD_TYPES.riskAnalysis}
-                      analysis={getAnalysisState(ANALYSIS_FIELD_TYPES.riskAnalysis).analysis}
-                      isLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.riskAnalysis).isLoading}
-                      error={getAnalysisState(ANALYSIS_FIELD_TYPES.riskAnalysis).error}
-                      onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.riskAnalysis)}
-                      onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.riskAnalysis)}
+                      fieldName={ANALYSIS_FIELD_TYPES.riskCountermeasures}
+                      analysis={getAnalysisState(ANALYSIS_FIELD_TYPES.riskCountermeasures).analysis}
+                      isLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.riskCountermeasures).isLoading}
+                      error={getAnalysisState(ANALYSIS_FIELD_TYPES.riskCountermeasures).error}
+                      onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.riskCountermeasures)}
+                      onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.riskCountermeasures)}
                     />
                   </FormItem>
                 )}
@@ -529,14 +523,6 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                     />
                   </FormControl>
                   <FormMessage />
-                  <AIAnalysisResult
-                    fieldName={ANALYSIS_FIELD_TYPES.qualityAnalysis}
-                    analysis={getAnalysisState(ANALYSIS_FIELD_TYPES.qualityAnalysis).analysis}
-                    isLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.qualityAnalysis).isLoading}
-                    error={getAnalysisState(ANALYSIS_FIELD_TYPES.qualityAnalysis).error}
-                    onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.qualityAnalysis)}
-                    onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.qualityAnalysis)}
-                  />
                 </FormItem>
               )}
             />
@@ -564,17 +550,20 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       const qualityDetails = form.getValues("qualityDetails") || "";
                       const testProgress = e.target.value || "";
                       const combinedContent = `【品質懸念事項の詳細】\n${qualityDetails}\n\n【進捗状況】\n${testProgress}`;
-                      const prevQualityDetails = latestReport?.qualityDetails || "";
-                      const prevTestProgress = latestReport?.testProgress || "";
-                      const prevCombinedContent = prevQualityDetails || prevTestProgress
-                        ? `【品質懸念事項の詳細】\n${prevQualityDetails}\n\n【進捗状況】\n${prevTestProgress}`
-                        : undefined;
-                      const existingQualityDetails = existingReport?.qualityDetails || "";
-                      const existingTestProgress = existingReport?.testProgress || "";
-                      const existingCombinedContent = existingQualityDetails || existingTestProgress
-                        ? `【品質懸念事項の詳細】\n${existingQualityDetails}\n\n【進捗状況】\n${existingTestProgress}`
-                        : undefined;
-                      analyzeField(ANALYSIS_FIELD_TYPES.qualityAnalysis, combinedContent, existingCombinedContent, prevCombinedContent);
+                      
+                      if (combinedContent.trim().length >= 10) {
+                        const prevQualityDetails = latestReport?.qualityDetails || "";
+                        const prevTestProgress = latestReport?.testProgress || "";
+                        const prevCombinedContent = prevQualityDetails || prevTestProgress
+                          ? `【品質懸念事項の詳細】\n${prevQualityDetails}\n\n【進捗状況】\n${prevTestProgress}`
+                          : undefined;
+                        const existingQualityDetails = existingReport?.qualityDetails || "";
+                        const existingTestProgress = existingReport?.testProgress || "";
+                        const existingCombinedContent = existingQualityDetails || existingTestProgress
+                          ? `【品質懸念事項の詳細】\n${existingQualityDetails}\n\n【進捗状況】\n${existingTestProgress}`
+                          : undefined;
+                        analyzeField(ANALYSIS_FIELD_TYPES.qualityAnalysis, combinedContent, existingCombinedContent, prevCombinedContent);
+                      }
                     }}
                   />
                 </FormControl>

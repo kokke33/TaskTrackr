@@ -79,6 +79,7 @@ export const ANALYSIS_FIELD_TYPES = {
   delayDetails: "遅延・問題点の詳細",
   issues: "課題・問題点",
   riskAnalysis: "新たなリスク（総合分析）",
+  riskCountermeasures: "リスク対策",
   qualityAnalysis: "品質（総合分析）",
   changeDetails: "変更内容の詳細",
   nextWeekPlan: "来週の作業予定",
