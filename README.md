@@ -1,7 +1,7 @@
 # TaskTrackr
 
 プロジェクト・案件・週次報告を一元管理し、AIによる分析・議事録生成・性能最適化を備えた **フルスタック TypeScript** アプリケーションです。  
-React + Vite + TailwindCSS のモダンフロントエンドと、Express + Drizzle ORM + PostgreSQL のバックエンドで構成され、OpenAI / Ollama いずれかの LLM を切り替えて利用できます。
+React + Vite + TailwindCSS のモダンフロントエンドと、Express + Drizzle ORM + PostgreSQL のバックエンドで構成され、**5つのAIプロバイダー**（OpenAI / Ollama / Google Gemini / Groq / OpenRouter）を切り替えて利用できます。
 
 ---
 
@@ -52,12 +52,12 @@ React + Vite + TailwindCSS のモダンフロントエンドと、Express + Driz
 
 ## 最新の改善点
 
-### 🚀 v2.1.0 (2025/6/14)
-- **案件選択UI大幅改善**: モーダルダイアログ式で大量案件も快適選択
-- **AI処理並列化**: 管理者編集時のAI分析と議事録生成を並列実行
-- **性能最適化**: データ転送量削減とキャッシュ戦略改善
-- **タイムゾーン修正**: 議事録の日時表示をJST（日本時間）に統一
-- **認証エラー改善**: 初期表示時の401エラーを正常な状態として処理
+### 🚀 v2.2.0 (2025/1/20)
+- **AIプロバイダー拡張**: 5つのAIプロバイダー対応（OpenAI、Ollama、Google Gemini、Groq、OpenRouter）
+- **会議議事録機能**: 週次レポート専用の会議議事録管理機能を追加
+- **リアルタイム分析**: フィールド別AI分析の設定とカスタマイズ機能
+- **プロンプト管理**: 構造化されたプロンプトテンプレート管理システム
+- **知識管理**: `.claude/`ディレクトリによる継続的な知識蓄積システム
 
 ### 🔧 技術改善
 - **検索機能**: プロジェクト・案件検索に20件制限追加
@@ -72,14 +72,14 @@ React + Vite + TailwindCSS のモダンフロントエンドと、Express + Driz
 | レイヤ | 使用技術 |
 | ------ | -------- |
 | **フロントエンド** | React 18, TypeScript, Vite, TailwindCSS, Wouter (ルーティング) |
-| **UI コンポーネント** | Shadcn/ui (Radix UI), Lucide React |
+| **UI コンポーネント** | Shadcn/ui (Radix UI 48+コンポーネント), Lucide React |
 | **状態管理** | TanStack Query (React Query) |
 | **バックエンド** | Node.js, Express, TypeScript |
 | **ORM** | Drizzle ORM + Drizzle Kit |
 | **データベース** | PostgreSQL (Neon.tech対応) |
 | **認証** | Passport.js + express-session |
-| **AI統合** | OpenAI API, Ollama対応 |
-| **バリデーション** | Zod |
+| **AI統合** | OpenAI, Ollama, Google Gemini, Groq, OpenRouter |
+| **バリデーション** | Zod + React Hook Form |
 | **開発ツール** | ESLint, TypeScript, TSX |
 
 ---
@@ -88,8 +88,12 @@ React + Vite + TailwindCSS のモダンフロントエンドと、Express + Driz
 - **Node.js v20.x 以降**  
 - **npm v9.x** (or `pnpm`, `yarn`)  
 - **PostgreSQL 15 以降** または **Neon.tech**アカウント
-- AI機能を使う場合  
-  - **OpenAI API キー** または **Ollama ローカルサーバー**
+- AI機能を使う場合（いずれか1つ以上）  
+  - **OpenAI API キー**
+  - **Ollama ローカルサーバー**
+  - **Google Gemini API キー**
+  - **Groq API キー**
+  - **OpenRouter API キー**
 
 ---
 
@@ -117,22 +121,37 @@ DATABASE_URL=postgresql://user:pass@host.neon.tech/dbname?sslmode=require
 # Session
 SESSION_SECRET=your-session-secret-here
 
-# AI Provider
-AI_PROVIDER=openai              # "openai" または "ollama"
+# AI Provider (5つから選択)
+AI_PROVIDER=gemini              # "openai", "ollama", "gemini", "groq", "openrouter"
+REALTIME_PROVIDER=gemini        # リアルタイム分析用プロバイダー
 AI_LOG_LEVEL=info
 AI_LOG_CONSOLE=true
+AI_LOG_FILE=false               # ファイルログを有効にする場合はtrue
+AI_LOG_MASK_SENSITIVE=true      # 機密データのマスク化
 
 # OpenAI Configuration (AI_PROVIDER=openai の場合)
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4.1-mini      # または gpt-3.5-turbo
+OPENAI_MODEL=gpt-4o-mini
 OPENAI_MAX_TOKENS=10000
 OPENAI_TEMPERATURE=0.7
 
 # Ollama Configuration (AI_PROVIDER=ollama の場合)  
 OLLAMA_BASE_URL=http://localhost:11434/
 OLLAMA_MODEL=qwen3:latest
-OLLAMA_MAX_TOKENS=10000
-OLLAMA_TEMPERATURE=0.7
+
+# Gemini Configuration (AI_PROVIDER=gemini の場合)
+GEMINI_API_KEY=your-key
+GEMINI_MODEL=gemini-2.5-flash   # または gemini-2.5-pro
+
+# Groq Configuration (AI_PROVIDER=groq の場合)
+GROQ_API_KEY=your-key
+GROQ_MODEL=llama-3.3-70b-versatile
+
+# OpenRouter Configuration (AI_PROVIDER=openrouter の場合)
+OPENROUTER_API_KEY=sk-or-your-key
+OPENROUTER_MODEL=anthropic/claude-3.5-sonnet
+OPENROUTER_MAX_TOKENS=4000
+OPENROUTER_TEMPERATURE=0.7
 
 # Server Configuration
 PORT=3000
@@ -201,12 +220,17 @@ npm start                     # NODE_ENV=production
 
 ### AI設定切り替え
 
-環境変数 `AI_PROVIDER` で OpenAI ⇔ Ollama を切り替え可能：
+環境変数 `AI_PROVIDER` で5つのプロバイダーを切り替え可能：
 
 ```env
-AI_PROVIDER=openai     # OpenAI GPT使用
-AI_PROVIDER=ollama     # ローカルOllama使用
+AI_PROVIDER=openai      # OpenAI GPT使用
+AI_PROVIDER=ollama      # ローカルOllama使用
+AI_PROVIDER=gemini      # Google Gemini使用
+AI_PROVIDER=groq        # Groq使用
+AI_PROVIDER=openrouter  # OpenRouter使用
 ```
+
+システム設定画面からもリアルタイムで切り替え可能です。
 
 ---
 
@@ -226,11 +250,20 @@ TaskTrackr/
 │   ├── storage.ts       # データベース操作 (Drizzle ORM)
 │   ├── ai-service.ts    # AI プロバイダー抽象化
 │   ├── ai-logger.ts     # AI インタラクション ログ
+│   ├── ai-routes.ts     # AI専用ルート
 │   ├── auth.ts          # Passport.js 認証設定
 │   ├── config.ts        # 設定バリデーション
+│   ├── ai-providers/    # AI プロバイダー実装
+│   ├── prompts/         # AI プロンプトテンプレート
+│   ├── use-cases/       # ビジネスロジック
 │   └── migrations/      # データベース マイグレーション
 ├── shared/              # 共通TypeScript型定義
-│   └── schema.ts        # Drizzle ORM スキーマ定義
+│   ├── schema.ts        # Drizzle ORM スキーマ定義
+│   └── ai-constants.ts  # AI設定の共有定数
+├── .claude/             # Claude Code 知識管理
+│   ├── context.md       # プロジェクトコンテキスト
+│   ├── project-knowledge.md # 技術知識
+│   └── common-patterns.md   # 共通パターン
 ├── CLAUDE.md           # Claude Code用プロジェクト設定
 ├── .env.example        # 環境変数テンプレート
 └── package.json        # プロジェクト設定
@@ -251,7 +284,10 @@ TaskTrackr/
 ### 開発コマンド
 
 ```bash
-npm run check              # TypeScript 型チェック
+npm run dev               # 統合開発サーバー起動
+npm run build             # 本番ビルド (Vite + ESBuild)
+npm run start             # 本番サーバー起動
+npm run check             # TypeScript 型チェック
 npm run db:push           # データベース スキーマ更新
 ```
 
