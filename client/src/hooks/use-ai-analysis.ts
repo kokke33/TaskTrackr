@@ -7,6 +7,7 @@ interface AIAnalysisState {
     isLoading: boolean;
     error: string | null;
     previousContent?: string; // 前回の内容を保存
+    hasRunAnalysis?: boolean; // 初回分析が実行されたかどうか
   };
 }
 
@@ -17,6 +18,14 @@ export function useAIAnalysis() {
 
   const analyzeField = useCallback(async (fieldName: string, content: string, originalContent?: string, previousReportContent?: string, forceAnalysis: boolean = false) => {
     if (!content || content.trim().length < 10) {
+      return;
+    }
+
+    const currentState = analysisState[fieldName];
+    
+    // 初回分析チェック: 分析が実行済みで強制実行でない場合はスキップ
+    if (currentState?.hasRunAnalysis && !forceAnalysis) {
+      console.log(`${fieldName}: 初回分析済みのため自動実行をスキップ`);
       return;
     }
 
@@ -176,6 +185,7 @@ export function useAIAnalysis() {
             isLoading: false,
             error: null,
             previousContent: content, // 現在の内容を前回の内容として保存
+            hasRunAnalysis: true, // 初回分析完了フラグを設定
           },
         }));
 
@@ -217,13 +227,14 @@ export function useAIAnalysis() {
       isLoading: false,
       error: null,
       previousContent: undefined,
+      hasRunAnalysis: false,
     };
   }, [analysisState]);
 
   const regenerateAnalysis = useCallback((fieldName: string, content: string, originalContent?: string, previousReportContent?: string) => {
     console.log("regenerateAnalysis called:", { fieldName, contentLength: content?.length, originalContent, previousReportContent });
     
-    // 既存の分析をクリアしてから再生成
+    // 既存の分析をクリアしてから再生成（hasRunAnalysisフラグは保持）
     setAnalysisState(prev => ({
       ...prev,
       [fieldName]: {
@@ -231,6 +242,7 @@ export function useAIAnalysis() {
         isLoading: false,
         error: null,
         previousContent: prev[fieldName]?.previousContent,
+        hasRunAnalysis: prev[fieldName]?.hasRunAnalysis || false,
       },
     }));
 
