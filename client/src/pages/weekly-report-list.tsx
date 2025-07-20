@@ -28,6 +28,8 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 // レスポンスの型定義
 type MonthlySummaryResponse = {
@@ -1094,7 +1096,7 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
           <div className="mt-4 p-4 border rounded-lg bg-muted/30">
             {monthlySummary ? (
               <div className="prose prose-sm dark:prose-invert max-w-full">
-                <ReactMarkdown>{monthlySummary}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{monthlySummary}</ReactMarkdown>
               </div>
             ) : (
               <div className="flex items-center justify-center p-8">

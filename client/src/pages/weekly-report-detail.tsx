@@ -6,6 +6,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Edit, Home, Briefcase, FileText, ChevronRight, ShieldCheck, Trash2, Target } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { useAuth } from "@/lib/auth";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -545,7 +547,7 @@ export default function WeeklyReportDetail() {
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4 pb-2 border-b">■ AI分析結果</h2>
                 <div className="prose prose-sm max-w-none">
-                  <ReactMarkdown>{report.aiAnalysis}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{report.aiAnalysis}</ReactMarkdown>
                 </div>
               </CardContent>
             </Card>
@@ -614,7 +616,7 @@ export default function WeeklyReportDetail() {
                             </Button>
                           </div>
                           <div className="prose prose-sm max-w-none">
-                            <ReactMarkdown>{meeting.content}</ReactMarkdown>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{meeting.content}</ReactMarkdown>
                           </div>
                           <div className="mt-3 text-sm text-gray-500">
                             修正者: {meeting.modifiedBy} | 

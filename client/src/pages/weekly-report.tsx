@@ -30,6 +30,8 @@ import { Send, Plus, Save, ShieldCheck, Target, FileText } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import CaseSelectorModal from "@/components/case-selector-modal";
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { MilestoneDialog } from "@/components/milestone-dialog";
 import { SampleReportDialog } from "@/components/sample-report-dialog";
 import { AIAnalysisResult } from "@/components/ai-analysis-result";
@@ -1993,7 +1995,7 @@ export default function WeeklyReport() {
                     ■ AI分析結果
                   </h2>
                   <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown>{existingReport.aiAnalysis}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{existingReport.aiAnalysis}</ReactMarkdown>
                   </div>
                 </CardContent>
               </Card>
@@ -2066,7 +2068,7 @@ export default function WeeklyReport() {
                               </Button>
                             </div>
                             <div className="prose prose-sm max-w-none bg-white p-3 rounded border">
-                              <ReactMarkdown>{meeting.content}</ReactMarkdown>
+                              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{meeting.content}</ReactMarkdown>
                             </div>
                           </div>
                         )}

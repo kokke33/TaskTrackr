@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronDown, ChevronUp, X, Loader2, Lightbulb, RotateCcw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 interface AIAnalysisResultProps {
   analysis: string | null;
@@ -96,6 +98,8 @@ export function AIAnalysisResult({
             {analysis && !isLoading && (
               <div className="prose prose-sm max-w-none text-gray-700">
                 <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
                   components={{
                     p: ({ children }) => <p className="mb-2">{children}</p>,
                     strong: ({ children }) => <strong className="font-bold text-gray-900">{children}</strong>,

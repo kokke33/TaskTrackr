@@ -44,6 +44,8 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { 
   Breadcrumb,
   BreadcrumbItem,
@@ -1018,7 +1020,7 @@ export default function CaseList() {
               )}
             </DialogHeader>
             <div className="prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown>{monthlySummary}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{monthlySummary}</ReactMarkdown>
             </div>
           </DialogContent>
         </Dialog>
