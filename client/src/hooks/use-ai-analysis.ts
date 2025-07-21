@@ -1,6 +1,13 @@
 import { useState, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 
+interface ConversationMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
 interface AIAnalysisState {
   [fieldName: string]: {
     analysis: string | null;
@@ -8,6 +15,8 @@ interface AIAnalysisState {
     error: string | null;
     previousContent?: string; // 前回の内容を保存
     hasRunAnalysis?: boolean; // 初回分析が実行されたかどうか
+    conversations?: ConversationMessage[]; // 会話履歴
+    isConversationLoading?: boolean; // 会話ローディング状態
   };
 }
 
@@ -99,7 +108,7 @@ export function useAIAnalysis() {
           throw new Error(data.error || "AI分析に失敗しました");
         }
 
-        // 成功時の状態更新（前回の内容も保存）
+        // 成功時の状態更新（前回の内容も保存、新しい分析時は会話をクリア）
         setAnalysisState(prev => ({
           ...prev,
           [fieldName]: {
@@ -108,6 +117,8 @@ export function useAIAnalysis() {
             error: null,
             previousContent: content, // 現在の内容を前回の内容として保存
             hasRunAnalysis: true, // 初回分析完了フラグを設定
+            conversations: [], // 新しい分析時は会話履歴をクリア
+            isConversationLoading: false,
           },
         }));
 
@@ -122,6 +133,8 @@ export function useAIAnalysis() {
             isLoading: false,
             error: error instanceof Error ? error.message : "AI分析中にエラーが発生しました",
             previousContent: prev[fieldName]?.previousContent,
+            conversations: prev[fieldName]?.conversations || [],
+            isConversationLoading: false,
           },
         }));
       }
@@ -150,6 +163,8 @@ export function useAIAnalysis() {
       error: null,
       previousContent: undefined,
       hasRunAnalysis: false,
+      conversations: [],
+      isConversationLoading: false,
     };
   }, [analysisState]);
 
@@ -172,10 +187,127 @@ export function useAIAnalysis() {
     analyzeField(fieldName, content, originalContent, previousReportContent, true);
   }, [analyzeField]);
 
+  const sendMessage = useCallback(async (fieldName: string, message: string) => {
+    const currentState = analysisState[fieldName];
+    if (!currentState?.analysis) {
+      return; // 分析結果がない場合は会話不可
+    }
+
+    // ローディング状態に設定
+    setAnalysisState(prev => ({
+      ...prev,
+      [fieldName]: {
+        ...prev[fieldName],
+        isConversationLoading: true,
+      },
+    }));
+
+    try {
+      // ユーザーメッセージを追加
+      const userMessage: ConversationMessage = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: String(message),
+        timestamp: new Date(),
+      };
+
+      setAnalysisState(prev => ({
+        ...prev,
+        [fieldName]: {
+          ...prev[fieldName],
+          conversations: [...(prev[fieldName]?.conversations || []), userMessage],
+        },
+      }));
+
+      // AI会話APIを呼び出し
+      const response = await fetch("/api/ai/conversation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fieldName,
+          message,
+          analysis: currentState.analysis,
+          conversations: currentState.conversations || [],
+        }),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // デバッグログ追加
+      console.log('AI conversation response:', {
+        success: data.success,
+        data: data.data,
+        dataType: typeof data.data,
+        fullResponse: data
+      });
+      console.log('data.data content:', JSON.stringify(data.data, null, 2));
+      
+      if (!data.success) {
+        throw new Error(data.error || "会話に失敗しました");
+      }
+
+      // AIの回答を追加
+      const assistantMessage: ConversationMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: String(data.data || "回答を取得できませんでした"),
+        timestamp: new Date(),
+      };
+
+      setAnalysisState(prev => ({
+        ...prev,
+        [fieldName]: {
+          ...prev[fieldName],
+          conversations: [...(prev[fieldName]?.conversations || []), assistantMessage],
+          isConversationLoading: false,
+        },
+      }));
+
+    } catch (error) {
+      console.error("Conversation error:", error);
+      
+      // エラーメッセージを追加
+      const errorMessage: ConversationMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: String(`エラーが発生しました: ${error instanceof Error ? error.message : '不明なエラー'}`),
+        timestamp: new Date(),
+      };
+
+      setAnalysisState(prev => ({
+        ...prev,
+        [fieldName]: {
+          ...prev[fieldName],
+          conversations: [...(prev[fieldName]?.conversations || []), errorMessage],
+          isConversationLoading: false,
+        },
+      }));
+    }
+  }, [analysisState, checkAuth]);
+
+  const clearConversations = useCallback((fieldName: string) => {
+    setAnalysisState(prev => ({
+      ...prev,
+      [fieldName]: {
+        ...prev[fieldName],
+        conversations: [],
+      },
+    }));
+  }, []);
+
   return {
     analyzeField,
     clearAnalysis,
     getAnalysisState,
     regenerateAnalysis,
+    sendMessage,
+    clearConversations,
   };
 }

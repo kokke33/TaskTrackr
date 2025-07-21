@@ -202,6 +202,122 @@ router.post('/api/ai/analyze-text-trial', isAuthenticated, async (req, res) => {
   }
 });
 
+// AI conversation endpoint for analysis follow-up questions
+router.post('/api/ai/conversation', isAuthenticated, async (req, res) => {
+  try {
+    const { fieldName, message, analysis, conversations = [] } = req.body;
+    const userId = getUserId(req);
+
+    if (!message || typeof message !== 'string' || message.trim().length < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Message is required and must be a non-empty string.',
+      });
+    }
+
+    if (!analysis || typeof analysis !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Analysis context is required.',
+      });
+    }
+
+    if (!fieldName || typeof fieldName !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Field name is required.',
+      });
+    }
+
+    // セッション設定があるかチェックして適切なAIサービスを取得
+    let aiService;
+    try {
+      const sessionSettings = (req.session as any)?.aiSettings;
+      if (sessionSettings?.realtimeProvider) {
+        aiService = getAIServiceForProvider(
+          sessionSettings.realtimeProvider,
+          sessionSettings.realtimeProvider === 'groq' ? sessionSettings.groqModel : undefined,
+          sessionSettings.realtimeProvider === 'gemini' ? sessionSettings.geminiModel : undefined,
+          sessionSettings.realtimeProvider === 'openrouter' ? sessionSettings.openrouterModel : undefined
+        );
+      } else {
+        // リアルタイム分析設定を取得
+        const { storage } = await import('./storage');
+        const realtimeConfig = await storage.getRealtimeAnalysisConfig();
+        aiService = getAIServiceForProvider(
+          realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter',
+          realtimeConfig.provider === 'groq' ? realtimeConfig.groqModel : undefined,
+          realtimeConfig.provider === 'gemini' ? realtimeConfig.geminiModel : undefined,
+          realtimeConfig.provider === 'openrouter' ? realtimeConfig.openrouterModel : undefined
+        );
+      }
+    } catch (error) {
+      console.log("AI設定取得中にエラー:", error);
+      aiService = await getAIService();
+    }
+
+    // 会話履歴を含むコンテキストを構築
+    const conversationHistory = conversations.map((conv: any) => 
+      `${conv.role === 'user' ? 'ユーザー' : 'AI'}: ${conv.content}`
+    ).join('\n');
+
+    // 会話用のプロンプトを構築
+    const conversationPrompt = `あなたは週次報告書の分析結果について質問に答えるAIアシスタントです。
+
+【分析対象フィールド】: ${fieldName}
+
+【AI分析結果】:
+${analysis}
+
+${conversationHistory ? `【これまでの会話履歴】:\n${conversationHistory}\n` : ''}
+
+【ユーザーの質問】: ${message}
+
+上記の分析結果に基づいて、ユーザーの質問に丁寧で具体的な回答をしてください。分析結果にない情報については推測せず、「分析結果からは判断できません」と回答してください。回答は簡潔で実用的にしてください。`;
+
+    const messages = [
+      { role: 'system' as const, content: 'あなたは週次報告書の分析について質問に答える専門AIアシスタントです。' },
+      { role: 'user' as const, content: conversationPrompt }
+    ];
+
+    const response = await aiService.generateResponse(messages, userId, {
+      endpoint: 'conversation',
+      userAgent: req.headers['user-agent'],
+      ip: req.ip,
+      fieldName,
+      messageCount: conversations.length + 1
+    });
+
+    console.log('AI Service response:', {
+      response,
+      responseType: typeof response,
+      responseContent: JSON.stringify(response)
+    });
+
+    // responseが文字列でない場合は適切に抽出
+    let responseContent: string;
+    if (typeof response === 'string') {
+      responseContent = response;
+    } else if (response && typeof response === 'object') {
+      // 一般的なAI応答オブジェクトの構造をチェック
+      responseContent = response.content || response.message || response.text || response.response || JSON.stringify(response);
+    } else {
+      responseContent = String(response || '回答を取得できませんでした');
+    }
+
+    res.json({
+      success: true,
+      data: responseContent,
+    });
+  } catch (error) {
+    console.error('AI conversation error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // AI provider status endpoint
 router.get('/api/ai/status', isAuthenticated, async (req, res) => {
   try {

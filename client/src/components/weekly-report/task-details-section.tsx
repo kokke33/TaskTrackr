@@ -31,7 +31,7 @@ type TaskDetailsSectionProps = {
 
 export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }: TaskDetailsSectionProps) {
   const form = useFormContext<WeeklyReport>();
-  const { getAnalysisState, clearAnalysis, analyzeField, regenerateAnalysis } = aiAnalysis;
+  const { getAnalysisState, clearAnalysis, analyzeField, regenerateAnalysis, sendMessage, clearConversations } = aiAnalysis;
 
   const fieldNameMapping: Record<string, keyof WeeklyReport> = {
     [ANALYSIS_FIELD_TYPES.weeklyTasks]: "weeklyTasks",
@@ -109,6 +109,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.weeklyTasks)}
                 onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.weeklyTasks)}
                 fieldName={ANALYSIS_FIELD_TYPES.weeklyTasks}
+                conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.weeklyTasks).conversations}
+                isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.weeklyTasks).isConversationLoading}
+                onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.weeklyTasks, message)}
+                onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.weeklyTasks)}
               />
             </FormItem>
           )}
@@ -268,6 +272,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                     error={getAnalysisState(ANALYSIS_FIELD_TYPES.delayDetails).error}
                     onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.delayDetails)}
                     onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.delayDetails)}
+                    conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.delayDetails).conversations}
+                    isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.delayDetails).isConversationLoading}
+                    onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.delayDetails, message)}
+                    onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.delayDetails)}
                   />
                 </FormItem>
               )}
@@ -312,6 +320,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.issues)}
                 onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.issues)}
                 fieldName={ANALYSIS_FIELD_TYPES.issues}
+                conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.issues).conversations}
+                isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.issues).isConversationLoading}
+                onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.issues, message)}
+                onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.issues)}
               />
             </FormItem>
           )}
@@ -429,6 +441,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       error={getAnalysisState(ANALYSIS_FIELD_TYPES.riskCountermeasures).error}
                       onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.riskCountermeasures)}
                       onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.riskCountermeasures)}
+                      conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.riskCountermeasures).conversations}
+                      isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.riskCountermeasures).isConversationLoading}
+                      onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.riskCountermeasures, message)}
+                      onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.riskCountermeasures)}
                     />
                   </FormItem>
                 )}
@@ -575,6 +591,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                   error={getAnalysisState(ANALYSIS_FIELD_TYPES.qualityAnalysis).error}
                   onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.qualityAnalysis)}
                   onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.qualityAnalysis)}
+                  conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.qualityAnalysis).conversations}
+                  isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.qualityAnalysis).isConversationLoading}
+                  onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.qualityAnalysis, message)}
+                  onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.qualityAnalysis)}
                 />
               </FormItem>
             )}
@@ -643,6 +663,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                     error={getAnalysisState(ANALYSIS_FIELD_TYPES.changeDetails).error}
                     onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.changeDetails)}
                     onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.changeDetails)}
+                    conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.changeDetails).conversations}
+                    isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.changeDetails).isConversationLoading}
+                    onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.changeDetails, message)}
+                    onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.changeDetails)}
                   />
                 </FormItem>
               )}
@@ -687,6 +711,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.nextWeekPlan)}
                 onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.nextWeekPlan)}
                 fieldName={ANALYSIS_FIELD_TYPES.nextWeekPlan}
+                conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.nextWeekPlan).conversations}
+                isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.nextWeekPlan).isConversationLoading}
+                onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.nextWeekPlan, message)}
+                onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.nextWeekPlan)}
               />
             </FormItem>
           )}
@@ -731,6 +759,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.supportRequests)}
                 onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.supportRequests)}
                 fieldName={ANALYSIS_FIELD_TYPES.supportRequests}
+                conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.supportRequests).conversations}
+                isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.supportRequests).isConversationLoading}
+                onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.supportRequests, message)}
+                onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.supportRequests)}
               />
             </FormItem>
           )}
@@ -795,6 +827,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                     error={getAnalysisState(ANALYSIS_FIELD_TYPES.resourceConcerns).error}
                     onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.resourceConcerns)}
                     onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.resourceConcerns)}
+                    conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.resourceConcerns).conversations}
+                    isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.resourceConcerns).isConversationLoading}
+                    onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.resourceConcerns, message)}
+                    onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.resourceConcerns)}
                   />
                 </FormItem>
               )}
@@ -854,6 +890,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                     error={getAnalysisState(ANALYSIS_FIELD_TYPES.customerConcerns).error}
                     onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.customerConcerns)}
                     onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.customerConcerns)}
+                    conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.customerConcerns).conversations}
+                    isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.customerConcerns).isConversationLoading}
+                    onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.customerConcerns, message)}
+                    onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.customerConcerns)}
                   />
                 </FormItem>
               )}
@@ -913,6 +953,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                     error={getAnalysisState(ANALYSIS_FIELD_TYPES.environmentConcerns).error}
                     onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.environmentConcerns)}
                     onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.environmentConcerns)}
+                    conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.environmentConcerns).conversations}
+                    isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.environmentConcerns).isConversationLoading}
+                    onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.environmentConcerns, message)}
+                    onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.environmentConcerns)}
                   />
                 </FormItem>
               )}
@@ -972,6 +1016,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                     error={getAnalysisState(ANALYSIS_FIELD_TYPES.costConcerns).error}
                     onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.costConcerns)}
                     onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.costConcerns)}
+                    conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.costConcerns).conversations}
+                    isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.costConcerns).isConversationLoading}
+                    onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.costConcerns, message)}
+                    onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.costConcerns)}
                   />
                 </FormItem>
               )}
@@ -1031,6 +1079,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                     error={getAnalysisState(ANALYSIS_FIELD_TYPES.knowledgeConcerns).error}
                     onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.knowledgeConcerns)}
                     onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.knowledgeConcerns)}
+                    conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.knowledgeConcerns).conversations}
+                    isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.knowledgeConcerns).isConversationLoading}
+                    onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.knowledgeConcerns, message)}
+                    onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.knowledgeConcerns)}
                   />
                 </FormItem>
               )}
@@ -1090,6 +1142,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                     error={getAnalysisState(ANALYSIS_FIELD_TYPES.trainingConcerns).error}
                     onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.trainingConcerns)}
                     onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.trainingConcerns)}
+                    conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.trainingConcerns).conversations}
+                    isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.trainingConcerns).isConversationLoading}
+                    onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.trainingConcerns, message)}
+                    onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.trainingConcerns)}
                   />
                 </FormItem>
               )}
@@ -1148,6 +1204,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                     error={getAnalysisState(ANALYSIS_FIELD_TYPES.urgentIssues).error}
                     onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.urgentIssues)}
                     onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.urgentIssues)}
+                    conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.urgentIssues).conversations}
+                    isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.urgentIssues).isConversationLoading}
+                    onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.urgentIssues, message)}
+                    onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.urgentIssues)}
                   />
                 </FormItem>
               )}
@@ -1207,6 +1267,10 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                     error={getAnalysisState(ANALYSIS_FIELD_TYPES.businessOpportunities).error}
                     onClear={() => clearAnalysis(ANALYSIS_FIELD_TYPES.businessOpportunities)}
                     onRegenerate={createRegenerateHandler(ANALYSIS_FIELD_TYPES.businessOpportunities)}
+                    conversations={getAnalysisState(ANALYSIS_FIELD_TYPES.businessOpportunities).conversations}
+                    isConversationLoading={getAnalysisState(ANALYSIS_FIELD_TYPES.businessOpportunities).isConversationLoading}
+                    onSendMessage={(message) => sendMessage(ANALYSIS_FIELD_TYPES.businessOpportunities, message)}
+                    onClearConversations={() => clearConversations(ANALYSIS_FIELD_TYPES.businessOpportunities)}
                   />
                 </FormItem>
               )}
