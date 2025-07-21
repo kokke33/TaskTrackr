@@ -136,6 +136,30 @@ export function AIAnalysisResult({
                     components={{
                       p: ({ children }) => <p className="mb-2">{children}</p>,
                       strong: ({ children }) => <strong className="font-bold text-gray-900">{children}</strong>,
+                      table: ({ children }) => (
+                        <table className="min-w-full border-collapse border border-gray-300 my-3">
+                          {children}
+                        </table>
+                      ),
+                      thead: ({ children }) => (
+                        <thead className="bg-gray-50">{children}</thead>
+                      ),
+                      tbody: ({ children }) => (
+                        <tbody>{children}</tbody>
+                      ),
+                      tr: ({ children }) => (
+                        <tr className="border-b border-gray-200">{children}</tr>
+                      ),
+                      th: ({ children }) => (
+                        <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-sm">
+                          {children}
+                        </th>
+                      ),
+                      td: ({ children }) => (
+                        <td className="border border-gray-300 px-3 py-2 text-sm">
+                          {children}
+                        </td>
+                      ),
                     }}
                   >
                     {analysis.replace(/\n/g, '  \n')}
@@ -213,6 +237,33 @@ export function AIAnalysisResult({
                                   rehypePlugins={[rehypeRaw]}
                                   components={{
                                     p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                                    table: ({ children }) => (
+                                      <table className="min-w-full border-collapse border border-gray-300 my-2">
+                                        {children}
+                                      </table>
+                                    ),
+                                    thead: ({ children }) => (
+                                      <thead className="bg-gray-50">{children}</thead>
+                                    ),
+                                    tbody: ({ children }) => (
+                                      <tbody>{children}</tbody>
+                                    ),
+                                    tr: ({ children }) => (
+                                      <tr className="border-b border-gray-200">{children}</tr>
+                                    ),
+                                    th: ({ children }) => (
+                                      <th className="border border-gray-300 px-2 py-1 text-left font-semibold text-xs">
+                                        {children}
+                                      </th>
+                                    ),
+                                    td: ({ children }) => (
+                                      <td className="border border-gray-300 px-2 py-1 text-xs">
+                                        {children}
+                                      </td>
+                                    ),
+                                    strong: ({ children }) => (
+                                      <strong className="font-bold">{children}</strong>
+                                    ),
                                   }}
                                 >
                                   {String(message.content || '')}
