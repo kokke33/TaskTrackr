@@ -55,6 +55,34 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
 
   const createRegenerateHandler = useCallback((fieldName: string) => {
     return () => {
+      // 品質セクション専用の処理
+      if (fieldName === ANALYSIS_FIELD_TYPES.qualityAnalysis) {
+        const formValues = form.getValues();
+        const qualityDetails = formValues.qualityDetails || "";
+        const testProgress = formValues.testProgress || "";
+        const combinedContent = `${qualityDetails}\n${testProgress}`.trim();
+        
+        // 既存レポートからの統合コンテンツ
+        const existingQualityDetails = existingReport?.qualityDetails || "";
+        const existingTestProgress = existingReport?.testProgress || "";
+        const existingCombinedContent = `${existingQualityDetails}\n${existingTestProgress}`.trim();
+        
+        // 前回レポートからの統合コンテンツ
+        const prevQualityDetails = latestReport?.qualityDetails || "";
+        const prevTestProgress = latestReport?.testProgress || "";
+        const prevCombinedContent = `${prevQualityDetails}\n${prevTestProgress}`.trim();
+        
+        if (combinedContent && combinedContent.length >= 10) {
+          regenerateAnalysis(
+            fieldName, 
+            combinedContent, 
+            existingCombinedContent || undefined,
+            prevCombinedContent || undefined
+          );
+        }
+        return;
+      }
+      
       const englishFieldName = fieldNameMapping[fieldName];
       if (!englishFieldName) {
         return;
