@@ -75,18 +75,18 @@ export function ReportHeader({
       </div>
 
       {/* Form Header inside the main content */}
-      <div className="p-6 bg-card rounded-lg shadow-sm">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
         <header className="mb-8">
-          <div className="flex flex-col gap-4 mb-2">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold text-primary">
-                {isAdminEditMode ? (
-                  <span className="flex items-center gap-2 text-red-600">
-                    <ShieldCheck className="h-5 w-5" />
-                    週次報告管理者編集
-                  </span>
-                ) : isEditMode ? "週次報告編集" : "週次報告フォーム"}
-              </h1>
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-primary">
+              {isAdminEditMode ? (
+                <span className="flex items-center gap-2 text-red-600">
+                  <ShieldCheck className="h-5 w-5" />
+                  週次報告管理者編集
+                </span>
+              ) : isEditMode ? "週次報告編集" : "週次報告フォーム"}
+            </h1>
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
@@ -105,18 +105,18 @@ export function ReportHeader({
                   </span>
                 )}
               </div>
+              {selectedCaseId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onCopyFromLastReport}
+                  className="flex items-center gap-2"
+                >
+                  前回の報告をコピー
+                </Button>
+              )}
             </div>
-            {selectedCaseId && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onCopyFromLastReport}
-                className="w-fit"
-              >
-                前回の報告をコピー
-              </Button>
-            )}
           </div>
         </header>
       </div>
