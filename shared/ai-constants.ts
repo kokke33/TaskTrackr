@@ -17,7 +17,7 @@ export const GROQ_MODELS = [
 export type GroqModel = typeof GROQ_MODELS[number];
 
 // Geminiモデル
-export const GEMINI_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash"] as const;
+export const GEMINI_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"] as const;
 export type GeminiModel = typeof GEMINI_MODELS[number];
 
 // OpenRouterモデル
@@ -61,6 +61,7 @@ export const GROQ_MODEL_OPTIONS = [
 // UI表示用のGeminiモデル選択肢（ラベル付き）
 export const GEMINI_MODEL_OPTIONS = [
   { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (推奨)" },
+  { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
   { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
 ] as const;
 
