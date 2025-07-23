@@ -42,15 +42,16 @@ export async function generateAdminConfirmationEmail(
   weeklyReport: WeeklyReportData,
   caseInfo: CaseData,
   originalData?: WeeklyReportData,
-  modifiedBy?: string
+  modifiedBy?: string,
+  previousReport?: WeeklyReportData
 ): Promise<string> {
   const requestId = generateRequestId();
   
   try {
     aiLogger.logDebug('gemini', 'generateAdminConfirmationEmail', requestId, 'Starting admin confirmation email generation');
 
-    // 週次報告の内容から確認すべき項目を抽出
-    const confirmationPoints = extractConfirmationPoints(weeklyReport, originalData);
+    // 週次報告の内容から確認すべき項目を抽出（前回レポートとの差分分析も含む）
+    const confirmationPoints = extractConfirmationPoints(weeklyReport, originalData, previousReport);
     
     // メール文章生成用の詳細プロンプトを構築
     const systemPrompt = `あなたは経験豊富なプロジェクトマネージャーです。週次報告を確認し、担当者に対して的確で建設的な確認メールを作成してください。
