@@ -33,9 +33,9 @@ export function useAIAnalysis() {
 
     const currentState = analysisState[fieldName];
     
-    // 初回分析チェック: 同じ内容で分析が実行済みで強制実行でない場合はスキップ
-    if (currentState?.hasRunAnalysis && currentState?.previousContent === content && !forceAnalysis) {
-      console.log(`${fieldName}: 同じ内容で分析済みのため自動実行をスキップ`);
+    // 初回分析チェック: 分析が実行済みで強制実行でない場合はスキップ（内容変更に関係なく）
+    if (currentState?.hasRunAnalysis && !forceAnalysis) {
+      console.log(`${fieldName}: 分析済みのため自動実行をスキップ（手動再生成のみ有効）`);
       return;
     }
 
@@ -149,9 +149,9 @@ export function useAIAnalysis() {
 
     const currentState = analysisState[fieldName];
     
-    // 初回分析チェック: 同じ内容で分析が実行済みで強制実行でない場合はスキップ
-    if (currentState?.hasRunAnalysis && currentState?.previousContent === content && !forceAnalysis) {
-      console.log(`${fieldName}: 同じ内容で分析済みのため自動実行をスキップ`);
+    // 初回分析チェック: 分析が実行済みで強制実行でない場合はスキップ（内容変更に関係なく）
+    if (currentState?.hasRunAnalysis && !forceAnalysis) {
+      console.log(`${fieldName}: 分析済みのため自動実行をスキップ（手動再生成のみ有効）`);
       return;
     }
 
