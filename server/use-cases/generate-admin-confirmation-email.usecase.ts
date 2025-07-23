@@ -3,6 +3,21 @@ import { aiLogger, generateRequestId } from '../ai-logger.js';
 import { ANALYSIS_FIELD_TYPES } from '@shared/ai-constants';
 import { analysisPrompts } from '../prompts/analysis-prompts.js';
 
+/**
+ * 日付文字列をMM/DD形式でフォーマット
+ */
+function formatWeekDate(dateString?: string): string {
+  if (!dateString) return 'MM/DD';
+  try {
+    const date = new Date(dateString);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${month}/${day}`;
+  } catch {
+    return 'MM/DD';
+  }
+}
+
 interface WeeklyReportData {
   reporterName: string;
   weeklyTasks: string;
@@ -26,6 +41,7 @@ interface WeeklyReportData {
   trainingIssues: string | null;
   urgentIssues: string | null;
   businessOpportunities: string | null;
+  reportPeriodStart?: string;
 }
 
 interface CaseData {
@@ -67,7 +83,7 @@ export async function generateAdminConfirmationEmail(
 7. **傾向分析**: 改善傾向や悪化傾向を適切に評価し言及する
 
 メール文章は以下の構造で作成してください：
-- 件名: 明確で簡潔
+- 件名: 【プロジェクト名】案件名 週次報告（MM/DD週）の確認
 - 宛先: 担当者名
 - 挨拶: 簡潔な挨拶
 - 確認事項: 番号付きリストで整理（前回からの変化点を優先）
@@ -78,8 +94,13 @@ export async function generateAdminConfirmationEmail(
 プロジェクト名: ${caseInfo.projectName}
 案件名: ${caseInfo.caseName}
 担当者: ${weeklyReport.reporterName}
+報告期間開始日: ${weeklyReport.reportPeriodStart}
 ${caseInfo.description ? `案件概要: ${caseInfo.description}` : ''}
 ${caseInfo.milestone ? `マイルストーン: ${caseInfo.milestone}` : ''}
+
+【件名指定】
+件名は必ず以下の形式で作成してください：
+件名: 【${caseInfo.projectName}】${caseInfo.caseName} 週次報告（${formatWeekDate(weeklyReport.reportPeriodStart)}週）の確認
 
 【週次報告の主要な内容】
 ■ 今週の作業内容
