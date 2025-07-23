@@ -214,7 +214,7 @@ export function useAIAnalysis() {
               const sessionSettings = await sessionResponse.json();
               if (sessionSettings.realtimeProvider) {
                 // ストリーミング対応プロバイダーをチェック
-                const streamingSupportedProviders = ['openai', 'groq'];
+                const streamingSupportedProviders = ['openai', 'groq', 'gemini'];
                 if (!streamingSupportedProviders.includes(sessionSettings.realtimeProvider)) {
                   useStreaming = false;
                   endpoint = "/api/ai/analyze-text-trial";

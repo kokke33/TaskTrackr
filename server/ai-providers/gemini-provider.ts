@@ -7,6 +7,7 @@ import { BaseProvider } from './base-provider.js';
 export class GeminiService extends BaseProvider {
   private client: GoogleGenerativeAI;
   private model: string;
+  readonly supportsStreaming: boolean = true;
 
   constructor(model?: string) {
     super('gemini');
@@ -133,9 +134,110 @@ export class GeminiService extends BaseProvider {
   }
 
   private messagesToGeminiFormat(messages: AIMessage[]): any[] {
-    return messages.map(msg => ({
+    // システムメッセージを最初のユーザーメッセージに統合
+    const systemMessages = messages.filter(msg => msg.role === 'system');
+    const nonSystemMessages = messages.filter(msg => msg.role !== 'system');
+    
+    if (systemMessages.length > 0 && nonSystemMessages.length > 0) {
+      const systemContent = systemMessages.map(msg => msg.content).join('\n\n');
+      const firstUserMessage = nonSystemMessages.find(msg => msg.role === 'user');
+      
+      if (firstUserMessage) {
+        // 最初のユーザーメッセージにシステムメッセージを統合
+        const updatedMessages = nonSystemMessages.map((msg, index) => {
+          if (msg.role === 'user' && index === nonSystemMessages.findIndex(m => m.role === 'user')) {
+            return {
+              ...msg,
+              content: `${systemContent}\n\n${msg.content}`
+            };
+          }
+          return msg;
+        });
+        
+        return updatedMessages.map(msg => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        }));
+      }
+    }
+    
+    return nonSystemMessages.map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
+  }
+
+  async* generateStreamResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): AsyncIterable<string> {
+    const requestId = generateRequestId();
+    const startTime = Date.now();
+
+    const requestData = {
+      endpoint: 'https://generativelanguage.googleapis.com/v1/models/' + this.model,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: {
+        model: this.model,
+        contents: this.messagesToGeminiFormat(messages),
+        generationConfig: {
+          temperature: aiConfig.gemini.temperature,
+          maxOutputTokens: aiConfig.gemini.maxTokens,
+        },
+        stream: true,
+      }
+    };
+
+    aiLogger.logRequest('gemini', 'generateStreamResponse', requestId, requestData, userId, metadata);
+
+    try {
+      const model = this.client.getGenerativeModel({ 
+        model: this.model,
+        safetySettings: [
+          {
+            category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+          {
+            category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+          {
+            category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+          {
+            category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+        ],
+        generationConfig: {
+          temperature: aiConfig.gemini.temperature,
+          maxOutputTokens: aiConfig.gemini.maxTokens,
+        },
+      });
+
+      const geminiMessages = this.messagesToGeminiFormat(messages);
+      const result = await model.generateContentStream({
+        contents: geminiMessages
+      });
+
+      for await (const chunk of result.stream) {
+        const content = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (content) {
+          yield content;
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      aiLogger.logDebug('gemini', 'generateStreamResponse', requestId, 'Gemini stream response completed successfully', 
+        { duration, model: this.model }, userId);
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      aiLogger.logError('gemini', 'generateStreamResponse', requestId, error as Error, userId, 
+        { ...metadata, duration, model: this.model });
+      
+      throw new Error(`Gemini streaming API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }
