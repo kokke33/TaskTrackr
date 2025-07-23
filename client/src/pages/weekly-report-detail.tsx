@@ -11,6 +11,8 @@ import rehypeRaw from 'rehype-raw';
 import { useAuth } from "@/lib/auth";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAIAnalysis } from "@/hooks/use-ai-analysis";
+import { AIAnalysisResult } from "@/components/ai-analysis-result";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Breadcrumb,
@@ -47,6 +49,44 @@ export default function WeeklyReportDetail() {
   
   // マイルストーンダイアログの状態管理
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
+  
+  // AI分析フック
+  const aiAnalysisHook = useAIAnalysis();
+  
+  // 管理者確認メール文章の再生成
+  const regenerateAdminEmailMutation = useMutation({
+    mutationFn: async () => {
+      if (!report || !id) throw new Error('レポートデータが不足しています');
+      
+      const response = await fetch(`/api/weekly-reports/${id}/regenerate-admin-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('メール文章の再生成に失敗しました');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/weekly-reports/${id}`] });
+      toast({
+        title: "成功",
+        description: "管理者確認メール文章が再生成されました",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: "メール文章の再生成に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
   
   const { data: report, isLoading } = useQuery<WeeklyReport>({
     queryKey: [`/api/weekly-reports/${id}`],
@@ -627,6 +667,39 @@ export default function WeeklyReportDetail() {
                     </div>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 管理者確認メール文章セクション */}
+          {user?.isAdmin && (
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-center mb-4 pb-2 border-b">
+                  <h2 className="text-xl font-semibold">■ 管理者確認メール文章</h2>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => regenerateAdminEmailMutation.mutate()}
+                    disabled={regenerateAdminEmailMutation.isPending}
+                  >
+                    {regenerateAdminEmailMutation.isPending ? '再生成中...' : '更新'}
+                  </Button>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  {report?.adminConfirmationEmail ? (
+                    <div className="prose prose-sm max-w-none">
+                      <pre className="whitespace-pre-wrap font-sans text-sm">
+                        {report.adminConfirmationEmail}
+                      </pre>
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 text-sm text-center py-4">
+                      管理者確認メール文章が生成されていません。<br />
+                      「更新」ボタンを押して生成してください。
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}

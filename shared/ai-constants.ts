@@ -93,6 +93,7 @@ export const ANALYSIS_FIELD_TYPES = {
   trainingConcerns: "教育懸念事項",
   urgentIssues: "緊急課題の詳細",
   businessOpportunities: "営業チャンス・顧客ニーズ",
+  adminConfirmationEmail: "管理者確認メール文章",
 } as const;
 
 export type AnalysisFieldType = typeof ANALYSIS_FIELD_TYPES[keyof typeof ANALYSIS_FIELD_TYPES];

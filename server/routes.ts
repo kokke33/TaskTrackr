@@ -19,7 +19,7 @@ import {
   isValidGeminiModel,
   isValidOpenRouterModel,
 } from "@shared/ai-constants";
-import { getAIService } from "./ai-service";
+import { getAIService, generateAdminConfirmationEmail } from "./ai-service";
 import { aiRoutes } from "./ai-routes";
 import passport from "passport";
 import { isAuthenticated, isAdmin } from "./auth";
@@ -1272,11 +1272,11 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         // 2. 関連案件情報を取得
         const relatedCase = await storage.getCase(updatedReport.caseId);
 
-        // 3. AI分析と議事録生成を並列実行（処理時間短縮）
+        // 3. AI分析、議事録生成、管理者確認メール生成を並列実行（処理時間短縮）
         console.log("Starting parallel AI processing...");
         const parallelStartTime = Date.now();
 
-        const [analysis, meetingMinutes] = await Promise.all([
+        const [analysis, meetingMinutes, adminConfirmationEmail] = await Promise.all([
           // AI分析処理
           analyzeWeeklyReport(updatedReport, relatedCase),
           // 議事録生成処理
@@ -1286,6 +1286,16 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
             (req.user as any)?.username || "管理者",
             relatedCase,
           ),
+          // 管理者確認メール文章生成処理
+          relatedCase ? generateAdminConfirmationEmail(
+            updatedReport,
+            relatedCase,
+            originalData,
+            (req.user as any)?.username || "管理者"
+          ).catch(error => {
+            console.error("Admin confirmation email generation failed:", error);
+            return null; // エラー時はnullを返して処理を続行
+          }) : Promise.resolve(null),
         ]);
 
         const parallelEndTime = Date.now();
@@ -1312,6 +1322,14 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
           analysis ? storage.updateAIAnalysis(id, analysis) : Promise.resolve(),
           // 修正会議議事録を保存
           storage.upsertWeeklyReportMeeting(meetingData),
+          // 管理者確認メール文章を保存（生成に成功した場合のみ）
+          adminConfirmationEmail 
+            ? (() => {
+                const currentData = { ...updatedReport, adminConfirmationEmail };
+                const { id: reportId, createdAt, ...updateData } = currentData;
+                return storage.updateWeeklyReport(id, updateData);
+              })()
+            : Promise.resolve(),
         ]);
 
         const dbEndTime = Date.now();
@@ -1346,6 +1364,52 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       } catch (error) {
         console.error("Error fetching report meetings:", error);
         res.status(500).json({ message: "修正履歴の取得に失敗しました" });
+      }
+    },
+  );
+
+  // 管理者確認メール文章再生成エンドポイント
+  app.post(
+    "/api/weekly-reports/:id/regenerate-admin-email",
+    isAuthenticated,
+    isAdmin,
+    async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const existingReport = await storage.getWeeklyReport(id);
+        
+        if (!existingReport) {
+          res.status(404).json({ message: "週次報告が見つかりません" });
+          return;
+        }
+
+        // 関連案件情報を取得
+        const relatedCase = await storage.getCase(existingReport.caseId);
+        if (!relatedCase) {
+          res.status(404).json({ message: "関連案件が見つかりません" });
+          return;
+        }
+
+        // 管理者確認メール文章を再生成
+        const adminConfirmationEmail = await generateAdminConfirmationEmail(
+          existingReport,
+          relatedCase,
+          undefined, // 再生成時は修正前データなし
+          (req.user as any)?.username || "管理者"
+        );
+
+        // データベースを更新
+        const updateData = { ...existingReport, adminConfirmationEmail };
+        const { id: reportId, createdAt, ...updateDataForStorage } = updateData;
+        const updatedReport = await storage.updateWeeklyReport(id, updateDataForStorage);
+
+        res.json({
+          report: updatedReport,
+          message: "管理者確認メール文章が再生成されました",
+        });
+      } catch (error) {
+        console.error("Error regenerating admin confirmation email:", error);
+        res.status(500).json({ message: "メール文章の再生成に失敗しました" });
       }
     },
   );

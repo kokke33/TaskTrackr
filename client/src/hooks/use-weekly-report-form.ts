@@ -75,6 +75,7 @@ export function useWeeklyReportForm({ id }: UseWeeklyReportFormProps) {
       trainingDetails: "",
       urgentDetails: "",
       businessDetails: "",
+      adminConfirmationEmail: "",
     },
   });
 

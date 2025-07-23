@@ -7,6 +7,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { Card, CardContent } from "@/components/ui/card";
+import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { AIAnalysisResult } from "@/components/ai-analysis-result";
 
 import { useWeeklyReportForm } from "@/hooks/use-weekly-report-form";
 import { useReportAutoSave } from "@/hooks/use-report-auto-save";
@@ -169,6 +172,66 @@ export default function WeeklyReport() {
               onSave={meetingMinutesHook.saveMeeting}
               onUpdateField={meetingMinutesHook.updateMeetingField}
             />
+
+            {isAdminEditMode && (
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+                    ■ 管理者確認メール文章
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    リーダーに不明点を的確にシンプルに確認するためのメール文章を作成してください。
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <FormField
+                        control={form.control}
+                        name="adminConfirmationEmail"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>メール文章</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="件名: 週次報告について確認事項があります&#10;&#10;お疲れ様です。&#10;&#10;週次報告を確認させていただきましたが、以下の点について確認したいことがあります。&#10;&#10;【確認事項】&#10;- 〇〇について詳細を教えてください&#10;- △△の進捗状況はいかがでしょうか&#10;&#10;お忙しい中恐縮ですが、ご回答をお願いいたします。"
+                                className="min-h-32"
+                                value={field.value ?? ""}
+                                onChange={field.onChange}
+                                onBlur={(e) => {
+                                  field.onBlur();
+                                  // AI分析を実行
+                                  if (e.target.value && aiAnalysisHook.analyzeField) {
+                                    aiAnalysisHook.analyzeField('adminConfirmationEmail', e.target.value);
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    {aiAnalysisHook.getAnalysisState('adminConfirmationEmail')?.isLoading && (
+                      <div className="text-sm text-muted-foreground">
+                        AI分析中...
+                      </div>
+                    )}
+                    {aiAnalysisHook.getAnalysisState('adminConfirmationEmail')?.analysis && (
+                      <AIAnalysisResult
+                        fieldName="adminConfirmationEmail"
+                        analysis={aiAnalysisHook.getAnalysisState('adminConfirmationEmail')?.analysis || ''}
+                        isLoading={aiAnalysisHook.getAnalysisState('adminConfirmationEmail')?.isLoading ?? false}
+                        error={aiAnalysisHook.getAnalysisState('adminConfirmationEmail')?.error || null}
+                        onClear={() => aiAnalysisHook.clearAnalysis('adminConfirmationEmail')}
+                        onRegenerate={() => aiAnalysisHook.regenerateAnalysis('adminConfirmationEmail', form.getValues('adminConfirmationEmail') ?? '')}
+                        conversations={aiAnalysisHook.getAnalysisState('adminConfirmationEmail')?.conversations}
+                        isConversationLoading={aiAnalysisHook.getAnalysisState('adminConfirmationEmail')?.isConversationLoading}
+                        onSendMessage={(message) => aiAnalysisHook.sendMessage('adminConfirmationEmail', message)}
+                        onClearConversations={() => aiAnalysisHook.clearConversations('adminConfirmationEmail')}
+                      />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="flex justify-end mt-8">
               <Button
