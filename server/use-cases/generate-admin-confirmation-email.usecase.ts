@@ -63,12 +63,14 @@ export async function generateAdminConfirmationEmail(
 3. **建設的**: 問題点を指摘するだけでなく、改善に向けた視点を含める
 4. **簡潔性**: 必要な情報のみを含め、冗長な表現は避ける
 5. **敬意**: 担当者の努力を認めつつ、サポートする姿勢を示す
+6. **継続性**: 前回レポートとの変化を踏まえた質問と確認を行う
+7. **傾向分析**: 改善傾向や悪化傾向を適切に評価し言及する
 
 メール文章は以下の構造で作成してください：
 - 件名: 明確で簡潔
 - 宛先: 担当者名
 - 挨拶: 簡潔な挨拶
-- 確認事項: 番号付きリストで整理
+- 確認事項: 番号付きリストで整理（前回からの変化点を優先）
 - 回答期限: 具体的な期限と理由
 - 結び: サポート的な結びの言葉`;
 
@@ -121,6 +123,22 @@ ${originalData ? `
 （修正された項目について、担当者への確認や説明が必要な場合は含めてください）
 ` : ''}
 
+${previousReport ? `
+【前回レポートとの比較分析】
+■ 進捗率の変化: ${previousReport.progressRate}% → ${weeklyReport.progressRate}%
+■ 遅延状況の変化: ${previousReport.delayIssues} → ${weeklyReport.delayIssues}
+■ 新たなリスクの変化: ${previousReport.newRisks} → ${weeklyReport.newRisks}
+■ 品質懸念の変化: ${previousReport.qualityConcerns} → ${weeklyReport.qualityConcerns}
+
+【前回レポートの主要内容（参考）】
+- 進捗状況: ${previousReport.progressStatus}
+- 課題・問題: ${previousReport.issues}
+- 来週計画: ${previousReport.nextWeekPlan}
+- 支援要請: ${previousReport.supportRequests}
+
+上記の前回レポートとの比較を踏まえ、変化の背景や継続課題の進捗について確認してください。
+` : ''}
+
 上記の情報をもとに、${weeklyReport.reporterName}さんに送る確認メールを作成してください。`;
 
     const aiService = await getAIService();
@@ -149,11 +167,64 @@ ${originalData ? `
 }
 
 /**
- * 週次報告から確認すべきポイントを抽出
+ * 週次報告から確認すべきポイントを抽出（前回レポートとの差分分析も含む）
  */
-function extractConfirmationPoints(weeklyReport: WeeklyReportData, originalData?: WeeklyReportData): string[] {
+function extractConfirmationPoints(weeklyReport: WeeklyReportData, originalData?: WeeklyReportData, previousReport?: WeeklyReportData): string[] {
   const points: string[] = [];
 
+  // 前回レポートとの差分分析
+  if (previousReport) {
+    // 進捗率の変化分析
+    const progressDiff = weeklyReport.progressRate - previousReport.progressRate;
+    if (progressDiff < -5) {
+      points.push(`進捗悪化: 前回${previousReport.progressRate}%から${weeklyReport.progressRate}%に低下（${Math.abs(progressDiff)}%減少）`);
+    } else if (progressDiff > 10) {
+      points.push(`進捗向上: 前回${previousReport.progressRate}%から${weeklyReport.progressRate}%に改善（${progressDiff}%向上）`);
+    }
+
+    // 課題・問題点の変化分析
+    if (weeklyReport.issues !== previousReport.issues) {
+      if (weeklyReport.issues.length > previousReport.issues.length + 50) {
+        points.push(`課題増加: 前回レポートから課題内容が大幅に増加しています`);
+      } else if (weeklyReport.issues.length < previousReport.issues.length - 50) {
+        points.push(`課題解決: 前回レポートから課題内容が減少しており、解決状況を確認`);
+      }
+    }
+
+    // 遅延状況の変化分析
+    if (weeklyReport.delayIssues !== previousReport.delayIssues) {
+      if (weeklyReport.delayIssues !== 'no' && previousReport.delayIssues === 'no') {
+        points.push(`新規遅延: 前回は遅延なしでしたが、今回遅延が発生しています`);
+      } else if (weeklyReport.delayIssues === 'no' && previousReport.delayIssues !== 'no') {
+        points.push(`遅延解消: 前回の遅延が解消されたことを確認`);
+      }
+    }
+
+    // 新たなリスクの変化分析
+    if (weeklyReport.newRisks !== previousReport.newRisks) {
+      if (weeklyReport.newRisks !== 'no' && previousReport.newRisks === 'no') {
+        points.push(`新規リスク発生: 前回はリスクなしでしたが、今回新たなリスクが発生`);
+      }
+    }
+
+    // 品質懸念の変化分析
+    if (weeklyReport.qualityConcerns !== previousReport.qualityConcerns) {
+      if (weeklyReport.qualityConcerns !== 'none' && previousReport.qualityConcerns === 'none') {
+        points.push(`品質懸念発生: 前回は品質懸念なしでしたが、今回懸念が発生`);
+      } else if (weeklyReport.qualityConcerns === 'none' && previousReport.qualityConcerns !== 'none') {
+        points.push(`品質懸念解消: 前回の品質懸念が解消されたことを確認`);
+      }
+    }
+
+    // 支援要請の変化分析
+    const prevSupportEmpty = !previousReport.supportRequests || previousReport.supportRequests.trim() === '';
+    const currSupportEmpty = !weeklyReport.supportRequests || weeklyReport.supportRequests.trim() === '';
+    if (!currSupportEmpty && prevSupportEmpty) {
+      points.push(`新規支援要請: 前回は支援要請なしでしたが、今回要請が発生`);
+    }
+  }
+
+  // 現在のレポート内容から抽出される確認ポイント
   // 遅延がある場合
   if (weeklyReport.delayIssues !== 'no' && weeklyReport.delayDetails) {
     points.push(`遅延問題: ${weeklyReport.delayDetails}`);

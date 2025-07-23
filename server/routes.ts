@@ -1272,7 +1272,22 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         // 2. 関連案件情報を取得
         const relatedCase = await storage.getCase(updatedReport.caseId);
 
-        // 3. AI分析、議事録生成、管理者確認メール生成を並列実行（処理時間短縮）
+        // 3. 前回レポートデータを取得
+        let previousReport = null;
+        if (relatedCase) {
+          try {
+            previousReport = await storage.getPreviousReportByCase(
+              updatedReport.caseId,
+              updatedReport.reportPeriodStart,
+              updatedReport.id
+            );
+          } catch (error) {
+            console.error("Error fetching previous report for admin confirmation email:", error);
+            // エラーでも処理を続行
+          }
+        }
+
+        // 4. AI分析、議事録生成、管理者確認メール生成を並列実行（処理時間短縮）
         console.log("Starting parallel AI processing...");
         const parallelStartTime = Date.now();
 
@@ -1286,12 +1301,13 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
             (req.user as any)?.username || "管理者",
             relatedCase,
           ),
-          // 管理者確認メール文章生成処理
+          // 管理者確認メール文章生成処理（前回レポートデータも含める）
           relatedCase ? generateAdminConfirmationEmail(
             updatedReport,
             relatedCase,
             originalData,
-            (req.user as any)?.username || "管理者"
+            (req.user as any)?.username || "管理者",
+            previousReport || undefined
           ).catch(error => {
             console.error("Admin confirmation email generation failed:", error);
             return null; // エラー時はnullを返して処理を続行
@@ -1390,12 +1406,26 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
           return;
         }
 
-        // 管理者確認メール文章を再生成
+        // 前回レポートデータを取得
+        let previousReport = null;
+        try {
+          previousReport = await storage.getPreviousReportByCase(
+            existingReport.caseId,
+            existingReport.reportPeriodStart,
+            existingReport.id
+          );
+        } catch (error) {
+          console.error("Error fetching previous report for regeneration:", error);
+          // エラーでも処理を続行
+        }
+
+        // 管理者確認メール文章を再生成（前回レポートデータも含める）
         const adminConfirmationEmail = await generateAdminConfirmationEmail(
           existingReport,
           relatedCase,
           undefined, // 再生成時は修正前データなし
-          (req.user as any)?.username || "管理者"
+          (req.user as any)?.username || "管理者",
+          previousReport || undefined
         );
 
         // データベースを更新
