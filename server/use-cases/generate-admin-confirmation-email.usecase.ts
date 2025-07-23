@@ -139,7 +139,7 @@ ${previousReport ? `
 上記の前回レポートとの比較を踏まえ、変化の背景や継続課題の進捗について確認してください。
 ` : ''}
 
-上記の情報をもとに、${weeklyReport.reporterName}さんに送る確認メールを作成してください。`;
+上記の情報をもとに、${weeklyReport.reporterName}さんに送る確認メールを作成してください。マークダウン形式は使用せず、プレーンテキストで構いません。`;
 
     const aiService = await getAIService();
     const messages = [
