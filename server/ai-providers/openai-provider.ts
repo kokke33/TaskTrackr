@@ -6,6 +6,7 @@ import { BaseProvider } from './base-provider.js';
 
 export class OpenAIService extends BaseProvider {
   private client: OpenAI;
+  readonly supportsStreaming: boolean = true;
 
   constructor() {
     super('openai');
@@ -89,6 +90,56 @@ export class OpenAIService extends BaseProvider {
         { ...metadata, duration, model: aiConfig.openai.model });
       
       throw new Error(`OpenAI API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async* generateStreamResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): AsyncIterable<string> {
+    const requestId = generateRequestId();
+    const startTime = Date.now();
+
+    const requestData = {
+      endpoint: 'https://api.openai.com/v1/chat/completions',
+      method: 'POST',
+      headers: this.maskSensitiveHeaders({
+        'Authorization': `Bearer ${aiConfig.openai.apiKey}`,
+        'Content-Type': 'application/json',
+      }),
+      body: {
+        model: aiConfig.openai.model,
+        messages: messages,
+        max_tokens: aiConfig.openai.maxTokens,
+        temperature: aiConfig.openai.temperature,
+        stream: true,
+      }
+    };
+
+    aiLogger.logRequest('openai', 'generateStreamResponse', requestId, requestData, userId, metadata);
+
+    try {
+      const stream = await this.client.chat.completions.create({
+        model: aiConfig.openai.model,
+        messages: messages,
+        max_tokens: aiConfig.openai.maxTokens,
+        temperature: aiConfig.openai.temperature,
+        stream: true,
+      });
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content;
+        if (content) {
+          yield content;
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      aiLogger.logDebug('openai', 'generateStreamResponse', requestId, 'OpenAI stream response completed successfully', 
+        { duration }, userId);
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      aiLogger.logError('openai', 'generateStreamResponse', requestId, error as Error, userId, 
+        { ...metadata, duration, model: aiConfig.openai.model });
+      
+      throw new Error(`OpenAI streaming API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

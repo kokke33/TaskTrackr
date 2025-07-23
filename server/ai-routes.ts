@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAIService, getAIServiceForProvider, AIMessage, analyzeTask, analyzeText, generateSummary } from './ai-service.js';
+import { getAIService, getAIServiceForProvider, AIMessage, analyzeTask, analyzeText, analyzeTextStream, generateSummary } from './ai-service.js';
 import { isAuthenticated } from './auth';
 
 const router = express.Router();
@@ -300,7 +300,7 @@ ${conversationHistory ? `【これまでの会話履歴】:\n${conversationHisto
       responseContent = response;
     } else if (response && typeof response === 'object') {
       // 一般的なAI応答オブジェクトの構造をチェック
-      responseContent = response.content || response.message || response.text || response.response || JSON.stringify(response);
+      responseContent = (response as any).content || (response as any).message || (response as any).text || (response as any).response || JSON.stringify(response);
     } else {
       responseContent = String(response || '回答を取得できませんでした');
     }
@@ -315,6 +315,76 @@ ${conversationHistory ? `【これまでの会話履歴】:\n${conversationHisto
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
+  }
+});
+
+// Text analysis streaming endpoint for weekly reports
+router.post('/api/ai/analyze-text-stream', isAuthenticated, async (req, res) => {
+  try {
+    const { content, fieldType, originalContent, previousReportContent } = req.body;
+    const userId = getUserId(req);
+
+    if (!content || typeof content !== 'string' || content.length < 5 || !fieldType || typeof fieldType !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Request must include content (string, min 5 chars) and fieldType (string).'
+      });
+    }
+
+    // ストリーミング用のヘッダーを設定
+    res.writeHead(200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Cache-Control',
+    });
+
+    // セッション設定があるかチェックして適切なAIサービスを取得
+    let aiService;
+    try {
+      const sessionSettings = (req.session as any)?.aiSettings;
+      if (sessionSettings?.realtimeProvider) {
+        aiService = getAIServiceForProvider(
+          sessionSettings.realtimeProvider,
+          sessionSettings.realtimeProvider === 'groq' ? sessionSettings.groqModel : undefined,
+          sessionSettings.realtimeProvider === 'gemini' ? sessionSettings.geminiModel : undefined,
+          sessionSettings.realtimeProvider === 'openrouter' ? sessionSettings.openrouterModel : undefined
+        );
+      } else {
+        // リアルタイム分析設定を取得
+        const { storage } = await import('./storage');
+        const realtimeConfig = await storage.getRealtimeAnalysisConfig();
+        aiService = getAIServiceForProvider(
+          realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter',
+          realtimeConfig.provider === 'groq' ? realtimeConfig.groqModel : undefined,
+          realtimeConfig.provider === 'gemini' ? realtimeConfig.geminiModel : undefined,
+          realtimeConfig.provider === 'openrouter' ? realtimeConfig.openrouterModel : undefined
+        );
+      }
+    } catch (configError) {
+      console.log("設定取得エラー、デフォルトサービスを使用:", configError);
+      aiService = await getAIService();
+    }
+    
+    try {
+      for await (const chunk of analyzeTextStream(aiService, content, fieldType, originalContent, previousReportContent, userId)) {
+        res.write(chunk);
+      }
+    } catch (streamError) {
+      console.error('Stream error:', streamError);
+      res.write(`\n\nエラーが発生しました: ${streamError instanceof Error ? streamError.message : 'Unknown error'}`);
+    }
+    
+    res.end();
+  } catch (error) {
+    console.error('AI text analysis streaming error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
 });
 

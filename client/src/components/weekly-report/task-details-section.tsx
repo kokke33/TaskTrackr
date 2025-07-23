@@ -31,7 +31,7 @@ type TaskDetailsSectionProps = {
 
 export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }: TaskDetailsSectionProps) {
   const form = useFormContext<WeeklyReport>();
-  const { getAnalysisState, clearAnalysis, analyzeField, regenerateAnalysis, sendMessage, clearConversations } = aiAnalysis;
+  const { getAnalysisState, clearAnalysis, analyzeField, analyzeFieldStreaming, regenerateAnalysis, sendMessage, clearConversations } = aiAnalysis;
 
   const fieldNameMapping: Record<string, keyof WeeklyReport> = {
     [ANALYSIS_FIELD_TYPES.weeklyTasks]: "weeklyTasks",
@@ -125,7 +125,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                   {...field}
                   onBlur={(e) => {
                     field.onBlur?.();
-                    analyzeField(ANALYSIS_FIELD_TYPES.weeklyTasks, e.target.value, existingReport?.weeklyTasks ?? undefined, latestReport?.weeklyTasks ?? undefined);
+                    analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.weeklyTasks, e.target.value, existingReport?.weeklyTasks ?? undefined, latestReport?.weeklyTasks ?? undefined);
                   }}
                 />
               </FormControl>
@@ -288,7 +288,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       value={field.value ?? ""}
                       onBlur={(e) => {
                         field.onBlur?.();
-                        analyzeField(ANALYSIS_FIELD_TYPES.delayDetails, e.target.value, existingReport?.delayDetails ?? undefined, latestReport?.delayDetails ?? undefined);
+                        analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.delayDetails, e.target.value, existingReport?.delayDetails ?? undefined, latestReport?.delayDetails ?? undefined);
                       }}
                     />
                   </FormControl>
@@ -336,7 +336,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                   {...field}
                   onBlur={(e) => {
                     field.onBlur?.();
-                    analyzeField(ANALYSIS_FIELD_TYPES.issues, e.target.value, existingReport?.issues ?? undefined, latestReport?.issues ?? undefined);
+                    analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.issues, e.target.value, existingReport?.issues ?? undefined, latestReport?.issues ?? undefined);
                   }}
                 />
               </FormControl>
@@ -456,7 +456,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                             const existingCombinedContent = existingRiskSummary || existingRiskCountermeasures
                               ? `【リスクの概要】\n${existingRiskSummary}\n\n【対策】\n${existingRiskCountermeasures}`
                               : undefined;
-                            analyzeField(ANALYSIS_FIELD_TYPES.riskCountermeasures, combinedContent, existingCombinedContent, prevCombinedContent);
+                            analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.riskCountermeasures, combinedContent, existingCombinedContent, prevCombinedContent);
                           }
                         }}
                       />
@@ -606,7 +606,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                         const existingCombinedContent = existingQualityDetails || existingTestProgress
                           ? `【品質懸念事項の詳細】\n${existingQualityDetails}\n\n【進捗状況】\n${existingTestProgress}`
                           : undefined;
-                        analyzeField(ANALYSIS_FIELD_TYPES.qualityAnalysis, combinedContent, existingCombinedContent, prevCombinedContent);
+                        analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.qualityAnalysis, combinedContent, existingCombinedContent, prevCombinedContent);
                       }
                     }}
                   />
@@ -679,7 +679,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       value={field.value ?? ""}
                       onBlur={(e) => {
                         field.onBlur?.();
-                        analyzeField(ANALYSIS_FIELD_TYPES.changeDetails, e.target.value, existingReport?.changeDetails ?? undefined, latestReport?.changeDetails ?? undefined);
+                        analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.changeDetails, e.target.value, existingReport?.changeDetails ?? undefined, latestReport?.changeDetails ?? undefined);
                       }}
                     />
                   </FormControl>
@@ -727,7 +727,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                   {...field}
                   onBlur={(e) => {
                     field.onBlur?.();
-                    analyzeField(ANALYSIS_FIELD_TYPES.nextWeekPlan, e.target.value, existingReport?.nextWeekPlan ?? undefined, latestReport?.nextWeekPlan ?? undefined);
+                    analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.nextWeekPlan, e.target.value, existingReport?.nextWeekPlan ?? undefined, latestReport?.nextWeekPlan ?? undefined);
                   }}
                 />
               </FormControl>
@@ -775,7 +775,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                   {...field}
                   onBlur={(e) => {
                     field.onBlur?.();
-                    analyzeField(ANALYSIS_FIELD_TYPES.supportRequests, e.target.value, existingReport?.supportRequests ?? undefined, latestReport?.supportRequests ?? undefined);
+                    analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.supportRequests, e.target.value, existingReport?.supportRequests ?? undefined, latestReport?.supportRequests ?? undefined);
                   }}
                 />
               </FormControl>
@@ -843,7 +843,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       value={field.value ?? ""}
                       onBlur={(e) => {
                         field.onBlur?.();
-                        analyzeField(ANALYSIS_FIELD_TYPES.resourceConcerns, e.target.value, existingReport?.resourceDetails ?? undefined, latestReport?.resourceDetails ?? undefined);
+                        analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.resourceConcerns, e.target.value, existingReport?.resourceDetails ?? undefined, latestReport?.resourceDetails ?? undefined);
                       }}
                     />
                   </FormControl>
@@ -906,7 +906,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       value={field.value ?? ""}
                       onBlur={(e) => {
                         field.onBlur?.();
-                        analyzeField(ANALYSIS_FIELD_TYPES.customerConcerns, e.target.value, existingReport?.customerDetails ?? undefined, latestReport?.customerDetails ?? undefined);
+                        analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.customerConcerns, e.target.value, existingReport?.customerDetails ?? undefined, latestReport?.customerDetails ?? undefined);
                       }}
                     />
                   </FormControl>
@@ -969,7 +969,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       value={field.value ?? ""}
                       onBlur={(e) => {
                         field.onBlur?.();
-                        analyzeField(ANALYSIS_FIELD_TYPES.environmentConcerns, e.target.value, existingReport?.environmentDetails ?? undefined, latestReport?.environmentDetails ?? undefined);
+                        analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.environmentConcerns, e.target.value, existingReport?.environmentDetails ?? undefined, latestReport?.environmentDetails ?? undefined);
                       }}
                     />
                   </FormControl>
@@ -1032,7 +1032,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       value={field.value ?? ""}
                       onBlur={(e) => {
                         field.onBlur?.();
-                        analyzeField(ANALYSIS_FIELD_TYPES.costConcerns, e.target.value, existingReport?.costDetails ?? undefined, latestReport?.costDetails ?? undefined);
+                        analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.costConcerns, e.target.value, existingReport?.costDetails ?? undefined, latestReport?.costDetails ?? undefined);
                       }}
                     />
                   </FormControl>
@@ -1095,7 +1095,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       value={field.value ?? ""}
                       onBlur={(e) => {
                         field.onBlur?.();
-                        analyzeField(ANALYSIS_FIELD_TYPES.knowledgeConcerns, e.target.value, existingReport?.knowledgeDetails ?? undefined, latestReport?.knowledgeDetails ?? undefined);
+                        analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.knowledgeConcerns, e.target.value, existingReport?.knowledgeDetails ?? undefined, latestReport?.knowledgeDetails ?? undefined);
                       }}
                     />
                   </FormControl>
@@ -1158,7 +1158,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       value={field.value ?? ""}
                       onBlur={(e) => {
                         field.onBlur?.();
-                        analyzeField(ANALYSIS_FIELD_TYPES.trainingConcerns, e.target.value, existingReport?.trainingDetails ?? undefined, latestReport?.trainingDetails ?? undefined);
+                        analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.trainingConcerns, e.target.value, existingReport?.trainingDetails ?? undefined, latestReport?.trainingDetails ?? undefined);
                       }}
                     />
                   </FormControl>
@@ -1220,7 +1220,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       value={field.value ?? ""}
                       onBlur={(e) => {
                         field.onBlur?.();
-                        analyzeField(ANALYSIS_FIELD_TYPES.urgentIssues, e.target.value, existingReport?.urgentDetails ?? undefined, latestReport?.urgentDetails ?? undefined);
+                        analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.urgentIssues, e.target.value, existingReport?.urgentDetails ?? undefined, latestReport?.urgentDetails ?? undefined);
                       }}
                     />
                   </FormControl>
@@ -1283,7 +1283,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                       value={field.value ?? ""}
                       onBlur={(e) => {
                         field.onBlur?.();
-                        analyzeField(ANALYSIS_FIELD_TYPES.businessOpportunities, e.target.value, existingReport?.businessDetails ?? undefined, latestReport?.businessDetails ?? undefined);
+                        analyzeFieldStreaming(ANALYSIS_FIELD_TYPES.businessOpportunities, e.target.value, existingReport?.businessDetails ?? undefined, latestReport?.businessDetails ?? undefined);
                       }}
                     />
                   </FormControl>

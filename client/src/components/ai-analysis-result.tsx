@@ -117,7 +117,7 @@ export function AIAnalysisResult({
             {isLoading && (
               <div className="flex items-center gap-2 text-sm text-blue-600">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                AI分析中...
+                {analysis ? "AIがリアルタイムで分析中..." : "AI分析中..."}
               </div>
             )}
 
@@ -127,7 +127,7 @@ export function AIAnalysisResult({
               </div>
             )}
 
-            {analysis && !isLoading && (
+            {analysis && (
               <>
                 <div className="prose prose-sm max-w-none text-gray-700">
                   <ReactMarkdown
@@ -164,6 +164,12 @@ export function AIAnalysisResult({
                   >
                     {analysis.replace(/\n/g, '  \n')}
                   </ReactMarkdown>
+                  {isLoading && (
+                    <div className="inline-flex items-center gap-1 text-blue-600">
+                      <span className="animate-pulse">▋</span>
+                      <span className="text-xs">入力中...</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* 会話機能の質問ボタン */}

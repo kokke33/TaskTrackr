@@ -94,6 +94,7 @@ export class GroqService extends BaseProvider {
   private client: Groq;
   private keyManager: GroqKeyManager;
   private model: string;
+  readonly supportsStreaming: boolean = true;
 
   constructor(model?: string) {
     super('groq');
@@ -231,6 +232,95 @@ export class GroqService extends BaseProvider {
             { ...metadata, duration, model: this.model, attempt: attempt + 1 });
           
           throw new Error(`Groq API error after ${maxRetries} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+    }
+    
+    throw new Error('Max retries exceeded');
+  }
+
+  async* generateStreamResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): AsyncIterable<string> {
+    const requestId = generateRequestId();
+    const startTime = Date.now();
+    const maxRetries = 3;
+
+    const requestData = {
+      endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+      method: 'POST',
+      headers: this.maskSensitiveHeaders({
+        'Authorization': `Bearer ${this.keyManager.getCurrentKey()}`,
+        'Content-Type': 'application/json',
+      }),
+      body: {
+        model: this.model,
+        messages: messages,
+        temperature: aiConfig.groq.temperature,
+        stream: true,
+      }
+    };
+
+    aiLogger.logRequest('groq', 'generateStreamResponse', requestId, requestData, userId, metadata);
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const currentKey = this.keyManager.getCurrentKey();
+
+      try {
+        this.client = new Groq({
+          apiKey: currentKey,
+        });
+
+        const stream = await this.client.chat.completions.create({
+          model: this.model,
+          messages: messages,
+          temperature: aiConfig.groq.temperature,
+          stream: true,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            yield content;
+          }
+        }
+
+        const duration = Date.now() - startTime;
+        aiLogger.logDebug('groq', 'generateStreamResponse', requestId, 'Groq stream response completed successfully', 
+          { duration, model: this.model, keyUsed: currentKey.substring(0, 10) + '...' }, userId);
+        return;
+      } catch (error: any) {
+        const duration = Date.now() - startTime;
+        
+        if (error?.status === 429 || error?.message?.includes('rate limit') || error?.message?.includes('429')) {
+          aiLogger.logDebug('groq', 'generateStreamResponse', requestId, 'Rate limit hit, attempting key rotation', 
+            { attempt: attempt + 1, maxRetries, currentKey: currentKey.substring(0, 10) + '...' }, userId);
+          
+          this.keyManager.markKeyAsBlocked(currentKey);
+          
+          const nextKey = this.keyManager.rotateToNextKey();
+          
+          if (nextKey === currentKey) {
+            aiLogger.logDebug('groq', 'generateStreamResponse', requestId, 'No available keys, waiting before retry', 
+              { attempt: attempt + 1, maxRetries }, userId);
+            
+            if (attempt < maxRetries - 1) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+              continue;
+            }
+          } else {
+            aiLogger.logDebug('groq', 'generateStreamResponse', requestId, 'Rotated to next key', 
+              { nextKey: nextKey.substring(0, 10) + '...' }, userId);
+            
+            if (attempt < maxRetries - 1) {
+              continue;
+            }
+          }
+        }
+        
+        if (attempt === maxRetries - 1) {
+          aiLogger.logError('groq', 'generateStreamResponse', requestId, error as Error, userId, 
+            { ...metadata, duration, model: this.model, attempt: attempt + 1 });
+          
+          throw new Error(`Groq streaming API error after ${maxRetries} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
     }

@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { Settings, Save, RefreshCw, AlertCircle, Zap, X } from "lucide-react";
@@ -51,6 +53,7 @@ export default function AdminSettings() {
   const [realtimeConfig, setRealtimeConfig] = useState<AIProviderConfig>(AISettingsManager.getDefaultConfig());
   const [trialConfig, setTrialConfig] = useState<AIProviderConfig>(AISettingsManager.getDefaultConfig());
   const [isTrialMode, setIsTrialMode] = useState<boolean>(false);
+  const [streamingEnabled, setStreamingEnabled] = useState<boolean>(true);
 
   // システム設定を取得
   const { data: settings, isLoading, error } = useQuery({
@@ -143,6 +146,44 @@ export default function AdminSettings() {
     },
   });
 
+  // ストリーミング設定を更新
+  const updateStreamingMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const response = await fetch("/api/settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          key: "STREAMING_ENABLED",
+          value: enabled.toString(),
+          description: "AIリアルタイム分析でストリーミング表示を有効にするかどうか"
+        }),
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error("ストリーミング設定の更新に失敗しました");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["systemSettings"] });
+      toast({
+        title: "ストリーミング設定を更新しました",
+        description: "AI分析の表示方法が変更されました",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "ストリーミング設定の更新に失敗しました",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // 設定データから現在の設定を取得
   useEffect(() => {
     if (settings) {
@@ -165,6 +206,10 @@ export default function AdminSettings() {
       setRealtimeConfig(AISettingsManager.buildConfigFromSettings(
         realtimeProvider, realtimeGroqModel, realtimeGeminiModel, realtimeOpenRouterModel
       ));
+
+      // ストリーミング設定の読み込み
+      const streamingEnabledValue = settings.find(s => s.key === "STREAMING_ENABLED")?.value;
+      setStreamingEnabled(streamingEnabledValue !== "false");
     }
   }, [settings]);
 
@@ -327,6 +372,33 @@ export default function AdminSettings() {
               prefix="リアルタイム分析"
               description="リアルタイム分析で使用するAIサービスプロバイダーを選択してください。"
             />
+
+            {/* ストリーミング設定 */}
+            <div className="space-y-2 border rounded-lg p-4 bg-gray-50">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="streaming-enabled"
+                  checked={streamingEnabled}
+                  onCheckedChange={(checked) => {
+                    setStreamingEnabled(checked);
+                    updateStreamingMutation.mutate(checked);
+                  }}
+                  disabled={updateStreamingMutation.isPending}
+                />
+                <Label htmlFor="streaming-enabled" className="font-medium">
+                  ストリーミング表示を有効にする
+                </Label>
+              </div>
+              <p className="text-sm text-gray-600">
+                有効にすると、AI分析の結果がリアルタイムで表示されます。
+                無効にすると、分析完了後に一括で表示されます。
+                {!streamingEnabled && (
+                  <span className="text-orange-600 ml-1">
+                    (非ストリーミング対応プロバイダーでは自動的に無効化されます)
+                  </span>
+                )}
+              </p>
+            </div>
 
             <div className="flex items-center gap-2 pt-4">
               <Button

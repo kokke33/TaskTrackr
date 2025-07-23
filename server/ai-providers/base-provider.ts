@@ -3,12 +3,26 @@ import { IAiProvider, AIMessage, AIResponse } from './iai-provider';
 
 export abstract class BaseProvider implements IAiProvider {
   readonly provider: AIProvider;
+  readonly supportsStreaming: boolean = false;
 
   constructor(provider: AIProvider) {
     this.provider = provider;
   }
 
   abstract generateResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): Promise<AIResponse>;
+
+  async* generateStreamResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): AsyncIterable<string> {
+    // デフォルトでは非ストリーミング：一括で取得して一度に返す
+    const response = await this.generateResponse(messages, userId, metadata);
+    yield response.content;
+  }
+
+  cleanThinkTags(content: string): string {
+    let cleaned = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    cleaned = cleaned.replace(/```markdown\s*\n([\s\S]*?)\n```/g, '$1');
+    cleaned = cleaned.replace(/```\s*\n([\s\S]*?)\n```/g, '$1');
+    return cleaned.trim();
+  }
 
   protected maskSensitiveHeaders(headers: Record<string, any>): Record<string, any> {
     const masked = { ...headers };
@@ -29,10 +43,4 @@ export abstract class BaseProvider implements IAiProvider {
     return masked;
   }
   
-  protected cleanThinkTags(content: string): string {
-    let cleaned = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-    cleaned = cleaned.replace(/```markdown\s*\n([\s\S]*?)\n```/g, '$1');
-    cleaned = cleaned.replace(/```\s*\n([\s\S]*?)\n```/g, '$1');
-    return cleaned.trim();
-  }
 }

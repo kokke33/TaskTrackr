@@ -20,4 +20,7 @@ export interface AIResponse {
 export interface IAiProvider {
   readonly provider: AIProvider;
   generateResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): Promise<AIResponse>;
+  generateStreamResponse?(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): AsyncIterable<string>;
+  supportsStreaming?: boolean;
+  cleanThinkTags(content: string): string;
 }

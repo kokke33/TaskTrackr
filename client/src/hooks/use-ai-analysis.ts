@@ -23,6 +23,7 @@ interface AIAnalysisState {
 export function useAIAnalysis() {
   const [analysisState, setAnalysisState] = useState<AIAnalysisState>({});
   const debounceTimeouts = useRef<{ [fieldName: string]: NodeJS.Timeout }>({});
+  const streamControllers = useRef<{ [fieldName: string]: AbortController }>({});
   const { checkAuth } = useAuth();
 
   const analyzeField = useCallback(async (fieldName: string, content: string, originalContent?: string, previousReportContent?: string, forceAnalysis: boolean = false) => {
@@ -141,11 +142,257 @@ export function useAIAnalysis() {
     }, delay);
   }, [analysisState, checkAuth]);
 
+  const analyzeFieldStreaming = useCallback(async (fieldName: string, content: string, originalContent?: string, previousReportContent?: string, forceAnalysis: boolean = false) => {
+    if (!content || content.trim().length < 10) {
+      return;
+    }
+
+    const currentState = analysisState[fieldName];
+    
+    // 初回分析チェック: 同じ内容で分析が実行済みで強制実行でない場合はスキップ
+    if (currentState?.hasRunAnalysis && currentState?.previousContent === content && !forceAnalysis) {
+      console.log(`${fieldName}: 同じ内容で分析済みのため自動実行をスキップ`);
+      return;
+    }
+
+    // 既存のストリームを中止
+    if (streamControllers.current[fieldName]) {
+      streamControllers.current[fieldName].abort();
+    }
+
+    // デバウンス: 既存のタイマーをクリア
+    if (debounceTimeouts.current[fieldName]) {
+      clearTimeout(debounceTimeouts.current[fieldName]);
+    }
+
+    // 再生成の場合は即座に実行、それ以外は0.1秒後に実行
+    const delay = forceAnalysis ? 0 : 100;
+    debounceTimeouts.current[fieldName] = setTimeout(async () => {
+      try {
+        // ローディング状態に設定
+        setAnalysisState(prev => ({
+          ...prev,
+          [fieldName]: {
+            analysis: prev[fieldName]?.analysis || null,
+            isLoading: true,
+            error: null,
+            previousContent: prev[fieldName]?.previousContent,
+          },
+        }));
+
+        // 新しいAbortControllerを作成
+        const controller = new AbortController();
+        streamControllers.current[fieldName] = controller;
+
+        // セッション設定とストリーミング設定をチェックして適切なエンドポイントを使用
+        let endpoint = "/api/ai/analyze-text-stream";
+        let useStreaming = true;
+        
+        try {
+          // ストリーミング設定をチェック
+          const settingsResponse = await fetch("/api/settings", {
+            credentials: "include",
+          });
+          
+          let streamingEnabled = true;
+          if (settingsResponse.ok) {
+            const settings = await settingsResponse.json();
+            const streamingSetting = settings.find((s: any) => s.key === "STREAMING_ENABLED");
+            streamingEnabled = streamingSetting?.value !== "false";
+          }
+          
+          // ストリーミングが無効の場合は非ストリーミングエンドポイントを使用
+          if (!streamingEnabled) {
+            useStreaming = false;
+            endpoint = "/api/ai/analyze-text";
+          } else {
+            // セッション設定をチェック
+            const sessionResponse = await fetch("/api/session-ai-settings", {
+              credentials: "include",
+            });
+            if (sessionResponse.ok) {
+              const sessionSettings = await sessionResponse.json();
+              if (sessionSettings.realtimeProvider) {
+                // ストリーミング対応プロバイダーをチェック
+                const streamingSupportedProviders = ['openai', 'groq'];
+                if (!streamingSupportedProviders.includes(sessionSettings.realtimeProvider)) {
+                  useStreaming = false;
+                  endpoint = "/api/ai/analyze-text-trial";
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.log("設定チェック中にエラー:", error);
+          // エラーの場合は通常のエンドポイントを使用
+          useStreaming = false;
+          endpoint = "/api/ai/analyze-text";
+        }
+
+        if (useStreaming) {
+          // ストリーミング処理
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              content,
+              fieldType: fieldName,
+              originalContent,
+              previousReportContent,
+            }),
+            credentials: "include",
+            signal: controller.signal,
+          });
+
+          if (!response.ok) {
+            // 401エラー（認証切れ）の特別処理
+            if (response.status === 401) {
+              try {
+                await checkAuth();
+              } catch (authError) {
+                console.error("認証確認エラー:", authError);
+              }
+              throw new Error("セッションが期限切れです。ページを更新して再ログインしてください。");
+            }
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+          let accumulatedContent = '';
+
+          if (reader) {
+            while (true) {
+              const { done, value } = await reader.read();
+              
+              if (done) break;
+              
+              const chunk = decoder.decode(value, { stream: true });
+              accumulatedContent += chunk;
+              
+              // リアルタイムで状態を更新
+              setAnalysisState(prev => ({
+                ...prev,
+                [fieldName]: {
+                  analysis: accumulatedContent,
+                  isLoading: true, // まだストリーミング中
+                  error: null,
+                  previousContent: prev[fieldName]?.previousContent,
+                  hasRunAnalysis: false, // まだ完了していない
+                  conversations: prev[fieldName]?.conversations || [],
+                  isConversationLoading: false,
+                },
+              }));
+            }
+          }
+
+          // ストリーミング完了
+          setAnalysisState(prev => ({
+            ...prev,
+            [fieldName]: {
+              analysis: accumulatedContent || "分析結果がありません",
+              isLoading: false,
+              error: null,
+              previousContent: content, // 現在の内容を前回の内容として保存
+              hasRunAnalysis: true, // 分析完了フラグを設定
+              conversations: [], // 新しい分析時は会話履歴をクリア
+              isConversationLoading: false,
+            },
+          }));
+        } else {
+          // 非ストリーミング処理（フォールバック）
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              content,
+              fieldType: fieldName,
+              originalContent,
+              previousReportContent,
+            }),
+            credentials: "include",
+            signal: controller.signal,
+          });
+
+          if (!response.ok) {
+            if (response.status === 401) {
+              try {
+                await checkAuth();
+              } catch (authError) {
+                console.error("認証確認エラー:", authError);
+              }
+              throw new Error("セッションが期限切れです。ページを更新して再ログインしてください。");
+            }
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || "AI分析に失敗しました");
+          }
+
+          // 成功時の状態更新
+          setAnalysisState(prev => ({
+            ...prev,
+            [fieldName]: {
+              analysis: data.data || "分析結果がありません",
+              isLoading: false,
+              error: null,
+              previousContent: content,
+              hasRunAnalysis: true,
+              conversations: [],
+              isConversationLoading: false,
+            },
+          }));
+        }
+
+        // コントローラーをクリーンアップ
+        delete streamControllers.current[fieldName];
+
+      } catch (error) {
+        console.error("AI analysis error:", error);
+        
+        // AbortErrorは通常の中止なのでエラーとして扱わない
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log(`${fieldName}: ストリーム分析が中止されました`);
+          return;
+        }
+        
+        // エラー時の状態更新
+        setAnalysisState(prev => ({
+          ...prev,
+          [fieldName]: {
+            analysis: prev[fieldName]?.analysis || null,
+            isLoading: false,
+            error: error instanceof Error ? error.message : "AI分析中にエラーが発生しました",
+            previousContent: prev[fieldName]?.previousContent,
+            conversations: prev[fieldName]?.conversations || [],
+            isConversationLoading: false,
+          },
+        }));
+
+        // コントローラーをクリーンアップ
+        delete streamControllers.current[fieldName];
+      }
+    }, delay);
+  }, [analysisState, checkAuth]);
+
   const clearAnalysis = useCallback((fieldName: string) => {
     // タイマーをクリア
     if (debounceTimeouts.current[fieldName]) {
       clearTimeout(debounceTimeouts.current[fieldName]);
       delete debounceTimeouts.current[fieldName];
+    }
+
+    // ストリームコントローラーを中止してクリア
+    if (streamControllers.current[fieldName]) {
+      streamControllers.current[fieldName].abort();
+      delete streamControllers.current[fieldName];
     }
 
     // 状態をクリア
@@ -183,9 +430,9 @@ export function useAIAnalysis() {
       },
     }));
 
-    // 強制的に分析を実行
-    analyzeField(fieldName, content, originalContent, previousReportContent, true);
-  }, [analyzeField]);
+    // 強制的に分析を実行（ストリーミング版を使用）
+    analyzeFieldStreaming(fieldName, content, originalContent, previousReportContent, true);
+  }, [analyzeFieldStreaming]);
 
   const sendMessage = useCallback(async (fieldName: string, message: string) => {
     const currentState = analysisState[fieldName];
@@ -304,6 +551,7 @@ export function useAIAnalysis() {
 
   return {
     analyzeField,
+    analyzeFieldStreaming,
     clearAnalysis,
     getAnalysisState,
     regenerateAnalysis,
