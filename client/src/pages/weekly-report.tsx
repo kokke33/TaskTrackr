@@ -19,11 +19,19 @@ import { TaskDetailsSection } from "@/components/weekly-report/task-details-sect
 import { MeetingMinutes } from "@/components/weekly-report/meeting-minutes";
 import { MilestoneDialog } from "@/components/milestone-dialog";
 import { SampleReportDialog } from "@/components/sample-report-dialog";
+import { NavigationConfirmDialog } from "@/components/navigation-confirm-dialog";
+import { useNavigationGuard, NavigationGuardAction } from "@/hooks/use-navigation-guard";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [showSampleDialog, setShowSampleDialog] = useState(false);
+  const [navigationDialog, setNavigationDialog] = useState<{
+    open: boolean;
+    targetPath: string;
+    resolve: (action: NavigationGuardAction) => void;
+  } | null>(null);
+  const [isSavingForNavigation, setIsSavingForNavigation] = useState(false);
 
   const formHook = useWeeklyReportForm({ id });
   const {
@@ -49,10 +57,56 @@ export default function WeeklyReport() {
     isAutosaving,
     formChanged,
     handleManualAutoSave,
+    handleImmediateSave,
   } = autoSaveHook;
 
   const meetingMinutesHook = useMeetingMinutesGenerator({ reportId, isEditMode });
   const aiAnalysisHook = useAIAnalysis();
+
+  // ナビゲーションガードのセットアップ
+  const handleNavigationAttempt = async (targetPath: string): Promise<NavigationGuardAction> => {
+    return new Promise((resolve) => {
+      setNavigationDialog({
+        open: true,
+        targetPath,
+        resolve,
+      });
+    });
+  };
+
+  const handleNavigationAction = async (action: NavigationGuardAction) => {
+    if (!navigationDialog) return;
+
+    // ダイアログを即座に閉じる
+    setNavigationDialog(null);
+
+    if (action === "save") {
+      setIsSavingForNavigation(true);
+      try {
+        const success = await handleImmediateSave();
+        navigationDialog.resolve(success ? "save" : "cancel");
+      } catch (error) {
+        console.error("Save failed:", error);
+        navigationDialog.resolve("cancel");
+      } finally {
+        setIsSavingForNavigation(false);
+      }
+    } else {
+      // discard や cancel の場合は即座に resolve
+      navigationDialog.resolve(action);
+    }
+  };
+
+  console.log("🔍 Weekly Report - Navigation guard state:", { 
+    formChanged, 
+    isSubmitting, 
+    shouldBlock: formChanged && !isSubmitting 
+  });
+
+  useNavigationGuard({
+    shouldBlock: formChanged && !isSubmitting,
+    onNavigationAttempt: handleNavigationAttempt,
+  });
 
   if (isLoadingReport || isLoadingCases) {
     return (
@@ -153,6 +207,13 @@ export default function WeeklyReport() {
       <SampleReportDialog
         open={showSampleDialog}
         onOpenChange={setShowSampleDialog}
+      />
+
+      <NavigationConfirmDialog
+        open={navigationDialog?.open ?? false}
+        onAction={handleNavigationAction}
+        targetPath={navigationDialog?.targetPath}
+        isSaving={isSavingForNavigation}
       />
     </div>
   );

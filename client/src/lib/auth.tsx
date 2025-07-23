@@ -12,6 +12,7 @@ interface User {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
+  isLoading: boolean;
   login: (userData?: User) => void;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const login = (userData?: User) => {
@@ -61,33 +63,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // セッションの確認
   const checkAuth = async () => {
-      try {
-        // サーバー側が未認証時も200で応答するため、apiRequestを使用可能
-        const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
-          method: "GET"
+    setIsLoading(true);
+    try {
+      // サーバー側が未認証時も200で応答するため、apiRequestを使用可能
+      const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
+        method: "GET"
+      });
+      
+      if (data.authenticated && data.user) {
+        console.log("Auth check successful, user:", data.user);
+        setIsAuthenticated(true);
+        // 管理者フラグが確実にbooleanとして設定されるようにする
+        setUser({
+          ...data.user,
+          isAdmin: !!data.user.isAdmin
         });
-        
-        if (data.authenticated && data.user) {
-          console.log("Auth check successful, user:", data.user);
-          setIsAuthenticated(true);
-          // 管理者フラグが確実にbooleanとして設定されるようにする
-          setUser({
-            ...data.user,
-            isAdmin: !!data.user.isAdmin
-          });
-          console.log("Auth check - 管理者権限:", !!data.user.isAdmin);
-        } else {
-          console.log("Auth check: user not authenticated");
-          setIsAuthenticated(false);
-          setUser(null);
-          
-          // ログインページ以外にいる場合はリダイレクト
-          if (window.location.pathname !== "/login") {
-            window.location.href = "/login";
-          }
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
+        console.log("Auth check - 管理者権限:", !!data.user.isAdmin);
+      } else {
+        console.log("Auth check: user not authenticated");
         setIsAuthenticated(false);
         setUser(null);
         
@@ -96,6 +89,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           window.location.href = "/login";
         }
       }
+    } catch (error) {
+      console.error("Auth check failed:", error);
+      setIsAuthenticated(false);
+      setUser(null);
+      
+      // ログインページ以外にいる場合はリダイレクト
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -103,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // 認証チェックを初回のみ実行
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, checkAuth }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, isLoading, login, logout, checkAuth }}>
       {children}
     </AuthContext.Provider>
   );

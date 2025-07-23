@@ -10,22 +10,29 @@ type ProtectedRouteProps = {
 };
 
 export function ProtectedRoute({ path, component: Component }: ProtectedRouteProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  // 未認証の場合はログインページにリダイレクト
-  if (!isAuthenticated) {
-    return (
-      <Route path={path}>
-        {() => <Redirect to="/login" />}
-      </Route>
-    );
-  }
-
-  // 認証済みの場合はコンポーネントをラップして表示
   return (
     <Route path={path}>
-      {(params) => <Component {...params} />}
+      {(params) => {
+        // ローディング中はローディングスピナーを表示
+        if (isLoading) {
+          return (
+            <div className="min-h-screen flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          );
+        }
+
+        // 未認証の場合はログインページにリダイレクト
+        if (!isAuthenticated) {
+          return <Redirect to="/login" />;
+        }
+
+        // 認証済みの場合はコンポーネントを表示
+        return <Component {...params} />;
+      }}
     </Route>
   );
 }

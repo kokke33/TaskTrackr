@@ -84,10 +84,21 @@ export function useReportAutoSave({ form, isEditMode, id }: UseReportAutoSavePro
     });
   };
 
+  const handleImmediateSave = async (): Promise<boolean> => {
+    try {
+      await autoSave();
+      return true;
+    } catch (error) {
+      console.error("Immediate save failed:", error);
+      return false;
+    }
+  };
+
   return {
     lastSavedTime,
     isAutosaving,
     formChanged,
     handleManualAutoSave,
+    handleImmediateSave,
   };
 }
