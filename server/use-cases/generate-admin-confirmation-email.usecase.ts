@@ -83,6 +83,7 @@ export async function generateAdminConfirmationEmail(
 7. **傾向分析**: 改善傾向や悪化傾向を適切に評価し言及する
 
 メール文章は以下の構造で作成してください：
+- マークダウン形式は使用せず、プレーンテキストで作成すること。
 - 件名: 【プロジェクト名】案件名 週次報告（MM/DD週）の確認
 - 宛先: 担当者名
 - 挨拶: 簡潔な挨拶
@@ -160,7 +161,7 @@ ${previousReport ? `
 上記の前回レポートとの比較を踏まえ、変化の背景や継続課題の進捗について確認してください。
 ` : ''}
 
-上記の情報をもとに、${weeklyReport.reporterName}さんに送る確認メールを作成してください。マークダウン形式は使用せず、プレーンテキストで構いません。`;
+上記の情報をもとに、${weeklyReport.reporterName}さんに送る確認メールを作成してください。`;
 
     const aiService = await getAIService();
     const messages = [
