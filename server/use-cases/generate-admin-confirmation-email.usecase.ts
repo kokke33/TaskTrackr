@@ -2,6 +2,7 @@ import { getAIService } from '../ai-service.js';
 import { aiLogger, generateRequestId } from '../ai-logger.js';
 import { ANALYSIS_FIELD_TYPES } from '@shared/ai-constants';
 import { analysisPrompts } from '../prompts/analysis-prompts.js';
+import { convertWeeklyReportValues } from '@shared/value-maps.js';
 
 /**
  * 日付文字列をMM/DD形式でフォーマット
@@ -92,6 +93,9 @@ export async function generateAdminConfirmationEmail(
 - 回答期限: 具体的な期限と理由
 - 結び: サポート的な結びの言葉`;
 
+    // 週次レポートの値を日本語に変換
+    const convertedValues = convertWeeklyReportValues(weeklyReport);
+
     const userPrompt = `【プロジェクト情報】
 プロジェクト名: ${caseInfo.projectName}
 案件名: ${caseInfo.caseName}
@@ -109,17 +113,17 @@ ${caseInfo.milestone ? `マイルストーン: ${caseInfo.milestone}` : ''}
 ${weeklyReport.weeklyTasks}
 
 ■ 進捗状況 (${weeklyReport.progressRate}%)
-${weeklyReport.progressStatus}
+${convertedValues.progressStatus}
 
 ■ 課題・問題点
 ${weeklyReport.issues}
 
 ■ 遅延状況
-${weeklyReport.delayIssues}
+${convertedValues.delayIssues}
 ${weeklyReport.delayDetails ? `詳細: ${weeklyReport.delayDetails}` : ''}
 
 ■ 新たなリスク
-${weeklyReport.newRisks}
+${convertedValues.newRisks}
 ${weeklyReport.riskSummary ? `リスク要約: ${weeklyReport.riskSummary}` : ''}
 
 ■ 来週の作業予定
@@ -129,10 +133,10 @@ ${weeklyReport.nextWeekPlan}
 ${weeklyReport.supportRequests}
 
 ■ 品質懸念
-${weeklyReport.qualityConcerns}
+${convertedValues.qualityConcerns}
 
 ■ 変更内容
-${weeklyReport.changes}
+${convertedValues.changes}
 ${weeklyReport.changeDetails ? `変更詳細: ${weeklyReport.changeDetails}` : ''}
 
 ${confirmationPoints.length > 0 ? `
@@ -146,21 +150,25 @@ ${originalData ? `
 （修正された項目について、担当者への確認や説明が必要な場合は含めてください）
 ` : ''}
 
-${previousReport ? `
+${previousReport ? (() => {
+    // 前回レポートの値も日本語に変換
+    const previousConvertedValues = convertWeeklyReportValues(previousReport);
+    return `
 【前回レポートとの比較分析】
 ■ 進捗率の変化: ${previousReport.progressRate}% → ${weeklyReport.progressRate}%
-■ 遅延状況の変化: ${previousReport.delayIssues} → ${weeklyReport.delayIssues}
-■ 新たなリスクの変化: ${previousReport.newRisks} → ${weeklyReport.newRisks}
-■ 品質懸念の変化: ${previousReport.qualityConcerns} → ${weeklyReport.qualityConcerns}
+■ 遅延状況の変化: ${previousConvertedValues.delayIssues} → ${convertedValues.delayIssues}
+■ 新たなリスクの変化: ${previousConvertedValues.newRisks} → ${convertedValues.newRisks}
+■ 品質懸念の変化: ${previousConvertedValues.qualityConcerns} → ${convertedValues.qualityConcerns}
 
 【前回レポートの主要内容（参考）】
-- 進捗状況: ${previousReport.progressStatus}
+- 進捗状況: ${previousConvertedValues.progressStatus}
 - 課題・問題: ${previousReport.issues}
 - 来週計画: ${previousReport.nextWeekPlan}
 - 支援要請: ${previousReport.supportRequests}
 
 上記の前回レポートとの比較を踏まえ、変化の背景や継続課題の進捗について確認してください。
-` : ''}
+`;
+  })() : ''}
 
 上記の情報をもとに、${weeklyReport.reporterName}さんに送る確認メールを作成してください。`;
 
@@ -194,9 +202,15 @@ ${previousReport ? `
  */
 function extractConfirmationPoints(weeklyReport: WeeklyReportData, originalData?: WeeklyReportData, previousReport?: WeeklyReportData, caseInfo?: CaseData): string[] {
   const points: string[] = [];
+  
+  // 現在レポートの値を日本語変換
+  const convertedValues = convertWeeklyReportValues(weeklyReport);
 
   // 前回レポートとの差分分析
   if (previousReport) {
+    // 前回レポートの値も日本語変換
+    const previousConvertedValues = convertWeeklyReportValues(previousReport);
+    
     // 進捗率の変化分析（案件で進捗率分析が有効な場合のみ）
     if (caseInfo?.includeProgressAnalysis !== false) {
       const progressDiff = weeklyReport.progressRate - previousReport.progressRate;
@@ -219,25 +233,25 @@ function extractConfirmationPoints(weeklyReport: WeeklyReportData, originalData?
     // 遅延状況の変化分析
     if (weeklyReport.delayIssues !== previousReport.delayIssues) {
       if (weeklyReport.delayIssues !== 'no' && previousReport.delayIssues === 'no') {
-        points.push(`新規遅延: 前回は遅延なしでしたが、今回遅延が発生しています`);
+        points.push(`新規遅延: 前回は${previousConvertedValues.delayIssues}でしたが、今回${convertedValues.delayIssues}に変化`);
       } else if (weeklyReport.delayIssues === 'no' && previousReport.delayIssues !== 'no') {
-        points.push(`遅延解消: 前回の遅延が解消されたことを確認`);
+        points.push(`遅延解消: 前回の${previousConvertedValues.delayIssues}から${convertedValues.delayIssues}に改善`);
       }
     }
 
     // 新たなリスクの変化分析
     if (weeklyReport.newRisks !== previousReport.newRisks) {
       if (weeklyReport.newRisks !== 'no' && previousReport.newRisks === 'no') {
-        points.push(`新規リスク発生: 前回はリスクなしでしたが、今回新たなリスクが発生`);
+        points.push(`新規リスク発生: 前回は${previousConvertedValues.newRisks}でしたが、今回${convertedValues.newRisks}に変化`);
       }
     }
 
     // 品質懸念の変化分析
     if (weeklyReport.qualityConcerns !== previousReport.qualityConcerns) {
       if (weeklyReport.qualityConcerns !== 'none' && previousReport.qualityConcerns === 'none') {
-        points.push(`品質懸念発生: 前回は品質懸念なしでしたが、今回懸念が発生`);
+        points.push(`品質懸念発生: 前回は${previousConvertedValues.qualityConcerns}でしたが、今回${convertedValues.qualityConcerns}に変化`);
       } else if (weeklyReport.qualityConcerns === 'none' && previousReport.qualityConcerns !== 'none') {
-        points.push(`品質懸念解消: 前回の品質懸念が解消されたことを確認`);
+        points.push(`品質懸念解消: 前回の${previousConvertedValues.qualityConcerns}から${convertedValues.qualityConcerns}に改善`);
       }
     }
 
@@ -252,12 +266,12 @@ function extractConfirmationPoints(weeklyReport: WeeklyReportData, originalData?
   // 現在のレポート内容から抽出される確認ポイント
   // 遅延がある場合
   if (weeklyReport.delayIssues !== 'no' && weeklyReport.delayDetails) {
-    points.push(`遅延問題: ${weeklyReport.delayDetails}`);
+    points.push(`遅延問題（${convertedValues.delayIssues}）: ${weeklyReport.delayDetails}`);
   }
 
   // 新たなリスクがある場合
   if (weeklyReport.newRisks !== 'no' && weeklyReport.riskSummary) {
-    points.push(`新規リスク: ${weeklyReport.riskSummary}`);
+    points.push(`新規リスク（${convertedValues.newRisks}）: ${weeklyReport.riskSummary}`);
   }
 
   // 支援要請がある場合
@@ -267,22 +281,22 @@ function extractConfirmationPoints(weeklyReport: WeeklyReportData, originalData?
 
   // 品質懸念がある場合
   if (weeklyReport.qualityConcerns !== 'none') {
-    points.push(`品質懸念: ${weeklyReport.qualityConcerns}`);
+    points.push(`品質懸念（${convertedValues.qualityConcerns}）: 詳細確認が必要`);
   }
 
   // 進捗率が低い場合 (50%未満)（案件で進捗率分析が有効な場合のみ）
   if (caseInfo?.includeProgressAnalysis !== false && weeklyReport.progressRate < 50) {
-    points.push(`進捗状況: 進捗率${weeklyReport.progressRate}%の詳細確認`);
+    points.push(`進捗状況（${convertedValues.progressStatus}）: 進捗率${weeklyReport.progressRate}%の詳細確認`);
   }
 
   // 変更がある場合
   if (weeklyReport.changes !== 'no' && weeklyReport.changeDetails) {
-    points.push(`変更内容: ${weeklyReport.changeDetails}`);
+    points.push(`変更内容（${convertedValues.changes}）: ${weeklyReport.changeDetails}`);
   }
 
   // 緊急課題がある場合
   if (weeklyReport.urgentIssues !== 'none') {
-    points.push(`緊急課題: ${weeklyReport.urgentIssues}`);
+    points.push(`緊急課題（${convertedValues.urgentIssues}）: 詳細確認が必要`);
   }
 
   return points;

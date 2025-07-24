@@ -327,6 +327,40 @@ export class AILogger {
     this.writeLog(entry);
   }
 
+  logWarn(
+    provider: AIProvider,
+    operation: string,
+    requestId: string,
+    message: string,
+    data?: any,
+    userId?: string
+  ): void {
+    // Get cached request data or use empty fallback
+    const cachedRequest = this.requestCache.get(requestId) || {
+      endpoint: '',
+      method: '',
+      headers: {},
+      body: null,
+      size: 0
+    };
+
+    const entry: AILogEntry = {
+      timestamp: new Date().toISOString(),
+      level: LogLevel.WARN,
+      provider,
+      operation,
+      requestId,
+      userId,
+      request: cachedRequest,
+      metadata: {
+        message,
+        data: this.maskSensitiveInfo(data)
+      }
+    };
+
+    this.writeLog(entry);
+  }
+
   // Clean up old cache entries to prevent memory leaks
   private cleanupCache(): void {
     // Clear cache entries older than 5 minutes

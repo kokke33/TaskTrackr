@@ -15,6 +15,21 @@ export { analyzeTextStream } from './use-cases/analyze-text-stream.usecase.js';
 export { generateAdminConfirmationEmail } from './use-cases/generate-admin-confirmation-email.usecase.js';
 export type { AIMessage, AIResponse, IAiProvider };
 
+// ストリーミング応答を生成する新しい関数
+export async function generateResponseStream(
+  messages: AIMessage[],
+  userId?: string,
+  metadata?: Record<string, any>
+): Promise<AsyncIterable<string>> {
+  const aiService = await getAIService();
+  if (aiService.supportsStreaming && aiService.generateStreamResponse) {
+    return aiService.generateStreamResponse(messages, userId, metadata);
+  } else {
+    // ストリーミングがサポートされていない場合、通常の応答を返す
+    const response = await aiService.generateResponse(messages, userId, metadata);
+    return (async function* () { yield response.content; })();
+  }
+}
 
 function createAIServiceWithConfig(config: typeof aiConfig): IAiProvider {
   switch (config.provider) {

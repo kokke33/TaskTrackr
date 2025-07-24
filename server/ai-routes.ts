@@ -1,6 +1,10 @@
 import express from 'express';
-import { getAIService, getAIServiceForProvider, AIMessage, analyzeTask, analyzeText, analyzeTextStream, generateSummary } from './ai-service.js';
+import { getAIService, getAIServiceForProvider, AIMessage, analyzeTask, analyzeText, analyzeTextStream, generateSummary, generateResponseStream } from './ai-service.js';
 import { isAuthenticated } from './auth';
+import { chatWithAdminEmail } from './use-cases/chat-with-admin-email.usecase.js'; // 新しいユースケースをインポート
+import { db } from './db.js'; // データベース操作のためにインポート
+import { eq } from 'drizzle-orm'; // drizzle-ormからeqをインポート
+import { adminConfirmationEmails, chatHistories } from '../shared/schema.js'; // スキーマをインポート
 
 const router = express.Router();
 
@@ -389,6 +393,157 @@ router.post('/api/ai/analyze-text-stream', isAuthenticated, async (req, res) => 
 });
 
 // AI provider status endpoint
+router.post('/api/chat/admin-email', isAuthenticated, async (req, res) => {
+  try {
+    const { emailId, message, history } = req.body;
+    const userId = getUserId(req);
+
+    // 1. リクエストボディの検証
+    if (!emailId || typeof emailId !== 'string' || !message || typeof message !== 'string' || !Array.isArray(history)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request body. emailId (string), message (string), and history (array) are required.',
+      });
+    }
+
+    // 2. emailId を使用して管理者確認メールの全文を取得
+    // 既存のメール取得ロジックを参考に、ここでは仮のダミーデータを使用
+    // 実際のアプリケーションでは、emailId を使ってデータベースからメール内容を取得する
+    let emailContent: string | null = null;
+    try {
+      const emailRecord = await db.select()
+        .from(adminConfirmationEmails)
+        .where(eq(adminConfirmationEmails.id, emailId))
+        .limit(1);
+
+      if (emailRecord.length > 0) {
+        emailContent = emailRecord[0].content; // メール内容のフィールド名が 'content' であると仮定
+      } else {
+        console.warn(`Email with ID ${emailId} not found. Using dummy content.`);
+        emailContent = `ダミーの管理者確認メール内容:
+件名: 【重要】システム変更のお知らせ
+本文:
+平素よりお世話になっております。
+この度、システムメンテナンスに伴い、以下の日程でサービスを一時停止させていただきます。
+日時: 2025年7月30日 0:00 - 6:00 (JST)
+ご迷惑をおかけしますが、ご理解とご協力をお願いいたします。
+`;
+      }
+    } catch (dbError) {
+      console.error('Failed to fetch email content from DB, using dummy data:', dbError);
+      emailContent = `ダミーの管理者確認メール内容:
+件名: 【重要】システム変更のお知らせ
+本文:
+平素よりお世話になっております。
+この度、システムメンテナンスに伴い、以下の日程でサービスを一時停止させていただきます。
+日時: 2025年7月30日 0:00 - 6:00 (JST)
+ご迷惑をおかけしますが、ご理解とご協力をお願いいたします。
+`;
+    }
+
+    if (!emailContent) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve email content.',
+      });
+    }
+
+    // ストリーミングリクエストかどうかの判定
+    const isStreaming = req.headers['accept'] === 'text/event-stream';
+
+    if (isStreaming) {
+      // ストリーミング応答
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+
+      const aiService = await getAIService();
+      const stream = aiService.generateResponseStream([
+        { role: 'system', content: `あなたは管理者確認メールの内容についてユーザーの質問に答えるアシスタントです。` },
+        ...history,
+        { role: 'user', content: `管理者確認メールの内容:\n---\n${emailContent}\n---\n\nユーザーからの現在の質問: ${message}` }
+      ], userId, {
+        endpoint: 'chat-admin-email',
+        userAgent: req.headers['user-agent'],
+        ip: req.ip,
+        emailId: emailId,
+        messageCount: history.length + 1
+      });
+
+      let fullResponseContent = '';
+      for await (const chunk of stream) {
+        res.write(chunk);
+        fullResponseContent += chunk;
+      }
+      res.end();
+
+      // 対話履歴の永続化 (ストリーミング完了後)
+      if (userId) {
+        try {
+          await db.insert(chatHistories).values({
+            userId: userId,
+            emailId: emailId,
+            userMessage: message,
+            aiResponse: fullResponseContent,
+            timestamp: new Date(),
+          });
+        } catch (dbSaveError) {
+          console.error('Failed to save chat history to DB:', dbSaveError);
+          // エラーをフロントエンドに返さないが、ログには残す
+        }
+      }
+
+    } else {
+      // 非ストリーミング応答
+      const aiResponse = await chatWithAdminEmail(emailContent, message, history);
+
+      if (aiResponse === null) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get AI response.',
+        });
+      }
+
+      // 対話履歴の永続化
+      if (userId) {
+        try {
+          await db.insert(chatHistories).values({
+            userId: userId,
+            emailId: emailId,
+            userMessage: message,
+            aiResponse: aiResponse,
+            timestamp: new Date(),
+          });
+        } catch (dbSaveError) {
+          console.error('Failed to save chat history to DB:', dbSaveError);
+          // エラーをフロントエンドに返さないが、ログには残す
+        }
+      }
+
+      res.json({
+        success: true,
+        data: aiResponse,
+      });
+    }
+
+  } catch (error) {
+    console.error('AI chat with admin email error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } else {
+      // ストリーミング中にエラーが発生した場合、既にヘッダーが送信されているため、
+      // エラーメッセージをストリームに書き込む
+      res.write(`\n\nエラーが発生しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      res.end();
+    }
+  }
+});
+
 router.get('/api/ai/status', isAuthenticated, async (req, res) => {
   try {
     const userId = getUserId(req);

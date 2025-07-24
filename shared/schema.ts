@@ -42,6 +42,24 @@ export const cases = pgTable("cases", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// 管理者確認メールテーブル
+export const adminConfirmationEmails = pgTable("admin_confirmation_emails", {
+  id: serial("id").primaryKey(),
+  weeklyReportId: integer("weekly_report_id").unique(), // 週次報告との関連付け
+  content: text("content").notNull(), // メール全文
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// AI対話履歴テーブル
+export const chatHistories = pgTable("chat_histories", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  emailId: text("email_id").notNull(), // 管理者確認メールのID
+  userMessage: text("user_message").notNull(),
+  aiResponse: text("ai_response").notNull(),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
 // プロジェクトと案件の関係定義
 export const projectsRelations = relations(projects, ({ many }) => ({
   cases: many(cases),
@@ -220,3 +238,17 @@ export type InsertWeeklyReportMeeting = z.infer<typeof insertWeeklyReportMeeting
 export type WeeklyReportMeeting = typeof weeklyReportMeetings.$inferSelect;
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
+
+export const insertAdminConfirmationEmailSchema = createInsertSchema(adminConfirmationEmails).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertAdminConfirmationEmail = z.infer<typeof insertAdminConfirmationEmailSchema>;
+export type AdminConfirmationEmail = typeof adminConfirmationEmails.$inferSelect;
+
+export const insertChatHistorySchema = createInsertSchema(chatHistories).omit({
+  id: true,
+  timestamp: true,
+});
+export type InsertChatHistory = z.infer<typeof insertChatHistorySchema>;
+export type ChatHistory = typeof chatHistories.$inferSelect;

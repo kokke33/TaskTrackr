@@ -9,6 +9,7 @@ import {
   insertWeeklyReportMeetingSchema,
   insertUserSchema,
 } from "@shared/schema";
+import { convertWeeklyReportValues } from "@shared/value-maps";
 import {
   AI_PROVIDERS,
   GROQ_MODELS,
@@ -920,11 +921,14 @@ ${milestone ? `- **マイルストーン**: ${milestone}` : ""}
           const displayReports = caseInfo.reports.slice(-5);
 
           displayReports.forEach((report: any, index: number) => {
+            // レポートの値を日本語変換
+            const convertedValues = convertWeeklyReportValues(report);
+            
             prompt += `#### 報告 ${index + 1}
 - **報告期間**: ${report.reportPeriodStart} ～ ${report.reportPeriodEnd}
 - **報告者**: ${report.reporterName}
 - **進捗率**: ${report.progressRate}%
-- **進捗状況**: ${report.progressStatus}
+- **進捗状況**: ${convertedValues.progressStatus}
 - **作業内容**:
 ${report.weeklyTasks
   .split("\n")
@@ -941,7 +945,7 @@ ${
     : ""
 }
 - **リスク**: ${report.newRisks === "yes" ? report.riskSummary : "なし"}
-- **品質懸念**: ${report.qualityConcerns !== "none" ? report.qualityDetails : "なし"}
+- **品質懸念**: ${convertedValues.qualityConcerns !== "なし" ? report.qualityDetails : "なし"}
 - **来週予定**:
 ${report.nextWeekPlan
   .split("\n")
@@ -1611,15 +1615,18 @@ ${milestone ? `マイルストーン: ${milestone}` : ""}
           const displayReports = caseInfo.reports.slice(-5);
 
           displayReports.forEach((report: any) => {
+            // レポートの値を日本語変換
+            const convertedValues = convertWeeklyReportValues(report);
+            
             prompt += `
 報告期間: ${report.reportPeriodStart} 〜 ${report.reportPeriodEnd}
 報告者: ${report.reporterName}
 進捗率: ${report.progressRate}%
-進捗状況: ${report.progressStatus}
+進捗状況: ${convertedValues.progressStatus}
 作業内容: ${report.weeklyTasks}
 課題・問題点: ${report.issues}
 リスク: ${report.newRisks === "yes" ? report.riskSummary : "なし"}
-品質懸念: ${report.qualityConcerns !== "none" ? report.qualityDetails : "なし"}
+品質懸念: ${convertedValues.qualityConcerns !== "なし" ? report.qualityDetails : "なし"}
 来週予定: ${report.nextWeekPlan}
 ---
 `;
@@ -1718,8 +1725,11 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 進捗率: ${previousReport.progressRate}%`;
         }
         
+        // 前回レポートの値を日本語変換
+        const previousConvertedValues = convertWeeklyReportValues(previousReport);
+        
         previousReportInfo += `
-進捗状況: ${previousReport.progressStatus}
+進捗状況: ${previousConvertedValues.progressStatus}
 作業内容: ${previousReport.weeklyTasks}
 課題・問題点: ${previousReport.issues}
 新たなリスク: ${previousReport.newRisks === "yes" ? previousReport.riskSummary : "なし"}
@@ -1727,6 +1737,9 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 `;
       }
 
+      // 現在レポートの値を日本語変換
+      const currentConvertedValues = convertWeeklyReportValues(report);
+      
       const prompt = `
 あなたはプロジェクトマネージャーのアシスタントです。
 現場リーダーが記載した以下の週次報告の内容を分析し、改善点や注意点を指摘してください。
@@ -1738,18 +1751,18 @@ ${projectInfo}
 【今回の報告内容】
 報告期間: ${report.reportPeriodStart} 〜 ${report.reportPeriodEnd}${relatedCase?.includeProgressAnalysis !== false ? `
 進捗率: ${report.progressRate}%` : ""}
-進捗状況: ${report.progressStatus}
+進捗状況: ${currentConvertedValues.progressStatus}
 作業内容: ${report.weeklyTasks}
 課題・問題点: ${report.issues}
 新たなリスク: ${report.newRisks === "yes" ? report.riskSummary : "なし"}
-品質懸念事項: ${report.qualityConcerns}
+品質懸念事項: ${currentConvertedValues.qualityConcerns}
 品質懸念詳細: ${report.qualityDetails || "なし"}
-顧客懸念: ${report.customerIssues === "exists" ? report.customerDetails : "なし"}
-知識・スキル懸念: ${report.knowledgeIssues === "exists" ? report.knowledgeDetails : "なし"}
-教育懸念: ${report.trainingIssues === "exists" ? report.trainingDetails : "なし"}
-コスト懸念: ${report.costIssues === "exists" ? report.costDetails : "なし"}
-緊急課題: ${report.urgentIssues === "exists" ? report.urgentDetails : "なし"}
-ビジネスチャンス: ${report.businessOpportunities === "exists" ? report.businessDetails : "なし"}
+顧客懸念: ${currentConvertedValues.customerIssues === "あり" ? report.customerDetails : "なし"}
+知識・スキル懸念: ${currentConvertedValues.knowledgeIssues === "あり" ? report.knowledgeDetails : "なし"}
+教育懸念: ${currentConvertedValues.trainingIssues === "あり" ? report.trainingDetails : "なし"}
+コスト懸念: ${currentConvertedValues.costIssues === "あり" ? report.costDetails : "なし"}
+緊急課題: ${currentConvertedValues.urgentIssues === "あり" ? report.urgentDetails : "なし"}
+ビジネスチャンス: ${currentConvertedValues.businessOpportunities === "あり" ? report.businessDetails : "なし"}
 来週の予定: ${report.nextWeekPlan}
 
 ${previousReportInfo}

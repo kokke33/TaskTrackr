@@ -15,6 +15,12 @@ import { useAIAnalysis } from "@/hooks/use-ai-analysis";
 import { AIAnalysisResult } from "@/components/ai-analysis-result";
 import { Textarea } from "@/components/ui/textarea";
 import { 
+  progressStatusMap,
+  qualityConcernsMap,
+  riskLevelMap,
+  binaryStatusMap 
+} from "@shared/value-maps";
+import { 
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -219,30 +225,7 @@ export default function WeeklyReportDetail() {
     setShowDeleteDialog(false);
   };
 
-  // ステータスの日本語マッピング
-  const progressStatusMap = {
-    'on-schedule': '予定通り',
-    'slightly-delayed': '少し遅れている',
-    'severely-delayed': '大幅に遅れている',
-    'ahead': '前倒しで進行中'
-  };
-
-  const qualityConcernsMap = {
-    'none': 'なし',
-    'minor': '軽微な懸念あり',
-    'major': '重大な懸念あり'
-  };
-
-  const riskLevelMap = {
-    'high': '高',
-    'medium': '中',
-    'low': '低'
-  };
-
-  const binaryStatusMap = {
-    'exists': 'あり',
-    'none': 'なし'
-  };
+  // ステータスの日本語マッピング（共通マップを使用）
 
   // 議事録編集のヘルパー関数
   const startEditingMeeting = (meetingId: number, title: string, content: string) => {
