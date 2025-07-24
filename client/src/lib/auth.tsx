@@ -16,6 +16,8 @@ interface AuthContextType {
   login: (userData?: User) => void;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  isSessionExpired: boolean;
+  refreshSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,10 +26,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
   const { toast } = useToast();
+
+  // セッション監視タイマー
+  useEffect(() => {
+    let sessionCheckInterval: NodeJS.Timeout;
+    
+    if (isAuthenticated) {
+      // 5分ごとにセッション状態をチェック（離席後対策）
+      sessionCheckInterval = setInterval(async () => {
+        try {
+          const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
+            method: "GET"
+          });
+          
+          if (!data.authenticated) {
+            console.log("🔔 セッション期限切れを検出しました");
+            setIsSessionExpired(true);
+            setIsAuthenticated(false);
+            setUser(null);
+            
+            toast({
+              title: "セッション期限切れ",
+              description: "再度ログインしてください。",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.log("セッション監視エラー:", error);
+        }
+      }, 5 * 60 * 1000); // 5分間隔
+    }
+    
+    return () => {
+      if (sessionCheckInterval) {
+        clearInterval(sessionCheckInterval);
+      }
+    };
+  }, [isAuthenticated, toast]);
 
   const login = (userData?: User) => {
     setIsAuthenticated(true);
+    setIsSessionExpired(false); // セッション期限切れ状態をリセット
     if (userData) {
       // 管理者フラグが確実にbooleanとして設定されるようにする
       setUser({
@@ -35,6 +76,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: !!userData.isAdmin
       });
       console.log("認証コンテキスト更新 - 管理者権限:", !!userData.isAdmin);
+    }
+  };
+
+  // セッションリフレッシュ機能（離席後の自動復旧用）
+  const refreshSession = async (): Promise<boolean> => {
+    try {
+      const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
+        method: "GET"
+      });
+      
+      if (data.authenticated && data.user) {
+        setIsAuthenticated(true);
+        setIsSessionExpired(false);
+        setUser({
+          ...data.user,
+          isAdmin: !!data.user.isAdmin
+        });
+        console.log("✅ セッションリフレッシュ成功");
+        return true;
+      } else {
+        console.log("❌ セッションリフレッシュ失敗 - 要再ログイン");
+        return false;
+      }
+    } catch (error) {
+      console.error("セッションリフレッシュエラー:", error);
+      return false;
     }
   };
 
@@ -108,7 +175,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // 認証チェックを初回のみ実行
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, isLoading, login, logout, checkAuth }}>
+    <AuthContext.Provider value={{ 
+      isAuthenticated, 
+      user, 
+      isLoading, 
+      login, 
+      logout, 
+      checkAuth, 
+      isSessionExpired, 
+      refreshSession 
+    }}>
       {children}
     </AuthContext.Provider>
   );

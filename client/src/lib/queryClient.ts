@@ -24,6 +24,7 @@ export async function apiRequest<T = any>(
   options: {
     method: string;
     data?: unknown;
+    skipAuthRetry?: boolean; // 認証リトライをスキップする場合
   }
 ): Promise<T> {
   console.log(`[API REQUEST] ${options.method} ${url}`, {
@@ -32,18 +33,52 @@ export async function apiRequest<T = any>(
     timestamp: new Date().toISOString()
   });
 
-  const res = await fetch(url, {
-    method: options.method,
-    headers: options.data ? { "Content-Type": "application/json" } : {},
-    body: options.data ? JSON.stringify(options.data) : undefined,
-    credentials: "include",  // 常にクレデンシャルを送信
-  });
+  const performRequest = async (): Promise<Response> => {
+    return await fetch(url, {
+      method: options.method,
+      headers: options.data ? { "Content-Type": "application/json" } : {},
+      body: options.data ? JSON.stringify(options.data) : undefined,
+      credentials: "include",  // 常にクレデンシャルを送信
+    });
+  };
+
+  let res = await performRequest();
 
   console.log(`[API RESPONSE] ${options.method} ${url} - Status: ${res.status}`, {
     status: res.status,
     statusText: res.statusText,
     headers: Object.fromEntries(res.headers.entries())
   });
+
+  // 401エラーかつ認証リトライが無効でない場合、セッション確認を1回試行
+  if (res.status === 401 && !options.skipAuthRetry && url !== "/api/check-auth") {
+    console.log("🔄 401エラー検出 - セッション確認を試行します");
+    
+    try {
+      // セッション確認を実行（無限ループ防止のためskipAuthRetryを設定）
+      const authCheckRes = await fetch("/api/check-auth", {
+        method: "GET",
+        credentials: "include",
+      });
+      
+      if (authCheckRes.ok) {
+        const authData = await authCheckRes.json();
+        if (authData.authenticated) {
+          console.log("✅ セッション確認成功 - リクエストを再試行します");
+          // セッションが有効なら元のリクエストを再試行
+          res = await performRequest();
+        } else {
+          console.log("❌ セッション期限切れを確認 - ログインページにリダイレクト");
+          // セッション期限切れの場合はログインページへ
+          window.location.href = "/login";
+          throw new Error("Session expired");
+        }
+      }
+    } catch (authError) {
+      console.error("セッション確認中にエラー:", authError);
+      // セッション確認に失敗した場合は元の401エラーを処理
+    }
+  }
 
   await throwIfResNotOk(res);
   return await res.json() as T;

@@ -58,17 +58,57 @@ passport.serializeUser((user: any, done) => {
 
 passport.deserializeUser(async (id: number, done) => {
   try {
-    const [user] = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        isAdmin: users.isAdmin,
-      })
-      .from(users)
-      .where(eq(users.id, id));
+    // 離席後のデータベース接続エラーに対するリトライ機能
+    let retries = 2;
+    let user = null;
+    
+    while (retries > 0) {
+      try {
+        const [fetchedUser] = await db
+          .select({
+            id: users.id,
+            username: users.username,
+            isAdmin: users.isAdmin,
+          })
+          .from(users)
+          .where(eq(users.id, id));
+        
+        user = fetchedUser;
+        break;
+      } catch (dbError: any) {
+        const isConnectionError = 
+          dbError.message?.includes('Connection terminated unexpectedly') ||
+          dbError.message?.includes('ECONNRESET') ||
+          dbError.message?.includes('ETIMEDOUT') ||
+          dbError.code === 'ECONNRESET';
+        
+        if (isConnectionError && retries > 1) {
+          retries--;
+          console.log(`🔄 セッション復元でDB接続エラー (残り${retries}回), User ID: ${id}`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+        
+        // リトライしても失敗した場合、またはDB接続エラー以外の場合
+        console.error(`❌ セッション復元失敗 - User ID: ${id}`, dbError.message);
+        return done(null, false); // 認証失敗としてログアウト処理
+      }
+    }
+    
+    if (!user) {
+      console.log(`⚠️ ユーザーが見つかりません - User ID: ${id} (削除済みまたは無効なセッション)`);
+      return done(null, false); // 認証失敗としてログアウト処理
+    }
+    
+    // 本番環境ではデバッグログを削減
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`✅ セッション復元成功 - ${user.username} (ID: ${user.id})`);
+    }
+    
     done(null, user);
   } catch (error) {
-    done(error);
+    console.error(`❌ セッション復元で予期しないエラー - User ID: ${id}`, error);
+    done(null, false); // エラー時はログアウト処理
   }
 });
 
@@ -131,39 +171,46 @@ export async function createInitialUsers() {
   }
 }
 
-// 認証ミドルウェア
+// 認証ミドルウェア（離席後エラー対策とログ最適化）
 export function isAuthenticated(req: any, res: any, next: any) {
-  const sessionInfo = {
-    method: req.method,
-    path: req.path,
-    sessionID: req.sessionID,
-    authenticated: req.isAuthenticated(),
-    userAgent: req.headers['user-agent']?.substring(0, 50),
-    timestamp: new Date().toISOString()
-  };
-  
-  console.log(`[AUTH DEBUG] ${sessionInfo.method} ${sessionInfo.path} - Session: ${sessionInfo.sessionID}, Auth: ${sessionInfo.authenticated}, User: ${req.user ? JSON.stringify(req.user) : 'none'}, Time: ${sessionInfo.timestamp}`);
-  console.log(`[AUTH DEBUG] Full session data:`, req.session);
-  console.log(`[AUTH DEBUG] Request headers:`, {
-    cookie: req.headers.cookie,
-    origin: req.headers.origin,
-    referer: req.headers.referer
-  });
+  const isProduction = process.env.NODE_ENV === 'production';
   
   if (req.isAuthenticated()) {
-    console.log(`[AUTH DEBUG] ✅ Authentication passed for ${req.user?.username}`);
+    // 認証成功時は本番環境ではログを簡素化
+    if (!isProduction) {
+      console.log(`✅ Auth OK: ${req.user?.username} - ${req.method} ${req.path}`);
+    }
     return next();
   }
   
-  console.log(`[AUTH ERROR] Request denied - ${sessionInfo.method} ${sessionInfo.path} at ${sessionInfo.timestamp}`);
-  console.log(`[AUTH ERROR] Session details:`, {
-    sessionID: sessionInfo.sessionID,
-    cookies: req.headers.cookie,
-    session: req.session ? Object.keys(req.session) : 'no session',
-    sessionData: req.session
-  });
+  // 認証失敗時の詳細ログ（離席後のトラブルシューティング用）
+  const sessionInfo = {
+    method: req.method,
+    path: req.path,
+    sessionID: req.sessionID?.substring(0, 8) + '...',
+    hasSession: !!req.session,
+    hasPassport: !!req.session?.passport,
+    userId: req.session?.passport?.user,
+    timestamp: new Date().toISOString()
+  };
   
-  res.status(401).json({ message: "認証が必要です" });
+  console.log(`❌ Auth Failed: ${sessionInfo.method} ${sessionInfo.path}`);
+  
+  // 開発環境でのみ詳細ログを出力
+  if (!isProduction) {
+    console.log(`   Session Info:`, sessionInfo);
+    console.log(`   Cookie Present:`, !!req.headers.cookie);
+  }
+  
+  // セッション期限切れの可能性を示唆
+  if (!req.session?.passport?.user) {
+    console.log(`💡 セッション期限切れの可能性 - 再ログインが必要です`);
+  }
+  
+  res.status(401).json({ 
+    message: "認証が必要です",
+    sessionExpired: !req.session?.passport?.user 
+  });
 }
 
 // 管理者権限チェックミドルウェア

@@ -36,17 +36,23 @@ const MemStore = MemoryStore(session);
 const databaseUrl = process.env.DATABASE_URL || '';
 const isNeon = databaseUrl.includes('neon.tech');
 
-// Neonの場合はMemoryStoreを使用（接続問題を回避）
+// Neonの場合はMemoryStoreを使用（接続問題を回避・離席後エラー対策）
 const sessionStore = isNeon ? 
   new MemStore({
-    checkPeriod: 86400000 // 24時間でクリーンアップ
+    checkPeriod: 3600000, // 1時間ごとにクリーンアップ（短縮して安定化）
+    max: 1000,           // メモリ使用量制限
+    ttl: 86400000,       // 24時間でセッション期限切れ
+    dispose: (key: string) => {
+      console.log(`セッション削除: ${key.substring(0, 8)}...`);
+    }
   }) :
   new PostgresStore({
     conObject: {
       connectionString: process.env.DATABASE_URL,
     },
     createTableIfMissing: true,
-    tableName: 'session'
+    tableName: 'session',
+    ttl: 86400 // PostgreSQLでも24時間のTTL設定
   });
 
 console.log(`セッションストア: ${isNeon ? 'MemoryStore (Neon対応)' : 'PostgreSQL'}`);
@@ -57,15 +63,17 @@ app.use(
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
     saveUninitialized: false,
+    rolling: true, // アクセスするたびにセッション期限をリセット（離席後対策）
     cookie: {
-      secure: false, // HTTPS環境でのみtrueにする
-      sameSite: 'lax', // 開発・本番環境で統一
-      maxAge: 24 * 60 * 60 * 1000, // 24時間
-      httpOnly: false, // デバッグのため一時的にfalseに設定
+      secure: process.env.NODE_ENV === 'production', // 本番環境では自動的にセキュア
+      sameSite: 'lax', // CSRF対策
+      maxAge: 8 * 60 * 60 * 1000, // 8時間に短縮（離席を考慮した実用的な時間）
+      httpOnly: true, // セキュリティ向上（XSS対策）
       domain: undefined // 開発環境ではdomainを指定しない
     },
     proxy: true,
-    name: 'sessionId' // クッキー名を明示的に指定
+    name: 'tasktrackr_session', // より具体的なクッキー名
+    unset: 'destroy' // セッション削除時にクッキーも削除
   })
 );
 
