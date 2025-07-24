@@ -1406,13 +1406,21 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
           }
         }
 
-        // 4. AI分析、議事録生成、管理者確認メール生成を並列実行（処理時間短縮）
-        console.log("Starting parallel AI processing...");
+        // 4. AI分析を最初に実行（管理者確認メール生成で結果を使用するため）
+        console.log("Starting AI analysis...");
+        const analysisStartTime = Date.now();
+        const analysis = await analyzeWeeklyReport(updatedReport, relatedCase);
+        const analysisEndTime = Date.now();
+        console.log(`AI analysis completed in ${analysisEndTime - analysisStartTime}ms`);
+
+        // 5. AI分析結果を含む週次レポートデータを準備
+        const reportWithAnalysis = { ...updatedReport, aiAnalysis: analysis };
+
+        // 6. 議事録生成と管理者確認メール生成を並列実行
+        console.log("Starting parallel processing for minutes and email...");
         const parallelStartTime = Date.now();
 
-        const [analysis, meetingMinutes, adminConfirmationEmail] = await Promise.all([
-          // AI分析処理
-          analyzeWeeklyReport(updatedReport, relatedCase),
+        const [meetingMinutes, adminConfirmationEmail] = await Promise.all([
           // 議事録生成処理
           generateEditMeetingMinutes(
             originalData,
@@ -1420,9 +1428,9 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
             (req.user as any)?.username || "管理者",
             relatedCase,
           ),
-          // 管理者確認メール文章生成処理（前回レポートデータも含める）
+          // 管理者確認メール文章生成処理（AI分析結果も含める）
           relatedCase ? generateAdminConfirmationEmail(
-            updatedReport,
+            reportWithAnalysis, // AI分析結果を含むデータを渡す
             relatedCase,
             originalData,
             (req.user as any)?.username || "管理者",
@@ -1538,9 +1546,17 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
           // エラーでも処理を続行
         }
 
-        // 管理者確認メール文章を再生成（前回レポートデータも含める）
+        // 管理者確認メール文章を再生成（AI分析結果と前回レポートデータも含める）
+        // 既存のAI分析結果がない場合は新規に生成
+        let reportWithAnalysis = existingReport;
+        if (!existingReport.aiAnalysis) {
+          console.log("AI analysis not found, generating new analysis...");
+          const analysis = await analyzeWeeklyReport(existingReport, relatedCase);
+          reportWithAnalysis = { ...existingReport, aiAnalysis: analysis };
+        }
+
         const adminConfirmationEmail = await generateAdminConfirmationEmail(
-          existingReport,
+          reportWithAnalysis, // AI分析結果を含むデータを渡す
           relatedCase,
           undefined, // 再生成時は修正前データなし
           (req.user as any)?.username || "管理者",

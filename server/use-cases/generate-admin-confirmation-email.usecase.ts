@@ -43,6 +43,7 @@ interface WeeklyReportData {
   urgentIssues: string | null;
   businessOpportunities: string | null;
   reportPeriodStart?: string;
+  aiAnalysis?: string | null; // AI分析結果を追加
 }
 
 interface CaseData {
@@ -142,6 +143,13 @@ ${weeklyReport.changeDetails ? `変更詳細: ${weeklyReport.changeDetails}` : '
 ${confirmationPoints.length > 0 ? `
 【特に確認が必要な項目】
 ${confirmationPoints.map((point, index) => `${index + 1}. ${point}`).join('\n')}
+` : ''}
+
+${weeklyReport.aiAnalysis ? `
+【■ AI分析結果】
+以下は、レポート内容に対するAIの分析結果です。管理者の確認時に参考にしてください：
+
+${weeklyReport.aiAnalysis}
 ` : ''}
 
 ${originalData ? `
