@@ -49,6 +49,7 @@ interface CaseData {
   projectName: string;
   description?: string | null;
   milestone?: string | null;
+  includeProgressAnalysis?: boolean;
 }
 
 /**
@@ -67,7 +68,7 @@ export async function generateAdminConfirmationEmail(
     aiLogger.logDebug('gemini', 'generateAdminConfirmationEmail', requestId, 'Starting admin confirmation email generation');
 
     // 週次報告の内容から確認すべき項目を抽出（前回レポートとの差分分析も含む）
-    const confirmationPoints = extractConfirmationPoints(weeklyReport, originalData, previousReport);
+    const confirmationPoints = extractConfirmationPoints(weeklyReport, originalData, previousReport, caseInfo);
     
     // メール文章生成用の詳細プロンプトを構築
     const systemPrompt = `あなたは経験豊富なプロジェクトマネージャーです。週次報告を確認し、担当者に対して的確で建設的な確認メールを作成してください。
@@ -191,17 +192,19 @@ ${previousReport ? `
 /**
  * 週次報告から確認すべきポイントを抽出（前回レポートとの差分分析も含む）
  */
-function extractConfirmationPoints(weeklyReport: WeeklyReportData, originalData?: WeeklyReportData, previousReport?: WeeklyReportData): string[] {
+function extractConfirmationPoints(weeklyReport: WeeklyReportData, originalData?: WeeklyReportData, previousReport?: WeeklyReportData, caseInfo?: CaseData): string[] {
   const points: string[] = [];
 
   // 前回レポートとの差分分析
   if (previousReport) {
-    // 進捗率の変化分析
-    const progressDiff = weeklyReport.progressRate - previousReport.progressRate;
-    if (progressDiff < -5) {
-      points.push(`進捗悪化: 前回${previousReport.progressRate}%から${weeklyReport.progressRate}%に低下（${Math.abs(progressDiff)}%減少）`);
-    } else if (progressDiff > 10) {
-      points.push(`進捗向上: 前回${previousReport.progressRate}%から${weeklyReport.progressRate}%に改善（${progressDiff}%向上）`);
+    // 進捗率の変化分析（案件で進捗率分析が有効な場合のみ）
+    if (caseInfo?.includeProgressAnalysis !== false) {
+      const progressDiff = weeklyReport.progressRate - previousReport.progressRate;
+      if (progressDiff < -5) {
+        points.push(`進捗悪化: 前回${previousReport.progressRate}%から${weeklyReport.progressRate}%に低下（${Math.abs(progressDiff)}%減少）`);
+      } else if (progressDiff > 10) {
+        points.push(`進捗向上: 前回${previousReport.progressRate}%から${weeklyReport.progressRate}%に改善（${progressDiff}%向上）`);
+      }
     }
 
     // 課題・問題点の変化分析
@@ -267,8 +270,8 @@ function extractConfirmationPoints(weeklyReport: WeeklyReportData, originalData?
     points.push(`品質懸念: ${weeklyReport.qualityConcerns}`);
   }
 
-  // 進捗率が低い場合 (50%未満)
-  if (weeklyReport.progressRate < 50) {
+  // 進捗率が低い場合 (50%未満)（案件で進捗率分析が有効な場合のみ）
+  if (caseInfo?.includeProgressAnalysis !== false && weeklyReport.progressRate < 50) {
     points.push(`進捗状況: 進捗率${weeklyReport.progressRate}%の詳細確認`);
   }
 
