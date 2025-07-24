@@ -645,12 +645,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         casesWithReports.includes(c.id),
       );
 
-      // OpenAIを使用して月次レポートを生成
+      // AIを使用して月次レポートを生成
       const summary = await generateMonthlySummary(
         displayProjectName,
         lastMonthReports,
         casesWithData,
       );
+
+      // 生成された月次報告書を保存
+      const yearMonth = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
+      const caseIdsStr = targetCaseIds.length === allProjectCases.map(c => c.id).length ? null : targetCaseIds.join(',');
+      
+      try {
+        // 使用したAIプロバイダーを取得
+        const { getDynamicAIConfig } = await import('./config.js');
+        const dynamicConfig = await getDynamicAIConfig();
+        const aiProvider = dynamicConfig.provider;
+
+        await storage.saveMonthlyReport({
+          projectName: displayProjectName,
+          yearMonth,
+          caseIds: caseIdsStr,
+          startDate: startDate.toISOString().split("T")[0],
+          endDate: endDate.toISOString().split("T")[0],
+          content: summary,
+          aiProvider,
+        });
+        console.log(`[INFO] Monthly report saved for ${displayProjectName} (${yearMonth})`);
+      } catch (saveError) {
+        console.warn(`[WARN] Failed to save monthly report: ${saveError}`);
+        // 保存に失敗しても応答は返す
+      }
 
       res.json({
         projectName: displayProjectName,
@@ -990,6 +1015,96 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       res
         .status(500)
         .json({ message: "月次報告書の入力データの取得に失敗しました" });
+    }
+  });
+
+  // 最新の月次報告書を取得するAPIエンドポイント
+  app.get("/api/monthly-reports/latest/:projectName", async (req, res) => {
+    try {
+      const { projectName } = req.params;
+      const { startDate: startDateQuery, endDate: endDateQuery, caseId } = req.query;
+
+      // 日付から年月を算出
+      let startDate = new Date();
+      if (startDateQuery && typeof startDateQuery === "string") {
+        startDate = new Date(startDateQuery);
+      } else {
+        startDate.setMonth(startDate.getMonth() - 1);
+      }
+      
+      const yearMonth = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      // 案件IDが指定されている場合のパラメータ処理
+      let caseIdsStr: string | undefined;
+      if (caseId) {
+        if (Array.isArray(caseId)) {
+          caseIdsStr = caseId.join(',');
+        } else {
+          caseIdsStr = caseId.toString();
+        }
+      }
+
+      const latestReport = await storage.getLatestMonthlyReport(projectName, yearMonth, caseIdsStr);
+      
+      if (!latestReport) {
+        res.status(404).json({ message: "指定された条件の月次報告書が見つかりません" });
+        return;
+      }
+
+      res.json(latestReport);
+    } catch (error) {
+      console.error("Error fetching latest monthly report:", error);
+      res.status(500).json({ message: "最新の月次報告書の取得に失敗しました" });
+    }
+  });
+
+  // 月次報告書を新規作成・保存するAPIエンドポイント
+  app.post("/api/monthly-reports", async (req, res) => {
+    try {
+      const {
+        projectName,
+        startDate,
+        endDate,
+        caseIds,
+        content,
+        aiProvider,
+      } = req.body;
+
+      if (!projectName || !startDate || !endDate || !content) {
+        res.status(400).json({ message: "必要なパラメータが不足しています" });
+        return;
+      }
+
+      const yearMonth = `${new Date(startDate).getFullYear()}-${String(new Date(startDate).getMonth() + 1).padStart(2, '0')}`;
+
+      const savedReport = await storage.saveMonthlyReport({
+        projectName,
+        yearMonth,
+        caseIds: caseIds || null,
+        startDate,
+        endDate,
+        content,
+        aiProvider: aiProvider || 'unknown',
+      });
+
+      res.json(savedReport);
+    } catch (error) {
+      console.error("Error saving monthly report:", error);
+      res.status(500).json({ message: "月次報告書の保存に失敗しました" });
+    }
+  });
+
+  // 月次報告書の履歴を取得するAPIエンドポイント
+  app.get("/api/monthly-reports/history/:projectName", async (req, res) => {
+    try {
+      const { projectName } = req.params;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+
+      const history = await storage.getMonthlyReportHistory(projectName, limit);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching monthly report history:", error);
+      res.status(500).json({ message: "月次報告書履歴の取得に失敗しました" });
     }
   });
 

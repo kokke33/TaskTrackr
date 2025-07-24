@@ -43,6 +43,20 @@ type MonthlySummaryResponse = {
   caseCount: number;
 };
 
+// 月次報告書の型定義
+type MonthlyReport = {
+  id: number;
+  projectName: string;
+  yearMonth: string;
+  caseIds: string | null;
+  startDate: string;
+  endDate: string;
+  content: string;
+  aiProvider: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export default function WeeklyReportList() {
   const { toast } = useToast();
   const [location] = useLocation();
@@ -59,6 +73,9 @@ export default function WeeklyReportList() {
   const [tempProjectName, setTempProjectName] = useState<string>("");
   const [promptData, setPromptData] = useState<string>("");
   const [selectedCaseIds, setSelectedCaseIds] = useState<number[]>([]);
+  const [choiceDialogOpen, setChoiceDialogOpen] = useState<boolean>(false);
+  const [existingReport, setExistingReport] = useState<MonthlyReport | null>(null);
+  const [selectedChoiceParams, setSelectedChoiceParams] = useState<{ projectName: string, startDate?: string, endDate?: string, caseIds?: number[] } | null>(null);
 
   // マイルストーン更新のmutation
   const updateMilestoneMutation = useMutation<Case, Error, { caseId: number, milestone: string }>({
@@ -179,7 +196,45 @@ export default function WeeklyReportList() {
     }
   });
 
-  // URLパラメータから初期値を設定
+  // 最新の月次報告書を取得するmutation
+  const latestMonthlyReportMutation = useMutation<MonthlyReport, Error, { projectName: string, startDate?: string, endDate?: string, caseIds?: number[] }>({
+    mutationFn: async ({ projectName, startDate, endDate, caseIds }) => {
+      let url = `/api/monthly-reports/latest/${encodeURIComponent(projectName)}`;
+      const params = new URLSearchParams();
+      
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      if (caseIds && caseIds.length > 0) {
+        caseIds.forEach(id => params.append('caseId', id.toString()));
+      }
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      return await apiRequest(url, { method: "GET" });
+    },
+    onSuccess: (data) => {
+      setExistingReport(data);
+      setChoiceDialogOpen(true);
+    },
+    onError: (error) => {
+      // 404エラー（報告書が存在しない）の場合は直接生成
+      if (error.message.includes('404')) {
+        console.log("No existing report found, proceeding with generation");
+        handleGenerateNewReport();
+      } else {
+        console.error("Error fetching latest monthly report:", error);
+        toast({
+          title: "エラー",
+          description: "月次報告書の取得に失敗しました",
+          variant: "destructive",
+        });
+      }
+    }
+  });
+
+  // URLパラメータから初初値を設定
   useEffect(() => {
     // ブラウザの場合のみURLSearchParamsを使用
     if (typeof window !== 'undefined') {
@@ -493,37 +548,25 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
   };
 
 
-  // 選択された期間で月次サマリーを生成
+  // 既存報告書をチェックして、選択ダイアログまたは直接生成へ
   const generateMonthlySummaryWithDates = () => {
     if (!tempProjectName || !startDate || !endDate) return;
 
-    console.log("月次サマリー生成開始:", tempProjectName);
-
-    setMonthlySummary("");
-    setMonthlySummaryPeriod(null);
     setDateDialogOpen(false);
-
-    toast({
-      title: "月次報告書を生成中",
-      description: "AIを使って処理中です。しばらくお待ちください...",
-    });
 
     // yyyy-MM-dd形式にフォーマット
     const formatDate = (date: Date) => {
       return date.toISOString().split('T')[0];
     };
 
-    // プロジェクト名はそのまま使用
-    const projectNameToUse = tempProjectName;
-
-    // 選択された案件IDsがある場合のみ含める
+    // パラメータを保存
     const params: {
       projectName: string, 
       startDate: string, 
       endDate: string,
       caseIds?: number[]
     } = {
-      projectName: projectNameToUse,
+      projectName: tempProjectName,
       startDate: formatDate(startDate),
       endDate: formatDate(endDate)
     };
@@ -533,7 +576,39 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
       params.caseIds = selectedCaseIds;
     }
 
-    monthlySummaryMutation.mutate(params);
+    // パラメータを保存して既存報告書をチェック
+    setSelectedChoiceParams(params);
+    latestMonthlyReportMutation.mutate(params);
+  };
+
+  // 新しい報告書を生成する関数
+  const handleGenerateNewReport = () => {
+    if (!selectedChoiceParams) return;
+
+    setChoiceDialogOpen(false);
+    setMonthlySummary("");
+    setMonthlySummaryPeriod(null);
+
+    toast({
+      title: "月次報告書を生成中",
+      description: "AIを使って処理中です。しばらくお待ちください...",
+    });
+
+    monthlySummaryMutation.mutate(selectedChoiceParams);
+  };
+
+  // 既存報告書を表示する関数
+  const handleShowExistingReport = () => {
+    if (!existingReport) return;
+
+    setChoiceDialogOpen(false);
+    setMonthlySummary(existingReport.content);
+    setMonthlySummaryPeriod({
+      start: existingReport.startDate,
+      end: existingReport.endDate
+    });
+    setTempProjectName(existingReport.projectName);
+    setSummaryDialogOpen(true);
   };
 
   // 選択された期間のインプットデータを取得してコピー
@@ -1073,6 +1148,60 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
         </DialogContent>
       </Dialog>
 
+      {/* 月次報告書選択ダイアログ */}
+      <Dialog open={choiceDialogOpen} onOpenChange={setChoiceDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>月次報告書の表示</DialogTitle>
+            <DialogDescription>
+              既存の報告書が見つかりました。どちらを選択しますか？
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {existingReport && (
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-medium mb-2">保存済みの報告書</h4>
+                <p className="text-sm text-muted-foreground">
+                  作成日: {new Date(existingReport.createdAt).toLocaleString('ja-JP')}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  期間: {existingReport.startDate} 〜 {existingReport.endDate}
+                </p>
+                {existingReport.aiProvider && (
+                  <p className="text-sm text-muted-foreground">
+                    生成AI: {existingReport.aiProvider}
+                  </p>
+                )}
+              </div>
+            )}
+            <div className="flex space-x-2">
+              <Button 
+                onClick={handleShowExistingReport} 
+                variant="outline" 
+                className="flex-1"
+                disabled={!existingReport}
+              >
+                保存済みを表示
+              </Button>
+              <Button 
+                onClick={handleGenerateNewReport} 
+                className="flex-1"
+                disabled={latestMonthlyReportMutation.isPending || monthlySummaryMutation.isPending}
+              >
+                {monthlySummaryMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    生成中
+                  </>
+                ) : (
+                  "新しく作成"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* 月次報告書ダイアログ */}
       <Dialog open={summaryDialogOpen} onOpenChange={setSummaryDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -1082,9 +1211,16 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
             </DialogTitle>
             <DialogDescription>
               {monthlySummaryPeriod && (
-                <span>
-                  期間: {monthlySummaryPeriod.start} 〜 {monthlySummaryPeriod.end}
-                </span>
+                <div className="space-y-1">
+                  <span>
+                    期間: {monthlySummaryPeriod.start} 〜 {monthlySummaryPeriod.end}
+                  </span>
+                  {existingReport && monthlySummary === existingReport.content && (
+                    <div className="text-xs text-muted-foreground">
+                      保存済み報告書を表示中 (作成日: {new Date(existingReport.createdAt).toLocaleString('ja-JP')})
+                    </div>
+                  )}
+                </div>
               )}
             </DialogDescription>
           </DialogHeader>

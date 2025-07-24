@@ -1,4 +1,4 @@
-import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, systemSettings, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting, type SystemSetting, type InsertSystemSetting } from "@shared/schema";
+import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, systemSettings, monthlyReports, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting, type SystemSetting, type InsertSystemSetting, type MonthlyReport, type InsertMonthlyReport } from "@shared/schema";
 import { DEFAULT_VALUES } from "@shared/ai-constants";
 import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql, gte, lte, lt } from "drizzle-orm";
@@ -1545,6 +1545,79 @@ export class DatabaseStorage implements IStorage {
           createdAt: users.createdAt,
         });
       return deletedUser || null;
+    });
+  }
+
+  // 月次報告書関連のメソッド
+  
+  // 月次報告書を保存
+  async saveMonthlyReport(reportData: InsertMonthlyReport): Promise<MonthlyReport> {
+    return await withRetry(async () => {
+      const [savedReport] = await db
+        .insert(monthlyReports)
+        .values({
+          ...reportData,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: [monthlyReports.projectName, monthlyReports.yearMonth, monthlyReports.caseIds],
+          set: {
+            content: reportData.content,
+            aiProvider: reportData.aiProvider,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+      return savedReport;
+    });
+  }
+
+  // 最新の月次報告書を取得
+  async getLatestMonthlyReport(projectName: string, yearMonth: string, caseIds?: string): Promise<MonthlyReport | null> {
+    return await withRetry(async () => {
+      const whereConditions = [
+        eq(monthlyReports.projectName, projectName),
+        eq(monthlyReports.yearMonth, yearMonth),
+      ];
+
+      // case_idsの処理：null可のため適切に比較
+      if (caseIds) {
+        whereConditions.push(eq(monthlyReports.caseIds, caseIds));
+      } else {
+        whereConditions.push(isNull(monthlyReports.caseIds));
+      }
+
+      const [report] = await db
+        .select()
+        .from(monthlyReports)
+        .where(and(...whereConditions))
+        .orderBy(desc(monthlyReports.createdAt))
+        .limit(1);
+      
+      return report || null;
+    });
+  }
+
+  // プロジェクトの月次報告書履歴を取得
+  async getMonthlyReportHistory(projectName: string, limit: number = 10): Promise<MonthlyReport[]> {
+    return await withRetry(async () => {
+      return await db
+        .select()
+        .from(monthlyReports)
+        .where(eq(monthlyReports.projectName, projectName))
+        .orderBy(desc(monthlyReports.createdAt))
+        .limit(limit);
+    });
+  }
+
+  // 月次報告書を削除
+  async deleteMonthlyReport(id: number): Promise<MonthlyReport | null> {
+    return await withRetry(async () => {
+      const [deleted] = await db
+        .delete(monthlyReports)
+        .where(eq(monthlyReports.id, id))
+        .returning();
+      return deleted || null;
     });
   }
 

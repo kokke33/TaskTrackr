@@ -151,6 +151,20 @@ export const systemSettings = pgTable("system_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// 月次報告書テーブル
+export const monthlyReports = pgTable("monthly_reports", {
+  id: serial("id").primaryKey(),
+  projectName: text("project_name").notNull(),
+  yearMonth: text("year_month").notNull(), // YYYY-MM 形式
+  caseIds: text("case_ids"), // カンマ区切りの案件ID一覧（NULL可：全案件対象の場合）
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  content: text("content").notNull(), // AI生成されたMarkdown内容
+  aiProvider: text("ai_provider"), // 生成時に使用したAIプロバイダー
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 
 
 // 週次報告と案件の関係定義
@@ -218,6 +232,12 @@ export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit
   updatedAt: true,
 });
 
+export const insertMonthlyReportSchema = createInsertSchema(monthlyReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 
 
 // 型定義
@@ -238,6 +258,8 @@ export type InsertWeeklyReportMeeting = z.infer<typeof insertWeeklyReportMeeting
 export type WeeklyReportMeeting = typeof weeklyReportMeetings.$inferSelect;
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
+export type InsertMonthlyReport = z.infer<typeof insertMonthlyReportSchema>;
+export type MonthlyReport = typeof monthlyReports.$inferSelect;
 
 export const insertAdminConfirmationEmailSchema = createInsertSchema(adminConfirmationEmails).omit({
   id: true,
