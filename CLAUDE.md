@@ -15,6 +15,8 @@ TaskTrackrプロジェクトのClaude Code用設定ファイルです。この�
 - **.claude/common-patterns.md** - よく使うコマンドパターン
 - **.claude/debug-log.md** - 重要なデバッグ記録
 - **.claude/debug/** - セッション固有のログとアーカイブ
+- **.claude/commands/** - コマンド関連の記録
+- **.claude/settings.local.json** - Claude Code ローカル設定
 
 このシステムにより、プロジェクトの知識を継続的に蓄積・共有し、開発効率と品質の向上を目指しています。
 
@@ -30,6 +32,8 @@ TaskTrackrプロジェクトのClaude Code用設定ファイルです。この�
 - `npm start` - 本番サーバー起動
 - `npm run check` - TypeScript型チェック（注意：現在フォームで型エラーあり）
 - `npm run db:push` - Drizzle Kitを使用してデータベーススキーマ変更をプッシュ
+- `tsx server/index.ts` - サーバーの直接実行（デバッグ用）
+- `npx drizzle-kit push` - データベーススキーマの手動プッシュ
 
 ### 重要：統合サーバー設計
 - **統一ポート構成**: 開発時は単一のExpressサーバーがポート5000でフロントエンドとバックエンドの両方を配信
@@ -249,6 +253,8 @@ const form = useForm<z.infer<typeof insertProjectSchema>>({
 - **パスエイリアス**: クライアントコード用`@/`、共有型用`@shared/`
 - **開発サーバー**: 単一の`npm run dev`コマンドでフロントエンドとバックエンドの両方を実行
 - **出力**: フロントエンドは`dist/public/`、バックエンドは`dist/index.js`
+- **TypeScript設定**: incremental buildとtsBuildInfoFileによる高速コンパイル
+- **モジュール解決**: bundler方式でallowImportingTsExtensions有効
 
 ### 認証機能
 - **初期ユーザー作成**: 初回実行時の自動管理者ユーザー設定（admin/password）
@@ -383,6 +389,8 @@ npm run dev
 1. `npm run dev` でサーバー起動
 2. ブラウザで `localhost:5000` にアクセス
 3. 管理者ログイン（admin/password）で機能確認
+
+**注意**: 将来的にはJest/VitestやPlaywrightなどのテストフレームワークの導入を検討してください。現在は統合テストも手動で実行する必要があります。
 
 ### 品質チェック
 ```bash

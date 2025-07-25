@@ -2382,6 +2382,44 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
     },
   );
 
+  // すべてのマネージャ定例議事録を取得
+  app.get("/api/manager-meetings", isAuthenticated, async (req, res) => {
+    try {
+      const meetings = await storage.getAllManagerMeetings();
+      res.json(meetings);
+    } catch (error) {
+      console.error("Manager meetings fetch error:", error);
+      res.status(500).json({ error: "マネージャ定例議事録の取得中にエラーが発生しました" });
+    }
+  });
+
+  // すべての週次報告会議議事録を取得
+  app.get("/api/weekly-report-meetings", isAuthenticated, async (req, res) => {
+    try {
+      const meetings = await storage.getAllWeeklyReportMeetings();
+      res.json(meetings);
+    } catch (error) {
+      console.error("Weekly report meetings fetch error:", error);
+      res.status(500).json({ error: "週次報告会議議事録の取得中にエラーが発生しました" });
+    }
+  });
+
+  // 案件別の週次報告会議議事録を取得
+  app.get("/api/weekly-report-meetings/by-case/:caseId", isAuthenticated, async (req, res) => {
+    try {
+      const caseId = parseInt(req.params.caseId);
+      if (isNaN(caseId)) {
+        return res.status(400).json({ error: "Invalid case ID" });
+      }
+      
+      const meetings = await storage.getWeeklyReportMeetingsByCaseId(caseId);
+      res.json(meetings);
+    } catch (error) {
+      console.error("Case weekly report meetings fetch error:", error);
+      res.status(500).json({ error: "案件別週次報告会議議事録の取得中にエラーが発生しました" });
+    }
+  });
+
   // セッション一時AI設定API（お試し機能）
   // セッション一時設定の取得
   app.get("/api/session-ai-settings", isAuthenticated, async (req, res) => {

@@ -141,9 +141,14 @@ export interface IStorage {
   createManagerMeeting(meetingData: InsertManagerMeeting): Promise<ManagerMeeting>;
   getManagerMeeting(id: number): Promise<ManagerMeeting | undefined>;
   getManagerMeetingsByProject(projectId: number, yearMonth?: string): Promise<ManagerMeeting[]>;
+  getAllManagerMeetings(): Promise<ManagerMeeting[]>;
   updateManagerMeeting(id: number, meetingData: InsertManagerMeeting): Promise<ManagerMeeting>;
   deleteManagerMeeting(id: number): Promise<ManagerMeeting>;
   getAvailableMonths(projectId: number): Promise<string[]>;
+
+  // 週次報告会議議事録関連
+  getAllWeeklyReportMeetings(): Promise<WeeklyReportMeeting[]>;
+  getWeeklyReportMeetingsByCaseId(caseId: number): Promise<WeeklyReportMeeting[]>;
 
 
 }
@@ -1276,6 +1281,43 @@ export class DatabaseStorage implements IStorage {
       console.error("Error fetching available months:", error);
       return [];
     }
+  }
+
+  // すべてのマネージャ定例議事録を取得
+  async getAllManagerMeetings(): Promise<ManagerMeeting[]> {
+    return await db
+      .select()
+      .from(managerMeetings)
+      .orderBy(desc(managerMeetings.meetingDate));
+  }
+
+  // すべての週次報告会議議事録を取得
+  async getAllWeeklyReportMeetings(): Promise<WeeklyReportMeeting[]> {
+    return await db
+      .select()
+      .from(weeklyReportMeetings)
+      .orderBy(desc(weeklyReportMeetings.meetingDate));
+  }
+
+  // 案件別の週次報告会議議事録を取得
+  async getWeeklyReportMeetingsByCaseId(caseId: number): Promise<WeeklyReportMeeting[]> {
+    // 週次報告から会議議事録を取得
+    return await db
+      .select({
+        id: weeklyReportMeetings.id,
+        weeklyReportId: weeklyReportMeetings.weeklyReportId,
+        meetingDate: weeklyReportMeetings.meetingDate,
+        title: weeklyReportMeetings.title,
+        content: weeklyReportMeetings.content,
+        modifiedBy: weeklyReportMeetings.modifiedBy,
+        originalData: weeklyReportMeetings.originalData,
+        modifiedData: weeklyReportMeetings.modifiedData,
+        createdAt: weeklyReportMeetings.createdAt,
+      })
+      .from(weeklyReportMeetings)
+      .innerJoin(weeklyReports, eq(weeklyReportMeetings.weeklyReportId, weeklyReports.id))
+      .where(eq(weeklyReports.caseId, caseId))
+      .orderBy(desc(weeklyReportMeetings.meetingDate));
   }
 
   // 週次報告会議関連のメソッド

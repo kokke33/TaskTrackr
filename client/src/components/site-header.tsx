@@ -33,6 +33,9 @@ export function SiteHeader() {
                 <Link href="/reports">
                   <span className="transition-colors hover:text-foreground/80 cursor-pointer">週次報告</span>
                 </Link>
+                <Link href="/meetings">
+                  <span className="transition-colors hover:text-foreground/80 cursor-pointer">議事録</span>
+                </Link>
                 <AdminOnly>
                   <Link href="/admin/settings">
                     <span className="transition-colors hover:text-foreground/80 cursor-pointer">設定</span>

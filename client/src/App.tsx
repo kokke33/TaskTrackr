@@ -18,6 +18,7 @@ import CaseForm from "@/pages/case-form";
 import ProjectList from "@/pages/projects";
 import ProjectForm from "@/pages/project-form";
 import ProjectDetail from "@/pages/project-detail";
+import MeetingList from "@/pages/meeting-list";
 import NotFound from "@/pages/not-found";
 import SearchPage from "@/pages/search";
 import RecentCases from "@/pages/recent-cases";
@@ -38,6 +39,7 @@ function Router() {
       <ProtectedRoute path="/report/edit/:id" component={WeeklyReport} />
       <ProtectedRoute path="/reports" component={WeeklyReportList} />
       <ProtectedRoute path="/reports/:id" component={WeeklyReportDetail} />
+      <ProtectedRoute path="/meetings" component={MeetingList} />
       <ProtectedRoute path="/cases" component={CaseList} />
       <AdminRoute path="/case/new" component={CaseForm} />
       <AdminRoute path="/case/edit/:id" component={CaseForm} />
