@@ -10,7 +10,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAIAnalysis } from "@/hooks/use-ai-analysis";
 import { AIAnalysisResult } from "@/components/ai-analysis-result";
@@ -42,7 +42,7 @@ import { MilestoneDialog } from "@/components/milestone-dialog";
 
 export default function WeeklyReportDetail() {
   const { id } = useParams<{ id: string }>();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [originalData, setOriginalData] = useState<WeeklyReport | null>(null);
@@ -111,6 +111,31 @@ export default function WeeklyReportDetail() {
     staleTime: 0,
     enabled: !!report, // レポートが取得できたら議事録も取得
   });
+
+  // URLパラメータからスクロール指示を取得してスクロール実行
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const url = new URL(window.location.href);
+        const scrollTo = url.searchParams.get('scrollTo');
+        
+        if (scrollTo === 'meetings') {
+          // DOM要素が読み込まれるまで少し待つ
+          setTimeout(() => {
+            const meetingsSection = document.getElementById('meetings-section');
+            if (meetingsSection) {
+              meetingsSection.scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+              });
+            }
+          }, 100);
+        }
+      } catch (err) {
+        console.error('Error parsing URL parameters:', err);
+      }
+    }
+  }, [location, meetings]); // meetings依存でDOM更新後にスクロール
 
   // 議事録更新のミューテーション
   const updateMeetingMutation = useMutation({
@@ -570,7 +595,7 @@ export default function WeeklyReportDetail() {
           {meetings && meetings.length > 0 && (
             <Card>
               <CardContent className="p-6">
-                <h2 className="text-xl font-semibold mb-4 pb-2 border-b">■ 確認会議事録</h2>
+                <h2 id="meetings-section" className="text-xl font-semibold mb-4 pb-2 border-b">■ 確認会議事録</h2>
                 {meetings.map((meeting, index) => (
                   <div key={meeting.id} className="mb-6 last:mb-0">
                     {meetings.length > 1 && (

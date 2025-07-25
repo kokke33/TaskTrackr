@@ -34,6 +34,7 @@ type MeetingRecord = {
   caseName?: string;
   createdAt: string;
   modifiedBy?: string;
+  weeklyReportId?: number;
 };
 
 export default function MeetingList() {
@@ -69,6 +70,12 @@ export default function MeetingList() {
   // すべての案件を取得
   const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
     queryKey: ["/api/cases"],
+    staleTime: 10 * 60 * 1000, // 10分間キャッシュ
+  });
+
+  // すべてのプロジェクトを取得（projectNameからprojectIdの逆引き用）
+  const { data: projects, isLoading: isLoadingProjects } = useQuery<any[]>({
+    queryKey: ["/api/projects"],
     staleTime: 10 * 60 * 1000, // 10分間キャッシュ
   });
 
@@ -124,24 +131,51 @@ export default function MeetingList() {
     const selectedProjectCases = cases?.filter(c => c.projectName === selectedProject) || [];
     const selectedProjectIds = Array.from(new Set(selectedProjectCases.map(c => c.projectName)));
 
-    // マネージャ定例議事録を追加（選択されたプロジェクトに関連するもののみ）
-    if (managerMeetings && selectedProject) {
-      managerMeetings.forEach(meeting => {
-        // プロジェクトIDから該当するプロジェクト名を特定
-        const relatedCases = cases?.filter(c => c.projectName === selectedProject);
-        if (relatedCases && relatedCases.length > 0) {
-          meetings.push({
-            id: meeting.id,
-            title: meeting.title,
-            meetingDate: meeting.meetingDate,
-            content: meeting.content,
-            type: 'manager',
-            projectId: meeting.projectId,
-            projectName: selectedProject,
-            createdAt: meeting.createdAt,
-          });
+    // マネージャ定例議事録を追加
+    if (managerMeetings) {
+      let targetProjectIds: number[] = [];
+      let targetProjectName: string = '';
+      
+      if (selectedCase && cases) {
+        // 案件選択時：選択された案件が属するプロジェクトの定例議事録を表示
+        const selectedCaseData = cases.find(c => c.id === selectedCase);
+        
+        if (selectedCaseData) {
+          // projectId が undefined の場合、projectNameからprojectIdを逆引き
+          let projectId = selectedCaseData.projectId || (selectedCaseData as any).project_id;
+          
+          if (!projectId && projects && selectedCaseData.projectName) {
+            const matchingProject = projects.find(p => p.name === selectedCaseData.projectName);
+            projectId = matchingProject?.id;
+          }
+          
+          targetProjectIds = [projectId];
+          targetProjectName = selectedCaseData.projectName;
         }
-      });
+      } else if (selectedProject) {
+        // 案件未選択時：選択されたプロジェクトの定例議事録を表示
+        const selectedProjectCases = cases?.filter(c => c.projectName === selectedProject);
+        targetProjectIds = selectedProjectCases?.map(c => c.projectId) || [];
+        targetProjectName = selectedProject;
+      }
+      
+      if (targetProjectIds.length > 0) {
+        managerMeetings.forEach(meeting => {
+          // 議事録のprojectIdが対象プロジェクトに属するかチェック
+          if (targetProjectIds.includes(meeting.projectId)) {
+            meetings.push({
+              id: meeting.id,
+              title: meeting.title,
+              meetingDate: meeting.meetingDate,
+              content: meeting.content,
+              type: 'manager',
+              projectId: meeting.projectId,
+              projectName: targetProjectName,
+              createdAt: meeting.createdAt,
+            });
+          }
+        });
+      }
     }
 
     // 週次報告会議議事録を追加（案件選択時のみ）
@@ -159,6 +193,7 @@ export default function MeetingList() {
           projectName: case_?.projectName,
           createdAt: meeting.createdAt,
           modifiedBy: meeting.modifiedBy,
+          weeklyReportId: meeting.weeklyReportId,
         });
       });
     }
@@ -170,10 +205,10 @@ export default function MeetingList() {
         return meeting.type === selectedMeetingType;
       })
       .sort((a, b) => new Date(b.meetingDate).getTime() - new Date(a.meetingDate).getTime());
-  }, [managerMeetings, caseWeeklyMeetings, selectedProject, selectedCase, selectedMeetingType, cases, caseMap]);
+  }, [managerMeetings, caseWeeklyMeetings, selectedProject, selectedCase, selectedMeetingType, cases, caseMap, projects]);
 
   // ローディング状態のチェック
-  const isLoading = isLoadingCases || isLoadingManagerMeetings || isLoadingWeeklyMeetings || 
+  const isLoading = isLoadingCases || isLoadingProjects || isLoadingManagerMeetings || isLoadingWeeklyMeetings || 
     (selectedCase !== null && isLoadingCaseWeeklyMeetings);
 
   // 案件を選択した時の処理
@@ -462,7 +497,7 @@ export default function MeetingList() {
                               </Button>
                             </Link>
                           ) : (
-                            <Link href={`/reports/${meeting.id}`}>
+                            <Link href={`/reports/${meeting.weeklyReportId || meeting.id}?scrollTo=meetings`}>
                               <Button variant="outline" size="sm">
                                 詳細表示
                               </Button>
