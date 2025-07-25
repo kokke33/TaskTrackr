@@ -50,14 +50,7 @@ export default function ProjectForm() {
     queryKey: [`/api/projects/${projectId}`],
     enabled: isEditing,
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(`${queryKey[0]}?edit=true`, {
-        credentials: "include"
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "プロジェクト情報の取得に失敗しました");
-      }
-      return response.json();
+      return await apiRequest<Project>(`${queryKey[0]}?edit=true`, { method: "GET" });
     }
   });
 

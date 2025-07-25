@@ -54,6 +54,9 @@ export async function apiRequest<T = any>(
   if (res.status === 401 && !options.skipAuthRetry && url !== "/api/check-auth") {
     console.log("🔄 401エラー検出 - セッション確認を試行します");
     
+    // セッション同期のため待機時間を延長
+    await new Promise(resolve => setTimeout(resolve, 1000)); // 500ms → 1000ms
+    
     try {
       // セッション確認を実行（無限ループ防止のためskipAuthRetryを設定）
       const authCheckRes = await fetch("/api/check-auth", {

@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { useAuth } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAIAnalysis } from "@/hooks/use-ai-analysis";
@@ -64,12 +65,8 @@ export default function WeeklyReportDetail() {
     mutationFn: async () => {
       if (!report || !id) throw new Error('レポートデータが不足しています');
       
-      const response = await fetch(`/api/weekly-reports/${id}/regenerate-admin-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
+      const response = await apiRequest(`/api/weekly-reports/${id}/regenerate-admin-email`, {
+        method: 'POST'
       });
       
       if (!response.ok) {
@@ -118,13 +115,9 @@ export default function WeeklyReportDetail() {
   // 議事録更新のミューテーション
   const updateMeetingMutation = useMutation({
     mutationFn: async ({ meetingId, title, content }: { meetingId: number, title: string, content: string }) => {
-      const response = await fetch(`/api/weekly-reports/meetings/${meetingId}`, {
+      const response = await apiRequest(`/api/weekly-reports/meetings/${meetingId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ title, content }),
-        credentials: 'include',
+        data: { title, content }
       });
       
       if (!response.ok) {
@@ -152,9 +145,8 @@ export default function WeeklyReportDetail() {
   // 週次報告削除のミューテーション
   const deleteReportMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/weekly-reports/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
+      const response = await apiRequest(`/api/weekly-reports/${id}`, {
+        method: 'DELETE'
       });
       
       if (!response.ok) {
@@ -183,9 +175,8 @@ export default function WeeklyReportDetail() {
   // 管理者編集開始のミューテーション
   const adminEditStartMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/weekly-reports/${id}/admin-edit-start`, {
-        method: 'POST',
-        credentials: 'include',
+      const response = await apiRequest(`/api/weekly-reports/${id}/admin-edit-start`, {
+        method: 'POST'
       });
       if (!response.ok) {
         throw new Error('管理者編集の開始に失敗しました');

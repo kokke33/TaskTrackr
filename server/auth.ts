@@ -56,58 +56,81 @@ passport.serializeUser((user: any, done) => {
   done(null, user.id);
 });
 
+// セッション復元の排他制御用Map
+const activeDeserializations = new Map<number, Promise<any>>();
+
 passport.deserializeUser(async (id: number, done) => {
   try {
-    // 離席後のデータベース接続エラーに対するリトライ機能
-    let retries = 2;
-    let user = null;
-    
-    while (retries > 0) {
-      try {
-        const [fetchedUser] = await db
-          .select({
-            id: users.id,
-            username: users.username,
-            isAdmin: users.isAdmin,
-          })
-          .from(users)
-          .where(eq(users.id, id));
-        
-        user = fetchedUser;
-        break;
-      } catch (dbError: any) {
-        const isConnectionError = 
-          dbError.message?.includes('Connection terminated unexpectedly') ||
-          dbError.message?.includes('ECONNRESET') ||
-          dbError.message?.includes('ETIMEDOUT') ||
-          dbError.code === 'ECONNRESET';
-        
-        if (isConnectionError && retries > 1) {
-          retries--;
-          console.log(`🔄 セッション復元でDB接続エラー (残り${retries}回), User ID: ${id}`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          continue;
+    // 同じユーザーIDで並行実行されている場合は結果を待つ
+    if (activeDeserializations.has(id)) {
+      console.log(`🔄 セッション復元待機中 - User ID: ${id}`);
+      const result = await activeDeserializations.get(id);
+      return done(null, result);
+    }
+
+    // 新しいセッション復元処理を開始
+    const deserializationPromise = (async () => {
+      let retries = 3; // 2 → 3 (リトライ回数増加)
+      let user = null;
+      
+      while (retries > 0) {
+        try {
+          const [fetchedUser] = await db
+            .select({
+              id: users.id,
+              username: users.username,
+              isAdmin: users.isAdmin,
+            })
+            .from(users)
+            .where(eq(users.id, id));
+          
+          user = fetchedUser;
+          break;
+        } catch (dbError: any) {
+          const isConnectionError = 
+            dbError.message?.includes('Connection terminated unexpectedly') ||
+            dbError.message?.includes('ECONNRESET') ||
+            dbError.message?.includes('ETIMEDOUT') ||
+            dbError.message?.includes('terminating connection') ||
+            dbError.code === 'ECONNRESET';
+          
+          if (isConnectionError && retries > 1) {
+            retries--;
+            console.log(`🔄 セッション復元でDB接続エラー (残り${retries}回), User ID: ${id} - ${dbError.message}`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            continue;
+          }
+          
+          // リトライしても失敗した場合、またはDB接続エラー以外の場合
+          console.error(`❌ セッション復元失敗 - User ID: ${id}`, dbError.message);
+          return false; // 認証失敗
         }
-        
-        // リトライしても失敗した場合、またはDB接続エラー以外の場合
-        console.error(`❌ セッション復元失敗 - User ID: ${id}`, dbError.message);
-        return done(null, false); // 認証失敗としてログアウト処理
       }
-    }
+      
+      if (!user) {
+        console.log(`⚠️ ユーザーが見つかりません - User ID: ${id} (削除済みまたは無効なセッション)`);
+        return false; // 認証失敗
+      }
+      
+      // 本番環境ではデバッグログを削減
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`✅ セッション復元成功 - ${user.username} (ID: ${user.id})`);
+      }
+      
+      return user;
+    })();
+
+    // 排他制御Mapに追加
+    activeDeserializations.set(id, deserializationPromise);
+    const result = await deserializationPromise;
     
-    if (!user) {
-      console.log(`⚠️ ユーザーが見つかりません - User ID: ${id} (削除済みまたは無効なセッション)`);
-      return done(null, false); // 認証失敗としてログアウト処理
-    }
+    // 完了後にMapから削除
+    activeDeserializations.delete(id);
     
-    // 本番環境ではデバッグログを削減
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`✅ セッション復元成功 - ${user.username} (ID: ${user.id})`);
-    }
-    
-    done(null, user);
+    done(null, result);
   } catch (error) {
     console.error(`❌ セッション復元で予期しないエラー - User ID: ${id}`, error);
+    activeDeserializations.delete(id); // エラー時もMapから削除
     done(null, false); // エラー時はログアウト処理
   }
 });

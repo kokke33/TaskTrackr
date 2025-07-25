@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 import { Settings, Save, RefreshCw, AlertCircle, Zap, X } from "lucide-react";
 import { DEFAULT_VALUES } from "@shared/ai-constants";
 import { type AIProviderConfig } from "@shared/ai-types";
@@ -23,24 +24,12 @@ interface SystemSetting {
 
 // システム設定を取得する関数
 async function getSystemSettings(): Promise<SystemSetting[]> {
-  const response = await fetch("/api/settings", {
-    credentials: "include",
-  });
-  if (!response.ok) {
-    throw new Error("設定の取得に失敗しました");
-  }
-  return response.json();
+  return await apiRequest<SystemSetting[]>("/api/settings", { method: "GET" });
 }
 
 // セッション設定を取得する関数
 async function getSessionAISettings(): Promise<{ realtimeProvider?: string; groqModel?: string; geminiModel?: string; openrouterModel?: string }> {
-  const response = await fetch("/api/session-ai-settings", {
-    credentials: "include",
-  });
-  if (!response.ok) {
-    throw new Error("セッション設定の取得に失敗しました");
-  }
-  return response.json();
+  return await apiRequest<{ realtimeProvider?: string; groqModel?: string; geminiModel?: string; openrouterModel?: string }>("/api/session-ai-settings", { method: "GET" });
 }
 
 export default function AdminSettings() {
@@ -149,17 +138,13 @@ export default function AdminSettings() {
   // ストリーミング設定を更新
   const updateStreamingMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
-      const response = await fetch("/api/settings", {
+      const response = await apiRequest("/api/settings", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+        data: {
           key: "STREAMING_ENABLED",
           value: enabled.toString(),
           description: "AIリアルタイム分析でストリーミング表示を有効にするかどうか"
-        }),
-        credentials: "include",
+        }
       });
       
       if (!response.ok) {

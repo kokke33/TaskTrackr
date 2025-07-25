@@ -39,9 +39,10 @@ const isNeon = databaseUrl.includes('neon.tech');
 // Neonの場合はMemoryStoreを使用（接続問題を回避・離席後エラー対策）
 const sessionStore = isNeon ? 
   new MemStore({
-    checkPeriod: 3600000, // 1時間ごとにクリーンアップ（短縮して安定化）
+    checkPeriod: 600000, // 10分ごとにクリーンアップ（競合を減らすため短縮）
     max: 1000,           // メモリ使用量制限
     ttl: 86400000,       // 24時間でセッション期限切れ
+    stale: false,        // 期限切れセッションは保持しない（競合防止）
     dispose: (key: string) => {
       console.log(`セッション削除: ${key.substring(0, 8)}...`);
     }
@@ -61,9 +62,9 @@ app.use(
   session({
     store: sessionStore,
     secret: process.env.SESSION_SECRET || "your-session-secret",
-    resave: false,
-    saveUninitialized: false,
-    rolling: true, // アクセスするたびにセッション期限をリセット（離席後対策）
+    resave: false, // MemoryStoreとの競合を防ぐ
+    saveUninitialized: true, // セッション初期化を確実に行う
+    rolling: false, // セッションID固定
     cookie: {
       secure: process.env.NODE_ENV === 'production', // 本番環境では自動的にセキュア
       sameSite: 'lax', // CSRF対策

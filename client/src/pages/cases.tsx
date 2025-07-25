@@ -90,13 +90,7 @@ export default function CaseList() {
     queryKey: ["/api/cases"],
     queryFn: async () => {
       const url = `/api/cases?includeDeleted=${showDeleted}`;
-      const response = await fetch(url, {
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        throw new Error("案件の取得に失敗しました");
-      }
-      return response.json();
+      return await apiRequest<Case[]>(url, { method: "GET" });
     },
     staleTime: 0,
     refetchOnMount: true,
