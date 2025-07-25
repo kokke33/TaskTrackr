@@ -39,6 +39,9 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 export default function CaseView() {
   // すべてのReactフックを関数の先頭で宣言
@@ -416,10 +419,22 @@ export default function CaseView() {
                     value={editedCase.milestone || ''}
                     onChange={handleInputChange}
                     className="min-h-[100px]"
+                    placeholder="マークダウン形式で入力できます（見出し、リスト、表、コードブロック等に対応）"
                   />
                 ) : (
-                  <div className="bg-accent/50 p-3 rounded-md min-h-[100px] whitespace-pre-wrap">
-                    {caseData.milestone || "マイルストーンはありません"}
+                  <div className="bg-accent/50 p-3 rounded-md min-h-[100px]">
+                    {caseData.milestone ? (
+                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]} 
+                          rehypePlugins={[rehypeRaw]}
+                        >
+                          {caseData.milestone}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground">マイルストーンはありません</div>
+                    )}
                   </div>
                 )}
               </div>

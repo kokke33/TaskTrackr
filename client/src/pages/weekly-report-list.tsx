@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Copy, List, Plus, ChevronRight, FileText, Loader2, Home, Briefcase, PenSquare, Check, X, ExternalLink } from "lucide-react";
+import { Copy, List, Plus, ChevronRight, FileText, Loader2, Home, Briefcase, PenSquare, Check, X, ExternalLink, HelpCircle } from "lucide-react";
 import { 
   Breadcrumb,
   BreadcrumbItem,
@@ -30,6 +30,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // レスポンスの型定義
 type MonthlySummaryResponse = {
@@ -820,7 +826,34 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
           <div className="mt-4 mb-6 p-4 border rounded-lg bg-muted/20">
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center gap-3">
-                <h3 className="text-lg font-semibold">マイルストーン</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold">マイルストーン</h3>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md p-4">
+                        <div className="space-y-2 text-sm">
+                          <div className="font-semibold">マークダウン記法例:</div>
+                          <div className="space-y-1 font-mono text-xs">
+                            <div># 見出し1</div>
+                            <div>## 見出し2</div>
+                            <div>### 見出し3</div>
+                            <div className="mt-2">- リスト項目</div>
+                            <div>- [ ] 未完了タスク</div>
+                            <div>- [x] 完了タスク</div>
+                            <div className="mt-2">**太字** *斜体*</div>
+                            <div className="mt-2">| 列1 | 列2 |</div>
+                            <div>|-----|-----|</div>
+                            <div>| 値1 | 値2 |</div>
+                            <div className="mt-2">`コード`</div>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <Link 
                   href={`/case/view/${selectedCase}?from=reports`} 
                   className="text-sm text-primary hover:underline flex items-center gap-1"
@@ -883,9 +916,16 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
                 placeholder="案件のマイルストーンを入力してください..."
               />
             ) : (
-              <div className="p-2 whitespace-pre-wrap min-h-[40px]">
+              <div className="p-2 min-h-[40px]">
                 {milestone ? (
-                  milestone
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]} 
+                      rehypePlugins={[rehypeRaw]}
+                    >
+                      {milestone}
+                    </ReactMarkdown>
+                  </div>
                 ) : (
                   <span className="text-muted-foreground italic">
                     マイルストーンは設定されていません

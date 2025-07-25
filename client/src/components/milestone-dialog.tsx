@@ -7,6 +7,9 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Target } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 interface MilestoneDialogProps {
   open: boolean;
@@ -50,8 +53,6 @@ export function MilestoneDialog({
     );
   }
 
-  // マイルストーンテキストを改行で分割して表示
-  const milestoneLines = milestone.split('\n').filter(line => line.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -73,12 +74,13 @@ export function MilestoneDialog({
                   <Calendar className="h-4 w-4 text-blue-600" />
                   <span className="font-medium text-sm">マイルストーン詳細</span>
                 </div>
-                <div className="space-y-2">
-                  {milestoneLines.map((line, index) => (
-                    <div key={index} className="text-sm text-foreground whitespace-pre-wrap">
-                      {line}
-                    </div>
-                  ))}
+                <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]} 
+                    rehypePlugins={[rehypeRaw]}
+                  >
+                    {milestone}
+                  </ReactMarkdown>
                 </div>
               </div>
             </div>

@@ -22,11 +22,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 export default function CaseForm() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +45,7 @@ export default function CaseForm() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [milestonePreviewMode, setMilestonePreviewMode] = useState<"edit" | "preview">("edit");
 
   // プロジェクト一覧を取得
   const { data: projects, isLoading: isLoadingProjects } = useQuery<Project[]>({
@@ -54,6 +66,7 @@ export default function CaseForm() {
       projectName: "",
       caseName: "",
       description: "",
+      milestone: "",
       includeProgressAnalysis: true,
       isDeleted: false,
     },
@@ -66,6 +79,7 @@ export default function CaseForm() {
         projectName: existingCase.projectName,
         caseName: existingCase.caseName,
         description: existingCase.description || "",
+        milestone: existingCase.milestone || "",
         includeProgressAnalysis: existingCase.includeProgressAnalysis ?? true,
         isDeleted: existingCase.isDeleted || false,
       });
@@ -197,6 +211,81 @@ export default function CaseForm() {
                           value={field.value || ""}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="milestone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center gap-2">
+                        <FormLabel>マイルストーン</FormLabel>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-md p-4">
+                              <div className="space-y-2 text-sm">
+                                <div className="font-semibold">マークダウン記法例:</div>
+                                <div className="space-y-1 font-mono text-xs">
+                                  <div># 見出し1</div>
+                                  <div>## 見出し2</div>
+                                  <div>### 見出し3</div>
+                                  <div className="mt-2">- リスト項目</div>
+                                  <div>- [ ] 未完了タスク</div>
+                                  <div>- [x] 完了タスク</div>
+                                  <div className="mt-2">**太字** *斜体*</div>
+                                  <div className="mt-2">| 列1 | 列2 |</div>
+                                  <div>|-----|-----|</div>
+                                  <div>| 値1 | 値2 |</div>
+                                  <div className="mt-2">`コード`</div>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <FormDescription>
+                        マークダウン形式で記載できます（見出し、リスト、表、コードブロック等に対応）
+                      </FormDescription>
+                      <Tabs value={milestonePreviewMode} onValueChange={(value) => setMilestonePreviewMode(value as "edit" | "preview")}>
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="edit">編集</TabsTrigger>
+                          <TabsTrigger value="preview">プレビュー</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="edit" className="mt-2">
+                          <FormControl>
+                            <Textarea
+                              placeholder="マイルストーンを入力してください&#10;例:&#10;## フェーズ1&#10;- [ ] 要件定義&#10;- [ ] 設計&#10;&#10;## フェーズ2&#10;- [ ] 実装&#10;- [ ] テスト"
+                              className="h-40 font-mono"
+                              {...field}
+                              value={field.value || ""}
+                            />
+                          </FormControl>
+                        </TabsContent>
+                        <TabsContent value="preview" className="mt-2">
+                          <div className="border rounded-md p-3 h-40 overflow-y-auto bg-slate-50 dark:bg-slate-800">
+                            {field.value ? (
+                              <div className="prose prose-sm max-w-none dark:prose-invert">
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]} 
+                                  rehypePlugins={[rehypeRaw]}
+                                >
+                                  {field.value}
+                                </ReactMarkdown>
+                              </div>
+                            ) : (
+                              <div className="text-muted-foreground text-sm">
+                                プレビューを表示するには編集タブでマイルストーンを入力してください
+                              </div>
+                            )}
+                          </div>
+                        </TabsContent>
+                      </Tabs>
                       <FormMessage />
                     </FormItem>
                   )}
