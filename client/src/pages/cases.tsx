@@ -707,14 +707,6 @@ export default function CaseList() {
                                       </div>
                                     )}
                                   </div>
-                                  {case_.milestone && (
-                                    <div className="mt-2 text-sm">
-                                      <span className="font-medium">マイルストーン: </span>
-                                      <div className="line-clamp-3 overflow-hidden">
-                                        {case_.milestone}
-                                      </div>
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                             </CardContent>
@@ -794,14 +786,6 @@ export default function CaseList() {
                                 </div>
                               )}
                             </div>
-                            {case_.milestone && (
-                              <div className="mt-2 text-sm">
-                                <span className="font-medium">マイルストーン: </span>
-                                <div className="line-clamp-3 overflow-hidden">
-                                  {case_.milestone}
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </div>
                       </CardContent>
