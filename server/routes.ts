@@ -695,6 +695,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // 月次レポート生成のためのインプットデータを取得するAPIエンドポイント
   app.get("/api/monthly-summary-input/:projectName", async (req, res) => {
+    // リクエスト開始時間を記録
+    const startTime = Date.now();
+    // レスポンスタイムアウト設定（30秒）
+    const timeout = setTimeout(() => {
+      if (!res.headersSent) {
+        console.error(`[ERROR] Timeout for monthly-summary-input request after 30 seconds`);
+        res.status(408).json({ 
+          message: "リクエストがタイムアウトしました。データ量が多すぎる可能性があります。" 
+        });
+      }
+    }, 30000);
+    
     try {
       const { projectName } = req.params;
       const {
@@ -1000,6 +1012,31 @@ ${report.nextWeekPlan
 Markdown形式で作成し、適切な見出しを使って整理してください。
 `;
 
+      // プロンプトサイズのチェック（1MB制限）
+      const promptSizeBytes = Buffer.byteLength(prompt, 'utf8');
+      const maxSizeBytes = 1024 * 1024; // 1MB
+      
+      console.log(`[DEBUG] Generated prompt size: ${promptSizeBytes} bytes (${(promptSizeBytes / 1024).toFixed(2)} KB)`);
+      
+      if (promptSizeBytes > maxSizeBytes) {
+        console.warn(`[WARNING] Prompt size (${promptSizeBytes} bytes) exceeds limit (${maxSizeBytes} bytes)`);
+        // データ量が多すぎる場合は警告を含めてレスポンス
+        prompt += `\n\n⚠️ **注意**: データ量が大きいため、一部のレポートが省略されている可能性があります。`;
+      }
+
+      // 処理時間をログ出力
+      const processingTime = Date.now() - startTime;
+      console.log(`[DEBUG] Monthly summary input processing completed in ${processingTime}ms`);
+
+      // タイムアウトをクリア
+      clearTimeout(timeout);
+
+      // レスポンス生成前の最終チェック
+      if (res.headersSent) {
+        console.error("[ERROR] Headers already sent, cannot send response");
+        return;
+      }
+
       res.json({
         projectName: displayProjectName,
         period: {
@@ -1009,12 +1046,22 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         prompt: prompt,
         reportCount: periodReports.length,
         caseCount: selectedCases.length,
+        processingTime: processingTime,
+        promptSize: promptSizeBytes
       });
     } catch (error) {
+      // タイムアウトをクリア
+      clearTimeout(timeout);
+      
+      const processingTime = Date.now() - startTime;
       console.error("Error retrieving monthly summary input data:", error);
-      res
-        .status(500)
-        .json({ message: "月次報告書の入力データの取得に失敗しました" });
+      console.error(`[ERROR] Processing failed after ${processingTime}ms`);
+      
+      if (!res.headersSent) {
+        res
+          .status(500)
+          .json({ message: "月次報告書の入力データの取得に失敗しました" });
+      }
     }
   });
 

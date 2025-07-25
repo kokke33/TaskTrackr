@@ -68,6 +68,121 @@ type MonthlySummaryResponse = {
   caseCount: number;
 };
 
+// ユーザージェスチャー保持型クリップボード処理関数
+const preserveUserGestureForClipboard = (): ((text: string) => Promise<void>) | null => {
+  if (!navigator.clipboard) {
+    console.warn("[CLIPBOARD] Clipboard API not available for gesture preservation");
+    return null;
+  }
+
+  if (!window.isSecureContext) {
+    console.warn("[CLIPBOARD] Not in secure context, cannot preserve gesture");
+    return null;
+  }
+
+  // 即座に空のPromiseベースの処理でユーザージェスチャーを保持
+  let gesturePromise: Promise<void>;
+  
+  try {
+    // 空文字でクリップボードを初期化してジェスチャーを保持
+    gesturePromise = navigator.clipboard.writeText("").then(() => {
+      console.log("[CLIPBOARD] User gesture preserved successfully");
+    });
+    
+    // 実際のコピー処理を返す関数を作成
+    return (text: string): Promise<void> => {
+      return gesturePromise.then(() => {
+        return navigator.clipboard.writeText(text);
+      }).then(() => {
+        console.log("[CLIPBOARD] Preserved gesture copy successful");
+      }).catch((error) => {
+        console.error("[CLIPBOARD] Preserved gesture copy failed:", error);
+        throw error;
+      });
+    };
+  } catch (error) {
+    console.error("[CLIPBOARD] Failed to preserve user gesture:", error);
+    return null;
+  }
+};
+
+// 改善されたフォールバック用のクリップボードコピー関数
+const improvedFallbackCopyToClipboard = (text: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    // 複数のDOM要素タイプで試行
+    const elements = [
+      () => {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        return textArea;
+      },
+      () => {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = text;
+        return input;
+      }
+    ];
+
+    let success = false;
+    
+    for (const createElement of elements) {
+      if (success) break;
+      
+      const element = createElement();
+      element.style.position = 'fixed';
+      element.style.left = '-999999px';
+      element.style.top = '-999999px';
+      element.style.opacity = '0';
+      element.style.pointerEvents = 'none';
+      
+      try {
+        document.body.appendChild(element);
+        
+        // フォーカスとセレクションを確実に行う
+        element.focus();
+        element.select();
+        
+        // 一部のブラウザではsetSelectionRangeが必要
+        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+          element.setSelectionRange(0, element.value.length);
+        }
+        
+        // 短い遅延後にexecCommandを実行
+        setTimeout(() => {
+          try {
+            const result = document.execCommand('copy');
+            if (result) {
+              console.log("[CLIPBOARD] Improved fallback copy successful with", element.tagName);
+              success = true;
+              resolve();
+            }
+          } catch (error) {
+            console.error("[CLIPBOARD] execCommand failed:", error);
+          } finally {
+            document.body.removeChild(element);
+          }
+        }, 10);
+        
+      } catch (error) {
+        console.error("[CLIPBOARD] Element creation/manipulation failed:", error);
+        if (document.body.contains(element)) {
+          document.body.removeChild(element);
+        }
+      }
+    }
+    
+    // すべての試行が失敗した場合
+    if (!success) {
+      setTimeout(() => {
+        if (!success) {
+          reject(new Error("All fallback methods failed"));
+        }
+      }, 100);
+    }
+  });
+};
+
 export default function CaseList() {
   const { toast } = useToast();
   const [showDeleted, setShowDeleted] = useState(false);
@@ -85,6 +200,62 @@ export default function CaseList() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [milestoneFilter, setMilestoneFilter] = useState<string>("");
+  
+  // 手動コピー用の状態
+  const [manualCopyDialogOpen, setManualCopyDialogOpen] = useState(false);
+  const [manualCopyData, setManualCopyData] = useState<string>("");
+  const [preservedClipboardOperation, setPreservedClipboardOperation] = useState<((text: string) => Promise<void>) | null>(null);
+
+  // フォールバック処理を試行する関数
+  const tryFallbackCopy = (text: string, promptSize: number) => {
+    console.log("[CLIPBOARD] Trying fallback copy methods");
+    improvedFallbackCopyToClipboard(text)
+      .then(() => {
+        toast({
+          title: "コピー完了（フォールバック）",
+          description: `月次報告書の生成用インプットデータをコピーしました (${(promptSize / 1024).toFixed(2)} KB)`,
+        });
+      })
+      .catch((error) => {
+        console.error("[CLIPBOARD] All fallback methods failed:", error);
+        // 手動コピーダイアログを表示
+        setManualCopyData(text);
+        setManualCopyDialogOpen(true);
+        toast({
+          title: "手動コピーが必要",
+          description: "自動コピーに失敗しました。表示されたダイアログからデータをコピーしてください。",
+          variant: "destructive",
+        });
+      });
+  };
+
+  // 標準的なクリップボードコピーを試行する関数
+  const tryStandardClipboardCopy = (text: string, promptSize: number) => {
+    if (!navigator.clipboard) {
+      console.error("[CLIPBOARD] Clipboard API not available");
+      tryFallbackCopy(text, promptSize);
+      return;
+    }
+
+    if (!window.isSecureContext) {
+      console.warn("[CLIPBOARD] Not in secure context, using fallback");
+      tryFallbackCopy(text, promptSize);
+      return;
+    }
+
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        console.log(`[CLIPBOARD] Successfully copied ${promptSize} bytes`);
+        toast({
+          title: "コピー完了",
+          description: `月次報告書の生成用インプットデータをコピーしました (${(promptSize / 1024).toFixed(2)} KB)`,
+        });
+      })
+      .catch((error) => {
+        console.error("[CLIPBOARD] Standard clipboard API failed:", error);
+        tryFallbackCopy(text, promptSize);
+      });
+  };
   
   const { data: cases, isLoading, refetch } = useQuery<Case[]>({
     queryKey: ["/api/cases"],
@@ -150,8 +321,19 @@ export default function CaseList() {
       }
     },
     onSuccess: (data) => {
-      // データが空でないか確認
-      if (!data.prompt || data.prompt.trim() === "") {
+      // データの整合性を詳細チェック
+      if (!data || typeof data !== 'object') {
+        console.error("[CLIPBOARD] Invalid data structure:", data);
+        toast({
+          title: "データエラー",
+          description: "サーバーから無効なデータが返されました",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!data.prompt || typeof data.prompt !== 'string' || data.prompt.trim() === "") {
+        console.error("[CLIPBOARD] Empty or invalid prompt:", data.prompt);
         toast({
           title: "データなし",
           description: "指定された期間に週次報告のある案件が見つかりませんでした",
@@ -159,22 +341,38 @@ export default function CaseList() {
         });
         return;
       }
+
+      // データサイズの確認とログ出力
+      const promptSize = new Blob([data.prompt]).size;
+      console.log(`[CLIPBOARD] Attempting to copy ${promptSize} bytes (${(promptSize / 1024).toFixed(2)} KB)`);
       
-      navigator.clipboard
-        .writeText(data.prompt)
-        .then(() => {
-          toast({
-            title: "コピー完了",
-            description: "月次報告書の生成用インプットデータをコピーしました",
+      // プロンプトサイズが大きい場合の警告
+      if (promptSize > 500 * 1024) { // 500KB以上
+        console.warn(`[CLIPBOARD] Large data size: ${promptSize} bytes`);
+      }
+
+      // 保持されたユーザージェスチャーを使用してコピーを試行
+      if (preservedClipboardOperation) {
+        console.log("[CLIPBOARD] Using preserved user gesture");
+        preservedClipboardOperation(data.prompt)
+          .then(() => {
+            console.log(`[CLIPBOARD] Successfully copied ${promptSize} bytes with preserved gesture`);
+            toast({
+              title: "コピー完了",
+              description: `月次報告書の生成用インプットデータをコピーしました (${(promptSize / 1024).toFixed(2)} KB)`,
+            });
+            setPreservedClipboardOperation(null); // クリーンアップ
+          })
+          .catch((error) => {
+            console.error("[CLIPBOARD] Preserved gesture copy failed:", error);
+            // フォールバック処理を実行
+            tryFallbackCopy(data.prompt, promptSize);
           });
-        })
-        .catch(() => {
-          toast({
-            title: "エラー",
-            description: "クリップボードへのコピーに失敗しました",
-            variant: "destructive",
-          });
-        });
+      } else {
+        // 通常のクリップボード処理（ユーザージェスチャーが保持されていない場合）
+        console.log("[CLIPBOARD] No preserved gesture, trying standard copy");
+        tryStandardClipboardCopy(data.prompt, promptSize);
+      }
     },
     onError: (error: Error) => {
       console.error("Error retrieving monthly summary input data:", error);
@@ -936,7 +1134,20 @@ export default function CaseList() {
             <div className="flex flex-row flex-wrap justify-between items-center gap-2 mt-4">
               <Button
                 variant="outline"
-                onClick={() => monthlySummaryInputMutation.mutate()}
+                onClick={() => {
+                  // ユーザージェスチャーを保持
+                  const preservedOperation = preserveUserGestureForClipboard();
+                  if (preservedOperation) {
+                    console.log("[CLIPBOARD] User gesture preserved for clipboard operation");
+                    setPreservedClipboardOperation(() => preservedOperation);
+                  } else {
+                    console.warn("[CLIPBOARD] Failed to preserve user gesture");
+                    setPreservedClipboardOperation(null);
+                  }
+                  
+                  // APIリクエストを開始
+                  monthlySummaryInputMutation.mutate();
+                }}
                 disabled={!startDate || !endDate || monthlySummaryInputMutation.isPending}
                 className="flex items-center gap-2"
               >
@@ -1000,6 +1211,116 @@ export default function CaseList() {
             <div className="prose prose-sm max-w-none dark:prose-invert">
               <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{monthlySummary}</ReactMarkdown>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* 手動コピー用ダイアログ */}
+        <Dialog open={manualCopyDialogOpen} onOpenChange={setManualCopyDialogOpen}>
+          <DialogContent className="max-w-[800px] max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Copy className="h-5 w-5" />
+                手動コピー
+              </DialogTitle>
+              <DialogDescription>
+                自動コピーに失敗しました。以下のテキストエリアからデータを手動でコピーしてください。
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  データサイズ: {manualCopyData ? (new Blob([manualCopyData]).size / 1024).toFixed(2) : 0} KB
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // テキストエリアを全選択
+                    const textArea = document.getElementById('manual-copy-textarea') as HTMLTextAreaElement;
+                    if (textArea) {
+                      textArea.select();
+                      textArea.setSelectionRange(0, textArea.value.length);
+                      // 最後にもう一度コピーを試行
+                      navigator.clipboard?.writeText(manualCopyData)
+                        .then(() => {
+                          toast({
+                            title: "コピー完了",
+                            description: "データがクリップボードにコピーされました",
+                          });
+                          setManualCopyDialogOpen(false);
+                        })
+                        .catch(() => {
+                          toast({
+                            title: "コピー指示",
+                            description: "Ctrl+C (Windows/Linux) または Cmd+C (Mac) でコピーしてください",
+                          });
+                        });
+                    }
+                  }}
+                  className="flex items-center gap-1"
+                >
+                  <Copy className="h-4 w-4" />
+                  全選択してコピー
+                </Button>
+              </div>
+              
+              <ScrollArea className="h-[400px] w-full rounded-md border">
+                <textarea
+                  id="manual-copy-textarea"
+                  className="w-full h-[400px] p-4 text-sm font-mono resize-none border-none outline-none bg-transparent"
+                  value={manualCopyData}
+                  readOnly
+                  onClick={(e) => {
+                    // クリック時に全選択
+                    const target = e.target as HTMLTextAreaElement;
+                    target.select();
+                    target.setSelectionRange(0, target.value.length);
+                  }}
+                />
+              </ScrollArea>
+              
+              <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md">
+                <strong>コピー方法:</strong>
+                <br />
+                1. 上記のテキストエリアをクリックして全選択
+                <br />
+                2. Ctrl+C (Windows/Linux) または Cmd+C (Mac) でコピー
+                <br />
+                3. または「全選択してコピー」ボタンをクリック
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setManualCopyDialogOpen(false)}>
+                閉じる
+              </Button>
+              <Button 
+                onClick={() => {
+                  // ダウンロード機能
+                  const blob = new Blob([manualCopyData], { type: 'text/plain;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `monthly-report-input-${new Date().toISOString().split('T')[0]}.txt`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  
+                  toast({
+                    title: "ダウンロード完了",
+                    description: "データがテキストファイルとしてダウンロードされました",
+                  });
+                }}
+                className="flex items-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                ファイルをダウンロード
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
