@@ -74,7 +74,7 @@ export default function RecentCases() {
   };
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6 max-w-5xl">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">最近更新された案件一覧 (TOP20)</h1>
         <div className="flex gap-2">

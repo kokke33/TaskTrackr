@@ -65,15 +65,12 @@ export default function WeeklyReportDetail() {
     mutationFn: async () => {
       if (!report || !id) throw new Error('レポートデータが不足しています');
       
-      const response = await apiRequest(`/api/weekly-reports/${id}/regenerate-admin-email`, {
+      // apiRequestは既にJSONデータを返すので、直接データを取得
+      const data = await apiRequest(`/api/weekly-reports/${id}/regenerate-admin-email`, {
         method: 'POST'
       });
       
-      if (!response.ok) {
-        throw new Error('メール文章の再生成に失敗しました');
-      }
-      
-      return response.json();
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/weekly-reports/${id}`] });
@@ -140,16 +137,13 @@ export default function WeeklyReportDetail() {
   // 議事録更新のミューテーション
   const updateMeetingMutation = useMutation({
     mutationFn: async ({ meetingId, title, content }: { meetingId: number, title: string, content: string }) => {
-      const response = await apiRequest(`/api/weekly-reports/meetings/${meetingId}`, {
+      // apiRequestは既にJSONデータを返すので、直接データを取得
+      const data = await apiRequest(`/api/weekly-reports/meetings/${meetingId}`, {
         method: 'PUT',
         data: { title, content }
       });
       
-      if (!response.ok) {
-        throw new Error('議事録の更新に失敗しました');
-      }
-      
-      return response.json();
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/weekly-reports/${id}/meetings`] });
@@ -170,15 +164,12 @@ export default function WeeklyReportDetail() {
   // 週次報告削除のミューテーション
   const deleteReportMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest(`/api/weekly-reports/${id}`, {
+      // apiRequestは既にJSONデータを返すので、直接データを取得
+      const data = await apiRequest(`/api/weekly-reports/${id}`, {
         method: 'DELETE'
       });
       
-      if (!response.ok) {
-        throw new Error('週次報告の削除に失敗しました');
-      }
-      
-      return response.json();
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/weekly-reports'] });
@@ -200,13 +191,45 @@ export default function WeeklyReportDetail() {
   // 管理者編集開始のミューテーション
   const adminEditStartMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest(`/api/weekly-reports/${id}/admin-edit-start`, {
-        method: 'POST'
+      console.log(`[ADMIN EDIT] 管理者編集開始を試行中... ID: ${id}`);
+      console.log(`[ADMIN EDIT] 現在のユーザー情報:`, {
+        id: user?.id,
+        username: user?.username,
+        isAdmin: user?.isAdmin,
+        isAuthenticated: !!user
       });
-      if (!response.ok) {
-        throw new Error('管理者編集の開始に失敗しました');
+
+      try {
+        // apiRequestは既にJSONデータを返すので、直接データを取得
+        const data = await apiRequest(`/api/weekly-reports/${id}/admin-edit-start`, {
+          method: 'POST'
+        });
+        
+        console.log(`[ADMIN EDIT] APIレスポンスデータ受信:`, data);
+        
+        // データが正常に取得できた場合はそのまま返す
+        if (data && typeof data === 'object') {
+          return data;
+        } else {
+          throw new Error('管理者編集の開始に失敗しました: 無効なレスポンスデータ');
+        }
+        
+      } catch (error) {
+        console.error(`[ADMIN EDIT] エラー発生:`, error);
+        
+        // apiRequestから投げられたエラーメッセージをより詳細に処理
+        if (error.message.includes('403')) {
+          throw new Error('管理者編集の開始に失敗しました (権限エラー)');
+        } else if (error.message.includes('401')) {
+          throw new Error('管理者編集の開始に失敗しました (認証エラー)');
+        } else if (error.message.includes('404')) {
+          throw new Error('管理者編集の開始に失敗しました (週次報告が見つかりません)');
+        } else if (error.message.includes('500')) {
+          throw new Error('管理者編集の開始に失敗しました (サーバーエラー)');
+        } else {
+          throw new Error(`管理者編集の開始に失敗しました: ${error.message}`);
+        }
       }
-      return response.json();
     },
     onSuccess: (data) => {
       // 元データをReact stateに保存
@@ -221,9 +244,29 @@ export default function WeeklyReportDetail() {
       });
     },
     onError: (error: Error) => {
+      console.error(`[ADMIN EDIT] 管理者編集開始エラー:`, error);
+      
+      let errorMessage = error.message;
+      let errorTitle = "管理者編集開始エラー";
+      
+      // HTTPステータスコードに基づく詳細なエラーメッセージ
+      if (error.message.includes('403')) {
+        errorTitle = "権限エラー";
+        errorMessage = "この操作には管理者権限が必要です。管理者でログインしているか確認してください。";
+      } else if (error.message.includes('401')) {
+        errorTitle = "認証エラー";
+        errorMessage = "セッションが期限切れです。再度ログインしてください。";
+      } else if (error.message.includes('404')) {
+        errorTitle = "データエラー";
+        errorMessage = "指定された週次報告が見つかりません。";
+      } else if (error.message.includes('500')) {
+        errorTitle = "サーバーエラー";
+        errorMessage = "サーバー内部でエラーが発生しました。しばらく時間をおいて再試行してください。";
+      }
+      
       toast({
-        title: "エラー",
-        description: error.message,
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     }

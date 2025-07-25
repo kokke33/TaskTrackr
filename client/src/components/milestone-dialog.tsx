@@ -29,63 +29,64 @@ export function MilestoneDialog({
   if (!milestone) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
+        <DialogContent aria-describedby="milestone-dialog-description">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
               マイルストーン情報
             </DialogTitle>
-            <DialogDescription>
-              <div className="space-y-3 mt-4">
-                <div>
-                  <Badge variant="outline" className="mb-2">
-                    {projectName} - {caseName}
-                  </Badge>
-                </div>
-                <p className="text-muted-foreground">
-                  この案件にはマイルストーン情報が設定されていません。
-                </p>
-              </div>
+            <DialogDescription id="milestone-dialog-description">
+              この案件のマイルストーン情報を表示しています。
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-3 mt-4">
+            <div>
+              <Badge variant="outline" className="mb-2">
+                {projectName} - {caseName}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">
+              この案件にはマイルストーン情報が設定されていません。
+            </p>
+          </div>
         </DialogContent>
       </Dialog>
     );
   }
 
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl" aria-describedby="milestone-dialog-description">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
             マイルストーン情報
           </DialogTitle>
-          <DialogDescription>
-            <div className="space-y-4 mt-4">
-              <div>
-                <Badge variant="outline" className="mb-3">
-                  {projectName} - {caseName}
-                </Badge>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 border">
-                <div className="flex items-center gap-2 mb-3">
-                  <Calendar className="h-4 w-4 text-blue-600" />
-                  <span className="font-medium text-sm">マイルストーン詳細</span>
-                </div>
-                <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm]} 
-                    rehypePlugins={[rehypeRaw]}
-                  >
-                    {milestone}
-                  </ReactMarkdown>
-                </div>
-              </div>
-            </div>
+          <DialogDescription id="milestone-dialog-description">
+            この案件のマイルストーン詳細情報を表示しています。
           </DialogDescription>
         </DialogHeader>
+        <div className="space-y-4 mt-4">
+          <div>
+            <Badge variant="outline" className="mb-3">
+              {projectName} - {caseName}
+            </Badge>
+          </div>
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 border">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="h-4 w-4 text-blue-600" />
+              <span className="font-medium text-sm">マイルストーン詳細</span>
+            </div>
+            <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm]} 
+                rehypePlugins={[rehypeRaw]}
+              >
+                {milestone}
+              </ReactMarkdown>
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

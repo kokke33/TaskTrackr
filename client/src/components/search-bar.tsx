@@ -17,7 +17,7 @@ import { useCustomEvent } from "../hooks/use-custom-event";
 
 type SearchSuggestion = {
   id: number;
-  type: 'project' | 'case' | 'report';
+  type: 'project' | 'case' | 'report' | 'meeting';
   title: string;
   description?: string;
   link: string;
@@ -180,6 +180,7 @@ export function SearchBar() {
                     {item.type === 'project' && <span className="mr-2 text-blue-500">📂</span>}
                     {item.type === 'case' && <span className="mr-2 text-green-500">📋</span>}
                     {item.type === 'report' && <span className="mr-2 text-yellow-500">📝</span>}
+                    {item.type === 'meeting' && <span className="mr-2 text-purple-500">📅</span>}
                     <div>
                       <div className="font-medium">{item.title}</div>
                       {item.description && (

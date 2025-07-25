@@ -1342,22 +1342,56 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     isAuthenticated,
     isAdmin,
     async (req, res) => {
+      const id = parseInt(req.params.id);
+      
+      console.log(`[ADMIN EDIT START] 管理者編集開始リクエスト`, {
+        reportId: id,
+        userId: req.user?.id,
+        username: req.user?.username,
+        isAdmin: req.user?.isAdmin,
+        sessionID: req.sessionID,
+        timestamp: new Date().toISOString()
+      });
+
       try {
-        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+          console.error(`[ADMIN EDIT START] 無効なレポートID: ${req.params.id}`);
+          res.status(400).json({ message: "無効なレポートIDです" });
+          return;
+        }
+
+        console.log(`[ADMIN EDIT START] 週次報告を取得中... ID: ${id}`);
         const report = await storage.getWeeklyReport(id);
 
         if (!report) {
+          console.error(`[ADMIN EDIT START] 週次報告が見つかりません: ID ${id}`);
           res.status(404).json({ message: "週次報告が見つかりません" });
           return;
         }
 
+        console.log(`[ADMIN EDIT START] 週次報告取得成功`, {
+          reportId: report.id,
+          caseId: report.caseId,
+          reporterName: report.reporterName,
+          reportPeriod: `${report.reportPeriodStart} - ${report.reportPeriodEnd}`
+        });
+
         // 管理者編集モード用に元データを返却
-        res.json({
+        const responseData = {
           report,
           message: "管理者編集モードを開始しました",
-        });
+        };
+
+        console.log(`[ADMIN EDIT START] 成功レスポンス送信: ID ${id}`);
+        res.json(responseData);
+        
       } catch (error) {
-        console.error("Error starting admin edit:", error);
+        console.error(`[ADMIN EDIT START] エラー発生:`, {
+          reportId: id,
+          error: error.message,
+          stack: error.stack,
+          timestamp: new Date().toISOString()
+        });
         res.status(500).json({ message: "管理者編集の開始に失敗しました" });
       }
     },

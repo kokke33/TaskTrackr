@@ -79,7 +79,7 @@ export default function RecentWeeklyReportsList() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-4xl">
+    <div className="container mx-auto px-4 py-6 max-w-5xl">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">最近の週次報告一覧</h1>
         <div className="flex gap-2">

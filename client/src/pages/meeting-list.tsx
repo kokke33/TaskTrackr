@@ -50,6 +50,7 @@ export default function MeetingList() {
         const url = new URL(window.location.href);
         const projectNameParam = url.searchParams.get('projectName');
         const caseIdParam = url.searchParams.get('caseId');
+        const typeParam = url.searchParams.get('type');
 
         if (projectNameParam) {
           setSelectedProject(decodeURIComponent(projectNameParam));
@@ -60,6 +61,10 @@ export default function MeetingList() {
           if (!isNaN(caseId)) {
             setSelectedCase(caseId);
           }
+        }
+
+        if (typeParam && (typeParam === 'manager' || typeParam === 'weeklyReport')) {
+          setSelectedMeetingType(typeParam);
         }
       } catch (err) {
         console.error('Error parsing URL parameters:', err);
@@ -236,7 +241,7 @@ export default function MeetingList() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="container mx-auto px-4 py-8 max-w-5xl">
           <p className="text-center">読み込み中...</p>
         </div>
       </div>
@@ -247,7 +252,7 @@ export default function MeetingList() {
     <div className="min-h-screen bg-background">
       <ThemeToggle />
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
         <header className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-3xl font-bold text-primary">

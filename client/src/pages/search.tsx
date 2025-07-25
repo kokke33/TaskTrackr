@@ -8,14 +8,14 @@ import { Link } from "wouter";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Home, Search, FileText, Briefcase, FolderOpen, Loader2 } from "lucide-react";
+import { Home, Search, FileText, Briefcase, FolderOpen, Loader2, Calendar } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useCustomEvent } from "../hooks/use-custom-event";
 
 // 検索結果の型定義
 type SearchResult = {
   id: number;
-  type: 'project' | 'case' | 'report';
+  type: 'project' | 'case' | 'report' | 'meeting';
   title: string;
   description: string;
   content?: string;
@@ -117,6 +117,7 @@ export default function SearchPage() {
     project: searchResults?.results.filter(r => r.type === 'project').length || 0,
     case: searchResults?.results.filter(r => r.type === 'case').length || 0,
     report: searchResults?.results.filter(r => r.type === 'report').length || 0,
+    meeting: searchResults?.results.filter(r => r.type === 'meeting').length || 0,
   };
 
   // 一致部分をハイライトするヘルパー関数
@@ -154,7 +155,7 @@ export default function SearchPage() {
     <div className="min-h-screen bg-background">
       <ThemeToggle />
 
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-primary mb-4">検索結果</h1>
           
@@ -215,6 +216,9 @@ export default function SearchPage() {
               <TabsTrigger value="report">
                 週次報告 ({resultCounts.report})
               </TabsTrigger>
+              <TabsTrigger value="meeting">
+                マネージャ定例 ({resultCounts.meeting})
+              </TabsTrigger>
             </TabsList>
 
             {/* 検索結果 */}
@@ -252,6 +256,9 @@ export default function SearchPage() {
                               {result.type === "report" && (
                                 <FileText className="h-5 w-5 text-yellow-500" />
                               )}
+                              {result.type === "meeting" && (
+                                <Calendar className="h-5 w-5 text-purple-500" />
+                              )}
                             </div>
                             <div className="flex-1">
                               <Link href={result.link} className="block">
@@ -268,6 +275,12 @@ export default function SearchPage() {
                                 {result.type === "report" && (
                                   <>
                                     週次報告 / {result.projectName} / {result.caseName}{" "}
+                                    {result.date && `(${result.date})`}
+                                  </>
+                                )}
+                                {result.type === "meeting" && (
+                                  <>
+                                    マネージャ定例 / {result.projectName}{" "}
                                     {result.date && `(${result.date})`}
                                   </>
                                 )}

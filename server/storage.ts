@@ -44,7 +44,7 @@ async function withRetry<T>(
 // 検索用の型定義
 type SearchResult = {
   id: number;
-  type: 'project' | 'case' | 'report';
+  type: 'project' | 'case' | 'report' | 'meeting';
   title: string;
   description: string;
   content?: string;
@@ -61,7 +61,7 @@ type SearchResult = {
 
 type SearchSuggestion = {
   id: number;
-  type: 'project' | 'case' | 'report';
+  type: 'project' | 'case' | 'report' | 'meeting';
   title: string;
   description?: string;
   link: string;
@@ -206,6 +206,12 @@ export class DatabaseStorage implements IStorage {
       results.push(...reportResults);
     }
 
+    // マネージャ定例議事録の検索
+    if (!type || type === 'meeting') {
+      const meetingResults = await this.searchManagerMeetings(keywords);
+      results.push(...meetingResults);
+    }
+
     // 結果を更新日時（作成日、更新日、レポート期間終了日など）の降順でソート
     results.sort((a, b) => {
       // プロジェクトと案件はcreatedAt/updatedAtの比較
@@ -222,11 +228,19 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // レポートはプロジェクトや案件よりも新しい（上位に表示）
-      if (a.type === 'report' && b.type !== 'report') {
+      // meetingの場合は、dateプロパティ（meetingDateの日付文字列）を比較
+      if (a.type === 'meeting' && b.type === 'meeting') {
+        if (a.date && b.date) {
+          // 日付文字列を日付オブジェクトに変換して比較（降順）
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
+      }
+
+      // レポートとマネージャ定例はプロジェクトや案件よりも新しい（上位に表示）
+      if ((a.type === 'report' || a.type === 'meeting') && (b.type !== 'report' && b.type !== 'meeting')) {
         return -1;
       }
-      if (a.type !== 'report' && b.type === 'report') {
+      if ((a.type !== 'report' && a.type !== 'meeting') && (b.type === 'report' || b.type === 'meeting')) {
         return 1;
       }
 
@@ -269,14 +283,18 @@ export class DatabaseStorage implements IStorage {
     const reportSuggestions = await this.getReportSuggestions(keywords, limit);
     suggestions.push(...reportSuggestions);
 
+    // マネージャ定例議事録の候補を取得
+    const meetingSuggestions = await this.getManagerMeetingSuggestions(keywords, limit);
+    suggestions.push(...meetingSuggestions);
+
     // 最大10件に制限
     // 検索候補も更新日が新しい順（週次報告の場合はレポート期間終了日が新しい順）でソート
     suggestions.sort((a, b) => {
-      // レポートはより新しい項目として常に優先
-      if (a.type === 'report' && b.type !== 'report') {
+      // レポートとマネージャ定例はより新しい項目として常に優先
+      if ((a.type === 'report' || a.type === 'meeting') && (b.type !== 'report' && b.type !== 'meeting')) {
         return -1;
       }
-      if (a.type !== 'report' && b.type === 'report') {
+      if ((a.type !== 'report' && a.type !== 'meeting') && (b.type === 'report' || b.type === 'meeting')) {
         return 1;
       }
 
@@ -542,6 +560,78 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
+  // マネージャ定例議事録を検索
+  private async searchManagerMeetings(keywords: string[]): Promise<SearchResult[]> {
+    const results: SearchResult[] = [];
+    // 複数キーワードを含むSQL検索条件を構築
+    const conditions = keywords.map(keyword => {
+      const likePattern = `%${keyword}%`;
+      return or(
+        sql`lower(${managerMeetings.title}) like lower(${likePattern})`,
+        sql`lower(${managerMeetings.content}) like lower(${likePattern})`,
+        sql`lower(${managerMeetings.yearMonth}) like lower(${likePattern})`
+      );
+    });
+
+    // マネージャ定例議事録を検索（最大20件）
+    const foundMeetings = await db
+      .select({
+        id: managerMeetings.id,
+        title: managerMeetings.title,
+        content: managerMeetings.content,
+        meetingDate: managerMeetings.meetingDate,
+        yearMonth: managerMeetings.yearMonth,
+        projectName: projects.name
+      })
+      .from(managerMeetings)
+      .innerJoin(projects, eq(managerMeetings.projectId, projects.id))
+      .where(and(
+        eq(projects.isDeleted, false),
+        ...conditions
+      ))
+      .limit(20);
+
+    // 検索結果をフォーマット
+    for (const meeting of foundMeetings) {
+      const matchFields: {
+        field: string;
+        text: string;
+        highlight: [number, number][];
+      }[] = [];
+
+      // タイトルのマッチ
+      if (this.containsAnyKeyword(meeting.title, keywords)) {
+        matchFields.push({
+          field: 'title',
+          text: meeting.title,
+          highlight: this.getHighlightPositions(meeting.title, keywords)
+        });
+      }
+
+      // 内容のマッチ
+      if (meeting.content && this.containsAnyKeyword(meeting.content, keywords)) {
+        matchFields.push({
+          field: 'content',
+          text: this.truncateText(meeting.content, 200),
+          highlight: this.getHighlightPositions(this.truncateText(meeting.content, 200), keywords)
+        });
+      }
+
+      results.push({
+        id: meeting.id,
+        type: 'meeting',
+        title: meeting.title,
+        description: `マネージャ定例 / ${meeting.projectName} (${meeting.yearMonth})`,
+        projectName: meeting.projectName,
+        date: new Date(meeting.meetingDate).toLocaleDateString(),
+        match: matchFields,
+        link: `/meetings?type=manager&projectName=${encodeURIComponent(meeting.projectName)}`
+      });
+    }
+
+    return results;
+  }
+
   // プロジェクトの検索候補を取得
   private async getProjectSuggestions(keywords: string[], limit: number): Promise<SearchSuggestion[]> {
     const suggestions: SearchSuggestion[] = [];
@@ -659,6 +749,49 @@ export class DatabaseStorage implements IStorage {
         title: `${startDate} 〜 ${endDate} レポート`,
         description: `${report.projectName} / ${report.caseName}`,
         link: `/reports/${report.id}`
+      });
+    }
+
+    return suggestions;
+  }
+
+  // マネージャ定例議事録の検索候補を取得
+  private async getManagerMeetingSuggestions(keywords: string[], limit: number): Promise<SearchSuggestion[]> {
+    const suggestions: SearchSuggestion[] = [];
+    // 複数キーワードを含むSQL検索条件を構築
+    const conditions = keywords.map(keyword => {
+      const likePattern = `%${keyword}%`;
+      return or(
+        sql`lower(${managerMeetings.title}) like lower(${likePattern})`,
+        sql`lower(${managerMeetings.content}) like lower(${likePattern})`
+      );
+    });
+
+    // マネージャ定例議事録の候補を取得
+    const foundMeetings = await db
+      .select({
+        id: managerMeetings.id,
+        title: managerMeetings.title,
+        yearMonth: managerMeetings.yearMonth,
+        projectName: projects.name
+      })
+      .from(managerMeetings)
+      .innerJoin(projects, eq(managerMeetings.projectId, projects.id))
+      .where(and(
+        eq(projects.isDeleted, false),
+        ...conditions
+      ))
+      .orderBy(desc(managerMeetings.createdAt))
+      .limit(limit);
+
+    // 検索結果をフォーマット
+    for (const meeting of foundMeetings) {
+      suggestions.push({
+        id: meeting.id,
+        type: 'meeting',
+        title: meeting.title,
+        description: `${meeting.projectName} / ${meeting.yearMonth}`,
+        link: `/meetings?type=manager&projectName=${encodeURIComponent(meeting.projectName)}`
       });
     }
 
