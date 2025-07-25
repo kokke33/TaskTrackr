@@ -46,6 +46,17 @@ export function ReportHeader({
             <div className="flex items-center gap-2">
               <Button
                 type="button"
+                variant="outline"
+                size="sm"
+                onClick={onManualAutoSave}
+                disabled={isAutosaving || !formChanged}
+                className="flex items-center gap-1"
+              >
+                <Save className="h-4 w-4" />
+                {isAutosaving ? "保存中..." : "自動保存"}
+              </Button>
+              <Button
+                type="button"
                 onClick={onShowMilestoneDialog}
                 variant="outline"
                 size="sm"
@@ -87,24 +98,11 @@ export function ReportHeader({
               ) : isEditMode ? "週次報告編集" : "週次報告フォーム"}
             </h1>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={onManualAutoSave}
-                  disabled={isAutosaving || !formChanged}
-                  className="flex items-center gap-1"
-                >
-                  <Save className="h-4 w-4" />
-                  {isAutosaving ? "保存中..." : "自動保存"}
-                </Button>
-                {lastSavedTime && (
-                  <span className="text-xs text-muted-foreground">
-                    最終保存: {lastSavedTime}
-                  </span>
-                )}
-              </div>
+              {lastSavedTime && (
+                <span className="text-xs text-muted-foreground">
+                  最終保存: {lastSavedTime}
+                </span>
+              )}
               {selectedCaseId && (
                 <Button
                   type="button"
