@@ -96,6 +96,7 @@ export default function WeeklyReport() {
     handleManualAutoSave,
     handleImmediateSave,
     updateVersion,
+    resetConflictResolving,
   } = autoSaveHook;
 
   const meetingMinutesHook = useMeetingMinutesGenerator({ reportId, isEditMode });
@@ -182,36 +183,43 @@ export default function WeeklyReport() {
   const handleConflictResolve = async (resolvedData: any) => {
     console.log("🔧 Starting conflict resolution with resolved data:", resolvedData);
     
+    if (!conflictDialog) {
+      console.error("❌ No conflict dialog state found");
+      return;
+    }
+    
+    // ダイアログ情報を保存してからダイアログを閉じる
+    const serverVersion = conflictDialog.serverData?.version;
+    
     try {
       // 先にダイアログを閉じる
       setConflictDialog(null);
       
-      // 解決済みデータでフォームを更新
-      form.reset(resolvedData);
+      // 競合解決状態をリセット（自動保存を再開するため）
+      resetConflictResolving();
       
-      // サーバーのバージョン番号を更新
-      if (conflictDialog?.serverData?.version) {
-        console.log("📝 Updating version to:", conflictDialog.serverData.version);
-        updateVersion(conflictDialog.serverData.version);
+      // サーバーのバージョン番号を更新（これで次の自動保存は正しいバージョンを使用）
+      if (serverVersion) {
+        console.log("📝 Updating version to:", serverVersion);
+        updateVersion(serverVersion);
       }
       
-      // 少し待ってから保存（フォームの更新を確実にするため）
-      setTimeout(async () => {
-        try {
-          console.log("💾 Attempting immediate save after conflict resolution");
-          const success = await handleImmediateSave();
-          if (success) {
-            console.log("✅ Conflict resolution save successful");
-          } else {
-            console.log("❌ Conflict resolution save failed");
-          }
-        } catch (saveError) {
-          console.error("💥 Save error after conflict resolution:", saveError);
-        }
-      }, 100);
+      // 解決済みデータでフォームを更新（これによりformChangedがtrueになる）
+      form.reset(resolvedData);
+      
+      // 即座に手動保存を実行
+      console.log("💾 Executing immediate save after conflict resolution");
+      const success = await handleImmediateSave();
+      
+      if (success) {
+        console.log("✅ Conflict resolution completed successfully");
+      } else {
+        console.error("❌ Conflict resolution save failed");
+      }
       
     } catch (error) {
       console.error("💥 Failed to resolve conflict:", error);
+      resetConflictResolving();
     }
   };
 
