@@ -214,12 +214,6 @@ export function setupWebSocket(server: Server) {
     server,
     path: '/ws',
     verifyClient: async (info: any) => {
-      // デバッグ用: 開発環境では認証を一時的に無効化
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('[WebSocket] Development mode: allowing connection without authentication');
-        return true;
-      }
-      
       try {
         console.log('[WebSocket] Verifying client connection...');
         console.log('[WebSocket] Request headers:', {
@@ -269,7 +263,7 @@ export function setupWebSocket(server: Server) {
     try {
       let user: { userId: string; username: string } | null = null;
       
-      // セッションからユーザー情報を取得（開発・本番共通）
+      // セッションからユーザー情報を取得（厳密認証）
       console.log('[WebSocket] Attempting session authentication...');
       const cookies = parse(req.headers.cookie || '');
       const sessionId = cookies['tasktrackr_session'];
@@ -288,28 +282,19 @@ export function setupWebSocket(server: Server) {
         user = await getSessionUser(cleanSessionId);
         
         if (user) {
-          console.log('[WebSocket] Session authentication successful:', user);
+          console.log('[WebSocket] Session authentication successful for real user:', user);
         } else {
-          console.log('[WebSocket] Session authentication failed');
+          console.log('[WebSocket] Session authentication failed - no valid user found');
         }
       } else {
-        console.log('[WebSocket] No session ID found in cookies');
+        console.log('[WebSocket] No session ID found in cookies - authentication required');
       }
       
-      // セッション認証失敗時の処理
+      // セッション認証失敗時は接続拒否
       if (!user) {
-        if (process.env.NODE_ENV !== 'production') {
-          // 開発環境では仮ユーザーにフォールバック
-          const userCounter = Math.floor(Math.random() * 100) + 1;
-          const connectionId = Math.random().toString(36).substring(7);
-          user = { userId: connectionId, username: `ゲスト${userCounter}` };
-          console.log('[WebSocket] Development fallback user:', user);
-        } else {
-          // 本番環境では認証必須
-          console.log('WebSocket connection rejected: Invalid session');
-          ws.close(1008, 'Authentication failed');
-          return;
-        }
+        console.log('[WebSocket] Authentication failed - closing connection');
+        ws.close(1008, 'Authentication required');
+        return;
       }
       
       console.log(`WebSocket connection established for user: ${user.username} (ID: ${user.userId})`);
