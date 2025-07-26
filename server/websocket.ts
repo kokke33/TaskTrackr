@@ -1,7 +1,8 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { parse } from 'cookie';
-import { sessionStore } from './auth';
+import { sessionManager } from './session-manager';
+import session from 'express-session';
 
 // 編集セッション情報の型定義
 interface EditSession {
@@ -128,22 +129,114 @@ setInterval(() => {
   connectionManager.cleanupInactiveSessions();
 }, 60 * 1000); // 1分ごと
 
+// セッション検証のヘルパー関数
+async function getSessionUser(sessionId: string): Promise<{ userId: string; username: string } | null> {
+  return new Promise((resolve) => {
+    const store = sessionManager.getStore();
+    
+    if (!store.get) {
+      console.log('WebSocket: Session store does not support get method');
+      resolve(null);
+      return;
+    }
+    
+    store.get(sessionId, async (err: any, sessionData: any) => {
+      console.log('WebSocket: Session lookup result:', { 
+        err: err?.message, 
+        hasSessionData: !!sessionData,
+        sessionKeys: sessionData ? Object.keys(sessionData) : [],
+        passportData: sessionData?.passport 
+      });
+      
+      if (err) {
+        console.error('WebSocket: Session store error:', err);
+        resolve(null);
+        return;
+      }
+      
+      if (!sessionData) {
+        console.log('WebSocket: No session data found for session ID:', sessionId);
+        resolve(null);
+        return;
+      }
+      
+      if (!sessionData.passport || !sessionData.passport.user) {
+        console.log('WebSocket: No passport user data in session');
+        resolve(null);
+        return;
+      }
+      
+      const userIdFromSession = sessionData.passport.user;
+      console.log('WebSocket: Found user ID in session:', userIdFromSession);
+      
+      // PassportはuserIdのみを保存しているため、データベースから完全なユーザー情報を取得
+      try {
+        const { db } = require('./db');
+        const { users } = require('@shared/schema');
+        const { eq } = require('drizzle-orm');
+        
+        const [user] = await db
+          .select({
+            id: users.id,
+            username: users.username,
+          })
+          .from(users)
+          .where(eq(users.id, userIdFromSession));
+        
+        if (!user) {
+          console.log('WebSocket: User not found in database for ID:', userIdFromSession);
+          resolve(null);
+          return;
+        }
+        
+        console.log('WebSocket: Successfully retrieved user from database:', { id: user.id, username: user.username });
+        resolve({
+          userId: user.id.toString(),
+          username: user.username
+        });
+        
+      } catch (dbError) {
+        console.error('WebSocket: Database error retrieving user:', dbError);
+        resolve(null);
+      }
+    });
+  });
+}
+
 export function setupWebSocket(server: Server) {
   const wss = new WebSocketServer({ 
     server,
     path: '/ws',
-    verifyClient: async (info) => {
+    verifyClient: async (info: any) => {
       try {
         // Cookieからセッション情報を取得して認証確認
         const cookies = parse(info.req.headers.cookie || '');
-        const sessionId = cookies['connect.sid'];
+        const sessionId = cookies['tasktrackr_session'];
         
         if (!sessionId) {
+          console.log('WebSocket: No session ID found in cookies');
           return false;
         }
         
-        // セッション検証（簡易版）
-        return true; // 実際の実装では適切なセッション検証を行う
+        // セッション検証 - セッションIDの解析を改善
+        console.log('WebSocket: Raw session ID:', sessionId);
+        let cleanSessionId = sessionId;
+        
+        // Signedクッキーの形式 (s:sessionId.signature) の場合
+        if (sessionId.startsWith('s:')) {
+          cleanSessionId = sessionId.substring(2).split('.')[0];
+        }
+        
+        console.log('WebSocket: Clean session ID:', cleanSessionId);
+        const user = await getSessionUser(cleanSessionId);
+        
+        if (!user) {
+          console.log('WebSocket: Session validation failed');
+          return false;
+        }
+        
+        console.log(`WebSocket: Session validated for user ${user.username}`);
+        return true;
       } catch (error) {
         console.error('WebSocket authentication error:', error);
         return false;
@@ -155,30 +248,58 @@ export function setupWebSocket(server: Server) {
     try {
       // セッションからユーザー情報を取得
       const cookies = parse(req.headers.cookie || '');
-      const sessionId = cookies['connect.sid'];
+      const sessionId = cookies['tasktrackr_session'];
       
-      // TODO: 実際のセッション検証でユーザー情報を取得
-      // 現在は仮のユーザー情報を使用
-      const userId = 'user-' + Math.random().toString(36).substr(2, 9);
-      const username = 'テストユーザー';
+      if (!sessionId) {
+        console.log('WebSocket connection rejected: No session');
+        ws.close(1008, 'Authentication required');
+        return;
+      }
       
-      connectionManager.addConnection(ws, userId, username);
+      // セッション検証してユーザー情報を取得 - セッションIDの解析を改善
+      console.log('WebSocket connection: Raw session ID:', sessionId);
+      let cleanSessionId = sessionId;
+      
+      // Signedクッキーの形式 (s:sessionId.signature) の場合
+      if (sessionId.startsWith('s:')) {
+        cleanSessionId = sessionId.substring(2).split('.')[0];
+      }
+      
+      console.log('WebSocket connection: Clean session ID:', cleanSessionId);
+      const user = await getSessionUser(cleanSessionId);
+      
+      if (!user) {
+        console.log('WebSocket connection rejected: Invalid session');
+        ws.close(1008, 'Authentication failed');
+        return;
+      }
+      
+      console.log(`WebSocket connection established for user: ${user.username} (ID: ${user.userId})`);
+      connectionManager.addConnection(ws, user.userId, user.username);
       
       ws.on('message', async (data) => {
         try {
           const message = JSON.parse(data.toString());
           
           switch (message.type) {
+            case 'ping':
+              console.log(`WebSocket ping from user: ${user.username}`);
+              ws.send(JSON.stringify({ type: 'pong', userId: user.userId, username: user.username }));
+              break;
+              
             case 'start_editing':
-              connectionManager.startEditing(userId, username, message.reportId);
+              console.log(`User ${user.username} started editing report ${message.reportId}`);
+              connectionManager.startEditing(user.userId, user.username, message.reportId);
               break;
               
             case 'stop_editing':
-              connectionManager.stopEditing(userId, message.reportId);
+              console.log(`User ${user.username} stopped editing report ${message.reportId}`);
+              connectionManager.stopEditing(user.userId, message.reportId);
               break;
               
             case 'activity':
-              connectionManager.updateActivity(userId, message.reportId);
+              console.log(`Activity update from user ${user.username} for report ${message.reportId}`);
+              connectionManager.updateActivity(user.userId, message.reportId);
               break;
               
             default:

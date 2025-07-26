@@ -2,7 +2,7 @@ import { useParams } from "wouter";
 import { FormProvider } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Send, ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -85,9 +85,36 @@ export default function WeeklyReport() {
   const aiAnalysisHook = useAIAnalysis();
   
   // WebSocket接続とリアルタイム編集状況管理
-  const { isConnected, editingUsers, startEditing, stopEditing } = useWebSocket({ 
+  const { isConnected, editingUsers, currentUserId, startEditing, stopEditing } = useWebSocket({ 
     reportId: reportId
   });
+  
+  // 編集モードでフォームにフォーカスがあたったら編集開始を通知
+  useEffect(() => {
+    if (isEditMode && reportId && isConnected) {
+      const handleFocus = () => {
+        console.log('Form focused, starting editing session');
+        startEditing();
+      };
+      
+      const handleBlur = () => {
+        console.log('Form blurred, stopping editing session');
+        stopEditing();
+      };
+      
+      // フォームフィールドのフォーカスイベントを監視
+      const formElement = document.querySelector('form');
+      if (formElement) {
+        formElement.addEventListener('focusin', handleFocus);
+        formElement.addEventListener('focusout', handleBlur);
+        
+        return () => {
+          formElement.removeEventListener('focusin', handleFocus);
+          formElement.removeEventListener('focusout', handleBlur);
+        };
+      }
+    }
+  }, [isEditMode, reportId, isConnected, startEditing, stopEditing]);
 
   // ナビゲーションガードのセットアップ
   const handleNavigationAttempt = async (targetPath: string): Promise<NavigationGuardAction> => {
@@ -167,6 +194,7 @@ export default function WeeklyReport() {
             <div className="flex items-center justify-between">
               <EditingUsersIndicator 
                 editingUsers={editingUsers}
+                currentUserId={currentUserId || undefined}
                 className="mb-2"
               />
               {!isConnected && (

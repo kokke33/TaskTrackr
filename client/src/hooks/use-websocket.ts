@@ -10,9 +10,11 @@ export interface EditingUser {
 
 // WebSocketメッセージの型定義
 interface WebSocketMessage {
-  type: 'editing_users' | 'connection_confirmed';
+  type: 'editing_users' | 'connection_confirmed' | 'pong';
   reportId?: number;
   users?: EditingUser[];
+  userId?: string;
+  username?: string;
 }
 
 interface UseWebSocketOptions {
@@ -24,6 +26,7 @@ export function useWebSocket({ reportId, onEditingUsersChanged }: UseWebSocketOp
   const [isConnected, setIsConnected] = useState(false);
   const [editingUsers, setEditingUsers] = useState<EditingUser[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -38,12 +41,21 @@ export function useWebSocket({ reportId, onEditingUsersChanged }: UseWebSocketOp
     
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const host = window.location.hostname;
       
+      // 開発環境では明示的にポート5000を使用
+      let port = window.location.port;
+      if (!port || port === '3000') {
+        port = '5000'; // 開発サーバーのポート
+      }
+      
+      const wsUrl = `${protocol}//${host}:${port}/ws`;
+      
+      console.log('Attempting WebSocket connection to:', wsUrl);
       wsRef.current = new WebSocket(wsUrl);
       
       wsRef.current.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('WebSocket connected successfully');
         setIsConnected(true);
         setError(null);
         
@@ -51,6 +63,11 @@ export function useWebSocket({ reportId, onEditingUsersChanged }: UseWebSocketOp
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
           reconnectTimeoutRef.current = null;
+        }
+        
+        // 接続確認メッセージを送信
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({ type: 'ping' }));
         }
       };
       
@@ -60,14 +77,23 @@ export function useWebSocket({ reportId, onEditingUsersChanged }: UseWebSocketOp
           
           switch (message.type) {
             case 'editing_users':
+              console.log('Received editing users update:', message);
               if (message.reportId === reportId && message.users) {
                 const users = message.users.map(user => ({
                   ...user,
                   startTime: new Date(user.startTime),
                   lastActivity: new Date(user.lastActivity)
                 }));
+                console.log('Setting editing users:', users);
                 setEditingUsers(users);
                 onEditingUsersChanged?.(users);
+              }
+              break;
+              
+            case 'pong':
+              console.log('WebSocket pong received from server:', { userId: message.userId, username: message.username });
+              if (message.userId) {
+                setCurrentUserId(message.userId);
               }
               break;
               
@@ -210,6 +236,7 @@ export function useWebSocket({ reportId, onEditingUsersChanged }: UseWebSocketOp
     isConnected,
     editingUsers,
     error,
+    currentUserId,
     startEditing,
     stopEditing,
     sendMessage
