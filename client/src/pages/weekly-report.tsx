@@ -130,17 +130,31 @@ export default function WeeklyReport() {
 
   // [DEBUG] editingUsers の変更を監視
   useEffect(() => {
-    console.log('[DEBUG] weekly-report.tsx: editingUsers state updated:', editingUsers);
-    console.log('[DEBUG] weekly-report.tsx: currentUserId:', currentUserId);
-    console.log('[DEBUG] weekly-report.tsx: editingUsers length:', editingUsers.length);
+    console.log('[DEBUG] weekly-report.tsx: editingUsers state updated:', {
+      editingUsers,
+      currentUserId,
+      currentUserIdType: typeof currentUserId,
+      editingUsersLength: editingUsers.length
+    });
+    
     if (editingUsers.length > 0) {
       editingUsers.forEach((user, index) => {
         console.log(`[DEBUG] editingUser[${index}]:`, {
           userId: user.userId,
+          userIdType: typeof user.userId,
           username: user.username,
+          isCurrentUser: user.userId === currentUserId,
           startTime: user.startTime,
           lastActivity: user.lastActivity
         });
+      });
+      
+      // フィルタリング結果の確認
+      const otherUsers = editingUsers.filter(user => String(user.userId) !== String(currentUserId));
+      console.log('[DEBUG] weekly-report.tsx: filtered other users:', {
+        totalUsers: editingUsers.length,
+        otherUsersCount: otherUsers.length,
+        otherUsers: otherUsers.map(u => ({ userId: u.userId, username: u.username }))
       });
     }
   }, [editingUsers, currentUserId]);

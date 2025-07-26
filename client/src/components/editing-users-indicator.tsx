@@ -16,7 +16,9 @@ export function EditingUsersIndicator({
   console.log('[EditingUsersIndicator] Rendering with:', {
     editingUsers,
     currentUserId,
-    editingUsersLength: editingUsers?.length
+    editingUsersLength: editingUsers?.length,
+    currentUserIdType: typeof currentUserId,
+    currentUserIdValue: currentUserId
   });
 
   // editingUsersがundefinedまたはnullの場合のエラーハンドリング
@@ -25,12 +27,34 @@ export function EditingUsersIndicator({
     return null;
   }
 
-  // 現在のユーザーを除いた編集中ユーザー
-  const otherEditingUsers = editingUsers.filter(user => user.userId !== currentUserId);
+  // 詳細なユーザー情報のデバッグログ
+  editingUsers.forEach((user, index) => {
+    console.log(`[EditingUsersIndicator] User[${index}]:`, {
+      userId: user.userId,
+      userIdType: typeof user.userId,
+      username: user.username,
+      isCurrentUser: user.userId === currentUserId,
+      strictEqual: user.userId === currentUserId,
+      stringComparison: String(user.userId) === String(currentUserId)
+    });
+  });
+
+  // 現在のユーザーを除いた編集中ユーザー（より厳密な比較）
+  const otherEditingUsers = editingUsers.filter(user => {
+    const isCurrentUser = String(user.userId) === String(currentUserId);
+    console.log(`[EditingUsersIndicator] Filtering user ${user.username}:`, {
+      userId: user.userId,
+      currentUserId,
+      isCurrentUser,
+      willExclude: isCurrentUser
+    });
+    return !isCurrentUser;
+  });
   
   console.log('[EditingUsersIndicator] After filtering:', {
-    otherEditingUsers,
-    otherEditingUsersLength: otherEditingUsers.length
+    originalCount: editingUsers.length,
+    filteredCount: otherEditingUsers.length,
+    otherEditingUsers: otherEditingUsers.map(u => ({ userId: u.userId, username: u.username }))
   });
   
   if (otherEditingUsers.length === 0) {

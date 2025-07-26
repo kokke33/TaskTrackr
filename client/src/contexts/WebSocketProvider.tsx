@@ -66,18 +66,25 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
           // サーバーから送信される構造: { type: 'editing_users', reportId, users }
           if (Array.isArray((message as any).users)) {
             const users = (message as any).users.map((user: any) => ({
-              userId: user.userId,
+              userId: String(user.userId), // 文字列に統一
               username: user.username,
               startTime: new Date(user.startTime),
               lastActivity: new Date(user.lastActivity)
             }));
             console.log('[WebSocketProvider] Setting editing users:', users);
+            console.log('[WebSocketProvider] User IDs and types:', users.map(u => ({ userId: u.userId, type: typeof u.userId })));
             setEditingUsers(users);
           }
         } else if (message.type === 'pong') {
           console.log('[WebSocketProvider] Received pong:', message);
           if ((message as any).userId) {
-            setCurrentUserId((message as any).userId);
+            const userId = String((message as any).userId);
+            console.log('[WebSocketProvider] Setting currentUserId:', { 
+              originalUserId: (message as any).userId, 
+              stringUserId: userId, 
+              type: typeof userId 
+            });
+            setCurrentUserId(userId);
           }
         }
       } catch (error) {

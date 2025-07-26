@@ -96,6 +96,11 @@ class ConnectionManager {
       lastActivity: s.lastActivity
     }));
     
+    console.log(`[ConnectionManager] Broadcasting editing users for report ${reportId}:`, {
+      sessionCount: sessions.length,
+      users: activeUsers.map(u => ({ userId: u.userId, username: u.username, userIdType: typeof u.userId }))
+    });
+    
     const message = JSON.stringify({
       type: 'editing_users',
       reportId,
@@ -189,8 +194,10 @@ async function getSessionUser(sessionId: string): Promise<{ userId: string; user
         }
         
         console.log('WebSocket: Successfully retrieved user from database:', { id: user.id, username: user.username });
+        const userIdString = user.id.toString();
+        console.log('WebSocket: Converting user ID to string:', { originalId: user.id, stringId: userIdString, type: typeof userIdString });
         resolve({
-          userId: user.id.toString(),
+          userId: userIdString,
           username: user.username
         });
         
@@ -208,7 +215,7 @@ export function setupWebSocket(server: Server) {
     path: '/ws',
     verifyClient: async (info: any) => {
       // デバッグ用: 開発環境では認証を一時的に無効化
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV !== 'production') {
         console.log('[WebSocket] Development mode: allowing connection without authentication');
         return true;
       }
@@ -260,27 +267,16 @@ export function setupWebSocket(server: Server) {
   
   wss.on('connection', async (ws, req) => {
     try {
-      // 開発環境での仮ユーザー設定
       let user: { userId: string; username: string } | null = null;
       
-      if (process.env.NODE_ENV === 'development') {
-        // 開発環境では接続ごとに異なるユーザーIDを生成
-        const connectionId = Math.random().toString(36).substring(7);
-        user = { userId: connectionId, username: `admin-${connectionId}` };
-        console.log('[WebSocket] Development mode: using fake user:', user);
-      } else {
-        // セッションからユーザー情報を取得
-        const cookies = parse(req.headers.cookie || '');
-        const sessionId = cookies['tasktrackr_session'];
-        
-        if (!sessionId) {
-          console.log('WebSocket connection rejected: No session');
-          ws.close(1008, 'Authentication required');
-          return;
-        }
-        
-        // セッション検証してユーザー情報を取得 - セッションIDの解析を改善
-        console.log('WebSocket connection: Raw session ID:', sessionId);
+      // セッションからユーザー情報を取得（開発・本番共通）
+      console.log('[WebSocket] Attempting session authentication...');
+      const cookies = parse(req.headers.cookie || '');
+      const sessionId = cookies['tasktrackr_session'];
+      
+      if (sessionId) {
+        // セッション検証してユーザー情報を取得
+        console.log('[WebSocket] Raw session ID:', sessionId);
         let cleanSessionId = sessionId;
         
         // Signedクッキーの形式 (s:sessionId.signature) の場合
@@ -288,10 +284,28 @@ export function setupWebSocket(server: Server) {
           cleanSessionId = sessionId.substring(2).split('.')[0];
         }
         
-        console.log('WebSocket connection: Clean session ID:', cleanSessionId);
+        console.log('[WebSocket] Clean session ID:', cleanSessionId);
         user = await getSessionUser(cleanSessionId);
         
-        if (!user) {
+        if (user) {
+          console.log('[WebSocket] Session authentication successful:', user);
+        } else {
+          console.log('[WebSocket] Session authentication failed');
+        }
+      } else {
+        console.log('[WebSocket] No session ID found in cookies');
+      }
+      
+      // セッション認証失敗時の処理
+      if (!user) {
+        if (process.env.NODE_ENV !== 'production') {
+          // 開発環境では仮ユーザーにフォールバック
+          const userCounter = Math.floor(Math.random() * 100) + 1;
+          const connectionId = Math.random().toString(36).substring(7);
+          user = { userId: connectionId, username: `ゲスト${userCounter}` };
+          console.log('[WebSocket] Development fallback user:', user);
+        } else {
+          // 本番環境では認証必須
           console.log('WebSocket connection rejected: Invalid session');
           ws.close(1008, 'Authentication failed');
           return;
@@ -307,7 +321,7 @@ export function setupWebSocket(server: Server) {
           
           switch (message.type) {
             case 'ping':
-              console.log(`WebSocket ping from user: ${user.username}`);
+              console.log(`WebSocket ping from user: ${user.username} (ID: ${user.userId}, type: ${typeof user.userId})`);
               ws.send(JSON.stringify({ type: 'pong', userId: user.userId, username: user.username }));
               break;
               
