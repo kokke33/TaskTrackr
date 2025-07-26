@@ -207,18 +207,33 @@ export function setupWebSocket(server: Server) {
     server,
     path: '/ws',
     verifyClient: async (info: any) => {
+      // デバッグ用: 開発環境では認証を一時的に無効化
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[WebSocket] Development mode: allowing connection without authentication');
+        return true;
+      }
+      
       try {
+        console.log('[WebSocket] Verifying client connection...');
+        console.log('[WebSocket] Request headers:', {
+          host: info.req.headers.host,
+          origin: info.req.headers.origin,
+          cookie: info.req.headers.cookie ? 'present' : 'missing'
+        });
+        
         // Cookieからセッション情報を取得して認証確認
         const cookies = parse(info.req.headers.cookie || '');
+        console.log('[WebSocket] Parsed cookies:', Object.keys(cookies));
         const sessionId = cookies['tasktrackr_session'];
         
         if (!sessionId) {
-          console.log('WebSocket: No session ID found in cookies');
+          console.log('[WebSocket] No session ID found in cookies');
+          console.log('[WebSocket] Available cookie keys:', Object.keys(cookies));
           return false;
         }
         
         // セッション検証 - セッションIDの解析を改善
-        console.log('WebSocket: Raw session ID:', sessionId);
+        console.log('[WebSocket] Raw session ID:', sessionId);
         let cleanSessionId = sessionId;
         
         // Signedクッキーの形式 (s:sessionId.signature) の場合
@@ -226,18 +241,18 @@ export function setupWebSocket(server: Server) {
           cleanSessionId = sessionId.substring(2).split('.')[0];
         }
         
-        console.log('WebSocket: Clean session ID:', cleanSessionId);
+        console.log('[WebSocket] Clean session ID:', cleanSessionId);
         const user = await getSessionUser(cleanSessionId);
         
         if (!user) {
-          console.log('WebSocket: Session validation failed');
+          console.log('[WebSocket] Session validation failed');
           return false;
         }
         
-        console.log(`WebSocket: Session validated for user ${user.username}`);
+        console.log(`[WebSocket] Session validated for user ${user.username}`);
         return true;
       } catch (error) {
-        console.error('WebSocket authentication error:', error);
+        console.error('[WebSocket] Authentication error:', error);
         return false;
       }
     }
@@ -245,32 +260,42 @@ export function setupWebSocket(server: Server) {
   
   wss.on('connection', async (ws, req) => {
     try {
-      // セッションからユーザー情報を取得
-      const cookies = parse(req.headers.cookie || '');
-      const sessionId = cookies['tasktrackr_session'];
+      // 開発環境での仮ユーザー設定
+      let user: { userId: string; username: string } | null = null;
       
-      if (!sessionId) {
-        console.log('WebSocket connection rejected: No session');
-        ws.close(1008, 'Authentication required');
-        return;
-      }
-      
-      // セッション検証してユーザー情報を取得 - セッションIDの解析を改善
-      console.log('WebSocket connection: Raw session ID:', sessionId);
-      let cleanSessionId = sessionId;
-      
-      // Signedクッキーの形式 (s:sessionId.signature) の場合
-      if (sessionId.startsWith('s:')) {
-        cleanSessionId = sessionId.substring(2).split('.')[0];
-      }
-      
-      console.log('WebSocket connection: Clean session ID:', cleanSessionId);
-      const user = await getSessionUser(cleanSessionId);
-      
-      if (!user) {
-        console.log('WebSocket connection rejected: Invalid session');
-        ws.close(1008, 'Authentication failed');
-        return;
+      if (process.env.NODE_ENV === 'development') {
+        // 開発環境では接続ごとに異なるユーザーIDを生成
+        const connectionId = Math.random().toString(36).substring(7);
+        user = { userId: connectionId, username: `admin-${connectionId}` };
+        console.log('[WebSocket] Development mode: using fake user:', user);
+      } else {
+        // セッションからユーザー情報を取得
+        const cookies = parse(req.headers.cookie || '');
+        const sessionId = cookies['tasktrackr_session'];
+        
+        if (!sessionId) {
+          console.log('WebSocket connection rejected: No session');
+          ws.close(1008, 'Authentication required');
+          return;
+        }
+        
+        // セッション検証してユーザー情報を取得 - セッションIDの解析を改善
+        console.log('WebSocket connection: Raw session ID:', sessionId);
+        let cleanSessionId = sessionId;
+        
+        // Signedクッキーの形式 (s:sessionId.signature) の場合
+        if (sessionId.startsWith('s:')) {
+          cleanSessionId = sessionId.substring(2).split('.')[0];
+        }
+        
+        console.log('WebSocket connection: Clean session ID:', cleanSessionId);
+        user = await getSessionUser(cleanSessionId);
+        
+        if (!user) {
+          console.log('WebSocket connection rejected: Invalid session');
+          ws.close(1008, 'Authentication failed');
+          return;
+        }
       }
       
       console.log(`WebSocket connection established for user: ${user.username} (ID: ${user.userId})`);

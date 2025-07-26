@@ -15,7 +15,7 @@ import { useWeeklyReportForm } from "@/hooks/use-weekly-report-form";
 import { useReportAutoSave } from "@/hooks/use-report-auto-save";
 import { useMeetingMinutesGenerator } from "@/hooks/use-meeting-minutes-generator";
 import { useAIAnalysis } from "@/hooks/use-ai-analysis";
-import { useWebSocket } from "@/hooks/use-websocket";
+import { useWebSocket } from "@/contexts/useWebSocket"; // 新しいパスに変更
 import { EditingUsersIndicator } from "@/components/editing-users-indicator";
 
 import { ReportHeader } from "@/components/weekly-report/report-header";
@@ -103,36 +103,47 @@ export default function WeeklyReport() {
   const aiAnalysisHook = useAIAnalysis();
   
   // WebSocket接続とリアルタイム編集状況管理
-  const { isConnected, editingUsers, currentUserId, startEditing, stopEditing } = useWebSocket({ 
-    reportId: reportId
-  });
-  
-  // 編集モードでフォームにフォーカスがあたったら編集開始を通知
+  const { lastMessage, sendMessage, status, editingUsers, currentUserId } = useWebSocket();
+
+  // WebSocketのステータスが'open'になったら編集開始を通知
   useEffect(() => {
-    if (isEditMode && reportId && isConnected) {
-      const handleFocus = () => {
-        console.log('Form focused, starting editing session');
-        startEditing();
+    if (status === 'open' && isEditMode && reportId) {
+      console.log('[WeeklyReport] Conditions met, starting editing...', { reportId });
+      sendMessage({ type: 'start_editing', reportId: reportId });
+
+      // コンポーネントがアンマウントされるか、条件が変わる時に編集終了
+      return () => {
+        console.log('[WeeklyReport] Cleanup effect, stopping editing...', { reportId });
+        sendMessage({ type: 'stop_editing', reportId: reportId });
       };
-      
-      const handleBlur = () => {
-        console.log('Form blurred, stopping editing session');
-        stopEditing();
-      };
-      
-      // フォームフィールドのフォーカスイベントを監視
-      const formElement = document.querySelector('form');
-      if (formElement) {
-        formElement.addEventListener('focusin', handleFocus);
-        formElement.addEventListener('focusout', handleBlur);
-        
-        return () => {
-          formElement.removeEventListener('focusin', handleFocus);
-          formElement.removeEventListener('focusout', handleBlur);
-        };
-      }
     }
-  }, [isEditMode, reportId, isConnected, startEditing, stopEditing]);
+  }, [isEditMode, reportId, status, sendMessage]);
+
+  // lastMessage を監視して編集ユーザー情報を更新
+  useEffect(() => {
+    if (lastMessage) {
+      // WebSocketProviderで既に処理されているため、ここでは追加処理のみ
+      // 必要であれば、ここで追加のロジックを実装
+      console.log('[DEBUG] weekly-report.tsx: lastMessage received:', lastMessage);
+    }
+  }, [lastMessage]);
+
+  // [DEBUG] editingUsers の変更を監視
+  useEffect(() => {
+    console.log('[DEBUG] weekly-report.tsx: editingUsers state updated:', editingUsers);
+    console.log('[DEBUG] weekly-report.tsx: currentUserId:', currentUserId);
+    console.log('[DEBUG] weekly-report.tsx: editingUsers length:', editingUsers.length);
+    if (editingUsers.length > 0) {
+      editingUsers.forEach((user, index) => {
+        console.log(`[DEBUG] editingUser[${index}]:`, {
+          userId: user.userId,
+          username: user.username,
+          startTime: user.startTime,
+          lastActivity: user.lastActivity
+        });
+      });
+    }
+  }, [editingUsers, currentUserId]);
 
   // ナビゲーションガードのセットアップ
   const handleNavigationAttempt = async (targetPath: string): Promise<NavigationGuardAction> => {
@@ -248,26 +259,13 @@ export default function WeeklyReport() {
           formChanged={formChanged}
           lastSavedTime={lastSavedTime}
           selectedCaseId={selectedCaseId}
+          editingUsers={editingUsers}
+          currentUserId={currentUserId || undefined}
           onManualAutoSave={handleManualAutoSave}
           onCopyFromLastReport={copyFromLastReport}
           onShowMilestoneDialog={() => setShowMilestoneDialog(true)}
           onShowSampleDialog={() => setShowSampleDialog(true)}
         />
-        
-        {/* リアルタイム編集状況表示 */}
-        {isEditMode && (
-          <div className="container mx-auto px-4 max-w-4xl mb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <EditingUsersIndicator 
-                  editingUsers={editingUsers}
-                  currentUserId={currentUserId || undefined}
-                  className="mb-2"
-                />
-              </div>
-            </div>
-          </div>
-        )}
         <div className="container mx-auto px-4 max-w-4xl">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <BasicInfoForm

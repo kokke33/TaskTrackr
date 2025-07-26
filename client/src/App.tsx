@@ -5,6 +5,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./lib/auth";
 import { SiteLayout } from "@/components/site-layout";
+import { WebSocketProvider } from "./contexts/WebSocketProvider";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AdminRoute } from "./lib/admin-only";
 import Login from "@/pages/login";
@@ -67,9 +68,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <SiteLayout>
-          <Router />
-        </SiteLayout>
+        <WebSocketProvider url="ws://localhost:5000/ws">
+          <SiteLayout>
+            <Router />
+          </SiteLayout>
+        </WebSocketProvider>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
