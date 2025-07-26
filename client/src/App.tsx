@@ -5,7 +5,6 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./lib/auth";
 import { SiteLayout } from "@/components/site-layout";
-import { SessionMonitor } from "@/components/session-monitor";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AdminRoute } from "./lib/admin-only";
 import Login from "@/pages/login";
@@ -71,7 +70,6 @@ function App() {
         <SiteLayout>
           <Router />
         </SiteLayout>
-        <SessionMonitor />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

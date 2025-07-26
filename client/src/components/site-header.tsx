@@ -5,10 +5,55 @@ import { Button } from './ui/button';
 import { ThemeToggle } from './theme-toggle';
 import { SearchBar } from './search-bar';
 import { AdminOnly } from '@/lib/admin-only';
-import { User, LogOut, Settings, Users } from 'lucide-react';
+import { User, LogOut, Settings, Users, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
-export function SiteHeader() {
+type SiteHeaderProps = {
+  isLoading?: boolean;
+};
+
+export function SiteHeader({ isLoading = false }: SiteHeaderProps) {
   const { isAuthenticated, user, logout } = useAuth();
+  const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'checking'>('online');
+
+  // 接続状態監視
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const checkConnection = async () => {
+      setConnectionStatus('checking');
+      
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch('/api/check-auth', {
+          method: 'GET',
+          credentials: 'include',
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setConnectionStatus(data.authenticated ? 'online' : 'offline');
+        } else {
+          setConnectionStatus('offline');
+        }
+      } catch (error) {
+        setConnectionStatus('offline');
+      }
+    };
+
+    // 初回チェック
+    checkConnection();
+    
+    // 3分ごとにチェック
+    const interval = setInterval(checkConnection, 3 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -92,6 +137,29 @@ export function SiteHeader() {
                 >
                   <LogOut className="h-5 w-5" />
                 </Button>
+                {/* 接続状態表示をログアウトボタンの直後に配置 */}
+                {isAuthenticated && (
+                  <div className="flex items-center gap-1 ml-1 px-2 py-1 bg-background/80 backdrop-blur-sm rounded-md text-xs border shadow-sm">
+                    {connectionStatus === 'online' && (
+                      <>
+                        <Wifi className="h-3 w-3 text-green-500" />
+                        <span>接続中</span>
+                      </>
+                    )}
+                    {connectionStatus === 'offline' && (
+                      <>
+                        <WifiOff className="h-3 w-3 text-red-500" />
+                        <span>接続切断</span>
+                      </>
+                    )}
+                    {connectionStatus === 'checking' && (
+                      <>
+                        <div className="h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        <span>確認中</span>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <Link href="/login">
