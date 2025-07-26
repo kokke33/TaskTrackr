@@ -15,6 +15,8 @@ import { useWeeklyReportForm } from "@/hooks/use-weekly-report-form";
 import { useReportAutoSave } from "@/hooks/use-report-auto-save";
 import { useMeetingMinutesGenerator } from "@/hooks/use-meeting-minutes-generator";
 import { useAIAnalysis } from "@/hooks/use-ai-analysis";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { EditingUsersIndicator } from "@/components/editing-users-indicator";
 
 import { ReportHeader } from "@/components/weekly-report/report-header";
 import { BasicInfoForm } from "@/components/weekly-report/basic-info-form";
@@ -54,17 +56,38 @@ export default function WeeklyReport() {
     copyFromLastReport,
   } = formHook;
 
-  const autoSaveHook = useReportAutoSave({ form, isEditMode, id });
+  const autoSaveHook = useReportAutoSave({ 
+    form, 
+    isEditMode, 
+    id,
+    currentVersion: existingReport?.version,
+    onVersionConflict: (message: string) => {
+      setNavigationDialog({
+        open: true,
+        targetPath: window.location.pathname,
+        resolve: () => {
+          window.location.reload();
+        }
+      });
+    }
+  });
   const {
     lastSavedTime,
     isAutosaving,
     formChanged,
+    version,
     handleManualAutoSave,
     handleImmediateSave,
+    updateVersion,
   } = autoSaveHook;
 
   const meetingMinutesHook = useMeetingMinutesGenerator({ reportId, isEditMode });
   const aiAnalysisHook = useAIAnalysis();
+  
+  // WebSocket接続とリアルタイム編集状況管理
+  const { isConnected, editingUsers, startEditing, stopEditing } = useWebSocket({ 
+    reportId: reportId
+  });
 
   // ナビゲーションガードのセットアップ
   const handleNavigationAttempt = async (targetPath: string): Promise<NavigationGuardAction> => {
@@ -137,6 +160,23 @@ export default function WeeklyReport() {
           onShowMilestoneDialog={() => setShowMilestoneDialog(true)}
           onShowSampleDialog={() => setShowSampleDialog(true)}
         />
+        
+        {/* リアルタイム編集状況表示 */}
+        {isEditMode && (
+          <div className="container mx-auto px-4 max-w-4xl mb-4">
+            <div className="flex items-center justify-between">
+              <EditingUsersIndicator 
+                editingUsers={editingUsers}
+                className="mb-2"
+              />
+              {!isConnected && (
+                <div className="text-sm text-muted-foreground">
+                  リアルタイム機能に接続中...
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         <div className="container mx-auto px-4 max-w-4xl">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <BasicInfoForm

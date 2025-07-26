@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { setupWebSocket } from "./websocket";
 import session from "express-session";
 import passport from "passport";
 import { createInitialUsers } from "./auth";
@@ -193,6 +194,9 @@ app.use(UnifiedErrorHandler.handle);
 (async () => {
   const server = await registerRoutes(app);
 
+  // WebSocketサーバーをセットアップ
+  setupWebSocket(server);
+
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
@@ -206,5 +210,6 @@ app.use(UnifiedErrorHandler.handle);
     reusePort: true,
   }, () => {
     log(`Server is running on port ${port} in ${app.get("env")} mode`);
+    log(`WebSocket is available at ws://localhost:${port}/ws`);
   });
 })();

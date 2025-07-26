@@ -150,7 +150,13 @@ export function useWeeklyReportForm({ id }: UseWeeklyReportFormProps) {
       }
       const url = isEditMode ? `/api/weekly-reports/${id}` : "/api/weekly-reports";
       const method = isEditMode ? "PUT" : "POST";
-      return apiRequest(url, { method, data });
+      
+      // 編集モードの場合は現在のバージョンを含める
+      const requestData = isEditMode && existingReport 
+        ? { ...data, version: existingReport.version }
+        : data;
+      
+      return apiRequest(url, { method, data: requestData });
     },
     onSuccess: (result) => {
       if (isAdminEditMode) {
@@ -172,16 +178,29 @@ export function useWeeklyReportForm({ id }: UseWeeklyReportFormProps) {
         setLocation(`/reports/${result.id}`);
       }
     },
-    onError: () => {
-      toast({
-        title: "エラー",
-        description: isAdminEditMode 
-          ? "管理者編集の完了に失敗しました。"
-          : isEditMode
-          ? "週次報告の更新に失敗しました。"
-          : "週次報告の送信に失敗しました。",
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      if (error?.status === 409) {
+        // 楽観的ロック競合エラー
+        toast({
+          title: "競合エラー",
+          description: "データが他のユーザーによって更新されています。ページを再読み込みしてください。",
+          variant: "destructive",
+        });
+        // 少し遅延してからページを再読み込み
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        toast({
+          title: "エラー",
+          description: isAdminEditMode 
+            ? "管理者編集の完了に失敗しました。"
+            : isEditMode
+            ? "週次報告の更新に失敗しました。"
+            : "週次報告の送信に失敗しました。",
+          variant: "destructive",
+        });
+      }
     },
     onSettled: () => {
       setIsSubmitting(false);

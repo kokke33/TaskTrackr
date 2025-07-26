@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, OptimisticLockError } from "./storage";
 import {
   insertWeeklyReportSchema,
   insertCaseSchema,
@@ -1204,10 +1204,22 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
   app.get("/api/weekly-reports/by-case/:caseId", isAuthenticated, async (req, res) => {
     try {
       const caseId = parseInt(req.params.caseId);
+      console.log(`[DEBUG] Fetching weekly reports for case ID: ${caseId}`);
+      
+      if (isNaN(caseId)) {
+        console.error(`[ERROR] Invalid case ID: ${req.params.caseId}`);
+        return res.status(400).json({ message: "無効な案件IDです" });
+      }
+      
       const reports = await storage.getWeeklyReportsByCase(caseId);
+      console.log(`[DEBUG] Found ${reports.length} reports for case ${caseId}`);
       res.json(reports);
     } catch (error) {
-      res.status(500).json({ message: "週次報告の取得に失敗しました" });
+      console.error(`[ERROR] Failed to fetch weekly reports for case ${req.params.caseId}:`, error);
+      res.status(500).json({ 
+        message: "週次報告の取得に失敗しました",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   });
 
@@ -1250,8 +1262,16 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       if (data.reporterName) {
         data.reporterName = data.reporterName.replace(/\s+/g, "");
       }
+      
+      // クライアントから送信されたバージョンをチェック
+      const clientVersion = req.body.version || existingReport.version;
+      
       const updatedData = insertWeeklyReportSchema.parse(data);
-      const updatedReport = await storage.updateWeeklyReport(id, updatedData);
+      // versionは楽観的ロック処理で管理するため削除
+      delete updatedData.version;
+      
+      // 楽観的ロック対応の更新を実行
+      const updatedReport = await storage.updateWeeklyReportWithVersion(id, updatedData, clientVersion);
 
       // 自動保存フラグがない場合のみAI分析を実行
       if (!req.query.autosave) {
@@ -1266,8 +1286,16 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       const finalReport = await storage.getWeeklyReport(id);
       res.json(finalReport);
     } catch (error) {
-      console.error("Error updating weekly report:", error);
-      res.status(400).json({ message: "Failed to update weekly report" });
+      if (error instanceof OptimisticLockError) {
+        // 楽観的ロック競合エラー
+        res.status(409).json({ 
+          message: "データが他のユーザーによって更新されています。ページを再読み込みしてください。",
+          type: "OptimisticLockError"
+        });
+      } else {
+        console.error("Error updating weekly report:", error);
+        res.status(400).json({ message: "Failed to update weekly report" });
+      }
     }
   });
 
@@ -1352,23 +1380,37 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
           data.reporterName = data.reporterName.replace(/\s+/g, "");
         }
 
+        // クライアントから送信されたバージョンをチェック
+        const clientVersion = req.body.version || existingReport.version;
+
         // 既存のデータと新しいデータをマージして必須フィールドが欠けないようにする
         const mergedData = { ...existingReport, ...data };
         delete mergedData.id; // idは更新対象外
         delete mergedData.createdAt; // createdAtは更新対象外
         delete mergedData.aiAnalysis; // aiAnalysisは更新対象外
+        delete mergedData.version; // versionは楽観的ロック処理で管理
 
-        const updatedReport = await storage.updateWeeklyReport(id, mergedData);
+        // 楽観的ロック対応の更新を実行
+        const updatedReport = await storage.updateWeeklyReportWithVersion(id, mergedData, clientVersion);
 
-        // 簡略化したレスポンスを返す
+        // 簡略化したレスポンスを返す（新しいバージョンを含む）
         res.json({
           id: updatedReport.id,
+          version: updatedReport.version,
           message: "Auto-saved successfully",
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
-        console.error("Error auto-saving weekly report:", error);
-        res.status(400).json({ message: "Failed to auto-save weekly report" });
+        if (error instanceof OptimisticLockError) {
+          // 楽観的ロック競合エラー
+          res.status(409).json({ 
+            message: "データが他のユーザーによって更新されています。ページを再読み込みしてください。",
+            type: "OptimisticLockError"
+          });
+        } else {
+          console.error("Error auto-saving weekly report:", error);
+          res.status(400).json({ message: "Failed to auto-save weekly report" });
+        }
       }
     },
   );

@@ -4,6 +4,14 @@ import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql, gte, lte, lt } from "drizzle-orm";
 import { hash } from "bcryptjs";
 
+// 楽観的ロック競合エラー
+export class OptimisticLockError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "OptimisticLockError";
+  }
+}
+
 // データベース操作のリトライ機能
 async function withRetry<T>(
   operation: () => Promise<T>,
@@ -126,6 +134,7 @@ export interface IStorage {
   getAllWeeklyReports(): Promise<WeeklyReport[]>;
   getAllWeeklyReportsForList(limit?: number): Promise<WeeklyReportSummary[]>; // 新規追加
   updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport>;
+  updateWeeklyReportWithVersion(id: number, report: InsertWeeklyReport, expectedVersion: number): Promise<WeeklyReport>; // 楽観的ロック対応
   updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport>;
   getLatestReportByCase(caseId: number, excludeId?: number): Promise<WeeklyReport | undefined>;
   getPreviousReportByCase(caseId: number, beforeDate: string, excludeId?: number): Promise<WeeklyReport | undefined>;
@@ -1118,12 +1127,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport> {
-    const [updated] = await db
-      .update(weeklyReports)
-      .set(report)
-      .where(eq(weeklyReports.id, id))
-      .returning();
-    return updated;
+    return await withRetry(async () => {
+      const [updated] = await db
+        .update(weeklyReports)
+        .set(report)
+        .where(eq(weeklyReports.id, id))
+        .returning();
+      return updated;
+    });
+  }
+
+  // 楽観的ロック対応の週次報告更新
+  async updateWeeklyReportWithVersion(id: number, report: InsertWeeklyReport, expectedVersion: number): Promise<WeeklyReport> {
+    return await withRetry(async () => {
+      // まず現在のバージョンを確認
+      const current = await this.getWeeklyReport(id);
+      if (!current) {
+        throw new Error("週次報告が見つかりません");
+      }
+
+      if (current.version !== expectedVersion) {
+        throw new OptimisticLockError(`データが他のユーザーによって更新されています。現在のバージョン: ${current.version}, 期待されたバージョン: ${expectedVersion}`);
+      }
+
+      // バージョンを1つ増やして更新
+      const updatedReport = { ...report, version: expectedVersion + 1 };
+      
+      const [updated] = await db
+        .update(weeklyReports)
+        .set(updatedReport)
+        .where(and(
+          eq(weeklyReports.id, id),
+          eq(weeklyReports.version, expectedVersion)
+        ))
+        .returning();
+
+      if (!updated) {
+        throw new OptimisticLockError("データが他のユーザーによって更新されています");
+      }
+
+      return updated;
+    });
   }
 
   async updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport> {
@@ -1243,22 +1287,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWeeklyReportsByCase(caseId: number): Promise<WeeklyReport[]> {
-    // 事前に案件が削除済みかチェック
-    const [caseInfo] = await db
-      .select()
-      .from(cases)
-      .where(eq(cases.id, caseId));
+    return await withRetry(async () => {
+      console.log(`[DEBUG] getWeeklyReportsByCase: Checking case ${caseId}`);
+      
+      // 事前に案件が削除済みかチェック
+      const [caseInfo] = await db
+        .select()
+        .from(cases)
+        .where(eq(cases.id, caseId));
+      
+      console.log(`[DEBUG] getWeeklyReportsByCase: Case info:`, caseInfo);
+      
+      // 削除済みの案件の場合は空の配列を返す
+      if (caseInfo && caseInfo.isDeleted) {
+        console.log(`[DEBUG] getWeeklyReportsByCase: Case ${caseId} is deleted, returning empty array`);
+        return [];
+      }
+      
+      if (!caseInfo) {
+        console.log(`[DEBUG] getWeeklyReportsByCase: Case ${caseId} not found, returning empty array`);
+        return [];
+      }
 
-    // 削除済みの案件の場合は空の配列を返す
-    if (caseInfo && caseInfo.isDeleted) {
-      return [];
-    }
-
-    return await db
-      .select()
-      .from(weeklyReports)
-      .where(eq(weeklyReports.caseId, caseId))
-      .orderBy(desc(weeklyReports.reportPeriodStart));
+      console.log(`[DEBUG] getWeeklyReportsByCase: Fetching reports for case ${caseId}`);
+      const reports = await db
+        .select()
+        .from(weeklyReports)
+        .where(eq(weeklyReports.caseId, caseId))
+        .orderBy(desc(weeklyReports.reportPeriodStart));
+      
+      console.log(`[DEBUG] getWeeklyReportsByCase: Found ${reports.length} reports`);
+      return reports;
+    });
   }
 
   async getWeeklyReportsByCases(caseIds: number[], startDate?: Date, endDate?: Date): Promise<WeeklyReport[]> {
