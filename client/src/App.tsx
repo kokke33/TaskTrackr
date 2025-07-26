@@ -65,10 +65,13 @@ function Router() {
 }
 
 function App() {
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <WebSocketProvider url="ws://localhost:5000/ws">
+        <WebSocketProvider url={wsUrl}>
           <SiteLayout>
             <Router />
           </SiteLayout>
