@@ -23,7 +23,8 @@ import {
 import { getAIService, generateAdminConfirmationEmail } from "./ai-service";
 import { aiRoutes } from "./ai-routes";
 import passport from "passport";
-import { isAuthenticated, isAdmin } from "./auth";
+import { isAuthenticated, isAdmin, isAuthenticatedHybrid, isAdminHybrid } from "./auth";
+import { hybridAuthManager } from "./hybrid-auth-manager";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // 検索API
@@ -88,11 +89,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isAdmin: user.isAdmin,
         });
 
-        // ユーザー情報と成功メッセージを返す
-        res.json({
-          message: "ログイン成功",
-          user: user,
-        });
+        // ハイブリッド認証レスポンス（JWT付き）を返す
+        const authResponse = hybridAuthManager.createAuthResponse(user);
+        res.json(authResponse);
       });
     })(req, res, next);
   });
@@ -104,13 +103,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/check-auth", (req, res) => {
-    console.log("[CHECK-AUTH] Session debug:", {
-      sessionID: req.sessionID,
-      isAuthenticated: req.isAuthenticated(),
-      user: req.user,
-      session: req.session,
-      cookies: req.headers.cookie
-    });
     
     if (req.isAuthenticated() && req.user) {
       // セッションに保存されているユーザー情報をログ出力

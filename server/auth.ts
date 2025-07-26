@@ -4,6 +4,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { hybridAuthManager } from "./hybrid-auth-manager";
 
 // ユーザー認証の設定
 passport.use(
@@ -194,7 +195,7 @@ export async function createInitialUsers() {
   }
 }
 
-// 認証ミドルウェア（離席後エラー対策とログ最適化）
+// 統一エラーハンドラー対応の認証ミドルウェア
 export function isAuthenticated(req: any, res: any, next: any) {
   const isProduction = process.env.NODE_ENV === 'production';
   
@@ -225,18 +226,23 @@ export function isAuthenticated(req: any, res: any, next: any) {
     console.log(`   Cookie Present:`, !!req.headers.cookie);
   }
   
-  // セッション期限切れの可能性を示唆
-  if (!req.session?.passport?.user) {
+  // セッション期限切れかどうかを判定
+  const isSessionExpired = !req.session?.passport?.user;
+  if (isSessionExpired) {
     console.log(`💡 セッション期限切れの可能性 - 再ログインが必要です`);
   }
   
-  res.status(401).json({ 
-    message: "認証が必要です",
-    sessionExpired: !req.session?.passport?.user 
-  });
+  // 統一エラーハンドラー用のエラーオブジェクトを作成
+  const authError: any = new Error(isSessionExpired ? 
+    "セッションが期限切れです。再度ログインしてください。" : 
+    "認証が必要です。");
+  authError.type = isSessionExpired ? 'SESSION_EXPIRED' : 'AUTH_FAILED';
+  authError.status = 401;
+  
+  next(authError);
 }
 
-// 管理者権限チェックミドルウェア
+// 統一エラーハンドラー対応の管理者権限チェックミドルウェア
 export function isAdmin(req: any, res: any, next: any) {
   console.log(`[ADMIN CHECK] ${req.method} ${req.path}`, {
     isAuthenticated: req.isAuthenticated(),
@@ -255,5 +261,39 @@ export function isAdmin(req: any, res: any, next: any) {
     hasUser: !!req.user,
     isAdmin: req.user?.isAdmin
   });
-  res.status(403).json({ message: "この操作には管理者権限が必要です" });
+  
+  // 統一エラーハンドラー用のエラーオブジェクトを作成
+  const adminError: any = new Error("この操作には管理者権限が必要です。");
+  adminError.type = 'AUTH_FAILED';
+  adminError.status = 403;
+  
+  next(adminError);
+}
+
+// ハイブリッド認証ミドルウェア（JWT + セッション対応）
+export const isAuthenticatedHybrid = hybridAuthManager.createAuthMiddleware();
+
+// ハイブリッド管理者権限チェックミドルウェア
+export function isAdminHybrid(req: any, res: any, next: any) {
+  console.log(`[HYBRID ADMIN CHECK] ${req.method} ${req.path}`, {
+    user: req.user ? { id: req.user.id, username: req.user.username, isAdmin: req.user.isAdmin } : null,
+    timestamp: new Date().toISOString()
+  });
+  
+  if (req.user && req.user.isAdmin) {
+    console.log(`[HYBRID ADMIN CHECK] ✅ Admin access granted for user ${req.user.username}`);
+    return next();
+  }
+  
+  console.log(`[HYBRID ADMIN CHECK] ❌ Admin access denied`, {
+    hasUser: !!req.user,
+    isAdmin: req.user?.isAdmin
+  });
+  
+  // 統一エラーハンドラー用のエラーオブジェクトを作成
+  const adminError: any = new Error("この操作には管理者権限が必要です。");
+  adminError.type = 'AUTH_FAILED';
+  adminError.status = 403;
+  
+  next(adminError);
 }
