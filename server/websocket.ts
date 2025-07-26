@@ -3,6 +3,9 @@ import { Server } from 'http';
 import { parse } from 'cookie';
 import { sessionManager } from './session-manager';
 import session from 'express-session';
+import { db } from './db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 // 編集セッション情報の型定義
 interface EditSession {
@@ -171,10 +174,6 @@ async function getSessionUser(sessionId: string): Promise<{ userId: string; user
       
       // PassportはuserIdのみを保存しているため、データベースから完全なユーザー情報を取得
       try {
-        const { db } = require('./db');
-        const { users } = require('@shared/schema');
-        const { eq } = require('drizzle-orm');
-        
         const [user] = await db
           .select({
             id: users.id,

@@ -25,6 +25,8 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
     try {
       setIsAutosaving(true);
       const data = { ...form.getValues(), version };
+      
+      console.log("💾 Auto-saving with version:", version);
 
       let url = "/api/weekly-reports/autosave";
       let method = "POST";
@@ -45,6 +47,8 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
         if (response.status === 409) {
           // 楽観的ロック競合エラー
           const errorData = await response.json();
+          console.log("⚠️ Version conflict detected:", errorData);
+          
           if (onVersionConflict) {
             onVersionConflict(errorData.message);
           } else {
@@ -66,6 +70,7 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
       
       // バージョンを更新
       if (result.version) {
+        console.log("✅ Auto-save successful, version updated to:", result.version);
         setVersion(result.version);
       }
 
@@ -73,7 +78,7 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
         window.history.replaceState(null, '', `/report/edit/${result.id}`);
       }
     } catch (error) {
-      console.error("Error auto-saving report:", error);
+      console.error("💥 Error auto-saving report:", error);
       toast({
         title: "自動保存エラー",
         description: "自動保存に失敗しました。手動で保存してください。",

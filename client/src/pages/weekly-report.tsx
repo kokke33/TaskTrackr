@@ -25,6 +25,7 @@ import { MeetingMinutes } from "@/components/weekly-report/meeting-minutes";
 import { MilestoneDialog } from "@/components/milestone-dialog";
 import { SampleReportDialog } from "@/components/sample-report-dialog";
 import { NavigationConfirmDialog } from "@/components/navigation-confirm-dialog";
+import { ConflictResolutionDialog } from "@/components/conflict-resolution-dialog";
 import { useNavigationGuard, NavigationGuardAction } from "@/hooks/use-navigation-guard";
 
 export default function WeeklyReport() {
@@ -37,6 +38,10 @@ export default function WeeklyReport() {
     resolve: (action: NavigationGuardAction) => void;
   } | null>(null);
   const [isSavingForNavigation, setIsSavingForNavigation] = useState(false);
+  const [conflictDialog, setConflictDialog] = useState<{
+    open: boolean;
+    serverData: any;
+  } | null>(null);
 
   const formHook = useWeeklyReportForm({ id });
   const {
@@ -61,14 +66,26 @@ export default function WeeklyReport() {
     isEditMode, 
     id,
     currentVersion: existingReport?.version,
-    onVersionConflict: (message: string) => {
-      setNavigationDialog({
-        open: true,
-        targetPath: window.location.pathname,
-        resolve: () => {
+    onVersionConflict: async (message: string) => {
+      // 最新のサーバーデータを取得
+      try {
+        const response = await fetch(`/api/weekly-reports/${id}`, {
+          credentials: "include"
+        });
+        if (response.ok) {
+          const serverData = await response.json();
+          setConflictDialog({
+            open: true,
+            serverData
+          });
+        } else {
+          // フォールバック: ページリロード
           window.location.reload();
         }
-      });
+      } catch (error) {
+        console.error("Failed to fetch server data:", error);
+        window.location.reload();
+      }
     }
   });
   const {
@@ -161,6 +178,47 @@ export default function WeeklyReport() {
     onNavigationAttempt: handleNavigationAttempt,
   });
 
+  // 競合解決のハンドラー
+  const handleConflictResolve = async (resolvedData: any) => {
+    console.log("🔧 Starting conflict resolution with resolved data:", resolvedData);
+    
+    try {
+      // 先にダイアログを閉じる
+      setConflictDialog(null);
+      
+      // 解決済みデータでフォームを更新
+      form.reset(resolvedData);
+      
+      // サーバーのバージョン番号を更新
+      if (conflictDialog?.serverData?.version) {
+        console.log("📝 Updating version to:", conflictDialog.serverData.version);
+        updateVersion(conflictDialog.serverData.version);
+      }
+      
+      // 少し待ってから保存（フォームの更新を確実にするため）
+      setTimeout(async () => {
+        try {
+          console.log("💾 Attempting immediate save after conflict resolution");
+          const success = await handleImmediateSave();
+          if (success) {
+            console.log("✅ Conflict resolution save successful");
+          } else {
+            console.log("❌ Conflict resolution save failed");
+          }
+        } catch (saveError) {
+          console.error("💥 Save error after conflict resolution:", saveError);
+        }
+      }, 100);
+      
+    } catch (error) {
+      console.error("💥 Failed to resolve conflict:", error);
+    }
+  };
+
+  const handleConflictReload = () => {
+    window.location.reload();
+  };
+
   if (isLoadingReport || isLoadingCases) {
     return (
       <div className="min-h-screen bg-background">
@@ -192,13 +250,22 @@ export default function WeeklyReport() {
         {isEditMode && (
           <div className="container mx-auto px-4 max-w-4xl mb-4">
             <div className="flex items-center justify-between">
-              <EditingUsersIndicator 
-                editingUsers={editingUsers}
-                currentUserId={currentUserId || undefined}
-                className="mb-2"
-              />
+              <div className="flex items-center gap-4">
+                <EditingUsersIndicator 
+                  editingUsers={editingUsers}
+                  currentUserId={currentUserId || undefined}
+                  className="mb-2"
+                />
+                {isConnected && (
+                  <div className="text-sm text-green-600 flex items-center gap-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    リアルタイム接続中
+                  </div>
+                )}
+              </div>
               {!isConnected && (
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-amber-600 flex items-center gap-1">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
                   リアルタイム機能に接続中...
                 </div>
               )}
@@ -346,6 +413,22 @@ export default function WeeklyReport() {
         targetPath={navigationDialog?.targetPath}
         isSaving={isSavingForNavigation}
       />
+      
+      {conflictDialog && (
+        <ConflictResolutionDialog
+          open={conflictDialog.open}
+          onOpenChange={(open) => {
+            if (!open) {
+              setConflictDialog(null);
+            }
+          }}
+          localData={form.getValues()}
+          serverData={conflictDialog.serverData}
+          serverUsername={conflictDialog.serverData?.reporterName || "他のユーザー"}
+          onResolve={handleConflictResolve}
+          onReload={handleConflictReload}
+        />
+      )}
     </div>
   );
 }
