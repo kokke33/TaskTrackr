@@ -286,7 +286,7 @@ export default function MeetingList() {
               type: 'manager',
               projectId: meeting.projectId,
               projectName: targetProjectName,
-              createdAt: meeting.createdAt.toISOString(),
+              createdAt: meeting.createdAt instanceof Date ? meeting.createdAt.toISOString() : meeting.createdAt,
             });
           }
         });
@@ -314,7 +314,7 @@ export default function MeetingList() {
           caseId: selectedCase,
           caseName: case_?.caseName,
           projectName: case_?.projectName,
-          createdAt: meeting.createdAt.toISOString(),
+          createdAt: meeting.createdAt instanceof Date ? meeting.createdAt.toISOString() : meeting.createdAt,
           modifiedBy: meeting.modifiedBy,
           weeklyReportId: meeting.weeklyReportId,
         });
