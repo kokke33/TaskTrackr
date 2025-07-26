@@ -323,7 +323,10 @@ export function ConflictResolutionDialog({
             <RefreshCw className="h-4 w-4 mr-2" />
             ページを再読み込み
           </Button>
-          <Button onClick={handleResolve} disabled={conflictingChanges.length === 0}>
+          <Button
+            onClick={handleResolve}
+            disabled={conflictingChanges.length > 0 && Object.keys(selectedFields).length !== conflictingChanges.length}
+          >
             競合を解決して保存
           </Button>
         </DialogFooter>

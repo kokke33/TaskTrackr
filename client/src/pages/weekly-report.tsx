@@ -264,19 +264,7 @@ export default function WeeklyReport() {
                   currentUserId={currentUserId || undefined}
                   className="mb-2"
                 />
-                {isConnected && (
-                  <div className="text-sm text-green-600 flex items-center gap-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    リアルタイム接続中
-                  </div>
-                )}
               </div>
-              {!isConnected && (
-                <div className="text-sm text-amber-600 flex items-center gap-1">
-                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-                  リアルタイム機能に接続中...
-                </div>
-              )}
             </div>
           </div>
         )}
