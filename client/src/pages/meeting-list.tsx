@@ -81,13 +81,13 @@ export default function MeetingList() {
   // すべてのプロジェクトを取得（projectNameからprojectIdの逆引き用）
   const { data: projects, isLoading: isLoadingProjects } = useQuery<any[]>({
     queryKey: ["/api/projects"],
-    staleTime: 10 * 60 * 1000, // 10分間キャッシュ
+    staleTime: 2 * 60 * 1000, // 2分間キャッシュ（短縮）
   });
 
   // マネージャ定例議事録を取得
   const { data: managerMeetings, isLoading: isLoadingManagerMeetings } = useQuery<ManagerMeeting[]>({
     queryKey: ["/api/manager-meetings"],
-    staleTime: 5 * 60 * 1000, // 5分間キャッシュ
+    staleTime: 1 * 60 * 1000, // 1分間キャッシュ（短縮）
   });
 
   // 週次報告会議議事録を取得
@@ -132,6 +132,16 @@ export default function MeetingList() {
   const unifiedMeetings = useMemo((): MeetingRecord[] => {
     const meetings: MeetingRecord[] = [];
 
+    // データが不完全な場合は空の配列を返す
+    if (!cases || !managerMeetings) {
+      console.log('[DEBUG] 必要なデータが不足しています:', {
+        hasCases: !!cases,
+        hasManagerMeetings: !!managerMeetings,
+        hasProjects: !!projects
+      });
+      return meetings;
+    }
+
     // 選択されたプロジェクトに該当する案件を取得
     const selectedProjectCases = cases?.filter(c => c.projectName === selectedProject) || [];
     const selectedProjectIds = Array.from(new Set(selectedProjectCases.map(c => c.projectName)));
@@ -141,33 +151,133 @@ export default function MeetingList() {
       let targetProjectIds: number[] = [];
       let targetProjectName: string = '';
       
+      console.log('[DEBUG] マネ定議事録抽出開始:', {
+        selectedCase,
+        selectedProject,
+        managerMeetingsCount: managerMeetings.length,
+        casesCount: cases?.length,
+        projectsCount: projects?.length
+      });
+      
       if (selectedCase && cases) {
         // 案件選択時：選択された案件が属するプロジェクトの定例議事録を表示
         const selectedCaseData = cases.find(c => c.id === selectedCase);
         
         if (selectedCaseData) {
-          // projectId が undefined の場合、projectNameからprojectIdを逆引き
-          let projectId = selectedCaseData.projectId || (selectedCaseData as any).project_id;
+          console.log('[DEBUG] 選択された案件データ:', {
+            caseId: selectedCaseData.id,
+            caseName: selectedCaseData.caseName,
+            projectName: selectedCaseData.projectName
+          });
           
-          if (!projectId && projects && selectedCaseData.projectName) {
+          // projectId の複数パターンでの取得を試行
+          // 案件テーブルにはprojectIdフィールドが存在しないため、projectNameから逆引きする
+          let projectId: number | undefined;
+          
+          // パターン1: projectNameからprojectIdを逆引き
+          if (projects && selectedCaseData.projectName) {
             const matchingProject = projects.find(p => p.name === selectedCaseData.projectName);
             projectId = matchingProject?.id;
+            console.log('[DEBUG] プロジェクト名による逆引き結果:', {
+              searchName: selectedCaseData.projectName,
+              foundProject: matchingProject,
+              projectId
+            });
           }
           
-          targetProjectIds = [projectId];
-          targetProjectName = selectedCaseData.projectName;
+          // パターン2: プロジェクトデータが取得できない場合のフォールバック
+          // 全てのマネ定議事の中から同じプロジェクト名を持つものを検索
+          if (!projectId && selectedCaseData.projectName) {
+            const matchingMeeting = managerMeetings.find(meeting => {
+              // 議事録のタイトルにプロジェクト名が含まれているかチェック
+              return meeting.title.includes(selectedCaseData.projectName);
+            });
+            
+            if (matchingMeeting) {
+              projectId = matchingMeeting.projectId;
+              console.log('[DEBUG] マネ定議事録からのプロジェクトID推定:', {
+                searchName: selectedCaseData.projectName,
+                foundMeetingTitle: matchingMeeting.title,
+                inferredProjectId: projectId
+              });
+            }
+          }
+          
+          if (projectId) {
+            targetProjectIds = [projectId];
+            targetProjectName = selectedCaseData.projectName;
+            console.log('[DEBUG] 案件選択時の対象プロジェクトID設定:', {
+              targetProjectIds,
+              targetProjectName
+            });
+          } else {
+            console.warn('[DEBUG] プロジェクトIDが特定できませんでした:', selectedCaseData);
+          }
         }
       } else if (selectedProject) {
         // 案件未選択時：選択されたプロジェクトの定例議事録を表示
         const selectedProjectCases = cases?.filter(c => c.projectName === selectedProject);
-        targetProjectIds = selectedProjectCases?.map(c => c.projectId) || [];
+        
+        // 複数のケースから projectId を収集
+        // 案件テーブルにはprojectIdフィールドが存在しないため、projectNameから逆引きする
+        const projectIdSet = new Set<number>();
+        
+        // projectName による逆引きも試行
+        if (projectIdSet.size === 0 && projects) {
+          const matchingProject = projects.find(p => p.name === selectedProject);
+          if (matchingProject?.id) {
+            projectIdSet.add(matchingProject.id);
+          }
+        }
+        
+        // さらにフォールバック: マネ定議事録からプロジェクトIDを推定
+        if (projectIdSet.size === 0 && selectedProject) {
+          const matchingMeetings = managerMeetings.filter(meeting => 
+            meeting.title.includes(selectedProject)
+          );
+          
+          matchingMeetings.forEach(meeting => {
+            if (meeting.projectId) {
+              projectIdSet.add(meeting.projectId);
+            }
+          });
+          
+          if (matchingMeetings.length > 0) {
+            console.log('[DEBUG] マネ定議事録からプロジェクトIDを推定:', {
+              selectedProject,
+              matchingMeetingsCount: matchingMeetings.length,
+              inferredProjectIds: Array.from(projectIdSet)
+            });
+          }
+        }
+        
+        targetProjectIds = Array.from(projectIdSet);
         targetProjectName = selectedProject;
+        
+        console.log('[DEBUG] プロジェクト選択時の対象プロジェクトID設定:', {
+          selectedProject,
+          selectedProjectCasesCount: selectedProjectCases?.length,
+          targetProjectIds,
+          targetProjectName
+        });
       }
       
+      console.log('[DEBUG] 最終的な対象プロジェクトID:', targetProjectIds);
+      
       if (targetProjectIds.length > 0) {
+        let matchedCount = 0;
         managerMeetings.forEach(meeting => {
+          console.log('[DEBUG] 議事録チェック:', {
+            meetingId: meeting.id,
+            meetingTitle: meeting.title,
+            meetingProjectId: meeting.projectId,
+            targetProjectIds,
+            isMatch: targetProjectIds.includes(meeting.projectId)
+          });
+          
           // 議事録のprojectIdが対象プロジェクトに属するかチェック
           if (targetProjectIds.includes(meeting.projectId)) {
+            matchedCount++;
             meetings.push({
               id: meeting.id,
               title: meeting.title,
@@ -176,10 +286,18 @@ export default function MeetingList() {
               type: 'manager',
               projectId: meeting.projectId,
               projectName: targetProjectName,
-              createdAt: meeting.createdAt,
+              createdAt: meeting.createdAt.toISOString(),
             });
           }
         });
+        
+        console.log('[DEBUG] マネ定議事録抽出結果:', {
+          totalManagerMeetings: managerMeetings.length,
+          matchedCount,
+          addedToMeetings: matchedCount
+        });
+      } else {
+        console.log('[DEBUG] 対象プロジェクトIDが特定できないため、マネ定議事録は表示されません');
       }
     }
 
@@ -196,7 +314,7 @@ export default function MeetingList() {
           caseId: selectedCase,
           caseName: case_?.caseName,
           projectName: case_?.projectName,
-          createdAt: meeting.createdAt,
+          createdAt: meeting.createdAt.toISOString(),
           modifiedBy: meeting.modifiedBy,
           weeklyReportId: meeting.weeklyReportId,
         });
