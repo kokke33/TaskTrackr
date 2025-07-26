@@ -13,7 +13,8 @@ export function EditingUsersIndicator({
   currentUserId,
   className = ""
 }: EditingUsersIndicatorProps) {
-  console.log('[EditingUsersIndicator] Rendering with:', {
+  console.log('[EditingUsersIndicator] === DEBUGGING SELF-DISPLAY ISSUE ===');
+  console.log('[EditingUsersIndicator] Input data:', {
     editingUsers,
     currentUserId,
     editingUsersLength: editingUsers?.length,
@@ -28,14 +29,20 @@ export function EditingUsersIndicator({
   }
 
   // 詳細なユーザー情報のデバッグログ
+  console.log('[EditingUsersIndicator] === DETAILED USER ANALYSIS ===');
   editingUsers.forEach((user, index) => {
-    console.log(`[EditingUsersIndicator] User[${index}]:`, {
+    const strictEqual = user.userId === currentUserId;
+    const stringEqual = String(user.userId) === String(currentUserId);
+    console.log(`[EditingUsersIndicator] User[${index}] - ${user.username}:`, {
       userId: user.userId,
       userIdType: typeof user.userId,
-      username: user.username,
-      isCurrentUser: user.userId === currentUserId,
-      strictEqual: user.userId === currentUserId,
-      stringComparison: String(user.userId) === String(currentUserId)
+      userIdRaw: JSON.stringify(user.userId),
+      currentUserId: currentUserId,
+      currentUserIdType: typeof currentUserId,
+      currentUserIdRaw: JSON.stringify(currentUserId),
+      strictEqual: strictEqual,
+      stringEqual: stringEqual,
+      willBeFiltered: !stringEqual ? 'KEPT (PROBLEM!)' : 'REMOVED (CORRECT)'
     });
   });
 
@@ -51,11 +58,20 @@ export function EditingUsersIndicator({
     return !isCurrentUser;
   });
   
-  console.log('[EditingUsersIndicator] After filtering:', {
+  console.log('[EditingUsersIndicator] === FILTERING RESULTS ===');
+  console.log('[EditingUsersIndicator] Filtering summary:', {
     originalCount: editingUsers.length,
     filteredCount: otherEditingUsers.length,
+    shouldShowIndicator: otherEditingUsers.length > 0,
     otherEditingUsers: otherEditingUsers.map(u => ({ userId: u.userId, username: u.username }))
   });
+  
+  if (otherEditingUsers.length > 0) {
+    console.log('[EditingUsersIndicator] ⚠️  PROBLEM: Self-display detected!');
+    console.log('[EditingUsersIndicator] Users that will be shown:', otherEditingUsers.map(u => u.username));
+  } else {
+    console.log('[EditingUsersIndicator] ✅ Correct: No other users, indicator hidden');
+  }
   
   if (otherEditingUsers.length === 0) {
     return null;
