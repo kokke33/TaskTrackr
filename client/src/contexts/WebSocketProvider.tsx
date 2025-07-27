@@ -38,7 +38,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
     try {
       wsRef.current = new WebSocket(url);
     } catch (error) {
-      logger.error('Failed to create WebSocket', error);
+      logger.error('Failed to create WebSocket', error instanceof Error ? error : new Error(String(error)));
       setStatus('closed');
       return;
     }
@@ -92,7 +92,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
           }
         }
       } catch (error) {
-        logger.error('Error parsing WebSocket message', error);
+        logger.error('Error parsing WebSocket message', error instanceof Error ? error : new Error(String(error)));
       }
     };
 
@@ -109,14 +109,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
     };
 
     wsRef.current.onerror = (error) => {
-      logger.error('WebSocket error', { error, readyState: wsRef.current?.readyState });
+      logger.error('WebSocket error', undefined, { errorEvent: error, readyState: wsRef.current?.readyState });
       // onerrorは通常oncloseもトリガーするため、再接続はoncloseに任せる
     };
   }, [url]);
 
   const scheduleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-      logger.error('WebSocket reconnect attempts exceeded', { attempts: reconnectAttemptsRef.current, maxAttempts: MAX_RECONNECT_ATTEMPTS });
+      logger.error('WebSocket reconnect attempts exceeded', undefined, { currentAttempts: reconnectAttemptsRef.current, maxAttempts: MAX_RECONNECT_ATTEMPTS });
       return;
     }
     setStatus('reconnecting');

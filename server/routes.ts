@@ -92,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (!user) {
-        console.log("Login failed:", info);
+        logger.info('Login failed', { info });
         return res.status(401).json({ error: info?.message || "認証に失敗しました" });
       }
       
@@ -103,10 +103,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // ログのデバッグ情報を出力
-        console.log("Login success - user info:", {
-          id: user.id,
+        logger.info('Login success', {
+          userId: user.id,
           username: user.username,
-          isAdmin: user.isAdmin,
+          isAdmin: user.isAdmin
         });
 
         // ハイブリッド認証レスポンス（JWT付き）を返す
@@ -131,10 +131,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: string;
         isAdmin?: boolean;
       };
-      console.log("Check-auth - authenticated user info:", {
-        id: user.id,
+      logger.debug('Check-auth - authenticated user', {
+        userId: user.id,
         username: user.username,
-        isAdmin: user.isAdmin,
+        isAdmin: user.isAdmin
       });
 
       // 明確に管理者フラグを含めて返す
@@ -147,10 +147,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
     } else {
-      console.log("Check-auth - not authenticated", {
+      logger.debug('Check-auth - not authenticated', {
         isAuthenticated: req.isAuthenticated(),
         hasUser: !!req.user,
-        sessionData: req.session
+        sessionID: req.sessionID
       });
       // 未認証でも200ステータスで応答（エラーではなく正常な状態として扱う）
       res.json({
@@ -185,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (fullData) {
         // 詳細データが必要な場合
         const projects = await storage.getAllProjects(includeDeleted);
-        console.log(`[DEBUG] Returning ${projects.length} full projects`);
+        logger.debug('Returning full projects', { count: projects.length });
         res.json(projects);
       } else {
         // デフォルトで軽量データを取得（パフォーマンス最適化）

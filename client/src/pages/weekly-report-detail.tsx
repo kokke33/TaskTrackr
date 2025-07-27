@@ -131,7 +131,7 @@ export default function WeeklyReportDetail() {
           }, 100);
         }
       } catch (err) {
-        logger.error('Error parsing URL parameters', err);
+        logger.error('Error parsing URL parameters', err instanceof Error ? err : new Error(String(err)));
       }
     }
   }, [location, meetings]); // meetings依存でDOM更新後にスクロール
@@ -219,7 +219,7 @@ export default function WeeklyReportDetail() {
         }
         
       } catch (error) {
-        logger.error('ADMIN EDIT エラー発生', error);
+        logger.error('ADMIN EDIT エラー発生', error instanceof Error ? error : new Error(String(error)));
         
         // apiRequestから投げられたエラーメッセージをより詳細に処理
         const errorMessage = error instanceof Error ? error.message : String(error);
