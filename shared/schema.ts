@@ -113,6 +113,7 @@ export const weeklyReports = pgTable("weekly_reports", {
   businessDetails: text("business_details"),
   adminConfirmationEmail: text("admin_confirmation_email"), // 管理者がリーダーに確認するためのメール文章
   aiAnalysis: text("ai_analysis"),
+  version: integer("version").notNull().default(1), // 楽観的ロック用バージョン番号
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

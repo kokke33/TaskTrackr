@@ -2,7 +2,7 @@ import { useParams } from "wouter";
 import { FormProvider } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Send, ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -15,6 +15,9 @@ import { useWeeklyReportForm } from "@/hooks/use-weekly-report-form";
 import { useReportAutoSave } from "@/hooks/use-report-auto-save";
 import { useMeetingMinutesGenerator } from "@/hooks/use-meeting-minutes-generator";
 import { useAIAnalysis } from "@/hooks/use-ai-analysis";
+import { useWebSocket } from "@/contexts/useWebSocket"; // 新しいパスに変更
+import { EditingUsersIndicator } from "@/components/editing-users-indicator";
+import { useFormPerformance } from "@/hooks/use-performance";
 
 import { ReportHeader } from "@/components/weekly-report/report-header";
 import { BasicInfoForm } from "@/components/weekly-report/basic-info-form";
@@ -23,6 +26,7 @@ import { MeetingMinutes } from "@/components/weekly-report/meeting-minutes";
 import { MilestoneDialog } from "@/components/milestone-dialog";
 import { SampleReportDialog } from "@/components/sample-report-dialog";
 import { NavigationConfirmDialog } from "@/components/navigation-confirm-dialog";
+import { ConflictResolutionDialog } from "@/components/conflict-resolution-dialog";
 import { useNavigationGuard, NavigationGuardAction } from "@/hooks/use-navigation-guard";
 
 export default function WeeklyReport() {
@@ -35,6 +39,13 @@ export default function WeeklyReport() {
     resolve: (action: NavigationGuardAction) => void;
   } | null>(null);
   const [isSavingForNavigation, setIsSavingForNavigation] = useState(false);
+  const [conflictDialog, setConflictDialog] = useState<{
+    open: boolean;
+    serverData: any;
+  } | null>(null);
+
+  // パフォーマンス監視
+  const { measureFormOperation, measureRender } = useFormPerformance('WeeklyReport');
 
   const formHook = useWeeklyReportForm({ id });
   const {
@@ -54,17 +65,103 @@ export default function WeeklyReport() {
     copyFromLastReport,
   } = formHook;
 
-  const autoSaveHook = useReportAutoSave({ form, isEditMode, id });
+  const autoSaveHook = useReportAutoSave({ 
+    form, 
+    isEditMode, 
+    id,
+    currentVersion: existingReport?.version,
+    onVersionConflict: async (message: string) => {
+      // 最新のサーバーデータを取得
+      try {
+        const response = await fetch(`/api/weekly-reports/${id}`, {
+          credentials: "include"
+        });
+        if (response.ok) {
+          const serverData = await response.json();
+          setConflictDialog({
+            open: true,
+            serverData
+          });
+        } else {
+          // フォールバック: ページリロード
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error("Failed to fetch server data:", error);
+        window.location.reload();
+      }
+    }
+  });
   const {
     lastSavedTime,
     isAutosaving,
     formChanged,
+    version,
     handleManualAutoSave,
     handleImmediateSave,
+    updateVersion,
+    resetConflictResolving,
   } = autoSaveHook;
 
   const meetingMinutesHook = useMeetingMinutesGenerator({ reportId, isEditMode });
   const aiAnalysisHook = useAIAnalysis();
+  
+  // WebSocket接続とリアルタイム編集状況管理
+  const { lastMessage, sendMessage, status, editingUsers, currentUserId } = useWebSocket();
+
+  // WebSocketのステータスが'open'になったら編集開始を通知
+  useEffect(() => {
+    if (status === 'open' && isEditMode && reportId) {
+      console.log('[WeeklyReport] Conditions met, starting editing...', { reportId });
+      sendMessage({ type: 'start_editing', reportId: reportId });
+
+      // コンポーネントがアンマウントされるか、条件が変わる時に編集終了
+      return () => {
+        console.log('[WeeklyReport] Cleanup effect, stopping editing...', { reportId });
+        sendMessage({ type: 'stop_editing', reportId: reportId });
+      };
+    }
+  }, [isEditMode, reportId, status, sendMessage]);
+
+  // lastMessage を監視して編集ユーザー情報を更新
+  useEffect(() => {
+    if (lastMessage) {
+      // WebSocketProviderで既に処理されているため、ここでは追加処理のみ
+      // 必要であれば、ここで追加のロジックを実装
+      console.log('[DEBUG] weekly-report.tsx: lastMessage received:', lastMessage);
+    }
+  }, [lastMessage]);
+
+  // [DEBUG] editingUsers の変更を監視
+  useEffect(() => {
+    console.log('[DEBUG] weekly-report.tsx: editingUsers state updated:', {
+      editingUsers,
+      currentUserId,
+      currentUserIdType: typeof currentUserId,
+      editingUsersLength: editingUsers.length
+    });
+    
+    if (editingUsers.length > 0) {
+      editingUsers.forEach((user, index) => {
+        console.log(`[DEBUG] editingUser[${index}]:`, {
+          userId: user.userId,
+          userIdType: typeof user.userId,
+          username: user.username,
+          isCurrentUser: user.userId === currentUserId,
+          startTime: user.startTime,
+          lastActivity: user.lastActivity
+        });
+      });
+      
+      // フィルタリング結果の確認
+      const otherUsers = editingUsers.filter(user => String(user.userId) !== String(currentUserId));
+      console.log('[DEBUG] weekly-report.tsx: filtered other users:', {
+        totalUsers: editingUsers.length,
+        otherUsersCount: otherUsers.length,
+        otherUsers: otherUsers.map(u => ({ userId: u.userId, username: u.username }))
+      });
+    }
+  }, [editingUsers, currentUserId]);
 
   // ナビゲーションガードのセットアップ
   const handleNavigationAttempt = async (targetPath: string): Promise<NavigationGuardAction> => {
@@ -111,6 +208,54 @@ export default function WeeklyReport() {
     onNavigationAttempt: handleNavigationAttempt,
   });
 
+  // 競合解決のハンドラー
+  const handleConflictResolve = async (resolvedData: any) => {
+    console.log("🔧 Starting conflict resolution with resolved data:", resolvedData);
+    
+    if (!conflictDialog) {
+      console.error("❌ No conflict dialog state found");
+      return;
+    }
+    
+    // ダイアログ情報を保存してからダイアログを閉じる
+    const serverVersion = conflictDialog.serverData?.version;
+    
+    try {
+      // 先にダイアログを閉じる
+      setConflictDialog(null);
+      
+      // 競合解決状態をリセット（自動保存を再開するため）
+      resetConflictResolving();
+      
+      // サーバーのバージョン番号を更新（これで次の自動保存は正しいバージョンを使用）
+      if (serverVersion) {
+        console.log("📝 Updating version to:", serverVersion);
+        updateVersion(serverVersion);
+      }
+      
+      // 解決済みデータでフォームを更新（これによりformChangedがtrueになる）
+      form.reset(resolvedData);
+      
+      // 即座に手動保存を実行
+      console.log("💾 Executing immediate save after conflict resolution");
+      const success = await handleImmediateSave();
+      
+      if (success) {
+        console.log("✅ Conflict resolution completed successfully");
+      } else {
+        console.error("❌ Conflict resolution save failed");
+      }
+      
+    } catch (error) {
+      console.error("💥 Failed to resolve conflict:", error);
+      resetConflictResolving();
+    }
+  };
+
+  const handleConflictReload = () => {
+    window.location.reload();
+  };
+
   if (isLoadingReport || isLoadingCases) {
     return (
       <div className="min-h-screen bg-background">
@@ -132,6 +277,8 @@ export default function WeeklyReport() {
           formChanged={formChanged}
           lastSavedTime={lastSavedTime}
           selectedCaseId={selectedCaseId}
+          editingUsers={editingUsers}
+          currentUserId={currentUserId || undefined}
           onManualAutoSave={handleManualAutoSave}
           onCopyFromLastReport={copyFromLastReport}
           onShowMilestoneDialog={() => setShowMilestoneDialog(true)}
@@ -278,6 +425,22 @@ export default function WeeklyReport() {
         targetPath={navigationDialog?.targetPath}
         isSaving={isSavingForNavigation}
       />
+      
+      {conflictDialog && (
+        <ConflictResolutionDialog
+          open={conflictDialog.open}
+          onOpenChange={(open) => {
+            if (!open) {
+              setConflictDialog(null);
+            }
+          }}
+          localData={form.getValues()}
+          serverData={conflictDialog.serverData}
+          serverUsername={conflictDialog.serverData?.reporterName || "他のユーザー"}
+          onResolve={handleConflictResolve}
+          onReload={handleConflictReload}
+        />
+      )}
     </div>
   );
 }

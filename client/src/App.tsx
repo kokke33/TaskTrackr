@@ -5,6 +5,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./lib/auth";
 import { SiteLayout } from "@/components/site-layout";
+import { WebSocketProvider } from "./contexts/WebSocketProvider";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AdminRoute } from "./lib/admin-only";
 import Login from "@/pages/login";
@@ -64,12 +65,17 @@ function Router() {
 }
 
 function App() {
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <SiteLayout>
-          <Router />
-        </SiteLayout>
+        <WebSocketProvider url={wsUrl}>
+          <SiteLayout>
+            <Router />
+          </SiteLayout>
+        </WebSocketProvider>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

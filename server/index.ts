@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { setupWebSocket } from "./websocket";
 import session from "express-session";
 import passport from "passport";
 import { createInitialUsers } from "./auth";
@@ -26,49 +27,20 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// セッション設定
-import MemoryStore from "memorystore";
-import pgSession from "connect-pg-simple";
-const PostgresStore = pgSession(session);
-const MemStore = MemoryStore(session);
-
-// DATABASE_URLを解析してセッションストアを決定
-const databaseUrl = process.env.DATABASE_URL || '';
-const isNeon = databaseUrl.includes('neon.tech');
-
-// Neonの場合はMemoryStoreを使用（接続問題を回避・離席後エラー対策）
-const sessionStore = isNeon ? 
-  new MemStore({
-    checkPeriod: 600000, // 10分ごとにクリーンアップ（競合を減らすため短縮）
-    max: 1000,           // メモリ使用量制限
-    ttl: 86400000,       // 24時間でセッション期限切れ
-    stale: false,        // 期限切れセッションは保持しない（競合防止）
-    dispose: (key: string) => {
-      console.log(`セッション削除: ${key.substring(0, 8)}...`);
-    }
-  }) :
-  new PostgresStore({
-    conObject: {
-      connectionString: process.env.DATABASE_URL,
-    },
-    createTableIfMissing: true,
-    tableName: 'session',
-    ttl: 86400 // PostgreSQLでも24時間のTTL設定
-  });
-
-console.log(`セッションストア: ${isNeon ? 'MemoryStore (Neon対応)' : 'PostgreSQL'}`);
+// 統一セッション管理システム
+import { sessionManager } from './session-manager';
 
 app.use(
   session({
-    store: sessionStore,
+    store: sessionManager.getStore(),
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false, // MemoryStoreとの競合を防ぐ
-    saveUninitialized: true, // セッション初期化を確実に行う
-    rolling: false, // セッションID固定
+    saveUninitialized: false, // セキュリティ向上：未初期化セッションは保存しない
+    rolling: true, // セッション固定攻撃対策：アクセス毎にセッションID更新
     cookie: {
       secure: process.env.NODE_ENV === 'production', // 本番環境では自動的にセキュア
-      sameSite: 'lax', // CSRF対策
-      maxAge: 8 * 60 * 60 * 1000, // 8時間に短縮（離席を考慮した実用的な時間）
+      sameSite: 'strict', // CSRF攻撃対策強化：strictモード
+      maxAge: 4 * 60 * 60 * 1000, // 4時間に短縮（セキュリティ向上）
       httpOnly: true, // セキュリティ向上（XSS対策）
       domain: undefined // 開発環境ではdomainを指定しない
     },
@@ -81,6 +53,12 @@ app.use(
 // Passportの初期化
 app.use(passport.initialize());
 app.use(passport.session());
+
+// セッションストア情報をログ出力
+console.log(`📦 セッションストア: ${sessionManager.getStoreType()}`);
+if (process.env.NODE_ENV !== 'production') {
+  console.log('📊 セッションストア統計:', sessionManager.getStats());
+}
 
 // 初期ユーザーの作成
 createInitialUsers().catch((error) => {
@@ -133,21 +111,91 @@ app.use((req, res, next) => {
   next();
 });
 
-// エラーハンドリングの強化
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('Application Error:', err);
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
+// 統一エラーハンドリングシステム
+interface AppError extends Error {
+  status?: number;
+  statusCode?: number;
+  type?: 'SESSION_EXPIRED' | 'AUTH_FAILED' | 'VALIDATION_ERROR' | 'DATABASE_ERROR' | 'INTERNAL_ERROR';
+  redirectTo?: string;
+}
 
-  res.status(status).json({ 
-    message,
-    status,
-    timestamp: new Date().toISOString()
-  });
-});
+class UnifiedErrorHandler {
+  static handle(err: AppError, req: Request, res: Response, _next: NextFunction) {
+    const timestamp = new Date().toISOString();
+    const requestInfo = {
+      method: req.method,
+      path: req.path,
+      userAgent: req.get('User-Agent'),
+      ip: req.ip
+    };
+
+    // エラータイプ別の処理
+    switch (err.type) {
+      case 'SESSION_EXPIRED':
+        console.log(`[${timestamp}] セッション期限切れ: ${req.path}`, requestInfo);
+        return res.status(401).json({
+          error: 'SESSION_EXPIRED',
+          message: 'セッションが期限切れです。再度ログインしてください。',
+          redirectTo: '/login',
+          timestamp
+        });
+
+      case 'AUTH_FAILED':
+        console.log(`[${timestamp}] 認証失敗: ${req.path}`, requestInfo);
+        return res.status(401).json({
+          error: 'AUTH_FAILED',
+          message: '認証が必要です。',
+          redirectTo: '/login',
+          timestamp
+        });
+
+      case 'VALIDATION_ERROR':
+        console.log(`[${timestamp}] バリデーションエラー: ${req.path}`, { ...requestInfo, error: err.message });
+        return res.status(400).json({
+          error: 'VALIDATION_ERROR',
+          message: err.message || 'リクエストデータが無効です。',
+          timestamp
+        });
+
+      case 'DATABASE_ERROR':
+        console.error(`[${timestamp}] データベースエラー: ${req.path}`, { ...requestInfo, error: err.message });
+        return res.status(503).json({
+          error: 'DATABASE_ERROR',
+          message: 'データベース接続に問題があります。しばらく後にお試しください。',
+          timestamp
+        });
+
+      default:
+        // 一般的なエラー処理
+        const status = err.status || err.statusCode || 500;
+        const message = err.message || "Internal Server Error";
+        
+        if (status >= 500) {
+          console.error(`[${timestamp}] サーバーエラー:`, { ...requestInfo, status, error: err.message, stack: err.stack });
+        } else {
+          console.log(`[${timestamp}] クライアントエラー:`, { ...requestInfo, status, error: err.message });
+        }
+
+        return res.status(status).json({
+          error: status >= 500 ? 'INTERNAL_ERROR' : 'CLIENT_ERROR',
+          message: process.env.NODE_ENV === 'production' && status >= 500 
+            ? 'サーバー内部エラーが発生しました。' 
+            : message,
+          status,
+          timestamp
+        });
+    }
+  }
+}
+
+// 統一エラーハンドラーを適用
+app.use(UnifiedErrorHandler.handle);
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // WebSocketサーバーをセットアップ
+  setupWebSocket(server);
 
   if (app.get("env") === "development") {
     await setupVite(app, server);
@@ -162,5 +210,6 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     reusePort: true,
   }, () => {
     log(`Server is running on port ${port} in ${app.get("env")} mode`);
+    log(`WebSocket is available at ws://localhost:${port}/ws`);
   });
 })();

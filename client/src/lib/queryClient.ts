@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { performanceMonitor } from "@shared/performance-monitor";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -27,6 +28,8 @@ export async function apiRequest<T = any>(
     skipAuthRetry?: boolean; // 認証リトライをスキップする場合
   }
 ): Promise<T> {
+  const timer = performanceMonitor.startTimer('api', `${options.method} ${url}`);
+  
   console.log(`[API REQUEST] ${options.method} ${url}`, {
     data: options.data,
     cookies: document.cookie,
@@ -42,7 +45,9 @@ export async function apiRequest<T = any>(
     });
   };
 
-  let res = await performRequest();
+  let res: Response;
+  try {
+    res = await performRequest();
 
   console.log(`[API RESPONSE] ${options.method} ${url} - Status: ${res.status}`, {
     status: res.status,
@@ -83,8 +88,28 @@ export async function apiRequest<T = any>(
     }
   }
 
-  await throwIfResNotOk(res);
-  return await res.json() as T;
+    await throwIfResNotOk(res);
+    const result = await res.json() as T;
+    
+    // パフォーマンス計測終了（成功）
+    timer.end({
+      status: res.status,
+      method: options.method,
+      url,
+      hasData: !!options.data
+    }, true);
+    
+    return result;
+  } catch (error) {
+    // パフォーマンス計測終了（エラー）
+    timer.end({
+      method: options.method,
+      url,
+      hasData: !!options.data
+    }, false, error instanceof Error ? error.message : String(error));
+    
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

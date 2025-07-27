@@ -16,6 +16,7 @@ import { useAuth } from "@/lib/auth";
 import { AdminOnly } from "@/lib/admin-only";
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
+import { useListPerformance } from "@/hooks/use-performance";
 
 export default function ProjectList() {
   const [, setLocation] = useLocation();
@@ -25,6 +26,9 @@ export default function ProjectList() {
   const [showFilters, setShowFilters] = useState(false);
   useAuth();
   const queryClient = useQueryClient();
+  
+  // パフォーマンス監視
+  const { measureOperation, measureRender } = useListPerformance('ProjectList', 0);
 
   // プロジェクト一覧を取得
   const { data: projects, isLoading, refetch } = useQuery<Project[]>({

@@ -8,7 +8,7 @@ import { useEffect, useCallback } from 'react';
  * @param callback イベントが発生したときに呼び出される関数（オプショナル）
  * @returns イベントをディスパッチする関数
  */
-export function useCustomEvent<T = any>(
+export function useCustomEvent<T = unknown>(
   eventName: string,
   callback?: (data: T) => void,
 ): (data: T) => void {

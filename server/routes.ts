@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, OptimisticLockError } from "./storage";
 import {
   insertWeeklyReportSchema,
   insertCaseSchema,
@@ -23,7 +23,28 @@ import {
 import { getAIService, generateAdminConfirmationEmail } from "./ai-service";
 import { aiRoutes } from "./ai-routes";
 import passport from "passport";
-import { isAuthenticated, isAdmin } from "./auth";
+import { isAuthenticated, isAdmin, isAuthenticatedHybrid, isAdminHybrid } from "./auth";
+import { hybridAuthManager } from "./hybrid-auth-manager";
+import { createLogger } from "@shared/logger";
+
+const logger = createLogger('Routes');
+
+// ユーザー型定義の拡張
+interface AuthenticatedUser {
+  id: number;
+  username: string;
+  isAdmin: boolean;
+}
+
+// Express Request型の拡張
+declare global {
+  namespace Express {
+    interface User extends AuthenticatedUser {}
+    interface Request {
+      user?: User;
+    }
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // 検索API
@@ -71,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (!user) {
-        console.log("Login failed:", info);
+        logger.info('Login failed', { info });
         return res.status(401).json({ error: info?.message || "認証に失敗しました" });
       }
       
@@ -82,17 +103,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // ログのデバッグ情報を出力
-        console.log("Login success - user info:", {
-          id: user.id,
+        logger.info('Login success', {
+          userId: user.id,
           username: user.username,
-          isAdmin: user.isAdmin,
+          isAdmin: user.isAdmin
         });
 
-        // ユーザー情報と成功メッセージを返す
-        res.json({
-          message: "ログイン成功",
-          user: user,
-        });
+        // ハイブリッド認証レスポンス（JWT付き）を返す
+        const authResponse = hybridAuthManager.createAuthResponse(user);
+        res.json(authResponse);
       });
     })(req, res, next);
   });
@@ -104,13 +123,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/check-auth", (req, res) => {
-    console.log("[CHECK-AUTH] Session debug:", {
-      sessionID: req.sessionID,
-      isAuthenticated: req.isAuthenticated(),
-      user: req.user,
-      session: req.session,
-      cookies: req.headers.cookie
-    });
     
     if (req.isAuthenticated() && req.user) {
       // セッションに保存されているユーザー情報をログ出力
@@ -119,10 +131,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: string;
         isAdmin?: boolean;
       };
-      console.log("Check-auth - authenticated user info:", {
-        id: user.id,
+      logger.debug('Check-auth - authenticated user', {
+        userId: user.id,
         username: user.username,
-        isAdmin: user.isAdmin,
+        isAdmin: user.isAdmin
       });
 
       // 明確に管理者フラグを含めて返す
@@ -135,10 +147,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
     } else {
-      console.log("Check-auth - not authenticated", {
+      logger.debug('Check-auth - not authenticated', {
         isAuthenticated: req.isAuthenticated(),
         hasUser: !!req.user,
-        sessionData: req.session
+        sessionID: req.sessionID
       });
       // 未認証でも200ステータスで応答（エラーではなく正常な状態として扱う）
       res.json({
@@ -173,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (fullData) {
         // 詳細データが必要な場合
         const projects = await storage.getAllProjects(includeDeleted);
-        console.log(`[DEBUG] Returning ${projects.length} full projects`);
+        logger.debug('Returning full projects', { count: projects.length });
         res.json(projects);
       } else {
         // デフォルトで軽量データを取得（パフォーマンス最適化）
@@ -1212,10 +1224,22 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
   app.get("/api/weekly-reports/by-case/:caseId", isAuthenticated, async (req, res) => {
     try {
       const caseId = parseInt(req.params.caseId);
+      console.log(`[DEBUG] Fetching weekly reports for case ID: ${caseId}`);
+      
+      if (isNaN(caseId)) {
+        console.error(`[ERROR] Invalid case ID: ${req.params.caseId}`);
+        return res.status(400).json({ message: "無効な案件IDです" });
+      }
+      
       const reports = await storage.getWeeklyReportsByCase(caseId);
+      console.log(`[DEBUG] Found ${reports.length} reports for case ${caseId}`);
       res.json(reports);
-    } catch (error) {
-      res.status(500).json({ message: "週次報告の取得に失敗しました" });
+    } catch (error: unknown) {
+      console.error(`[ERROR] Failed to fetch weekly reports for case ${req.params.caseId}:`, error);
+      res.status(500).json({ 
+        message: "週次報告の取得に失敗しました",
+        error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      });
     }
   });
 
@@ -1258,8 +1282,16 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       if (data.reporterName) {
         data.reporterName = data.reporterName.replace(/\s+/g, "");
       }
+      
+      // クライアントから送信されたバージョンをチェック
+      const clientVersion = req.body.version || existingReport.version;
+      
       const updatedData = insertWeeklyReportSchema.parse(data);
-      const updatedReport = await storage.updateWeeklyReport(id, updatedData);
+      // versionは楽観的ロック処理で管理するため削除
+      delete updatedData.version;
+      
+      // 楽観的ロック対応の更新を実行
+      const updatedReport = await storage.updateWeeklyReportWithVersion(id, updatedData, clientVersion);
 
       // 自動保存フラグがない場合のみAI分析を実行
       if (!req.query.autosave) {
@@ -1274,8 +1306,16 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       const finalReport = await storage.getWeeklyReport(id);
       res.json(finalReport);
     } catch (error) {
-      console.error("Error updating weekly report:", error);
-      res.status(400).json({ message: "Failed to update weekly report" });
+      if (error instanceof OptimisticLockError) {
+        // 楽観的ロック競合エラー
+        res.status(409).json({ 
+          message: "データが他のユーザーによって更新されています。ページを再読み込みしてください。",
+          type: "OptimisticLockError"
+        });
+      } else {
+        console.error("Error updating weekly report:", error);
+        res.status(400).json({ message: "Failed to update weekly report" });
+      }
     }
   });
 
@@ -1360,23 +1400,37 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
           data.reporterName = data.reporterName.replace(/\s+/g, "");
         }
 
+        // クライアントから送信されたバージョンをチェック
+        const clientVersion = req.body.version || existingReport.version;
+
         // 既存のデータと新しいデータをマージして必須フィールドが欠けないようにする
         const mergedData = { ...existingReport, ...data };
         delete mergedData.id; // idは更新対象外
         delete mergedData.createdAt; // createdAtは更新対象外
         delete mergedData.aiAnalysis; // aiAnalysisは更新対象外
+        delete mergedData.version; // versionは楽観的ロック処理で管理
 
-        const updatedReport = await storage.updateWeeklyReport(id, mergedData);
+        // 楽観的ロック対応の更新を実行
+        const updatedReport = await storage.updateWeeklyReportWithVersion(id, mergedData, clientVersion);
 
-        // 簡略化したレスポンスを返す
+        // 簡略化したレスポンスを返す（新しいバージョンを含む）
         res.json({
           id: updatedReport.id,
+          version: updatedReport.version,
           message: "Auto-saved successfully",
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
-        console.error("Error auto-saving weekly report:", error);
-        res.status(400).json({ message: "Failed to auto-save weekly report" });
+        if (error instanceof OptimisticLockError) {
+          // 楽観的ロック競合エラー
+          res.status(409).json({ 
+            message: "データが他のユーザーによって更新されています。ページを再読み込みしてください。",
+            type: "OptimisticLockError"
+          });
+        } else {
+          console.error("Error auto-saving weekly report:", error);
+          res.status(400).json({ message: "Failed to auto-save weekly report" });
+        }
       }
     },
   );
@@ -1393,9 +1447,9 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       
       console.log(`[ADMIN EDIT START] 管理者編集開始リクエスト`, {
         reportId: id,
-        userId: req.user?.id,
-        username: req.user?.username,
-        isAdmin: req.user?.isAdmin,
+        userId: (req.user as AuthenticatedUser)?.id,
+        username: (req.user as AuthenticatedUser)?.username,
+        isAdmin: (req.user as AuthenticatedUser)?.isAdmin,
         sessionID: req.sessionID,
         timestamp: new Date().toISOString()
       });
@@ -1432,11 +1486,11 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         console.log(`[ADMIN EDIT START] 成功レスポンス送信: ID ${id}`);
         res.json(responseData);
         
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`[ADMIN EDIT START] エラー発生:`, {
           reportId: id,
-          error: error.message,
-          stack: error.stack,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
           timestamp: new Date().toISOString()
         });
         res.status(500).json({ message: "管理者編集の開始に失敗しました" });
@@ -1516,7 +1570,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
             originalData,
             (req.user as any)?.username || "管理者",
             previousReport || undefined
-          ).catch(error => {
+          ).catch((error: unknown) => {
             console.error("Admin confirmation email generation failed:", error);
             return null; // エラー時はnullを返して処理を続行
           }) : Promise.resolve(null),

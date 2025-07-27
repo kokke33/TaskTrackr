@@ -696,7 +696,43 @@ export default function CaseList() {
 
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold">案件管理</h1>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                // 全プロジェクトを選択
+                setSelectedProjects(Object.keys(groupedCases));
+                
+                // すべての非削除案件を選択
+                const allCaseIds = Object.values(groupedCases)
+                  .flatMap(cases => cases.filter(c => !c.isDeleted).map(c => c.id));
+                setSelectedCases(allCaseIds);
+                
+                handleMonthlyReportClick();
+              }}
+              disabled={monthlySummaryMutation.isPending}
+              className="flex items-center gap-2"
+            >
+              {monthlySummaryMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
+              {monthlySummaryMutation.isPending 
+                ? "生成中..." 
+                : "月次状況報告書"}
+            </Button>
+            
+            <AdminOnly>
+              <Link href="/case/new">
+                <Button className="flex items-center gap-1">
+                  <Plus className="h-4 w-4" />
+                  新規案件作成
+                </Button>
+              </Link>
+            </AdminOnly>
+            
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* 検索バーとフィルター */}
@@ -767,45 +803,8 @@ export default function CaseList() {
             </div>
           )}
           
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-500">
-              {filteredCases.length}件の案件が見つかりました
-            </div>
-            <div className="flex flex-col space-y-2">
-              <Button
-                onClick={() => {
-                  // 全プロジェクトを選択
-                  setSelectedProjects(Object.keys(groupedCases));
-                  
-                  // すべての非削除案件を選択
-                  const allCaseIds = Object.values(groupedCases)
-                    .flatMap(cases => cases.filter(c => !c.isDeleted).map(c => c.id));
-                  setSelectedCases(allCaseIds);
-                  
-                  handleMonthlyReportClick();
-                }}
-                disabled={monthlySummaryMutation.isPending}
-                className="flex items-center gap-2"
-              >
-                {monthlySummaryMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FileText className="h-4 w-4" />
-                )}
-                {monthlySummaryMutation.isPending 
-                  ? "生成中..." 
-                  : "月次状況報告書"}
-              </Button>
-              
-              <AdminOnly>
-                <Link href="/case/new">
-                  <Button className="flex items-center gap-1">
-                    <Plus className="h-4 w-4" />
-                    新規案件作成
-                  </Button>
-                </Link>
-              </AdminOnly>
-            </div>
+          <div className="text-sm text-gray-500">
+            {filteredCases.length}件の案件が見つかりました
           </div>
         </div>
 

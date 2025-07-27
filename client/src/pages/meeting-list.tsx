@@ -134,11 +134,6 @@ export default function MeetingList() {
 
     // データが不完全な場合は空の配列を返す
     if (!cases || !managerMeetings) {
-      console.log('[DEBUG] 必要なデータが不足しています:', {
-        hasCases: !!cases,
-        hasManagerMeetings: !!managerMeetings,
-        hasProjects: !!projects
-      });
       return meetings;
     }
 
@@ -151,24 +146,12 @@ export default function MeetingList() {
       let targetProjectIds: number[] = [];
       let targetProjectName: string = '';
       
-      console.log('[DEBUG] マネ定議事録抽出開始:', {
-        selectedCase,
-        selectedProject,
-        managerMeetingsCount: managerMeetings.length,
-        casesCount: cases?.length,
-        projectsCount: projects?.length
-      });
       
       if (selectedCase && cases) {
         // 案件選択時：選択された案件が属するプロジェクトの定例議事録を表示
         const selectedCaseData = cases.find(c => c.id === selectedCase);
         
         if (selectedCaseData) {
-          console.log('[DEBUG] 選択された案件データ:', {
-            caseId: selectedCaseData.id,
-            caseName: selectedCaseData.caseName,
-            projectName: selectedCaseData.projectName
-          });
           
           // projectId の複数パターンでの取得を試行
           // 案件テーブルにはprojectIdフィールドが存在しないため、projectNameから逆引きする
@@ -178,11 +161,6 @@ export default function MeetingList() {
           if (projects && selectedCaseData.projectName) {
             const matchingProject = projects.find(p => p.name === selectedCaseData.projectName);
             projectId = matchingProject?.id;
-            console.log('[DEBUG] プロジェクト名による逆引き結果:', {
-              searchName: selectedCaseData.projectName,
-              foundProject: matchingProject,
-              projectId
-            });
           }
           
           // パターン2: プロジェクトデータが取得できない場合のフォールバック
@@ -195,23 +173,13 @@ export default function MeetingList() {
             
             if (matchingMeeting) {
               projectId = matchingMeeting.projectId;
-              console.log('[DEBUG] マネ定議事録からのプロジェクトID推定:', {
-                searchName: selectedCaseData.projectName,
-                foundMeetingTitle: matchingMeeting.title,
-                inferredProjectId: projectId
-              });
             }
           }
           
           if (projectId) {
             targetProjectIds = [projectId];
             targetProjectName = selectedCaseData.projectName;
-            console.log('[DEBUG] 案件選択時の対象プロジェクトID設定:', {
-              targetProjectIds,
-              targetProjectName
-            });
           } else {
-            console.warn('[DEBUG] プロジェクトIDが特定できませんでした:', selectedCaseData);
           }
         }
       } else if (selectedProject) {
@@ -243,37 +211,18 @@ export default function MeetingList() {
           });
           
           if (matchingMeetings.length > 0) {
-            console.log('[DEBUG] マネ定議事録からプロジェクトIDを推定:', {
-              selectedProject,
-              matchingMeetingsCount: matchingMeetings.length,
-              inferredProjectIds: Array.from(projectIdSet)
-            });
           }
         }
         
         targetProjectIds = Array.from(projectIdSet);
         targetProjectName = selectedProject;
         
-        console.log('[DEBUG] プロジェクト選択時の対象プロジェクトID設定:', {
-          selectedProject,
-          selectedProjectCasesCount: selectedProjectCases?.length,
-          targetProjectIds,
-          targetProjectName
-        });
       }
       
-      console.log('[DEBUG] 最終的な対象プロジェクトID:', targetProjectIds);
       
       if (targetProjectIds.length > 0) {
         let matchedCount = 0;
         managerMeetings.forEach(meeting => {
-          console.log('[DEBUG] 議事録チェック:', {
-            meetingId: meeting.id,
-            meetingTitle: meeting.title,
-            meetingProjectId: meeting.projectId,
-            targetProjectIds,
-            isMatch: targetProjectIds.includes(meeting.projectId)
-          });
           
           // 議事録のprojectIdが対象プロジェクトに属するかチェック
           if (targetProjectIds.includes(meeting.projectId)) {
@@ -291,13 +240,7 @@ export default function MeetingList() {
           }
         });
         
-        console.log('[DEBUG] マネ定議事録抽出結果:', {
-          totalManagerMeetings: managerMeetings.length,
-          matchedCount,
-          addedToMeetings: matchedCount
-        });
       } else {
-        console.log('[DEBUG] 対象プロジェクトIDが特定できないため、マネ定議事録は表示されません');
       }
     }
 
