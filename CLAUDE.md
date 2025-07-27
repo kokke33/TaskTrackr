@@ -35,6 +35,17 @@ TaskTrackrプロジェクトのClaude Code用設定ファイルです。この�
 - `tsx server/index.ts` - サーバーの直接実行（デバッグ用）
 - `npx drizzle-kit push` - データベーススキーマの手動プッシュ
 
+### テストコマンド
+- `npm test` - 全テスト実行（ユニット + 統合テスト）
+- `npm run test:unit` - ユニットテストのみ実行
+- `npm run test:integration` - 統合テストのみ実行
+- `npm run test:watch` - ウォッチモード（開発時）
+- `npm run test:coverage` - カバレッジレポート付きテスト実行
+- `npm run test:ui` - ブラウザでテスト結果表示
+- `npm test tests/unit/server/basic.test.ts` - 特定ファイルのテスト実行
+- `npm test button` - パターンマッチによるテスト実行
+- `npm test -- --reporter=verbose` - 詳細ログ付きテスト実行
+
 ### 重要：統合サーバー設計
 - **統一ポート構成**: 開発時は単一のExpressサーバーがポート5000でフロントエンドとバックエンドの両方を配信
 - **個別起動不可**: フロントエンドとバックエンドを個別に起動するコマンドは存在しない
@@ -56,6 +67,7 @@ TypeScriptチェックは以下のフォーム値型エラーで現在失敗し�
 - **AI統合**: マルチプロバイダー対応（OpenAI、Ollama、Google Gemini、Groq、OpenRouter）
 - **フォーム処理**: React Hook Form + Zod バリデーション
 - **スタイリング**: TailwindCSS + Tailwind Animate + class-variance-authority
+- **テスト**: Vitest 3.2.4 + React Testing Library + MSW + Supertest + Happy DOM
 
 ### プロジェクト構造
 ```
@@ -92,6 +104,15 @@ TaskTrackr/
 │       └── reports/     # レポート用プロンプト
 ├── shared/              # 共有TypeScript型定義
 │   └── schema.ts        # Drizzle ORMスキーマ定義
+├── tests/               # テストファイル
+│   ├── unit/           # ユニットテスト
+│   │   ├── client/     # フロントエンドテスト
+│   │   └── server/     # バックエンドテスト
+│   ├── integration/    # 統合テスト
+│   ├── __fixtures__/   # テストデータ
+│   ├── __mocks__/      # MSWモック
+│   ├── utils/          # テストユーティリティ
+│   └── setup.ts        # テスト環境設定
 ├── .claude/             # Claude Code 知識管理
 │   ├── context.md       # プロジェクトコンテキスト
 │   ├── project-knowledge.md # 技術知識
@@ -385,17 +406,42 @@ npm run dev
 - **パスワード**: `password`
 
 ### テスト実行
-現在、専用のテストフレームワークは設定されていません。機能テストは手動で実行：
-1. `npm run dev` でサーバー起動
-2. ブラウザで `localhost:5000` にアクセス
-3. 管理者ログイン（admin/password）で機能確認
+包括的なテストインフラが構築されています：
 
-**注意**: 将来的にはJest/VitestやPlaywrightなどのテストフレームワークの導入を検討してください。現在は統合テストも手動で実行する必要があります。
+#### 基本テスト実行
+```bash
+npm test                    # 全テスト実行（51件のテスト）
+npm run test:unit          # ユニットテスト（26件）
+npm run test:integration   # 統合テスト（25件）
+npm run test:watch         # ウォッチモード（開発時）
+npm run test:coverage      # カバレッジレポート生成
+```
+
+#### 個別テスト実行
+```bash
+npm test tests/unit/server/basic.test.ts    # 特定ファイル
+npm test button                             # パターンマッチ
+npm test -- --reporter=verbose             # 詳細ログ
+```
+
+#### テスト環境
+- **テストフレームワーク**: Vitest 3.2.4
+- **Reactテスト**: React Testing Library 16.3.0
+- **モッキング**: MSW (Mock Service Worker)
+- **カバレッジ**: @vitest/coverage-v8
+- **現在のカバレッジ**: 1.06%（基盤構築完了）
+
+#### CI/CD統合
+- GitHub Actionsで自動テスト実行
+- Node.js 18.x, 20.x マトリックステスト
+- PostgreSQLデータベースサービス
+- Codecovカバレッジレポート
 
 ### 品質チェック
 ```bash
 npm run check    # TypeScript型チェック
 npm run build    # ビルドエラーチェック
+npm test         # 全テスト実行
 ```
 
 ## セキュリティとベストプラクティス
@@ -427,3 +473,26 @@ npm run build    # ビルドエラーチェック
 - データベースクエリの最適化（必要最小限のフィールド取得）
 - N+1問題の解決（一括データ取得）
 - 並列AI処理による応答時間の短縮（30-50%改善）
+
+## テスト開発パターン
+
+### 新しいテスト作成
+1. **ユニットテスト**: `tests/unit/[client|server]/component.test.ts`
+2. **統合テスト**: `tests/integration/feature.test.ts`
+3. **テストデータ**: `tests/__fixtures__/testData.ts`に追加
+4. **モック**: `tests/__mocks__/handlers.ts`でMSWハンドラー追加
+
+### テストのベストプラクティス
+- React Testing Libraryの`render()`でコンポーネントテスト
+- `userEvent.setup()`でユーザーインタラクション
+- `vi.mock()`で外部依存をモック化
+- `expect().toBeInTheDocument()`でDOM要素の存在確認
+- 非同期処理は`waitFor()`で適切に待機
+
+### テスト環境設定
+- `.env.test`: テスト用環境変数
+- `tests/setup.ts`: グローバルテスト設定
+- `vitest.config.ts`: Vitest設定とエイリアス
+- `tests/utils/testUtils.tsx`: カスタムレンダー関数
+
+詳細は`TESTING.md`を参照してください。
