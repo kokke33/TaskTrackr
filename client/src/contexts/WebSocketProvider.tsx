@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { WebSocketContext, WebSocketStatus, WebSocketMessage, EditingUser } from './WebSocketContext';
 import { useAuth } from '@/lib/auth';
+import { createLogger } from '@shared/logger';
 
 interface WebSocketProviderProps {
   children: ReactNode;
@@ -10,7 +11,8 @@ interface WebSocketProviderProps {
 }
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, url }) => {
-  console.log('[WebSocketProvider] Initializing with URL:', url);
+  const logger = createLogger('WebSocketProvider');
+  logger.info('Initializing with URL', { url });
   const { user } = useAuth();
   const [status, setStatus] = useState<WebSocketStatus>('closed');
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
@@ -26,23 +28,23 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
 
   const connect = useCallback(() => {
     if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
-      console.log('[WebSocketProvider] WebSocket already active, skipping connection');
+      logger.debug('WebSocket already active, skipping connection');
       return;
     }
 
-    console.log('[WebSocketProvider] Connecting to WebSocket...');
+    logger.info('Connecting to WebSocket');
     setStatus('connecting');
     
     try {
       wsRef.current = new WebSocket(url);
     } catch (error) {
-      console.error('[WebSocketProvider] Failed to create WebSocket:', error);
+      logger.error('Failed to create WebSocket', error);
       setStatus('closed');
       return;
     }
 
     wsRef.current.onopen = () => {
-      console.log('[WebSocketProvider] WebSocket connected');
+      logger.info('WebSocket connected');
       setStatus('open');
       reconnectAttemptsRef.current = 0;
       if (reconnectTimeoutRef.current) {
@@ -56,7 +58,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
     wsRef.current.onmessage = (event) => {
       try {
         const message: WebSocketMessage = JSON.parse(event.data);
-        console.log('[WebSocketProvider] Received message:', message);
+        logger.debug('Received message', { message });
         setLastMessage(message);
         
         // 編集ユーザー関連のメッセージを処理
@@ -69,57 +71,52 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
               startTime: new Date(user.startTime),
               lastActivity: new Date(user.lastActivity)
             }));
-            console.log('[WebSocketProvider] Setting editing users:', users);
-            console.log('[WebSocketProvider] User IDs and types:', users.map(u => ({ userId: u.userId, type: typeof u.userId })));
+            logger.debug('Setting editing users', { users, userTypes: users.map((u: any) => ({ userId: u.userId, type: typeof u.userId })) });
             setEditingUsers(users);
           }
         } else if (message.type === 'pong') {
-          console.log('[WebSocketProvider] === PONG MESSAGE RECEIVED ===');
-          console.log('[WebSocketProvider] Pong data:', message);
+          logger.debug('PONG MESSAGE RECEIVED', { message });
           if ((message as any).userId) {
             const originalUserId = (message as any).userId;
             const userId = String(originalUserId);
-            console.log('[WebSocketProvider] === SETTING CURRENT USER ID ===');
-            console.log('[WebSocketProvider] UserId conversion:', { 
-              originalUserId: originalUserId,
+            logger.info('Setting current user ID', {
+              originalUserId,
               originalType: typeof originalUserId,
               stringUserId: userId, 
               stringType: typeof userId,
               username: (message as any).username
             });
             setCurrentUserId(userId);
-            console.log('[WebSocketProvider] ✅ currentUserId set to:', userId);
           } else {
-            console.log('[WebSocketProvider] ⚠️ No userId in pong message');
+            logger.warn('No userId in pong message');
           }
         }
       } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
+        logger.error('Error parsing WebSocket message', error);
       }
     };
 
     wsRef.current.onclose = (event) => {
-      console.log('[WebSocketProvider] WebSocket disconnected. Code:', event.code, 'Reason:', event.reason, 'WasClean:', event.wasClean);
+      logger.info('WebSocket disconnected', { code: event.code, reason: event.reason, wasClean: event.wasClean });
       setStatus('closed');
       // 意図しない切断の場合、再接続を試みる（認証エラーは除外）
       if (event.code !== 1000 && event.code !== 1008 && event.code !== 1011) {
-        console.log('[WebSocketProvider] Scheduling reconnect due to unexpected disconnect');
+        logger.info('Scheduling reconnect due to unexpected disconnect');
         scheduleReconnect();
       } else if (event.code === 1008) {
-        console.log('[WebSocketProvider] Authentication required - not reconnecting');
+        logger.warn('Authentication required - not reconnecting');
       }
     };
 
     wsRef.current.onerror = (error) => {
-      console.error('[WebSocketProvider] WebSocket error:', error);
-      console.error('[WebSocketProvider] WebSocket readyState:', wsRef.current?.readyState);
+      logger.error('WebSocket error', { error, readyState: wsRef.current?.readyState });
       // onerrorは通常oncloseもトリガーするため、再接続はoncloseに任せる
     };
   }, [url]);
 
   const scheduleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-      console.error('[WebSocketProvider] WebSocket reconnect attempts exceeded.');
+      logger.error('WebSocket reconnect attempts exceeded', { attempts: reconnectAttemptsRef.current, maxAttempts: MAX_RECONNECT_ATTEMPTS });
       return;
     }
     setStatus('reconnecting');
@@ -128,7 +125,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       MAX_RECONNECT_DELAY
     );
 
-    console.log(`[WebSocketProvider] Scheduling reconnect attempt ${reconnectAttemptsRef.current + 1} in ${delay}ms`);
+    logger.info('Scheduling reconnect attempt', { attempt: reconnectAttemptsRef.current + 1, delay });
     reconnectTimeoutRef.current = setTimeout(() => {
       reconnectAttemptsRef.current++;
       connect();
@@ -137,13 +134,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
 
   // 認証状態に基づく接続制御
   useEffect(() => {
-    console.log('[WebSocketProvider] Auth state changed:', { user: user?.username, status });
+    logger.debug('Auth state changed', { username: user?.username, status });
     
     if (user && status === 'closed') {
-      console.log('[WebSocketProvider] User authenticated, connecting WebSocket');
+      logger.info('User authenticated, connecting WebSocket');
       connect();
     } else if (!user && (status === 'open' || status === 'connecting')) {
-      console.log('[WebSocketProvider] User not authenticated, closing WebSocket');
+      logger.info('User not authenticated, closing WebSocket');
       if (wsRef.current) {
         wsRef.current.close(1000, 'User not authenticated');
       }
@@ -155,22 +152,20 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
   useEffect(() => {
     if (user && !currentUserId && status === 'open') {
       const fallbackUserId = String(user.id);
-      console.log('[WebSocketProvider] === FALLBACK currentUserId SETTING ===');
-      console.log('[WebSocketProvider] Setting fallback currentUserId from auth:', {
+      logger.info('Setting fallback currentUserId from auth', {
         userId: user.id,
         stringUserId: fallbackUserId,
         username: user.username,
         reason: 'WebSocket pong not received'
       });
       setCurrentUserId(fallbackUserId);
-      console.log('[WebSocketProvider] ✅ Fallback currentUserId set to:', fallbackUserId);
     }
   }, [user, currentUserId, status]);
 
   // クリーンアップ用のuseEffect
   useEffect(() => {
     return () => {
-      console.log('[WebSocketProvider] Component unmounting, cleaning up');
+      logger.info('Component unmounting, cleaning up');
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
@@ -188,7 +183,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       
       // WebSocketが実際にCLOSEDなのにstatusがconnectingの場合、強制的に修正
       if (currentState === WebSocket.CLOSED && status === 'connecting') {
-        console.log('[WebSocketProvider] Sync status: closed');
+        logger.debug('Sync status: closed');
         setStatus('closed');
       }
     }, 10000); // 10秒に1回に変更
@@ -200,7 +195,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     } else {
-      console.warn('[WebSocketProvider] WebSocket not connected, message not sent');
+      logger.warn('WebSocket not connected, message not sent');
     }
   }, []);
 

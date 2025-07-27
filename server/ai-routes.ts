@@ -413,7 +413,7 @@ router.post('/api/chat/admin-email', isAuthenticated, async (req, res) => {
     try {
       const emailRecord = await db.select()
         .from(adminConfirmationEmails)
-        .where(eq(adminConfirmationEmails.id, emailId))
+        .where(eq(adminConfirmationEmails.id, parseInt(emailId, 10)))
         .limit(1);
 
       if (emailRecord.length > 0) {
@@ -460,7 +460,15 @@ router.post('/api/chat/admin-email', isAuthenticated, async (req, res) => {
       });
 
       const aiService = await getAIService();
-      const stream = aiService.generateResponseStream([
+      
+      // Check if streaming is supported
+      if (!aiService.generateStreamResponse) {
+        res.write('ストリーミング機能はこのプロバイダーではサポートされていません。');
+        res.end();
+        return;
+      }
+      
+      const stream = aiService.generateStreamResponse([
         { role: 'system', content: `あなたは管理者確認メールの内容についてユーザーの質問に答えるアシスタントです。` },
         ...history,
         { role: 'user', content: `管理者確認メールの内容:\n---\n${emailContent}\n---\n\nユーザーからの現在の質問: ${message}` }

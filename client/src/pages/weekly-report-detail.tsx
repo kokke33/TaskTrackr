@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { createLogger } from "@shared/logger";
 import { useAIAnalysis } from "@/hooks/use-ai-analysis";
 import { AIAnalysisResult } from "@/components/ai-analysis-result";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +42,7 @@ import { MilestoneDialog } from "@/components/milestone-dialog";
 
 
 export default function WeeklyReportDetail() {
+  const logger = createLogger('WeeklyReportDetail');
   const { id } = useParams<{ id: string }>();
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
@@ -129,7 +131,7 @@ export default function WeeklyReportDetail() {
           }, 100);
         }
       } catch (err) {
-        console.error('Error parsing URL parameters:', err);
+        logger.error('Error parsing URL parameters', err);
       }
     }
   }, [location, meetings]); // meetings依存でDOM更新後にスクロール
@@ -191,12 +193,14 @@ export default function WeeklyReportDetail() {
   // 管理者編集開始のミューテーション
   const adminEditStartMutation = useMutation({
     mutationFn: async () => {
-      console.log(`[ADMIN EDIT] 管理者編集開始を試行中... ID: ${id}`);
-      console.log(`[ADMIN EDIT] 現在のユーザー情報:`, {
-        id: user?.id,
-        username: user?.username,
-        isAdmin: user?.isAdmin,
-        isAuthenticated: !!user
+      logger.info('管理者編集開始を試行中', {
+        reportId: id,
+        user: {
+          id: user?.id,
+          username: user?.username,
+          isAdmin: user?.isAdmin,
+          isAuthenticated: !!user
+        }
       });
 
       try {
@@ -205,7 +209,7 @@ export default function WeeklyReportDetail() {
           method: 'POST'
         });
         
-        console.log(`[ADMIN EDIT] APIレスポンスデータ受信:`, data);
+        logger.debug('APIレスポンスデータ受信', { data });
         
         // データが正常に取得できた場合はそのまま返す
         if (data && typeof data === 'object') {
@@ -215,19 +219,20 @@ export default function WeeklyReportDetail() {
         }
         
       } catch (error) {
-        console.error(`[ADMIN EDIT] エラー発生:`, error);
+        logger.error('ADMIN EDIT エラー発生', error);
         
         // apiRequestから投げられたエラーメッセージをより詳細に処理
-        if (error.message.includes('403')) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('403')) {
           throw new Error('管理者編集の開始に失敗しました (権限エラー)');
-        } else if (error.message.includes('401')) {
+        } else if (errorMessage.includes('401')) {
           throw new Error('管理者編集の開始に失敗しました (認証エラー)');
-        } else if (error.message.includes('404')) {
+        } else if (errorMessage.includes('404')) {
           throw new Error('管理者編集の開始に失敗しました (週次報告が見つかりません)');
-        } else if (error.message.includes('500')) {
+        } else if (errorMessage.includes('500')) {
           throw new Error('管理者編集の開始に失敗しました (サーバーエラー)');
         } else {
-          throw new Error(`管理者編集の開始に失敗しました: ${error.message}`);
+          throw new Error(`管理者編集の開始に失敗しました: ${errorMessage}`);
         }
       }
     },
@@ -244,7 +249,7 @@ export default function WeeklyReportDetail() {
       });
     },
     onError: (error: Error) => {
-      console.error(`[ADMIN EDIT] 管理者編集開始エラー:`, error);
+      logger.error('管理者編集開始エラー', error);
       
       let errorMessage = error.message;
       let errorTitle = "管理者編集開始エラー";
@@ -353,10 +358,10 @@ export default function WeeklyReportDetail() {
   const relatedCase = cases?.find(c => c.id === report.caseId);
   const projectName = relatedCase?.projectName || report.projectName;
   
-  console.log('Report and Case info:', { 
+  logger.debug('Report and Case info', {
     reportProjectName: report.projectName,
     caseId: report.caseId,
-    foundProjectName: projectName 
+    foundProjectName: projectName
   });
 
   const renderSection = (title: string, content: string | null | undefined) => {

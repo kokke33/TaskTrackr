@@ -1,4 +1,9 @@
 import { type AIProvider } from "@shared/ai-constants";
+import winston from 'winston';
+import DailyRotateFile from 'winston-daily-rotate-file';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 export enum LogLevel {
   DEBUG = 'debug',
@@ -41,6 +46,8 @@ export class AILogger {
   private enableConsole: boolean;
   private enableFile: boolean;
   private maskSensitiveData: boolean;
+  private fileLogger?: winston.Logger;
+  private logDir: string;
   private requestCache: Map<string, {
     endpoint: string;
     method: string;
@@ -50,6 +57,11 @@ export class AILogger {
   }> = new Map();
 
   constructor() {
+    // Setup log directory
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    this.logDir = process.env.AI_LOG_DIR || path.join(__dirname, '../logs');
+    
     // Default to WARNING level in production, INFO in development
     const defaultLogLevel = process.env.NODE_ENV === 'production' ? LogLevel.WARN : LogLevel.INFO;
     this.logLevel = (process.env.AI_LOG_LEVEL as LogLevel) || defaultLogLevel;
@@ -58,13 +70,82 @@ export class AILogger {
     const defaultConsoleLogging = process.env.NODE_ENV === 'production' ? 'false' : 'true';
     this.enableConsole = (process.env.AI_LOG_CONSOLE || defaultConsoleLogging) === 'true';
     
-    this.enableFile = process.env.AI_LOG_FILE === 'true';
+    // Enable file logging automatically in production, or when explicitly requested
+    this.enableFile = process.env.AI_LOG_FILE === 'true' || process.env.NODE_ENV === 'production';
     this.maskSensitiveData = process.env.AI_LOG_MASK_SENSITIVE !== 'false';
+    
+    // Initialize file logging if enabled
+    if (this.enableFile) {
+      this.initializeFileLogger();
+    }
     
     // Set up periodic cache cleanup to prevent memory leaks
     setInterval(() => {
       this.cleanupCache();
     }, 60000); // Clean up every minute
+  }
+
+  private initializeFileLogger(): void {
+    try {
+      // Create log directory if it doesn't exist
+      if (!fs.existsSync(this.logDir)) {
+        fs.mkdirSync(this.logDir, { recursive: true });
+      }
+
+      // Daily rotate file transport for all logs
+      const dailyRotateTransport = new DailyRotateFile({
+        filename: path.join(this.logDir, 'ai-%DATE%.log'),
+        datePattern: 'YYYY-MM-DD',
+        zippedArchive: process.env.AI_LOG_COMPRESS !== 'false',
+        maxSize: process.env.AI_LOG_MAX_SIZE || '10m',
+        maxFiles: process.env.AI_LOG_MAX_FILES || '30d',
+        format: winston.format.combine(
+          winston.format.timestamp({
+            format: 'YYYY-MM-DD HH:mm:ss'
+          }),
+          winston.format.json()
+        )
+      });
+
+      // Error-only rotate file transport
+      const errorRotateTransport = new DailyRotateFile({
+        filename: path.join(this.logDir, 'ai-error-%DATE%.log'),
+        datePattern: 'YYYY-MM-DD',
+        zippedArchive: process.env.AI_LOG_COMPRESS !== 'false',
+        maxSize: process.env.AI_LOG_MAX_SIZE || '10m',
+        maxFiles: process.env.AI_LOG_MAX_FILES || '30d',
+        level: 'error',
+        format: winston.format.combine(
+          winston.format.timestamp({
+            format: 'YYYY-MM-DD HH:mm:ss'
+          }),
+          winston.format.json()
+        )
+      });
+
+      this.fileLogger = winston.createLogger({
+        level: this.logLevel,
+        transports: [
+          dailyRotateTransport,
+          errorRotateTransport
+        ],
+        exitOnError: false
+      });
+
+      // Log rotation events
+      dailyRotateTransport.on('rotate', (oldFilename, newFilename) => {
+        console.log(`AI Logger: Log file rotated from ${oldFilename} to ${newFilename}`);
+      });
+
+      dailyRotateTransport.on('archive', (zipFilename) => {
+        console.log(`AI Logger: Log file archived to ${zipFilename}`);
+      });
+
+      console.log(`AI Logger: File logging initialized at ${this.logDir}`);
+
+    } catch (error) {
+      console.error('AI Logger: Failed to initialize file logger:', error);
+    }
   }
 
   private shouldLog(level: LogLevel): boolean {
@@ -167,9 +248,22 @@ export class AILogger {
       }
     }
 
-    // File logging implementation would go here if needed
-    if (this.enableFile) {
-      // TODO: Implement file logging with rotation
+    // File logging with winston
+    if (this.enableFile && this.fileLogger) {
+      const logData = {
+        timestamp: entry.timestamp,
+        level: entry.level,
+        provider: entry.provider,
+        operation: entry.operation,
+        requestId: entry.requestId,
+        userId: entry.userId,
+        request: entry.request,
+        response: entry.response,
+        error: entry.error,
+        metadata: entry.metadata
+      };
+      
+      this.fileLogger.log(entry.level, 'AI Operation', logData);
     }
   }
 

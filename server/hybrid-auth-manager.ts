@@ -52,7 +52,7 @@ export class HybridAuthManager {
       expiresIn: this.jwtExpiresIn,
       issuer: 'tasktrackr',
       audience: 'tasktrackr-client'
-    });
+    } as jwt.SignOptions);
   }
 
   /**

@@ -25,6 +25,26 @@ import { aiRoutes } from "./ai-routes";
 import passport from "passport";
 import { isAuthenticated, isAdmin, isAuthenticatedHybrid, isAdminHybrid } from "./auth";
 import { hybridAuthManager } from "./hybrid-auth-manager";
+import { createLogger } from "@shared/logger";
+
+const logger = createLogger('Routes');
+
+// ユーザー型定義の拡張
+interface AuthenticatedUser {
+  id: number;
+  username: string;
+  isAdmin: boolean;
+}
+
+// Express Request型の拡張
+declare global {
+  namespace Express {
+    interface User extends AuthenticatedUser {}
+    interface Request {
+      user?: User;
+    }
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // 検索API
@@ -1214,11 +1234,11 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       const reports = await storage.getWeeklyReportsByCase(caseId);
       console.log(`[DEBUG] Found ${reports.length} reports for case ${caseId}`);
       res.json(reports);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`[ERROR] Failed to fetch weekly reports for case ${req.params.caseId}:`, error);
       res.status(500).json({ 
         message: "週次報告の取得に失敗しました",
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
       });
     }
   });
@@ -1427,9 +1447,9 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       
       console.log(`[ADMIN EDIT START] 管理者編集開始リクエスト`, {
         reportId: id,
-        userId: req.user?.id,
-        username: req.user?.username,
-        isAdmin: req.user?.isAdmin,
+        userId: (req.user as AuthenticatedUser)?.id,
+        username: (req.user as AuthenticatedUser)?.username,
+        isAdmin: (req.user as AuthenticatedUser)?.isAdmin,
         sessionID: req.sessionID,
         timestamp: new Date().toISOString()
       });
@@ -1466,11 +1486,11 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         console.log(`[ADMIN EDIT START] 成功レスポンス送信: ID ${id}`);
         res.json(responseData);
         
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`[ADMIN EDIT START] エラー発生:`, {
           reportId: id,
-          error: error.message,
-          stack: error.stack,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
           timestamp: new Date().toISOString()
         });
         res.status(500).json({ message: "管理者編集の開始に失敗しました" });
@@ -1550,7 +1570,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
             originalData,
             (req.user as any)?.username || "管理者",
             previousReport || undefined
-          ).catch(error => {
+          ).catch((error: unknown) => {
             console.error("Admin confirmation email generation failed:", error);
             return null; // エラー時はnullを返して処理を続行
           }) : Promise.resolve(null),
