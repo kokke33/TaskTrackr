@@ -48,6 +48,11 @@ jobs:
         cp .env.test .env
         echo "DATABASE_URL=postgresql://test:test@localhost:5432/tasktrackr_test" >> .env
 
+    - name: Setup database tables
+      run: npm run db:push
+      env:
+        DATABASE_URL: postgresql://test:test@localhost:5432/tasktrackr_test
+
     - name: Run TypeScript check
       run: npm run check
 
@@ -134,6 +139,11 @@ jobs:
       run: |
         cp .env.test .env
         echo "DATABASE_URL=postgresql://test:test@localhost:5432/tasktrackr_test" >> .env
+
+    - name: Setup database tables
+      run: npm run db:push
+      env:
+        DATABASE_URL: postgresql://test:test@localhost:5432/tasktrackr_test
 
     - name: Run integration tests
       run: npm run test:integration
