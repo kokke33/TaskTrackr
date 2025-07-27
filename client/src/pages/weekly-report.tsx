@@ -17,6 +17,7 @@ import { useMeetingMinutesGenerator } from "@/hooks/use-meeting-minutes-generato
 import { useAIAnalysis } from "@/hooks/use-ai-analysis";
 import { useWebSocket } from "@/contexts/useWebSocket"; // 新しいパスに変更
 import { EditingUsersIndicator } from "@/components/editing-users-indicator";
+import { useFormPerformance } from "@/hooks/use-performance";
 
 import { ReportHeader } from "@/components/weekly-report/report-header";
 import { BasicInfoForm } from "@/components/weekly-report/basic-info-form";
@@ -42,6 +43,9 @@ export default function WeeklyReport() {
     open: boolean;
     serverData: any;
   } | null>(null);
+
+  // パフォーマンス監視
+  const { measureFormOperation, measureRender } = useFormPerformance('WeeklyReport');
 
   const formHook = useWeeklyReportForm({ id });
   const {

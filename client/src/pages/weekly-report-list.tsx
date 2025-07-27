@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useListPerformance } from "@/hooks/use-performance";
 import { 
   Dialog,
   DialogContent,
@@ -66,6 +67,9 @@ type MonthlyReport = {
 export default function WeeklyReportList() {
   const { toast } = useToast();
   const [location] = useLocation();
+  
+  // パフォーマンス監視（レポート件数は後で動的に設定）
+  const { measureOperation, measureRender } = useListPerformance('WeeklyReportList', 0);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [selectedCase, setSelectedCase] = useState<number | null>(null);
   const [milestone, setMilestone] = useState<string>("");

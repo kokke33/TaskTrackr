@@ -3,6 +3,7 @@ import { DEFAULT_VALUES } from "@shared/ai-constants";
 import { db } from "./db";
 import { eq, desc, and, isNull, inArray, or, ne, sql, gte, lte, lt } from "drizzle-orm";
 import { hash } from "bcryptjs";
+import { performanceMonitor, measureAsync } from "@shared/performance-monitor";
 
 // 楽観的ロック競合エラー
 export class OptimisticLockError extends Error {
@@ -165,101 +166,107 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // ユーザー関連のメソッド
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id));
-    return user;
+    return measureAsync('database', 'getUser', async () => {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id));
+      return user;
+    }, { userId: id });
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username));
-    return user;
+    return measureAsync('database', 'getUserByUsername', async () => {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username));
+      return user;
+    }, { username });
   }
 
   // 検索関連のメソッド
   async search(query: string, type?: string): Promise<{ total: number, results: SearchResult[] }> {
-    if (!query || query.trim() === '') {
-      return { total: 0, results: [] };
-    }
+    return measureAsync('database', 'search', async () => {
+      if (!query || query.trim() === '') {
+        return { total: 0, results: [] };
+      }
 
-    // 全角スペースを半角に変換し、複数のスペースを単一のスペースに置換
-    const normalizedQuery = query.trim().replace(/　/g, ' ').replace(/\s+/g, ' ');
+      // 全角スペースを半角に変換し、複数のスペースを単一のスペースに置換
+      const normalizedQuery = query.trim().replace(/　/g, ' ').replace(/\s+/g, ' ');
 
-    // 検索キーワードを分割
-    const keywords = normalizedQuery.split(' ').filter(k => k.length > 0);
-    if (keywords.length === 0) {
-      return { total: 0, results: [] };
-    }
+      // 検索キーワードを分割
+      const keywords = normalizedQuery.split(' ').filter(k => k.length > 0);
+      if (keywords.length === 0) {
+        return { total: 0, results: [] };
+      }
 
-    const results: SearchResult[] = [];
+      const results: SearchResult[] = [];
 
-    // プロジェクトの検索
-    if (!type || type === 'project') {
-      const projectResults = await this.searchProjects(keywords);
-      results.push(...projectResults);
-    }
+      // プロジェクトの検索
+      if (!type || type === 'project') {
+        const projectResults = await this.searchProjects(keywords);
+        results.push(...projectResults);
+      }
 
-    // 案件の検索
-    if (!type || type === 'case') {
-      const caseResults = await this.searchCases(keywords);
-      results.push(...caseResults);
-    }
+      // 案件の検索
+      if (!type || type === 'case') {
+        const caseResults = await this.searchCases(keywords);
+        results.push(...caseResults);
+      }
 
-    // 週次報告の検索
-    if (!type || type === 'report') {
-      const reportResults = await this.searchWeeklyReports(keywords);
-      results.push(...reportResults);
-    }
+      // 週次報告の検索
+      if (!type || type === 'report') {
+        const reportResults = await this.searchWeeklyReports(keywords);
+        results.push(...reportResults);
+      }
 
-    // マネージャ定例議事録の検索
-    if (!type || type === 'meeting') {
-      const meetingResults = await this.searchManagerMeetings(keywords);
-      results.push(...meetingResults);
-    }
+      // マネージャ定例議事録の検索
+      if (!type || type === 'meeting') {
+        const meetingResults = await this.searchManagerMeetings(keywords);
+        results.push(...meetingResults);
+      }
 
-    // 結果を更新日時（作成日、更新日、レポート期間終了日など）の降順でソート
-    results.sort((a, b) => {
-      // プロジェクトと案件はcreatedAt/updatedAtの比較
-      if ((a.type === 'project' || a.type === 'case') && (b.type === 'project' || b.type === 'case')) {
-        // 日付文字列がない場合は現在の値を維持
+      // 結果を更新日時（作成日、更新日、レポート期間終了日など）の降順でソート
+      results.sort((a, b) => {
+        // プロジェクトと案件はcreatedAt/updatedAtの比較
+        if ((a.type === 'project' || a.type === 'case') && (b.type === 'project' || b.type === 'case')) {
+          // 日付文字列がない場合は現在の値を維持
+          return 0;
+        }
+
+        // reportの場合は、dateプロパティ（reportPeriodEndの日付文字列）を比較
+        if (a.type === 'report' && b.type === 'report') {
+          if (a.date && b.date) {
+            // 日付文字列を日付オブジェクトに変換して比較（降順）
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+          }
+        }
+
+        // meetingの場合は、dateプロパティ（meetingDateの日付文字列）を比較
+        if (a.type === 'meeting' && b.type === 'meeting') {
+          if (a.date && b.date) {
+            // 日付文字列を日付オブジェクトに変換して比較（降順）
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+          }
+        }
+
+        // レポートとマネージャ定例はプロジェクトや案件よりも新しい（上位に表示）
+        if ((a.type === 'report' || a.type === 'meeting') && (b.type !== 'report' && b.type !== 'meeting')) {
+          return -1;
+        }
+        if ((a.type !== 'report' && a.type !== 'meeting') && (b.type === 'report' || b.type === 'meeting')) {
+          return 1;
+        }
+
         return 0;
-      }
+      });
 
-      // reportの場合は、dateプロパティ（reportPeriodEndの日付文字列）を比較
-      if (a.type === 'report' && b.type === 'report') {
-        if (a.date && b.date) {
-          // 日付文字列を日付オブジェクトに変換して比較（降順）
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        }
-      }
-
-      // meetingの場合は、dateプロパティ（meetingDateの日付文字列）を比較
-      if (a.type === 'meeting' && b.type === 'meeting') {
-        if (a.date && b.date) {
-          // 日付文字列を日付オブジェクトに変換して比較（降順）
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        }
-      }
-
-      // レポートとマネージャ定例はプロジェクトや案件よりも新しい（上位に表示）
-      if ((a.type === 'report' || a.type === 'meeting') && (b.type !== 'report' && b.type !== 'meeting')) {
-        return -1;
-      }
-      if ((a.type !== 'report' && a.type !== 'meeting') && (b.type === 'report' || b.type === 'meeting')) {
-        return 1;
-      }
-
-      return 0;
-    });
-
-    return {
-      total: results.length,
-      results
-    };
+      return {
+        total: results.length,
+        results
+      };
+    }, { queryLength: query.length, type, keywordCount: query.trim().split(' ').length });
   }
 
   // 検索候補を取得するメソッド
@@ -893,35 +900,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllProjects(includeDeleted: boolean = false): Promise<Project[]> {
-    const query = db.select().from(projects);
+    return measureAsync('database', 'getAllProjects', async () => {
+      const query = db.select().from(projects);
 
-    if (!includeDeleted) {
-      query.where(eq(projects.isDeleted, false));
-    }
+      if (!includeDeleted) {
+        query.where(eq(projects.isDeleted, false));
+      }
 
-    return await query.orderBy(desc(projects.updatedAt));
+      return await query.orderBy(desc(projects.updatedAt));
+    }, { includeDeleted });
   }
 
   async getAllProjectsForList(includeDeleted: boolean = false): Promise<ProjectSummary[]> {
-    console.log(`[DEBUG] Using optimized getAllProjectsForList method`);
-    
-    const query = db
-      .select({
-        id: projects.id,
-        name: projects.name,
-        overview: projects.overview,
-        organization: projects.organization,
-        createdAt: projects.createdAt,
-        updatedAt: projects.updatedAt,
-        isDeleted: projects.isDeleted
-      })
-      .from(projects);
+    return measureAsync('database', 'getAllProjectsForList', async () => {
+      console.log(`[DEBUG] Using optimized getAllProjectsForList method`);
+      
+      const query = db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          overview: projects.overview,
+          organization: projects.organization,
+          createdAt: projects.createdAt,
+          updatedAt: projects.updatedAt,
+          isDeleted: projects.isDeleted
+        })
+        .from(projects);
 
-    if (!includeDeleted) {
-      query.where(eq(projects.isDeleted, false));
-    }
+      if (!includeDeleted) {
+        query.where(eq(projects.isDeleted, false));
+      }
 
-    return await query.orderBy(desc(projects.updatedAt));
+      return await query.orderBy(desc(projects.updatedAt));
+    }, { includeDeleted, optimized: true });
   }
 
   async updateProject(id: number, projectData: InsertProject): Promise<Project> {
@@ -991,15 +1002,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllCases(includeDeleted: boolean = false): Promise<Case[]> {
-    return withRetry(async () => {
-      const query = db.select().from(cases);
+    return measureAsync('database', 'getAllCases', async () => {
+      return withRetry(async () => {
+        const query = db.select().from(cases);
 
-      if (!includeDeleted) {
-        query.where(eq(cases.isDeleted, false));
-      }
+        if (!includeDeleted) {
+          query.where(eq(cases.isDeleted, false));
+        }
 
-      return await query.orderBy(desc(cases.createdAt));
-    });
+        return await query.orderBy(desc(cases.createdAt));
+      });
+    }, { includeDeleted });
   }
 
   async getCasesByProject(projectName: string): Promise<Case[]> {
@@ -1033,108 +1046,118 @@ export class DatabaseStorage implements IStorage {
 
   // 週次報告関連のメソッド
   async createWeeklyReport(report: InsertWeeklyReport): Promise<WeeklyReport> {
-    const [weeklyReport] = await db.insert(weeklyReports).values(report).returning();
-    return weeklyReport;
+    return measureAsync('database', 'createWeeklyReport', async () => {
+      const [weeklyReport] = await db.insert(weeklyReports).values(report).returning();
+      return weeklyReport;
+    }, { caseId: report.caseId });
   }
 
   async getWeeklyReport(id: number): Promise<WeeklyReport | undefined> {
-    const [report] = await db.select().from(weeklyReports).where(eq(weeklyReports.id, id));
-    return report;
+    return measureAsync('database', 'getWeeklyReport', async () => {
+      const [report] = await db.select().from(weeklyReports).where(eq(weeklyReports.id, id));
+      return report;
+    }, { reportId: id });
   }
 
   async getAllWeeklyReports(): Promise<WeeklyReport[]> {
-    // JOINを使って削除されていない案件の週次報告のみを取得
-    const result = await db
-      .select({
-        id: weeklyReports.id,
-        reportPeriodStart: weeklyReports.reportPeriodStart,
-        reportPeriodEnd: weeklyReports.reportPeriodEnd,
-        caseId: weeklyReports.caseId,
-        reporterName: weeklyReports.reporterName,
-        weeklyTasks: weeklyReports.weeklyTasks,
-        progressRate: weeklyReports.progressRate,
-        progressStatus: weeklyReports.progressStatus,
-        delayIssues: weeklyReports.delayIssues,
-        delayDetails: weeklyReports.delayDetails,
-        issues: weeklyReports.issues,
-        newRisks: weeklyReports.newRisks,
-        riskSummary: weeklyReports.riskSummary,
-        riskCountermeasures: weeklyReports.riskCountermeasures,
-        riskLevel: weeklyReports.riskLevel,
-        qualityConcerns: weeklyReports.qualityConcerns,
-        qualityDetails: weeklyReports.qualityDetails,
-        testProgress: weeklyReports.testProgress,
-        changes: weeklyReports.changes,
-        changeDetails: weeklyReports.changeDetails,
-        nextWeekPlan: weeklyReports.nextWeekPlan,
-        supportRequests: weeklyReports.supportRequests,
-        resourceConcerns: weeklyReports.resourceConcerns,
-        resourceDetails: weeklyReports.resourceDetails,
-        customerIssues: weeklyReports.customerIssues,
-        customerDetails: weeklyReports.customerDetails,
-        environmentIssues: weeklyReports.environmentIssues,
-        environmentDetails: weeklyReports.environmentDetails,
-        costIssues: weeklyReports.costIssues,
-        costDetails: weeklyReports.costDetails,
-        knowledgeIssues: weeklyReports.knowledgeIssues,
-        knowledgeDetails: weeklyReports.knowledgeDetails,
-        trainingIssues: weeklyReports.trainingIssues,
-        trainingDetails: weeklyReports.trainingDetails,
-        urgentIssues: weeklyReports.urgentIssues,
-        urgentDetails: weeklyReports.urgentDetails,
-        businessOpportunities: weeklyReports.businessOpportunities,
-        businessDetails: weeklyReports.businessDetails,
-        aiAnalysis: weeklyReports.aiAnalysis,
-        createdAt: weeklyReports.createdAt,
-        // 検索と表示のための案件のプロパティ
-        projectName: cases.projectName,
-        caseName: cases.caseName
-      })
-      .from(weeklyReports)
-      .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
-      .where(eq(cases.isDeleted, false))
-      .orderBy(desc(weeklyReports.reportPeriodStart));
+    return measureAsync('database', 'getAllWeeklyReports', async () => {
+      // JOINを使って削除されていない案件の週次報告のみを取得
+      const result = await db
+        .select({
+          id: weeklyReports.id,
+          reportPeriodStart: weeklyReports.reportPeriodStart,
+          reportPeriodEnd: weeklyReports.reportPeriodEnd,
+          caseId: weeklyReports.caseId,
+          reporterName: weeklyReports.reporterName,
+          weeklyTasks: weeklyReports.weeklyTasks,
+          progressRate: weeklyReports.progressRate,
+          progressStatus: weeklyReports.progressStatus,
+          delayIssues: weeklyReports.delayIssues,
+          delayDetails: weeklyReports.delayDetails,
+          issues: weeklyReports.issues,
+          newRisks: weeklyReports.newRisks,
+          riskSummary: weeklyReports.riskSummary,
+          riskCountermeasures: weeklyReports.riskCountermeasures,
+          riskLevel: weeklyReports.riskLevel,
+          qualityConcerns: weeklyReports.qualityConcerns,
+          qualityDetails: weeklyReports.qualityDetails,
+          testProgress: weeklyReports.testProgress,
+          changes: weeklyReports.changes,
+          changeDetails: weeklyReports.changeDetails,
+          nextWeekPlan: weeklyReports.nextWeekPlan,
+          supportRequests: weeklyReports.supportRequests,
+          resourceConcerns: weeklyReports.resourceConcerns,
+          resourceDetails: weeklyReports.resourceDetails,
+          customerIssues: weeklyReports.customerIssues,
+          customerDetails: weeklyReports.customerDetails,
+          environmentIssues: weeklyReports.environmentIssues,
+          environmentDetails: weeklyReports.environmentDetails,
+          costIssues: weeklyReports.costIssues,
+          costDetails: weeklyReports.costDetails,
+          knowledgeIssues: weeklyReports.knowledgeIssues,
+          knowledgeDetails: weeklyReports.knowledgeDetails,
+          trainingIssues: weeklyReports.trainingIssues,
+          trainingDetails: weeklyReports.trainingDetails,
+          urgentIssues: weeklyReports.urgentIssues,
+          urgentDetails: weeklyReports.urgentDetails,
+          businessOpportunities: weeklyReports.businessOpportunities,
+          businessDetails: weeklyReports.businessDetails,
+          aiAnalysis: weeklyReports.aiAnalysis,
+          createdAt: weeklyReports.createdAt,
+          // 検索と表示のための案件のプロパティ
+          projectName: cases.projectName,
+          caseName: cases.caseName
+        })
+        .from(weeklyReports)
+        .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+        .where(eq(cases.isDeleted, false))
+        .orderBy(desc(weeklyReports.reportPeriodStart));
 
-    return result as unknown as WeeklyReport[];
+      return result as unknown as WeeklyReport[];
+    }, { withJoin: true });
   }
 
   // 【新規追加】週次報告一覧用の軽量メソッド（パフォーマンス最適化版）
   async getAllWeeklyReportsForList(limit: number = 50): Promise<WeeklyReportSummary[]> {
-    console.log(`[DEBUG] Using optimized getAllWeeklyReportsForList method with limit: ${limit}`);
-    
-    const result = await db
-      .select({
-        id: weeklyReports.id,
-        reportPeriodStart: weeklyReports.reportPeriodStart,
-        reportPeriodEnd: weeklyReports.reportPeriodEnd,
-        reporterName: weeklyReports.reporterName,
-        progressRate: weeklyReports.progressRate,
-        progressStatus: weeklyReports.progressStatus,
-        createdAt: weeklyReports.createdAt,
-        caseId: weeklyReports.caseId,
-        // 案件情報（最小限）
-        projectName: cases.projectName,
-        caseName: cases.caseName
-      })
-      .from(weeklyReports)
-      .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
-      .where(eq(cases.isDeleted, false))
-      .orderBy(desc(weeklyReports.reportPeriodStart))
-      .limit(Math.min(limit, 100)); // 最大100件まで制限
+    return measureAsync('database', 'getAllWeeklyReportsForList', async () => {
+      console.log(`[DEBUG] Using optimized getAllWeeklyReportsForList method with limit: ${limit}`);
+      
+      const result = await db
+        .select({
+          id: weeklyReports.id,
+          reportPeriodStart: weeklyReports.reportPeriodStart,
+          reportPeriodEnd: weeklyReports.reportPeriodEnd,
+          reporterName: weeklyReports.reporterName,
+          progressRate: weeklyReports.progressRate,
+          progressStatus: weeklyReports.progressStatus,
+          createdAt: weeklyReports.createdAt,
+          caseId: weeklyReports.caseId,
+          // 案件情報（最小限）
+          projectName: cases.projectName,
+          caseName: cases.caseName
+        })
+        .from(weeklyReports)
+        .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+        .where(eq(cases.isDeleted, false))
+        .orderBy(desc(weeklyReports.reportPeriodStart))
+        .limit(Math.min(limit, 100)); // 最大100件まで制限
 
-    console.log(`[DEBUG] Retrieved ${result.length} weekly reports for list view`);
-    return result;
+      console.log(`[DEBUG] Retrieved ${result.length} weekly reports for list view`);
+      return result;
+    }, { limit: Math.min(limit, 100), optimized: true });
   }
 
   async updateWeeklyReport(id: number, report: InsertWeeklyReport): Promise<WeeklyReport> {
-    return await withRetry(async () => {
-      const [updated] = await db
-        .update(weeklyReports)
-        .set(report)
-        .where(eq(weeklyReports.id, id))
-        .returning();
-      return updated;
-    });
+    return measureAsync('database', 'updateWeeklyReport', async () => {
+      return await withRetry(async () => {
+        const [updated] = await db
+          .update(weeklyReports)
+          .set(report)
+          .where(eq(weeklyReports.id, id))
+          .returning();
+        return updated;
+      });
+    }, { reportId: id, caseId: report.caseId });
   }
 
   // 楽観的ロック対応の週次報告更新
@@ -1190,33 +1213,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLatestReportByCase(caseId: number, excludeId?: number): Promise<WeeklyReport | undefined> {
-    return await withRetry(async () => {
-      // 事前に案件が削除済みかチェック
-      const [caseInfo] = await db
-        .select()
-        .from(cases)
-        .where(eq(cases.id, caseId));
+    return measureAsync('database', 'getLatestReportByCase', async () => {
+      return await withRetry(async () => {
+        // 事前に案件が削除済みかチェック
+        const [caseInfo] = await db
+          .select()
+          .from(cases)
+          .where(eq(cases.id, caseId));
 
-      // 削除済みの案件の場合はundefinedを返す
-      if (caseInfo && caseInfo.isDeleted) {
-        return undefined;
-      }
+        // 削除済みの案件の場合はundefinedを返す
+        if (caseInfo && caseInfo.isDeleted) {
+          return undefined;
+        }
 
-      // 除外IDが指定されている場合はそれを除外
-      let whereConditions = [eq(weeklyReports.caseId, caseId)];
-      if (excludeId) {
-        whereConditions.push(ne(weeklyReports.id, excludeId));
-      }
+        // 除外IDが指定されている場合はそれを除外
+        let whereConditions = [eq(weeklyReports.caseId, caseId)];
+        if (excludeId) {
+          whereConditions.push(ne(weeklyReports.id, excludeId));
+        }
 
-      const query = db
-        .select()
-        .from(weeklyReports)
-        .where(and(...whereConditions));
+        const query = db
+          .select()
+          .from(weeklyReports)
+          .where(and(...whereConditions));
 
-      const [report] = await query.orderBy(desc(weeklyReports.reportPeriodStart));
+        const [report] = await query.orderBy(desc(weeklyReports.reportPeriodStart));
 
-      return report;
-    });
+        return report;
+      });
+    }, { caseId, excludeId });
   }
 
   async getPreviousReportByCase(caseId: number, beforeDate: string, excludeId?: number): Promise<WeeklyReport | undefined> {
@@ -1287,38 +1312,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWeeklyReportsByCase(caseId: number): Promise<WeeklyReport[]> {
-    return await withRetry(async () => {
-      console.log(`[DEBUG] getWeeklyReportsByCase: Checking case ${caseId}`);
-      
-      // 事前に案件が削除済みかチェック
-      const [caseInfo] = await db
-        .select()
-        .from(cases)
-        .where(eq(cases.id, caseId));
-      
-      console.log(`[DEBUG] getWeeklyReportsByCase: Case info:`, caseInfo);
-      
-      // 削除済みの案件の場合は空の配列を返す
-      if (caseInfo && caseInfo.isDeleted) {
-        console.log(`[DEBUG] getWeeklyReportsByCase: Case ${caseId} is deleted, returning empty array`);
-        return [];
-      }
-      
-      if (!caseInfo) {
-        console.log(`[DEBUG] getWeeklyReportsByCase: Case ${caseId} not found, returning empty array`);
-        return [];
-      }
+    return measureAsync('database', 'getWeeklyReportsByCase', async () => {
+      return await withRetry(async () => {
+        console.log(`[DEBUG] getWeeklyReportsByCase: Checking case ${caseId}`);
+        
+        // 事前に案件が削除済みかチェック
+        const [caseInfo] = await db
+          .select()
+          .from(cases)
+          .where(eq(cases.id, caseId));
+        
+        console.log(`[DEBUG] getWeeklyReportsByCase: Case info:`, caseInfo);
+        
+        // 削除済みの案件の場合は空の配列を返す
+        if (caseInfo && caseInfo.isDeleted) {
+          console.log(`[DEBUG] getWeeklyReportsByCase: Case ${caseId} is deleted, returning empty array`);
+          return [];
+        }
+        
+        if (!caseInfo) {
+          console.log(`[DEBUG] getWeeklyReportsByCase: Case ${caseId} not found, returning empty array`);
+          return [];
+        }
 
-      console.log(`[DEBUG] getWeeklyReportsByCase: Fetching reports for case ${caseId}`);
-      const reports = await db
-        .select()
-        .from(weeklyReports)
-        .where(eq(weeklyReports.caseId, caseId))
-        .orderBy(desc(weeklyReports.reportPeriodStart));
-      
-      console.log(`[DEBUG] getWeeklyReportsByCase: Found ${reports.length} reports`);
-      return reports;
-    });
+        console.log(`[DEBUG] getWeeklyReportsByCase: Fetching reports for case ${caseId}`);
+        const reports = await db
+          .select()
+          .from(weeklyReports)
+          .where(eq(weeklyReports.caseId, caseId))
+          .orderBy(desc(weeklyReports.reportPeriodStart));
+        
+        console.log(`[DEBUG] getWeeklyReportsByCase: Found ${reports.length} reports`);
+        return reports;
+      });
+    }, { caseId });
   }
 
   async getWeeklyReportsByCases(caseIds: number[], startDate?: Date, endDate?: Date): Promise<WeeklyReport[]> {
