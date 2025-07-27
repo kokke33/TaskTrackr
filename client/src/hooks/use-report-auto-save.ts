@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { WeeklyReport } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { devLog, devError } from "@shared/logger";
 
 type UseReportAutoSaveProps = {
   form: UseFormReturn<WeeklyReport>;
@@ -24,7 +25,7 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
   // currentVersion が変更された時に ref も更新
   useEffect(() => {
     if (currentVersion && currentVersion !== versionRef.current) {
-      console.log("🔄 Initial version update from props:", currentVersion);
+      devLog("🔄 Initial version update from props:", currentVersion);
       setVersion(currentVersion);
       versionRef.current = currentVersion;
     }
@@ -32,7 +33,7 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
 
   const autoSave = useCallback(async () => {
     if (!formChanged || isConflictResolving) {
-      console.log("⏩ Skipping auto-save:", { formChanged, isConflictResolving });
+      devLog("⏩ Skipping auto-save:", { formChanged, isConflictResolving });
       return;
     }
 
@@ -41,7 +42,7 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
       const currentVersionValue = versionRef.current; // ref から最新バージョンを取得
       const data = { ...form.getValues(), version: currentVersionValue };
       
-      console.log("💾 Auto-saving with version:", currentVersionValue);
+      devLog("💾 Auto-saving with version:", currentVersionValue);
 
       let url = "/api/weekly-reports/autosave";
       let method = "POST";
@@ -62,7 +63,7 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
         if (response.status === 409) {
           // 楽観的ロック競合エラー
           const errorData = await response.json();
-          console.log("⚠️ Version conflict detected:", errorData);
+          devLog("⚠️ Version conflict detected:", errorData);
           
           setIsConflictResolving(true);
           
@@ -87,7 +88,7 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
       
       // バージョンを更新
       if (result.version) {
-        console.log("✅ Auto-save successful, version updated to:", result.version);
+        devLog("✅ Auto-save successful, version updated to:", result.version);
         setVersion(result.version);
         versionRef.current = result.version; // ref も同時に更新
       }
@@ -96,7 +97,7 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
         window.history.replaceState(null, '', `/report/edit/${result.id}`);
       }
     } catch (error) {
-      console.error("💥 Error auto-saving report:", error);
+      devError("💥 Error auto-saving report:", error);
       toast({
         title: "自動保存エラー",
         description: "自動保存に失敗しました。手動で保存してください。",
@@ -139,14 +140,14 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
       await autoSave();
       return true;
     } catch (error) {
-      console.error("Immediate save failed:", error);
+      devError("Immediate save failed:", error);
       return false;
     }
   };
 
   // バージョンを更新する関数（外部から呼び出し可能）
   const updateVersion = useCallback((newVersion: number) => {
-    console.log("🔄 Updating version and ref from", versionRef.current, "to", newVersion);
+    devLog("🔄 Updating version and ref from", versionRef.current, "to", newVersion);
     setVersion(newVersion);
     versionRef.current = newVersion; // ref も同時に更新
   }, []);

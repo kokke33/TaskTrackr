@@ -5,6 +5,9 @@ import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { hybridAuthManager } from "./hybrid-auth-manager";
+import { createLogger } from "@shared/logger";
+
+const logger = createLogger('Auth');
 
 // ユーザー認証の設定
 passport.use(
@@ -39,15 +42,15 @@ passport.use(
         .from(users)
         .where(eq(users.id, userAuth.id));
 
-      console.log("認証成功 - ユーザー情報:", {
-        id: completeUser.id,
+      logger.info('認証成功', {
+        userId: completeUser.id,
         username: completeUser.username,
         isAdmin: completeUser.isAdmin
       });
 
       return done(null, completeUser);
     } catch (error) {
-      console.error("認証エラー:", error);
+      logger.error('認証エラー', error instanceof Error ? error : new Error(String(error)));
       return done(error);
     }
   })

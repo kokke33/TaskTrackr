@@ -15,6 +15,7 @@ export class UnifiedSessionManager {
   private storeType: 'memory' | 'postgresql' | 'redis';
 
   constructor() {
+    this.storeType = 'memory'; // 初期化
     this.store = this.createOptimalStore();
   }
 
@@ -126,7 +127,10 @@ export class UnifiedSessionManager {
       };
     }
 
-    return baseStats;
+    return {
+      ...baseStats,
+      info: {}
+    };
   }
 
   /**

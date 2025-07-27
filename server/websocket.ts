@@ -6,6 +6,9 @@ import session from 'express-session';
 import { db } from './db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { createLogger } from '@shared/logger';
+
+const logger = createLogger('WebSocket');
 
 // 編集セッション情報の型定義
 interface EditSession {
@@ -14,6 +17,20 @@ interface EditSession {
   username: string;
   startTime: Date;
   lastActivity: Date;
+}
+
+// セッションストア型定義
+interface SessionData {
+  passport?: {
+    user?: number;
+  };
+  [key: string]: any;
+}
+
+// WebSocket認証情報型定義
+interface WebSocketUser {
+  userId: string;
+  username: string;
 }
 
 // 接続管理
@@ -148,22 +165,23 @@ async function getSessionUser(sessionId: string): Promise<{ userId: string; user
       return;
     }
     
-    store.get(sessionId, async (err: any, sessionData: any) => {
-      console.log('WebSocket: Session lookup result:', { 
-        err: err?.message, 
+    store.get(sessionId, async (err: any, sessionData?: SessionData | null) => {
+      logger.debug('Session lookup result', { 
+        sessionId,
+        error: err?.message, 
         hasSessionData: !!sessionData,
         sessionKeys: sessionData ? Object.keys(sessionData) : [],
         passportData: sessionData?.passport 
       });
       
       if (err) {
-        console.error('WebSocket: Session store error:', err);
+        logger.error('Session store error', err, { sessionId });
         resolve(null);
         return;
       }
       
       if (!sessionData) {
-        console.log('WebSocket: No session data found for session ID:', sessionId);
+        logger.warn('No session data found', { sessionId });
         resolve(null);
         return;
       }
@@ -213,7 +231,7 @@ export function setupWebSocket(server: Server) {
   const wss = new WebSocketServer({ 
     server,
     path: '/ws',
-    verifyClient: async (info: any) => {
+    verifyClient: async (info: { req: any; origin?: string; secure?: boolean }) => {
       try {
         console.log('[WebSocket] Verifying client connection...');
         console.log('[WebSocket] Request headers:', {
