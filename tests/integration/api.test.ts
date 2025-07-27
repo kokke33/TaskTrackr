@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import request from "supertest";
-import { mockUser, mockProject } from "../__fixtures__/testData";
+import { mockUser, mockProject, mockCase } from "../__fixtures__/testData";
 
 // Express アプリをモック化（実際の実装では server/index.ts からインポート）
 const mockApp = {
@@ -13,14 +13,20 @@ const mockApp = {
 };
 
 // データベース操作をモック化
-vi.mock("../../server/storage", () => ({
-  findUserByUsername: vi.fn(),
-  createUser: vi.fn(),
-  createProject: vi.fn(),
-  getProjects: vi.fn(),
-  createCase: vi.fn(),
-  getCases: vi.fn(),
-}));
+vi.mock("../../server/storage", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../server/storage")>();
+  return {
+    ...actual,
+    storage: {
+      ...actual.storage,
+      getUserByUsername: vi.fn(),
+      createProject: vi.fn(),
+      getAllProjects: vi.fn(),
+      createCase: vi.fn(),
+      getAllCases: vi.fn(),
+    },
+  };
+});
 
 vi.mock("../../server/db", () => ({
   db: {
@@ -46,10 +52,10 @@ describe("API Integration Tests", () => {
 
   describe("Authentication Endpoints", () => {
     it("POST /api/auth/login - should login with valid credentials", async () => {
-      const { findUserByUsername } = await import("../../server/storage");
-      const mockFindUserByUsername = vi.mocked(findUserByUsername);
+      const { storage } = await import("../../server/storage");
+      const mockGetUserByUsername = vi.mocked(storage.getUserByUsername);
       
-      mockFindUserByUsername.mockResolvedValue(mockUser);
+      mockGetUserByUsername.mockResolvedValue(mockUser);
 
       // 実際のリクエストテストはExpressアプリが必要
       const loginData = {
@@ -70,10 +76,10 @@ describe("API Integration Tests", () => {
     });
 
     it("POST /api/auth/login - should reject invalid credentials", async () => {
-      const { findUserByUsername } = await import("../../server/storage");
-      const mockFindUserByUsername = vi.mocked(findUserByUsername);
+      const { storage } = await import("../../server/storage");
+      const mockGetUserByUsername = vi.mocked(storage.getUserByUsername);
       
-      mockFindUserByUsername.mockResolvedValue(null);
+      mockGetUserByUsername.mockResolvedValue(undefined);
 
       const loginData = {
         username: "invaliduser",
@@ -81,8 +87,8 @@ describe("API Integration Tests", () => {
       };
 
       // 無効な認証情報での試行
-      const user = await findUserByUsername(loginData.username);
-      expect(user).toBeNull();
+      const user = await storage.getUserByUsername(loginData.username);
+      expect(user).toBeUndefined();
     });
 
     it("POST /api/auth/logout - should logout successfully", async () => {
@@ -92,12 +98,12 @@ describe("API Integration Tests", () => {
     });
 
     it("GET /api/auth/me - should return current user info", async () => {
-      const { findUserByUsername } = await import("../../server/storage");
-      const mockFindUserByUsername = vi.mocked(findUserByUsername);
+      const { storage } = await import("../../server/storage");
+      const mockGetUserByUsername = vi.mocked(storage.getUserByUsername);
       
-      mockFindUserByUsername.mockResolvedValue(mockUser);
+      mockGetUserByUsername.mockResolvedValue(mockUser);
 
-      const user = await findUserByUsername("testuser");
+      const user = await storage.getUserByUsername("testuser");
       
       expect(user).toEqual(mockUser);
     });
@@ -105,20 +111,20 @@ describe("API Integration Tests", () => {
 
   describe("Project Endpoints", () => {
     it("GET /api/projects - should return all projects", async () => {
-      const { getProjects } = await import("../../server/storage");
-      const mockGetProjects = vi.mocked(getProjects);
+      const { storage } = await import("../../server/storage");
+      const mockGetProjects = vi.mocked(storage.getAllProjects);
       
       mockGetProjects.mockResolvedValue([mockProject]);
 
-      const projects = await getProjects();
+      const projects = await storage.getAllProjects();
       
       expect(projects).toEqual([mockProject]);
       expect(projects).toHaveLength(1);
     });
 
     it("POST /api/projects - should create new project", async () => {
-      const { createProject } = await import("../../server/storage");
-      const mockCreateProject = vi.mocked(createProject);
+      const { storage } = await import("../../server/storage");
+      const mockCreateProject = vi.mocked(storage.createProject);
       
       mockCreateProject.mockResolvedValue(mockProject);
 
@@ -128,19 +134,19 @@ describe("API Integration Tests", () => {
         createdBy: 1,
       };
 
-      const result = await createProject(projectData);
+      const result = await storage.createProject(projectData);
       
       expect(mockCreateProject).toHaveBeenCalledWith(projectData);
       expect(result).toEqual(mockProject);
     });
 
     it("GET /api/projects/:id - should return specific project", async () => {
-      const { getProjects } = await import("../../server/storage");
-      const mockGetProjects = vi.mocked(getProjects);
+      const { storage } = await import("../../server/storage");
+      const mockGetProjects = vi.mocked(storage.getAllProjects);
       
       mockGetProjects.mockResolvedValue([mockProject]);
 
-      const projects = await getProjects();
+      const projects = await storage.getAllProjects();
       const project = projects.find(p => p.id === 1);
       
       expect(project).toEqual(mockProject);
@@ -171,47 +177,44 @@ describe("API Integration Tests", () => {
 
   describe("Case Endpoints", () => {
     it("GET /api/cases - should return all cases", async () => {
-      const { getCases } = await import("../../server/storage");
-      const mockGetCases = vi.mocked(getCases);
+      const { storage } = await import("../../server/storage");
+      const mockGetCases = vi.mocked(storage.getAllCases);
       
-      const mockCases = [
-        {
-          id: 1,
-          name: "テストケース",
-          projectId: 1,
-          status: "進行中",
-          createdAt: new Date(),
-        },
-      ];
+      const mockCases = [mockCase];
       
       mockGetCases.mockResolvedValue(mockCases);
 
-      const cases = await getCases();
+      const cases = await storage.getAllCases();
       
       expect(cases).toEqual(mockCases);
     });
 
     it("POST /api/cases - should create new case", async () => {
-      const { createCase } = await import("../../server/storage");
-      const mockCreateCase = vi.mocked(createCase);
+      const { storage } = await import("../../server/storage");
+      const mockCreateCase = vi.mocked(storage.createCase);
       
       const newCase = {
         id: 2,
-        name: "新規ケース",
-        projectId: 1,
-        status: "新規",
+        projectName: "新規プロジェクト",
+        caseName: "新規ケース",
+        description: "新規ケースの説明",
+        milestone: "新規マイルストーン",
+        includeProgressAnalysis: true,
+        isDeleted: false,
         createdAt: new Date(),
       };
       
       mockCreateCase.mockResolvedValue(newCase);
 
       const caseData = {
-        name: "新規ケース",
-        projectId: 1,
-        createdBy: 1,
+        projectName: "新規プロジェクト",
+        caseName: "新規ケース",
+        description: "新規ケースの説明",
+        milestone: "新規マイルストーン",
+        includeProgressAnalysis: true,
       };
 
-      const result = await createCase(caseData);
+      const result = await storage.createCase(caseData);
       
       expect(mockCreateCase).toHaveBeenCalledWith(caseData);
       expect(result).toEqual(newCase);
@@ -238,12 +241,12 @@ describe("API Integration Tests", () => {
     });
 
     it("should handle 500 server errors", async () => {
-      const { getProjects } = await import("../../server/storage");
-      const mockGetProjects = vi.mocked(getProjects);
+      const { storage } = await import("../../server/storage");
+      const mockGetProjects = vi.mocked(storage.getAllProjects);
       
       mockGetProjects.mockRejectedValue(new Error("Database connection failed"));
 
-      await expect(getProjects()).rejects.toThrow("Database connection failed");
+      await expect(storage.getAllProjects()).rejects.toThrow("Database connection failed");
     });
   });
 

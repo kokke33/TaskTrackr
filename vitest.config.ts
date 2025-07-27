@@ -11,7 +11,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "happy-dom",
-    setupFiles: ["./tests/setup.ts"],
+    setupFiles: [path.resolve(__dirname, "tests", "setup.ts")], // 絶対パスに変更
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
