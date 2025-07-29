@@ -160,7 +160,7 @@ export default function CaseForm() {
                       <FormLabel className="required">プロジェクト名</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>

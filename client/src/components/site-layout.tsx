@@ -14,7 +14,7 @@ export function SiteLayout({ children }: SiteLayoutProps) {
       <SiteHeader isLoading={isLoading} />
       <main className="flex-1">{children}</main>
       <footer className="py-6 border-t">
-        <div className="container text-center text-sm text-muted-foreground">
+        <div className="container mx-auto text-center text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} プロジェクト管理システム</p>
         </div>
       </footer>

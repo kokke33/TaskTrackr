@@ -817,31 +817,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetCaseIds = allProjectCases.map((c) => c.id);
       }
 
-      // 対象案件に対して週次報告を取得
-      const periodReports = [];
-      const casesWithReports: number[] = []; // データがある案件のIDを記録
+      // 対象案件に対して週次報告を一括取得（パフォーマンス最適化）
+      console.log(`[DEBUG] Fetching reports for ${targetCaseIds.length} cases using batch query`);
+      const periodReports = await storage.getWeeklyReportsByCases(targetCaseIds, startDate, endDate);
+      console.log(`[DEBUG] Found ${periodReports.length} reports in date range`);
 
+      // 報告があった案件IDを抽出
+      const casesWithReports = Array.from(new Set(periodReports.map(report => report.caseId)));
+      console.log(`[DEBUG] Cases with reports: ${casesWithReports.length}`);
+
+      // デバッグ用：各案件のレポート数を表示
       for (const caseId of targetCaseIds) {
-        const reports = await storage.getWeeklyReportsByCase(caseId);
-        console.log(
-          `[DEBUG] Case ID: ${caseId}, Reports count: ${reports.length}`,
-        );
-
-        // 日付でフィルタリング
-        const filteredReports = reports.filter((report) => {
-          const reportDate = new Date(report.reportPeriodEnd);
-          return reportDate >= startDate && reportDate <= endDate;
-        });
-
-        console.log(
-          `[DEBUG] Case ID: ${caseId}, Filtered reports count: ${filteredReports.length}`,
-        );
-
-        // 報告があれば、その案件をデータありとして記録
-        if (filteredReports.length > 0) {
-          casesWithReports.push(caseId);
-          periodReports.push(...filteredReports);
-        }
+        const caseReportCount = periodReports.filter(report => report.caseId === caseId).length;
+        console.log(`[DEBUG] Case ID: ${caseId}, Filtered reports count: ${caseReportCount}`);
       }
 
       // レポートがある案件が1つもない場合はエラーを返す
