@@ -58,7 +58,7 @@ export function SiteHeader({ isLoading = false }: SiteHeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
-        <div className="ml-4 hidden md:flex">
+        <div className="hidden md:flex ml-6">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <span className="hidden font-bold sm:inline-block">TOP</span>
           </Link>
@@ -98,7 +98,7 @@ export function SiteHeader({ isLoading = false }: SiteHeaderProps) {
         </div>
         
         {/* モバイル用のロゴ */}
-        <div className="md:hidden">
+        <div className="md:hidden ml-4">
           <Link href="/">
             <span className="flex items-center font-bold cursor-pointer">PMS</span>
           </Link>
