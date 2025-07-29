@@ -212,7 +212,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 </FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -487,7 +487,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value ?? ""}
+                      value={field.value ?? ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -812,7 +812,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 <FormLabel>リソースに関する懸念</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value ?? ""}
+                  value={field.value ?? ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -875,7 +875,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 <FormLabel>顧客に関する懸念</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value ?? ""}
+                  value={field.value ?? ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -938,7 +938,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 <FormLabel>環境に関する懸念</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value ?? ""}
+                  value={field.value ?? ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -1001,7 +1001,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 <FormLabel>コストに関する懸念</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value ?? ""}
+                  value={field.value ?? ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -1064,7 +1064,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 <FormLabel>知識・スキルに関する懸念</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value ?? ""}
+                  value={field.value ?? ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -1127,7 +1127,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 <FormLabel>教育に関する懸念</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value ?? ""}
+                  value={field.value ?? ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -1189,7 +1189,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 <FormLabel>緊急課題に関する懸念</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value ?? ""}
+                  value={field.value ?? ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -1252,7 +1252,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 <FormLabel>営業チャンス・顧客ニーズ</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value ?? ""}
+                  value={field.value ?? ""}
                 >
                   <FormControl>
                     <SelectTrigger>
