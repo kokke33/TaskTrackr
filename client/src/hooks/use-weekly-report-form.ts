@@ -104,7 +104,9 @@ export function useWeeklyReportForm({ id }: UseWeeklyReportFormProps) {
   useEffect(() => {
     if (isEditMode && existingReport) {
       Object.entries(existingReport).forEach(([key, value]) => {
-        form.setValue(key as keyof WeeklyReport, value || "");
+        // null や undefined の場合のみデフォルト値を使用、それ以外は元の値を保持
+        const formValue = value === null || value === undefined ? "" : value;
+        form.setValue(key as keyof WeeklyReport, formValue);
       });
       setSelectedCaseId(existingReport.caseId);
     }
