@@ -48,6 +48,17 @@ jobs:
         cp .env.test .env
         echo "DATABASE_URL=postgresql://test:test@localhost:5432/tasktrackr_test" >> .env
 
+    - name: Verify database connection
+      run: |
+        echo "🔍 Testing database connection..."
+        PGPASSWORD=test psql -h localhost -U test -d tasktrackr_test -c "SELECT 1;" || {
+          echo "❌ Database connection failed"
+          echo "📋 PostgreSQL status:"
+          pg_isready -h localhost -p 5432
+          exit 1
+        }
+        echo "✅ Database connection verified"
+
     - name: Setup database tables
       run: npm run db:push
       env:
@@ -140,6 +151,17 @@ jobs:
         cp .env.test .env
         echo "DATABASE_URL=postgresql://test:test@localhost:5432/tasktrackr_test" >> .env
 
+    - name: Verify database connection
+      run: |
+        echo "🔍 Testing database connection..."
+        PGPASSWORD=test psql -h localhost -U test -d tasktrackr_test -c "SELECT 1;" || {
+          echo "❌ Database connection failed"
+          echo "📋 PostgreSQL status:"
+          pg_isready -h localhost -p 5432
+          exit 1
+        }
+        echo "✅ Database connection verified"
+
     - name: Setup database tables
       run: npm run db:push
       env:
@@ -158,11 +180,41 @@ jobs:
 
     - name: Test built application
       run: |
-        timeout 30s npm start &
-        sleep 10
-        curl -f http://localhost:5000 || exit 1
+        echo "🚀 Starting application..."
+        timeout 60s npm start &
+        APP_PID=$!
+        echo "📝 Application PID: $APP_PID"
+        
+        echo "⏳ Waiting for application to start..."
+        sleep 15
+        
+        echo "🔍 Checking if application is running..."
+        if ps -p $APP_PID > /dev/null; then
+          echo "✅ Application process is running"
+        else
+          echo "❌ Application process is not running"
+          exit 1
+        fi
+        
+        echo "🌐 Testing health check endpoint..."
+        for i in {1..5}; do
+          if curl -f http://localhost:5000 > /dev/null 2>&1; then
+            echo "✅ Health check passed on attempt $i"
+            break
+          else
+            echo "⏳ Health check failed on attempt $i, retrying in 3 seconds..."
+            sleep 3
+            if [ $i -eq 5 ]; then
+              echo "❌ Health check failed after 5 attempts"
+              echo "📋 Application logs:"
+              jobs
+              exit 1
+            fi
+          fi
+        done
       env:
         DATABASE_URL: postgresql://test:test@localhost:5432/tasktrackr_test
         SESSION_SECRET: test_session_secret
         AI_PROVIDER: test
         NODE_ENV: production
+        PORT: 5000
