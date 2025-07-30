@@ -106,7 +106,7 @@ type ManagerMeetingSummary = {
   id: number;
   projectId: number;
   title: string;
-  meetingDate: Date;
+  meetingDate: string;
   yearMonth: string;
   projectName: string;
   createdAt: Date;
@@ -117,7 +117,7 @@ type WeeklyReportMeetingSummary = {
   id: number;
   weeklyReportId: number;
   title: string;
-  meetingDate: Date;
+  meetingDate: string;
   createdAt: Date;
   // 週次報告経由での案件・プロジェクト情報
   caseName: string;
@@ -1177,7 +1177,7 @@ export class DatabaseStorage implements IStorage {
       return await withRetry(async () => {
         const [updated] = await db
           .update(weeklyReports)
-          .set(report)
+          .set({ ...report, updatedAt: new Date() })
           .where(eq(weeklyReports.id, id))
           .returning();
         return updated;
@@ -1199,7 +1199,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       // バージョンを1つ増やして更新
-      const updatedReport = { ...report, version: expectedVersion + 1 };
+      const updatedReport = { ...report, version: expectedVersion + 1, updatedAt: new Date() };
       
       const [updated] = await db
         .update(weeklyReports)
@@ -1221,7 +1221,7 @@ export class DatabaseStorage implements IStorage {
   async updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport> {
     const [updated] = await db
       .update(weeklyReports)
-      .set({ aiAnalysis: analysis })
+      .set({ aiAnalysis: analysis, updatedAt: new Date() })
       .where(eq(weeklyReports.id, id))
       .returning();
     return updated;
@@ -1447,6 +1447,7 @@ export class DatabaseStorage implements IStorage {
         businessDetails: weeklyReports.businessDetails,
         aiAnalysis: weeklyReports.aiAnalysis,
         createdAt: weeklyReports.createdAt,
+        updatedAt: weeklyReports.updatedAt,
         // 検索と表示のための案件のプロパティ
         projectName: cases.projectName,
         caseName: cases.caseName
@@ -1454,7 +1455,7 @@ export class DatabaseStorage implements IStorage {
       .from(weeklyReports)
       .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
       .where(eq(cases.isDeleted, false))
-      .orderBy(desc(weeklyReports.createdAt))
+      .orderBy(desc(weeklyReports.updatedAt))
       .limit(limit);
 
     return result as unknown as WeeklyReport[];

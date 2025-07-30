@@ -22,6 +22,7 @@ interface WeeklyReport {
   progressStatus: string;
   issues: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export default function RecentWeeklyReportsList() {
@@ -55,7 +56,9 @@ export default function RecentWeeklyReportsList() {
 
   // 日付フォーマット関数
   const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '-';
     return date.toLocaleDateString('ja-JP', {
       year: 'numeric',
       month: '2-digit',
@@ -108,13 +111,13 @@ export default function RecentWeeklyReportsList() {
         <Card>
           <CardHeader>
             <CardTitle>最近の週次報告</CardTitle>
-            <CardDescription>作成タイムスタンプが新しい順に表示しています</CardDescription>
+            <CardDescription>更新タイムスタンプが新しい順に表示しています</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>作成日時</TableHead>
+                  <TableHead>更新日時</TableHead>
                   <TableHead>報告期間</TableHead>
                   <TableHead>プロジェクト</TableHead>
                   <TableHead>案件名</TableHead>
@@ -127,7 +130,7 @@ export default function RecentWeeklyReportsList() {
               <TableBody>
                 {reports.map((report) => (
                   <TableRow key={report.id}>
-                    <TableCell>{formatDate(report.createdAt)}</TableCell>
+                    <TableCell>{formatDate(report.updatedAt)}</TableCell>
                     <TableCell>{formatDate(report.reportPeriodStart)} 〜 {formatDate(report.reportPeriodEnd)}</TableCell>
                     <TableCell>{report.projectName}</TableCell>
                     <TableCell>{report.caseName}</TableCell>
@@ -147,22 +150,11 @@ export default function RecentWeeklyReportsList() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link href={`/reports/${report.id}`}>
-                          <Button variant="outline" size="sm">
-                            詳細
-                          </Button>
-                        </Link>
-                        {user?.isAdmin && (
-                          <AdminOnly>
-                            <Link href={`/report/edit/${report.id}`}>
-                              <Button variant="outline" size="sm">
-                                編集
-                              </Button>
-                            </Link>
-                          </AdminOnly>
-                        )}
-                      </div>
+                      <Link href={`/reports/${report.id}`}>
+                        <Button variant="outline" size="sm">
+                          詳細
+                        </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}

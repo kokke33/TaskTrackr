@@ -221,7 +221,7 @@ export function isAuthenticated(req: any, res: any, next: any) {
     timestamp: new Date().toISOString(),
     // より詳細なセッション情報
     sessionData: req.session,
-    cookieNames: req.headers.cookie ? req.headers.cookie.split(';').map(c => c.trim().split('=')[0]) : [],
+    cookieNames: req.headers.cookie ? req.headers.cookie.split(';').map((c: string) => c.trim().split('=')[0]) : [],
     userAgentShort: req.headers['user-agent']?.substring(0, 50) + '...'
   };
   
