@@ -22,6 +22,11 @@ export default defineConfig({
         ]
       : []),
   ],
+  define: {
+    // 環境変数をクライアントサイドで利用可能にする
+    'import.meta.env.VITE_LOG_LEVEL': JSON.stringify(process.env.LOG_LEVEL || 'info'),
+    'import.meta.env.VITE_PORT': JSON.stringify(process.env.PORT || '5000'),
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
@@ -36,7 +41,8 @@ export default defineConfig({
   },
   server: {
     hmr: {
-      port: 5000,
+      port: parseInt(process.env.PORT || '5000', 10),
     },
+    port: parseInt(process.env.PORT || '5000', 10),
   },
 });

@@ -36,15 +36,15 @@ app.use(
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false, // MemoryStoreとの競合を防ぐ
     saveUninitialized: false, // セキュリティ向上：未初期化セッションは保存しない
-    rolling: true, // セッション固定攻撃対策：アクセス毎にセッションID更新
+    rolling: false, // 並列APIリクエスト対応：セッションID固定（セッション有効期限は延長される）
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // 本番環境では自動的にセキュア
-      sameSite: 'strict', // CSRF攻撃対策強化：strictモード
-      maxAge: 4 * 60 * 60 * 1000, // 4時間に短縮（セキュリティ向上）
-      httpOnly: true, // セキュリティ向上（XSS対策）
+      secure: false, // 開発環境では常にfalse（HTTPSでなくても動作）
+      sameSite: 'lax', // 開発環境用に緩和（strictから変更）
+      maxAge: 24 * 60 * 60 * 1000, // 24時間に延長（開発時の利便性向上）
+      httpOnly: true, // XSS対策は維持
       domain: undefined // 開発環境ではdomainを指定しない
     },
-    proxy: true,
+    proxy: false, // 開発環境では無効化
     name: 'tasktrackr_session', // より具体的なクッキー名
     unset: 'destroy' // セッション削除時にクッキーも削除
   })
@@ -203,7 +203,7 @@ app.use(UnifiedErrorHandler.handle);
     serveStatic(app);
   }
 
-  const port = 5000;
+  const port = parseInt(process.env.PORT || "5000", 10);
   server.listen({
     port,
     host: "0.0.0.0",

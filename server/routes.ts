@@ -164,6 +164,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/projects", isAuthenticated);
   app.use("/api/cases", isAuthenticated);
   app.use("/api/weekly-reports", isAuthenticated);
+  app.use("/api/weekly-report-meetings", isAuthenticated);
+  app.use("/api/manager-meetings", isAuthenticated);
 
   // プロジェクト関連のエンドポイント
   app.post("/api/projects", isAdmin, async (req, res) => {
@@ -2411,7 +2413,7 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
   );
 
   // 個別議事録取得
-  app.get("/api/manager-meetings/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/manager-meetings/:id", async (req, res) => {
     try {
       const meetingId = parseInt(req.params.id);
 
@@ -2506,9 +2508,10 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
   );
 
   // すべてのマネージャ定例議事録を取得
-  app.get("/api/manager-meetings", isAuthenticated, async (req, res) => {
+  app.get("/api/manager-meetings", async (req, res) => {
     try {
-      const meetings = await storage.getAllManagerMeetings();
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const meetings = await storage.getAllManagerMeetingsForList(limit);
       res.json(meetings);
     } catch (error) {
       console.error("Manager meetings fetch error:", error);
@@ -2517,9 +2520,10 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
   });
 
   // すべての週次報告会議議事録を取得
-  app.get("/api/weekly-report-meetings", isAuthenticated, async (req, res) => {
+  app.get("/api/weekly-report-meetings", async (req, res) => {
     try {
-      const meetings = await storage.getAllWeeklyReportMeetings();
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const meetings = await storage.getAllWeeklyReportMeetingsForList(limit);
       res.json(meetings);
     } catch (error) {
       console.error("Weekly report meetings fetch error:", error);
@@ -2528,7 +2532,7 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
   });
 
   // 案件別の週次報告会議議事録を取得
-  app.get("/api/weekly-report-meetings/by-case/:caseId", isAuthenticated, async (req, res) => {
+  app.get("/api/weekly-report-meetings/by-case/:caseId", async (req, res) => {
     try {
       const caseId = parseInt(req.params.caseId);
       if (isNaN(caseId)) {

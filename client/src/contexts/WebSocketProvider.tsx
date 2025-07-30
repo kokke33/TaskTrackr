@@ -32,6 +32,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       return;
     }
 
+    // URL validation
+    if (!url || url.includes('undefined')) {
+      logger.error('Invalid WebSocket URL', undefined, { url });
+      setStatus('closed');
+      return;
+    }
+
     logger.info('Connecting to WebSocket');
     setStatus('connecting');
     

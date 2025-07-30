@@ -25,8 +25,46 @@ class Logger {
   private isProduction: boolean;
 
   private constructor() {
-    this.isProduction = process.env.NODE_ENV === 'production';
-    this.logLevel = this.isProduction ? LogLevel.WARN : LogLevel.DEBUG;
+    // クライアント/サーバー環境の安全な判定
+    const isServer = typeof process !== 'undefined' && process.env;
+    const isClient = typeof window !== 'undefined';
+    
+    // 環境変数の安全な取得
+    let nodeEnv: string | undefined;
+    let logLevelEnv: string | undefined;
+    
+    if (isServer) {
+      // サーバーサイド: process.env を使用
+      nodeEnv = process.env.NODE_ENV;
+      logLevelEnv = process.env.LOG_LEVEL;
+    } else if (isClient && typeof import.meta !== 'undefined' && import.meta.env) {
+      // クライアントサイド: import.meta.env を使用
+      nodeEnv = import.meta.env.MODE === 'production' ? 'production' : 'development';
+      logLevelEnv = import.meta.env.VITE_LOG_LEVEL;
+    }
+    
+    this.isProduction = nodeEnv === 'production';
+    
+    // ログレベルの決定
+    const envLogLevel = logLevelEnv?.toUpperCase();
+    let defaultLevel = this.isProduction ? LogLevel.WARN : LogLevel.DEBUG;
+    
+    switch (envLogLevel) {
+      case 'DEBUG':
+        this.logLevel = LogLevel.DEBUG;
+        break;
+      case 'INFO':
+        this.logLevel = LogLevel.INFO;
+        break;
+      case 'WARN':
+        this.logLevel = LogLevel.WARN;
+        break;
+      case 'ERROR':
+        this.logLevel = LogLevel.ERROR;
+        break;
+      default:
+        this.logLevel = defaultLevel;
+    }
   }
 
   public static getInstance(): Logger {
@@ -128,13 +166,35 @@ export const createLogger = (componentName: string) =>
 
 // 旧式のconsole.logとの互換性のためのヘルパー
 export const devLog = (message: string, ...args: any[]) => {
-  if (process.env.NODE_ENV !== 'production') {
+  // 環境判定の安全な実装
+  const isProduction = (() => {
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env.NODE_ENV === 'production';
+    }
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      return import.meta.env.MODE === 'production';
+    }
+    return false;
+  })();
+  
+  if (!isProduction) {
     console.log(message, ...args);
   }
 };
 
 export const devError = (message: string, ...args: any[]) => {
-  if (process.env.NODE_ENV !== 'production') {
+  // 環境判定の安全な実装
+  const isProduction = (() => {
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env.NODE_ENV === 'production';
+    }
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      return import.meta.env.MODE === 'production';
+    }
+    return false;
+  })();
+  
+  if (!isProduction) {
     console.error(message, ...args);
   }
 };

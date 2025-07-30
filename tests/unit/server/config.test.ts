@@ -5,7 +5,7 @@ const mockEnv = {
   DATABASE_URL: "postgresql://test:test@localhost:5432/test",
   SESSION_SECRET: "test_secret",
   AI_PROVIDER: "test",
-  PORT: "3000",
+  PORT: "5000",
 };
 
 describe("Configuration", () => {
@@ -30,8 +30,8 @@ describe("Configuration", () => {
   });
 
   it("should parse port number correctly", () => {
-    const port = parseInt(process.env.PORT || "3000", 10);
-    expect(port).toBe(3000);
+    const port = parseInt(process.env.PORT || "5000", 10);
+    expect(port).toBe(5000);
     expect(typeof port).toBe("number");
   });
 

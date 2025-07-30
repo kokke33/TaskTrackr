@@ -29,40 +29,90 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isSessionExpired, setIsSessionExpired] = useState(false);
   const { toast } = useToast();
 
-  // セッション監視タイマー
+  // セッション監視タイマー（Visibility API最適化版）
   useEffect(() => {
-    let sessionCheckInterval: NodeJS.Timeout;
-    
-    if (isAuthenticated) {
-      // 5分ごとにセッション状態をチェック（離席後対策）
-      sessionCheckInterval = setInterval(async () => {
-        try {
-          const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
-            method: "GET"
-          });
+    let sessionCheckInterval: NodeJS.Timeout | null = null;
+    let lastCheckTime = 0;
+    let isPageVisible = true;
+
+    // セッションチェック実行関数（デバウンス付き）
+    const performSessionCheck = async () => {
+      const now = Date.now();
+      // 30秒以内の連続チェックを防止
+      if (now - lastCheckTime < 30000) {
+        return;
+      }
+      lastCheckTime = now;
+
+      try {
+        const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
+          method: "GET"
+        });
+        
+        if (!data.authenticated) {
+          console.log("🔔 セッション期限切れを検出しました");
+          setIsSessionExpired(true);
+          setIsAuthenticated(false);
+          setUser(null);
           
-          if (!data.authenticated) {
-            console.log("🔔 セッション期限切れを検出しました");
-            setIsSessionExpired(true);
-            setIsAuthenticated(false);
-            setUser(null);
-            
-            toast({
-              title: "セッション期限切れ",
-              description: "再度ログインしてください。",
-              variant: "destructive",
-            });
-          }
-        } catch (error) {
-          console.log("セッション監視エラー:", error);
+          toast({
+            title: "セッション期限切れ",
+            description: "再度ログインしてください。",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.log("セッション監視エラー:", error);
+      }
+    };
+
+    // Visibility API ハンドラー
+    const handleVisibilityChange = () => {
+      const wasVisible = isPageVisible;
+      isPageVisible = !document.hidden;
+      
+      if (!wasVisible && isPageVisible && isAuthenticated) {
+        // フォアグラウンド復帰時に1回のみチェック
+        console.log("📱 フォアグラウンド復帰 - セッション確認");
+        performSessionCheck();
+      }
+    };
+
+    // タイマー開始関数
+    const startSessionTimer = () => {
+      if (sessionCheckInterval) return;
+      
+      sessionCheckInterval = setInterval(async () => {
+        // タブが見えている時のみ実行（離席対策の根幹機能）
+        if (isPageVisible) {
+          await performSessionCheck();
         }
       }, 5 * 60 * 1000); // 5分間隔
+    };
+
+    // タイマー停止関数
+    const stopSessionTimer = () => {
+      if (sessionCheckInterval) {
+        clearInterval(sessionCheckInterval);
+        sessionCheckInterval = null;
+      }
+    };
+
+    if (isAuthenticated) {
+      // Visibility API リスナー追加
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      // タイマー開始
+      startSessionTimer();
+      
+      // 初期状態を設定
+      isPageVisible = !document.hidden;
     }
     
     return () => {
-      if (sessionCheckInterval) {
-        clearInterval(sessionCheckInterval);
-      }
+      // クリーンアップ
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopSessionTimer();
     };
   }, [isAuthenticated, toast]);
 
