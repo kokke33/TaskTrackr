@@ -54,7 +54,21 @@ export default function RecentWeeklyReportsList() {
     fetchRecentReports();
   }, [toast]);
 
-  // 日付フォーマット関数
+  // 日付時刻フォーマット関数（更新日時用）
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '-';
+    return date.toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  // 日付フォーマット関数（報告期間用）
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -130,7 +144,7 @@ export default function RecentWeeklyReportsList() {
               <TableBody>
                 {reports.map((report) => (
                   <TableRow key={report.id}>
-                    <TableCell>{formatDate(report.updatedAt)}</TableCell>
+                    <TableCell>{formatDateTime(report.updatedAt)}</TableCell>
                     <TableCell>{formatDate(report.reportPeriodStart)} 〜 {formatDate(report.reportPeriodEnd)}</TableCell>
                     <TableCell>{report.projectName}</TableCell>
                     <TableCell>{report.caseName}</TableCell>
