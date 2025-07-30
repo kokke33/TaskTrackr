@@ -1,15 +1,17 @@
-# プロジェクトコンテキスト
+# TaskTrackr プロジェクトコンテキスト
 
-## プロジェクト名
-TaskTrackr - タスク・プロジェクト管理システム
+## プロジェクト概要
+TaskTrackerは、プロジェクト・案件・週次報告を一元管理し、AIによる分析・議事録生成・性能最適化を備えたフルスタック TypeScript アプリケーションです。
 
-## 技術スタック
+## 技術スタック (2025年1月最新)
 - **フロントエンド**: React 18 + TypeScript + Vite + TailwindCSS + Wouter（ルーティング）
 - **バックエンド**: Express + TypeScript + Drizzle ORM + PostgreSQL
-- **認証**: Passport.js（セッションベース認証）
-- **UI**: Shadcn/ui コンポーネント（Radix UIプリミティブ）
-- **状態管理**: TanStack Query（React Query）
-- **AI統合**: OpenAI API / Ollama（設定可能なプロバイダー）
+- **認証**: Passport.js（セッションベース認証）+ 自動フォールバック
+- **UI**: Shadcn/ui（48+コンポーネント利用可能）+ Radix UIプリミティブ
+- **状態管理**: TanStack Query（React Query v5.60.5）
+- **AI統合**: 5つのプロバイダー対応（OpenAI, Ollama, Gemini, Groq, OpenRouter）
+- **WebSocket**: リアルタイム機能（ws v8.18.0）
+- **テスト**: Vitest 3.2.4 + React Testing Library + MSW + Supertest
 
 ## プロジェクトの目標
 - 包括的なタスクとプロジェクト管理システムの構築
@@ -21,19 +23,22 @@ TaskTrackr - タスク・プロジェクト管理システム
 ## 主要な制約
 
 ### アーキテクチャ制約
-- モノリシック構成（単一リポジトリでフロントエンドとバックエンドを管理）
-- セッションベース認証（JWTではなく）
-- PostgreSQL依存（Neon.tech互換性要件）
+- **統合サーバー設計**: フロント・バックエンドを個別起動するコマンドは存在しない
+- **セッションベース認証**: JWTではなく、PostgreSQL→MemoryStoreの自動フォールバック
+- **PostgreSQL依存**: Neon.tech互換性 + 接続リトライロジック実装済み
 
 ### 技術的制約
-- TypeScript型エラーが既知の問題として存在（フォームの null 値処理）
-- Drizzle ORMによるデータベーススキーマ管理必須
-- Express.jsベースのRESTful API構造
+- **TypeScript型エラー**: フォームのnull値ハンドリング（既知の問題）
+  - `client/src/pages/weekly-report.tsx`のTextarea対応
+  - `server/routes.ts`のユーザーオブジェクトアクセス
+- **Drizzle ORM**: スキーマ管理とマイグレーション必須
+- **RESTful API**: Express.js + 軽量版API実装
 
 ### 運用制約
-- 開発環境: `npm run dev`でフロントエンドとバックエンドを同時起動
-- 本番環境: ビルドプロセスでVite（フロントエンド）+ ESBuild（バックエンド）
-- データベースマイグレーション: Drizzle Kitを使用
+- **開発環境**: `npm run dev`で統合サーバー起動（ポート5000）
+- **本番環境**: Vite（フロント→dist/public/）+ ESBuild（バック→dist/index.js）
+- **データベース**: `npm run db:push`でDrizzle Kitマイグレーション
+- **テスト**: 51件のテスト（現在カバレッジ1.06%、基盤構築完了）
 
 ## 技術選択の理由
 
@@ -56,13 +61,45 @@ TaskTrackr - タスク・プロジェクト管理システム
 - Radix UIベースの高品質コンポーネント
 - カスタマイズ性とメンテナンス性のバランス
 
+## 現在の主要機能（2025年1月時点）
+
+### コア機能
+- **プロジェクト・案件・週次報告の統合管理**
+- **フルテキスト検索**（20件制限で高速化）
+- **ロールベースアクセス制御**（管理者/一般ユーザー）
+- **リアルタイム自動保存** + WebSocket通信
+
+### AI機能（5プロバイダー対応）
+- **週次報告のAI分析**（フィールド別分析、リアルタイム設定）
+- **議事録自動生成**（管理者確認メール含む）
+- **管理者編集時の並列AI処理**（30-50%高速化）
+- **ストリーミング対応**（Gemini、OpenAI）
+
+### UI/UX改善
+- **モーダル式案件選択**（プロジェクト別・最近使用・全案件タブ）
+- **前回レポート比較ツールチップ**
+- **レスポンシブデザイン**（TailwindCSS + Shadcn/ui）
+
+### パフォーマンス最適化
+- **軽量版API**（必要最小限フィールドのみ転送）
+- **React Query最適化**（2-5分間キャッシュ）
+- **N+1問題解決**（一括データ取得）
+- **データベースインデックス最適化**
+
 ## 環境設定要件
-- Node.js環境
-- PostgreSQL データベース
-- AI プロバイダー（OpenAI または Ollama）
-- セッション用シークレットキー
+- **Node.js**: v20.x以降（TypeScript 5.6.3）
+- **データベース**: PostgreSQL 15以降またはNeon.tech
+- **AI プロバイダー**: 以下から1つ以上
+  - OpenAI（GPT-4o-mini推奨）
+  - Google Gemini（2.5-Flash推奨）
+  - Groq（Llama-3.3-70B）
+  - Ollama（ローカル実行）
+  - OpenRouter（Claude-3.5-Sonnet）
+- **セッション用シークレットキー**
+- **ログ設定**: AI_LOG_LEVEL（debug/info/warn/error）
 
 ## 開発チーム構成
-- 個人開発プロジェクト
-- Claude Code による開発支援
-- 日本語でのコミュニケーション必須
+- **個人開発プロジェクト**
+- **Claude Code による開発支援**
+- **日本語でのコミュニケーション必須**
+- **継続的知識管理**（`.claude/`ディレクトリシステム）

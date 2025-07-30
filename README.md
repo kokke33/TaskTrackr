@@ -52,12 +52,15 @@ React + Vite + TailwindCSS のモダンフロントエンドと、Express + Driz
 
 ## 最新の改善点
 
-### 🚀 v2.2.0 (2025/1/20)
-- **AIプロバイダー拡張**: 5つのAIプロバイダー対応（OpenAI、Ollama、Google Gemini、Groq、OpenRouter）
+### 🚀 v2.3.0 (2025/1/30)
+- **AIプロバイダー拡張完了**: 5つのAIプロバイダー対応（OpenAI、Ollama、Google Gemini、Groq、OpenRouter）
 - **会議議事録機能**: 週次レポート専用の会議議事録管理機能を追加
 - **リアルタイム分析**: フィールド別AI分析の設定とカスタマイズ機能
 - **プロンプト管理**: 構造化されたプロンプトテンプレート管理システム
-- **知識管理**: `.claude/`ディレクトリによる継続的な知識蓄積システム
+- **知識管理システム**: `.claude/`ディレクトリによる継続的な知識蓄積システム
+- **WebSocket通信**: リアルタイム機能とパフォーマンス監視
+- **テストインフラ**: Vitest 3.2.4 + 51件のテスト基盤（カバレッジ拡張準備完了）
+- **管理者確認メール**: AI生成による詳細確認メール機能
 
 ### 🔧 技術改善
 - **検索機能**: プロジェクト・案件検索に20件制限追加
@@ -175,12 +178,11 @@ npx drizzle-kit push
 ## 開発サーバ起動
 
 ```bash
-# 統合開発サーバー（推奨）
+# 統合開発サーバー（唯一の起動方法）
 npm run dev                    # http://localhost:5000
 
-# 個別起動の場合
-npm run dev:server            # バックエンド: http://localhost:3000  
-npm run dev:client            # フロントエンド: http://localhost:5173
+# 注意：個別起動コマンドは存在しません
+# npm run dev で統合サーバーが localhost:5000 で起動
 ```
 
 ### 初期ユーザー
@@ -289,6 +291,10 @@ npm run build             # 本番ビルド (Vite + ESBuild)
 npm run start             # 本番サーバー起動
 npm run check             # TypeScript 型チェック
 npm run db:push           # データベース スキーマ更新
+npm test                  # 全テスト実行（51件）
+npm run test:unit         # ユニットテスト（26件）
+npm run test:integration  # 統合テスト（25件）
+npm run test:coverage     # カバレッジレポート生成
 ```
 
 ---
