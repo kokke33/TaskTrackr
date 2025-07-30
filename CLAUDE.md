@@ -4,6 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 TaskTrackrプロジェクトのClaude Code用設定ファイルです。このファイルは、Claude Codeがこのリポジトリで作業する際のガイダンスを提供します。
 
+## 更新履歴
+- **2025/1/30**: ドキュメント全面更新、最新の技術スタックと機能を反映
+- **2024年後半**: AIプロバイダー拡張（5つ対応）、テストインフラ構築
+
 ## 知識管理システム
 
 このプロジェクトでは、以下のファイル構成で知識を体系的に管理しています：
@@ -51,23 +55,27 @@ TaskTrackrプロジェクトのClaude Code用設定ファイルです。この�
 - **個別起動不可**: フロントエンドとバックエンドを個別に起動するコマンドは存在しない
 - **ビルド出力**: フロントエンドは`dist/public/`、バックエンドは`dist/index.js`に出力
 
-### 既知の問題
+### 既知の問題（2025年1月時点）
 TypeScriptチェックは以下のフォーム値型エラーで現在失敗しています：
 - `client/src/pages/weekly-report.tsx` - Textareaコンポーネントが`null`値を受信
 - `server/routes.ts` - ユーザーオブジェクトプロパティアクセスの問題
 
+**対処法**: フォームフィールドで `value={field.value ?? ""}` パターンを使用
+
 ## アーキテクチャ概要
 
-### 技術スタック
+### 技術スタック（2025年1月最新）
 - **フロントエンド**: React 18 + TypeScript + Vite + TailwindCSS + Wouter（ルーティング）
 - **バックエンド**: Express + TypeScript + Drizzle ORM + PostgreSQL
-- **認証**: Passport.jsによるセッションベース認証
+- **認証**: Passport.jsによるセッションベース認証 + 自動フォールバック（PostgreSQL→MemoryStore）
 - **UI**: Shadcn/uiコンポーネント（Radix UIプリミティブ） - 48+コンポーネント利用可能
-- **状態管理**: TanStack Query（React Query）
-- **AI統合**: マルチプロバイダー対応（OpenAI、Ollama、Google Gemini、Groq、OpenRouter）
+- **状態管理**: TanStack Query（React Query v5.60.5）
+- **AI統合**: 5つのプロバイダー完全対応（OpenAI、Ollama、Google Gemini、Groq、OpenRouter）
 - **フォーム処理**: React Hook Form + Zod バリデーション
 - **スタイリング**: TailwindCSS + Tailwind Animate + class-variance-authority
-- **テスト**: Vitest 3.2.4 + React Testing Library + MSW + Supertest + Happy DOM
+- **テスト**: Vitest 3.2.4 + React Testing Library + MSW + Supertest + Happy DOM（51件のテスト）
+- **WebSocket**: リアルタイム通信（ws v8.18.0）
+- **ログ**: Winston + daily-rotate-file（AI専用ログ機能）
 
 ### プロジェクト構造
 ```

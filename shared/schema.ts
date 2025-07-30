@@ -115,6 +115,7 @@ export const weeklyReports = pgTable("weekly_reports", {
   aiAnalysis: text("ai_analysis"),
   version: integer("version").notNull().default(1), // 楽観的ロック用バージョン番号
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // マネージャ定例議事録テーブル
@@ -213,6 +214,7 @@ export const insertCaseSchema = createInsertSchema(cases).omit({
 export const insertWeeklyReportSchema = createInsertSchema(weeklyReports).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
   aiAnalysis: true,
 });
 

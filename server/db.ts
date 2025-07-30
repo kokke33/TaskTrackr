@@ -6,6 +6,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL環境変数が設定されていません');
+  console.error('💡 以下の環境変数を設定してください:');
+  console.error('   DATABASE_URL=postgresql://user:password@host:port/database');
   throw new Error(
     "DATABASE_URL must be set. Did you forget to provision a database?",
   );
@@ -46,7 +49,13 @@ export const pool = new Pool(poolConfig);
 // プールレベルでのエラーハンドリングを追加（離席後エラー対策強化）
 pool.on('error', (err) => {
   console.error('PostgreSQL Pool Error:', err.message);
-  if (err.message.includes('Connection terminated unexpectedly') || 
+  
+  // 認証エラーの特別処理
+  if (err.message.includes('role') && err.message.includes('does not exist')) {
+    console.error('❌ データベースユーザーが存在しません');
+    console.error(`💡 現在のDATABASE_URL: ${process.env.DATABASE_URL?.replace(/\/\/.*@/, '//[USER:PASS]@')}`);
+    console.error('💡 データベースユーザーとパスワードを確認してください');
+  } else if (err.message.includes('Connection terminated unexpectedly') || 
       err.message.includes('ECONNRESET') ||
       err.message.includes('ETIMEDOUT') ||
       err.message.includes('ENOTFOUND')) {
