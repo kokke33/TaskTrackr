@@ -10,7 +10,25 @@ import { createInitialUsers } from "./auth";
 import { migrateExistingProjectsFromCases } from "./migrations";
 import { validateAIConfig } from "./config";
 
+// 環境変数の読み込み
 dotenv.config();
+
+// 本番環境での必須環境変数チェック
+if (process.env.NODE_ENV === 'production') {
+  console.log('🔍 本番環境での環境変数をチェック中...');
+  
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL環境変数が設定されていません');
+    process.exit(1);
+  }
+  
+  if (!process.env.SESSION_SECRET) {
+    console.warn('⚠️ SESSION_SECRET環境変数が設定されていません。デフォルト値を使用します。');
+  }
+  
+  console.log('✅ 必須環境変数のチェック完了');
+  console.log(`📍 データベース接続先: ${process.env.DATABASE_URL.split('@')[1] || 'unknown'}`);
+}
 
 const app = express();
 app.use(express.json());

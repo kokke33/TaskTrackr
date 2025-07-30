@@ -161,3 +161,8 @@ jobs:
         timeout 30s npm start &
         sleep 10
         curl -f http://localhost:5000 || exit 1
+      env:
+        DATABASE_URL: postgresql://test:test@localhost:5432/tasktrackr_test
+        SESSION_SECRET: test_session_secret
+        AI_PROVIDER: test
+        NODE_ENV: production
