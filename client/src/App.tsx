@@ -66,7 +66,25 @@ function Router() {
 
 function App() {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+  
+  // WebSocket URLの安全な構築
+  let wsUrl: string;
+  try {
+    const host = window.location.host;
+    const defaultPort = import.meta.env?.VITE_PORT || '5000';
+    
+    if (!host || host.includes('undefined')) {
+      // fallback to default development settings
+      wsUrl = `ws://localhost:${defaultPort}/ws`;
+      console.warn('[App] Using fallback WebSocket URL:', wsUrl);
+    } else {
+      wsUrl = `${wsProtocol}//${host}/ws`;
+    }
+  } catch (error) {
+    const defaultPort = import.meta.env?.VITE_PORT || '5000';
+    wsUrl = `ws://localhost:${defaultPort}/ws`;
+    console.error('[App] Error constructing WebSocket URL, using fallback:', error);
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

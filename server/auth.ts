@@ -218,15 +218,27 @@ export function isAuthenticated(req: any, res: any, next: any) {
     hasSession: !!req.session,
     hasPassport: !!req.session?.passport,
     userId: req.session?.passport?.user,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    // より詳細なセッション情報
+    sessionData: req.session,
+    cookieNames: req.headers.cookie ? req.headers.cookie.split(';').map(c => c.trim().split('=')[0]) : [],
+    userAgentShort: req.headers['user-agent']?.substring(0, 50) + '...'
   };
   
   console.log(`❌ Auth Failed: ${sessionInfo.method} ${sessionInfo.path}`);
   
   // 開発環境でのみ詳細ログを出力
   if (!isProduction) {
-    console.log(`   Session Info:`, sessionInfo);
+    console.log(`   Session Info:`, {
+      ...sessionInfo,
+      sessionData: req.session ? {
+        id: req.session.id,
+        cookie: req.session.cookie,
+        passport: req.session.passport
+      } : null
+    });
     console.log(`   Cookie Present:`, !!req.headers.cookie);
+    console.log(`   Raw Cookie:`, req.headers.cookie);
   }
   
   // セッション期限切れかどうかを判定

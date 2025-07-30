@@ -101,6 +101,29 @@ type ProjectSummary = {
   isDeleted: boolean;
 };
 
+// マネージャ定例議事録一覧用の軽量型定義
+type ManagerMeetingSummary = {
+  id: number;
+  projectId: number;
+  title: string;
+  meetingDate: Date;
+  yearMonth: string;
+  projectName: string;
+  createdAt: Date;
+};
+
+// 週次報告会議議事録一覧用の軽量型定義
+type WeeklyReportMeetingSummary = {
+  id: number;
+  weeklyReportId: number;
+  title: string;
+  meetingDate: Date;
+  createdAt: Date;
+  // 週次報告経由での案件・プロジェクト情報
+  caseName: string;
+  projectName: string;
+};
+
 export interface IStorage {
   // ユーザー関連
   getUser(id: number): Promise<User | undefined>;
@@ -152,12 +175,14 @@ export interface IStorage {
   getManagerMeeting(id: number): Promise<ManagerMeeting | undefined>;
   getManagerMeetingsByProject(projectId: number, yearMonth?: string): Promise<ManagerMeeting[]>;
   getAllManagerMeetings(): Promise<ManagerMeeting[]>;
+  getAllManagerMeetingsForList(limit?: number): Promise<ManagerMeetingSummary[]>; // 新規追加
   updateManagerMeeting(id: number, meetingData: InsertManagerMeeting): Promise<ManagerMeeting>;
   deleteManagerMeeting(id: number): Promise<ManagerMeeting>;
   getAvailableMonths(projectId: number): Promise<string[]>;
 
   // 週次報告会議議事録関連
   getAllWeeklyReportMeetings(): Promise<WeeklyReportMeeting[]>;
+  getAllWeeklyReportMeetingsForList(limit?: number): Promise<WeeklyReportMeetingSummary[]>; // 新規追加
   getWeeklyReportMeetingsByCaseId(caseId: number): Promise<WeeklyReportMeeting[]>;
 
 
@@ -1511,12 +1536,67 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(managerMeetings.meetingDate));
   }
 
+  // 【新規追加】マネージャ定例議事録一覧用の軽量メソッド（パフォーマンス最適化版）
+  async getAllManagerMeetingsForList(limit: number = 100): Promise<ManagerMeetingSummary[]> {
+    return measureAsync('database', 'getAllManagerMeetingsForList', async () => {
+      console.log(`[DEBUG] Using optimized getAllManagerMeetingsForList method with limit: ${limit}`);
+      
+      const result = await db
+        .select({
+          id: managerMeetings.id,
+          projectId: managerMeetings.projectId,
+          title: managerMeetings.title,
+          meetingDate: managerMeetings.meetingDate,
+          yearMonth: managerMeetings.yearMonth,
+          createdAt: managerMeetings.createdAt,
+          // プロジェクト情報（最小限）
+          projectName: projects.name
+        })
+        .from(managerMeetings)
+        .innerJoin(projects, eq(managerMeetings.projectId, projects.id))
+        .where(eq(projects.isDeleted, false))
+        .orderBy(desc(managerMeetings.meetingDate))
+        .limit(Math.min(limit, 200)); // 最大200件まで制限
+
+      console.log(`[DEBUG] Retrieved ${result.length} manager meetings for list view`);
+      return result;
+    }, { limit: Math.min(limit, 200), optimized: true });
+  }
+
   // すべての週次報告会議議事録を取得
   async getAllWeeklyReportMeetings(): Promise<WeeklyReportMeeting[]> {
     return await db
       .select()
       .from(weeklyReportMeetings)
       .orderBy(desc(weeklyReportMeetings.meetingDate));
+  }
+
+  // 【新規追加】週次報告会議議事録一覧用の軽量メソッド（パフォーマンス最適化版）
+  async getAllWeeklyReportMeetingsForList(limit: number = 100): Promise<WeeklyReportMeetingSummary[]> {
+    return measureAsync('database', 'getAllWeeklyReportMeetingsForList', async () => {
+      console.log(`[DEBUG] Using optimized getAllWeeklyReportMeetingsForList method with limit: ${limit}`);
+      
+      const result = await db
+        .select({
+          id: weeklyReportMeetings.id,
+          weeklyReportId: weeklyReportMeetings.weeklyReportId,
+          title: weeklyReportMeetings.title,
+          meetingDate: weeklyReportMeetings.meetingDate,
+          createdAt: weeklyReportMeetings.createdAt,
+          // 週次報告経由での案件・プロジェクト情報（最小限）
+          caseName: cases.caseName,
+          projectName: cases.projectName
+        })
+        .from(weeklyReportMeetings)
+        .innerJoin(weeklyReports, eq(weeklyReportMeetings.weeklyReportId, weeklyReports.id))
+        .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+        .where(eq(cases.isDeleted, false))
+        .orderBy(desc(weeklyReportMeetings.meetingDate))
+        .limit(Math.min(limit, 200)); // 最大200件まで制限
+
+      console.log(`[DEBUG] Retrieved ${result.length} weekly report meetings for list view`);
+      return result;
+    }, { limit: Math.min(limit, 200), optimized: true });
   }
 
   // 案件別の週次報告会議議事録を取得

@@ -85,22 +85,28 @@ export default function MeetingList() {
   });
 
   // マネージャ定例議事録を取得
-  const { data: managerMeetings, isLoading: isLoadingManagerMeetings } = useQuery<ManagerMeeting[]>({
+  const { data: managerMeetings, isLoading: isLoadingManagerMeetings, error: managerMeetingsError } = useQuery<ManagerMeeting[]>({
     queryKey: ["/api/manager-meetings"],
     staleTime: 1 * 60 * 1000, // 1分間キャッシュ（短縮）
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // 週次報告会議議事録を取得
-  const { data: weeklyReportMeetings, isLoading: isLoadingWeeklyMeetings } = useQuery<WeeklyReportMeeting[]>({
+  const { data: weeklyReportMeetings, isLoading: isLoadingWeeklyMeetings, error: weeklyMeetingsError } = useQuery<WeeklyReportMeeting[]>({
     queryKey: ["/api/weekly-report-meetings"],  
     staleTime: 5 * 60 * 1000, // 5分間キャッシュ
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // 選択された案件に紐づく週次報告会議議事録を取得
-  const { data: caseWeeklyMeetings, isLoading: isLoadingCaseWeeklyMeetings } = useQuery<WeeklyReportMeeting[]>({
+  const { data: caseWeeklyMeetings, isLoading: isLoadingCaseWeeklyMeetings, error: caseWeeklyMeetingsError } = useQuery<WeeklyReportMeeting[]>({
     queryKey: [`/api/weekly-report-meetings/by-case/${selectedCase}`],
     staleTime: 0,
     enabled: selectedCase !== null,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // 案件情報をIDでマップ化
@@ -297,6 +303,28 @@ export default function MeetingList() {
   const handleMeetingTypeChange = (type: 'all' | 'manager' | 'weeklyReport') => {
     setSelectedMeetingType(type);
   };
+
+  // エラー状態の表示
+  if (managerMeetingsError || weeklyMeetingsError || caseWeeklyMeetingsError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8 max-w-5xl">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">議事録の読み込み中にエラーが発生しました</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              サーバーとの接続に問題があるか、認証が切れている可能性があります
+            </p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+            >
+              ページを再読み込み
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ローディング中の表示
   if (isLoading) {
@@ -516,13 +544,13 @@ export default function MeetingList() {
               </Button>
             </div>
 
-            {unifiedMeetings.length === 0 ? (
+            {!unifiedMeetings || unifiedMeetings.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 この案件の議事録はまだありません
               </p>
             ) : (
               <div className="grid gap-4">
-                {unifiedMeetings.map((meeting) => (
+                {(unifiedMeetings || []).map((meeting) => (
                   <Card key={`${meeting.type}-${meeting.id}`} className="hover:bg-accent/5">
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
@@ -549,9 +577,9 @@ export default function MeetingList() {
                               remarkPlugins={[remarkGfm]} 
                               rehypePlugins={[rehypeRaw]}
                             >
-                              {meeting.content.length > 200 
+                              {meeting.content && meeting.content.length > 200 
                                 ? `${meeting.content.substring(0, 200)}...` 
-                                : meeting.content}
+                                : meeting.content || "議事録内容がありません"}
                             </ReactMarkdown>
                           </div>
                         </div>
