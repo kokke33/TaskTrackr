@@ -284,7 +284,7 @@ export default function WeeklyReport() {
           onShowMilestoneDialog={() => setShowMilestoneDialog(true)}
           onShowSampleDialog={() => setShowSampleDialog(true)}
         />
-        <div className="container mx-auto px-2 sm:px-4 max-w-4xl">
+        <div className="container mx-auto px-2 sm:px-4 max-w-4xl pb-4 sm:pb-2">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
             <BasicInfoForm
               cases={cases || []}
@@ -380,7 +380,7 @@ export default function WeeklyReport() {
               </Card>
             )}
 
-            <div className="flex justify-end mt-8">
+            <div className="flex justify-end mt-8 mb-16 sm:mb-8">
               <Button
                 type="submit"
                 className={`flex items-center gap-2 ${
