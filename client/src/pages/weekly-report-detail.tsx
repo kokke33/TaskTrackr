@@ -367,9 +367,9 @@ export default function WeeklyReportDetail() {
   const renderSection = (title: string, content: string | null | undefined) => {
     if (!content) return null;
     return (
-      <div className="mb-4">
-        <h3 className="font-semibold mb-2 text-sm">{title}</h3>
-        <p className="whitespace-pre-wrap text-sm">{content}</p>
+      <div className="mb-3 sm:mb-4">
+        <h3 className="font-semibold mb-2 text-xs sm:text-sm">{title}</h3>
+        <p className="whitespace-pre-wrap text-xs sm:text-sm">{content}</p>
       </div>
     );
   };
@@ -378,32 +378,36 @@ export default function WeeklyReportDetail() {
     <div className="min-h-screen bg-background">
       <ThemeToggle />
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <header className="mb-8">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-primary">週次報告詳細</h1>
-            <div className="flex gap-4">
-              <Button 
-                onClick={() => setShowMilestoneDialog(true)}
-                variant="outline"
-                className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-              >
-                <Target className="h-4 w-4" />
-                マイルストーン
-              </Button>
-              <Link href={`/report/edit/${id}`}>
-                <Button className="flex items-center gap-2">
-                  <Edit className="h-4 w-4" />
-                  編集
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-4xl">
+        <header className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <h1 className="text-xl sm:text-3xl font-bold text-primary">週次報告詳細</h1>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button 
+                  onClick={() => setShowMilestoneDialog(true)}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 w-full sm:w-auto justify-center"
+                >
+                  <Target className="h-4 w-4" />
+                  マイルストーン
                 </Button>
-              </Link>
+                <Link href={`/report/edit/${id}`}>
+                  <Button size="sm" className="flex items-center gap-2 w-full sm:w-auto justify-center">
+                    <Edit className="h-4 w-4" />
+                    編集
+                  </Button>
+                </Link>
+              </div>
               {user?.isAdmin && (
-                <>
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button 
                     onClick={handleAdminEditStart}
                     disabled={adminEditStartMutation.isPending}
                     variant="default"
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
+                    size="sm"
+                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 w-full sm:w-auto justify-center"
                   >
                     <ShieldCheck className="h-4 w-4" />
                     {adminEditStartMutation.isPending ? '準備中...' : '管理者編集'}
@@ -412,28 +416,29 @@ export default function WeeklyReportDetail() {
                     onClick={() => setShowDeleteDialog(true)}
                     disabled={deleteReportMutation.isPending}
                     variant="destructive"
-                    className="flex items-center gap-2"
+                    size="sm"
+                    className="flex items-center gap-2 w-full sm:w-auto justify-center"
                   >
                     <Trash2 className="h-4 w-4" />
                     削除
                   </Button>
-                </>
+                </div>
               )}
               <Link href={`/reports?projectName=${encodeURIComponent(projectName || '')}&caseId=${report.caseId || ''}`}>
-                <Button variant="outline">一覧に戻る</Button>
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">一覧に戻る</Button>
               </Link>
             </div>
           </div>
           
           {/* パンくずリスト */}
           <Breadcrumb className="mt-4">
-            <BreadcrumbList>
+            <BreadcrumbList className="flex-wrap">
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   <Link href="/">
-                    <span className="flex items-center gap-1">
-                      <Home className="h-3.5 w-3.5" />
-                      ホーム
+                    <span className="flex items-center gap-1 text-xs sm:text-sm">
+                      <Home className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                      <span className="hidden xs:inline">ホーム</span>
                     </span>
                   </Link>
                 </BreadcrumbLink>
@@ -444,9 +449,10 @@ export default function WeeklyReportDetail() {
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   <Link href={`/reports?projectName=${encodeURIComponent(projectName || '')}&caseId=${report.caseId || ''}`}>
-                    <span className="flex items-center gap-1">
-                      <FileText className="h-3.5 w-3.5" />
-                      週次報告一覧
+                    <span className="flex items-center gap-1 text-xs sm:text-sm">
+                      <FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                      <span className="hidden xs:inline">週次報告一覧</span>
+                      <span className="xs:hidden">一覧</span>
                     </span>
                   </Link>
                 </BreadcrumbLink>
@@ -455,58 +461,63 @@ export default function WeeklyReportDetail() {
               <BreadcrumbSeparator />
               
               <BreadcrumbItem>
-                <BreadcrumbPage>
-                  週次報告詳細（{new Date(report.reportPeriodStart).toLocaleDateString()} ～ {new Date(report.reportPeriodEnd).toLocaleDateString()}）
+                <BreadcrumbPage className="text-xs sm:text-sm">
+                  <span className="hidden sm:inline">
+                    週次報告詳細（{new Date(report.reportPeriodStart).toLocaleDateString()} ～ {new Date(report.reportPeriodEnd).toLocaleDateString()}）
+                  </span>
+                  <span className="sm:hidden">
+                    詳細（{new Date(report.reportPeriodStart).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}～{new Date(report.reportPeriodEnd).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}）
+                  </span>
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </header>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">1. 基本情報</h2>
-              <div className="grid md:grid-cols-2 gap-4">
+            <CardContent className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">1. 基本情報</h2>
+              <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">報告期間</p>
-                  <p className="text-sm">
+                  <p className="text-xs sm:text-sm text-muted-foreground">報告期間</p>
+                  <p className="text-xs sm:text-sm">
                     {new Date(report.reportPeriodStart).toLocaleDateString()} ～{" "}
                     {new Date(report.reportPeriodEnd).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">担当現場名</p>
-                  <p className="text-sm">{report.projectName} - {report.caseName}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">担当現場名</p>
+                  <p className="text-xs sm:text-sm">{report.projectName} - {report.caseName}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">報告者名</p>
-                  <p className="text-sm">{report.reporterName}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">報告者名</p>
+                  <p className="text-xs sm:text-sm">{report.reporterName}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">2. 今週の作業内容</h2>
+            <CardContent className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">2. 今週の作業内容</h2>
               {renderSection("作業内容", report.weeklyTasks)}
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">3. 進捗状況</h2>
-              <div className="space-y-4">
+            <CardContent className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">3. 進捗状況</h2>
+              <div className="space-y-3 sm:space-y-4">
                 {relatedCase?.includeProgressAnalysis !== false && (
                   <div>
-                    <p className="text-sm text-muted-foreground">進捗率</p>
-                    <p className="text-sm">{report.progressRate}%</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">進捗率</p>
+                    <p className="text-xs sm:text-sm">{report.progressRate}%</p>
                   </div>
                 )}
                 <div>
-                  <p className="text-sm text-muted-foreground">進捗状況</p>
-                  <p className="text-sm">{progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">進捗状況</p>
+                  <p className="text-xs sm:text-sm">{progressStatusMap[report.progressStatus as keyof typeof progressStatusMap] || report.progressStatus}</p>
                 </div>
                 {report.delayIssues === "yes" && renderSection("遅延・問題点の詳細", report.delayDetails)}
               </div>
@@ -514,22 +525,22 @@ export default function WeeklyReportDetail() {
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">4. 課題・問題点</h2>
+            <CardContent className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">4. 課題・問題点</h2>
               {renderSection("課題・問題点", report.issues)}
             </CardContent>
           </Card>
 
           {report.newRisks === "yes" && (
             <Card>
-              <CardContent className="p-6">
-                <h2 className="text-xl font-semibold mb-4 pb-2 border-b">5. 新たなリスク</h2>
-                <div className="space-y-4">
+              <CardContent className="p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">5. 新たなリスク</h2>
+                <div className="space-y-3 sm:space-y-4">
                   {renderSection("リスクの概要", report.riskSummary)}
                   {renderSection("対策", report.riskCountermeasures)}
                   <div>
-                    <p className="text-sm text-muted-foreground">リスクレベル</p>
-                    <p className="text-sm">{riskLevelMap[report.riskLevel as keyof typeof riskLevelMap] || report.riskLevel}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">リスクレベル</p>
+                    <p className="text-xs sm:text-sm">{riskLevelMap[report.riskLevel as keyof typeof riskLevelMap] || report.riskLevel}</p>
                   </div>
                 </div>
               </CardContent>
@@ -537,12 +548,12 @@ export default function WeeklyReportDetail() {
           )}
 
           <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">6. 品質</h2>
-              <div className="space-y-4">
+            <CardContent className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">6. 品質</h2>
+              <div className="space-y-3 sm:space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">品質懸念事項の有無</p>
-                  <p className="text-sm">{qualityConcernsMap[report.qualityConcerns as keyof typeof qualityConcernsMap] || report.qualityConcerns}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">品質懸念事項の有無</p>
+                  <p className="text-xs sm:text-sm">{qualityConcernsMap[report.qualityConcerns as keyof typeof qualityConcernsMap] || report.qualityConcerns}</p>
                 </div>
                 {report.qualityConcerns !== "none" && renderSection("品質懸念事項の詳細", report.qualityDetails)}
                 {renderSection("進捗状況", report.testProgress)}
@@ -552,31 +563,31 @@ export default function WeeklyReportDetail() {
 
           {report.changes === "yes" && (
             <Card>
-              <CardContent className="p-6">
-                <h2 className="text-xl font-semibold mb-4 pb-2 border-b">7. 変更管理</h2>
+              <CardContent className="p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">7. 変更管理</h2>
                 {renderSection("変更内容の詳細", report.changeDetails)}
               </CardContent>
             </Card>
           )}
 
           <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">8. 来週の予定</h2>
+            <CardContent className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">8. 来週の予定</h2>
               {renderSection("来週の作業予定", report.nextWeekPlan)}
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">9. 支援・判断要望</h2>
+            <CardContent className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">9. 支援・判断要望</h2>
               {renderSection("支援・判断の要望事項", report.supportRequests)}
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4 pb-2 border-b">10. その他の懸念事項</h2>
-              <div className="space-y-6">
+            <CardContent className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">10. その他の懸念事項</h2>
+              <div className="space-y-4 sm:space-y-6">
                 {report.resourceConcerns === "exists" && (
                   <div>
                     <h3 className="font-semibold mb-2">リソースに関する懸念</h3>
@@ -631,8 +642,8 @@ export default function WeeklyReportDetail() {
 
           {report.aiAnalysis && (
             <Card>
-              <CardContent className="p-6">
-                <h2 className="text-xl font-semibold mb-4 pb-2 border-b">■ AI分析結果</h2>
+              <CardContent className="p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">■ AI分析結果</h2>
                 <div className="prose prose-sm max-w-none">
                   <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{report.aiAnalysis}</ReactMarkdown>
                 </div>
@@ -642,16 +653,16 @@ export default function WeeklyReportDetail() {
 
           {meetings && meetings.length > 0 && (
             <Card>
-              <CardContent className="p-6">
-                <h2 id="meetings-section" className="text-xl font-semibold mb-4 pb-2 border-b">■ 確認会議事録</h2>
+              <CardContent className="p-4 sm:p-6">
+                <h2 id="meetings-section" className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">■ 確認会議事録</h2>
                 {meetings.map((meeting, index) => (
-                  <div key={meeting.id} className="mb-6 last:mb-0">
+                  <div key={meeting.id} className="mb-4 sm:mb-6 last:mb-0">
                     {meetings.length > 1 && (
-                      <h3 className="text-lg font-medium mb-3 text-gray-700">
+                      <h3 className="text-base sm:text-lg font-medium mb-2 sm:mb-3 text-gray-700">
                         {meetings.length - index}回目の修正 ({new Date(meeting.createdAt).toLocaleDateString('ja-JP')})
                       </h3>
                     )}
-                    <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                       {editingMeetings[meeting.id] ? (
                         // 編集モード
                         <div>
@@ -721,19 +732,20 @@ export default function WeeklyReportDetail() {
           {/* 管理者確認メール文章セクション */}
           {user?.isAdmin && (
             <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center mb-4 pb-2 border-b">
-                  <h2 className="text-xl font-semibold">■ 管理者確認メール文章</h2>
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mb-3 sm:mb-4 pb-2 border-b">
+                  <h2 className="text-lg sm:text-xl font-semibold">■ 管理者確認メール文章</h2>
                   <Button 
                     size="sm" 
                     variant="outline"
                     onClick={() => regenerateAdminEmailMutation.mutate()}
                     disabled={regenerateAdminEmailMutation.isPending}
+                    className="w-full sm:w-auto"
                   >
                     {regenerateAdminEmailMutation.isPending ? '再生成中...' : '更新'}
                   </Button>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                   {report?.adminConfirmationEmail ? (
                     <div className="prose prose-sm max-w-none">
                       <pre className="whitespace-pre-wrap font-sans text-sm">
