@@ -102,8 +102,8 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
   return (
     <>
       {/* 今週の作業内容 */}
-      <div className="p-6 bg-card rounded-lg shadow-sm">
-        <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+      <div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">
           2. 今週の作業内容
         </h2>
         <FormField
@@ -112,7 +112,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
           render={({ field }) => (
             <FormItem>
               <div className="flex items-center">
-                <FormLabel className="required">今週の作業内容</FormLabel>
+                <FormLabel className="required text-sm sm:text-base">今週の作業内容</FormLabel>
                 <PreviousReportTooltip 
                   previousContent={latestReport?.weeklyTasks}
                   fieldName="今週の作業内容"
@@ -121,7 +121,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
               <FormControl>
                 <Textarea
                   placeholder="作業項目、計画との差異、遅延理由、リスク評価などを記述してください"
-                  className="h-32"
+                  className="h-24 sm:h-32 text-sm"
                   {...field}
                   onBlur={(e) => {
                     field.onBlur?.();
@@ -148,17 +148,17 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
       </div>
 
       {/* 進捗状況 */}
-      <div className="p-6 bg-card rounded-lg shadow-sm">
-        <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+      <div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">
           3. 進捗状況
         </h2>
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <FormField
             control={form.control}
             name="progressRate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="required">
+                <FormLabel className="required text-sm sm:text-base">
                   進捗率 (0～100%)
                 </FormLabel>
                 <div className="flex items-center gap-4">
@@ -313,8 +313,8 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
       </div>
 
       {/* 課題・問題点 */}
-      <div className="p-6 bg-card rounded-lg shadow-sm">
-        <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+      <div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">
           4. 課題・問題点
         </h2>
         <FormField
@@ -359,8 +359,8 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
       </div>
 
       {/* 新たなリスク */}
-      <div className="p-6 bg-card rounded-lg shadow-sm">
-        <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+      <div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">
           5. 新たなリスク
         </h2>
         <div className="space-y-4">
@@ -510,8 +510,8 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
       </div>
 
       {/* 品質 */}
-      <div className="p-6 bg-card rounded-lg shadow-sm">
-        <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+      <div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">
           6. 品質
         </h2>
         <div className="space-y-4">
@@ -631,8 +631,8 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
       </div>
 
       {/* 変更管理 */}
-      <div className="p-6 bg-card rounded-lg shadow-sm">
-        <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+      <div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">
           7. 変更管理
         </h2>
         <div className="space-y-4">
@@ -704,8 +704,8 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
       </div>
 
       {/* 来週の予定 */}
-      <div className="p-6 bg-card rounded-lg shadow-sm">
-        <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+      <div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">
           8. 来週の予定
         </h2>
         <FormField
@@ -750,8 +750,8 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
       </div>
 
       {/* 支援・判断要望 */}
-      <div className="p-6 bg-card rounded-lg shadow-sm">
-        <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+      <div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">
           9. 支援・判断要望
         </h2>
         <FormField
@@ -798,8 +798,8 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
       </div>
 
       {/* その他の懸念事項 */}
-      <div className="p-6 bg-card rounded-lg shadow-sm">
-        <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+      <div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">
           10. その他の懸念事項
         </h2>
         {/* リソース */}

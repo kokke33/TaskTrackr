@@ -259,7 +259,7 @@ export default function WeeklyReport() {
   if (isLoadingReport || isLoadingCases) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
           <p className="text-center">読み込み中...</p>
         </div>
       </div>
@@ -284,8 +284,8 @@ export default function WeeklyReport() {
           onShowMilestoneDialog={() => setShowMilestoneDialog(true)}
           onShowSampleDialog={() => setShowSampleDialog(true)}
         />
-        <div className="container mx-auto px-4 max-w-4xl">
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <div className="container mx-auto px-2 sm:px-4 max-w-4xl">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
             <BasicInfoForm
               cases={cases || []}
               selectedCaseId={selectedCaseId}

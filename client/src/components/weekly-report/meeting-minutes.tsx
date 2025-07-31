@@ -41,38 +41,38 @@ export function MeetingMinutes({
   }
 
   return (
-    <Card className="mt-8">
-      <CardContent className="p-6">
-        <h2 className="text-xl font-semibold mb-4 pb-2 border-b">■ 確認会議事録</h2>
+    <Card className="mt-6 sm:mt-8">
+      <CardContent className="p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">■ 確認会議事録</h2>
         {meetings.map((meeting, index) => (
-          <div key={meeting.id} className="mb-6 last:mb-0">
+          <div key={meeting.id} className="mb-4 sm:mb-6 last:mb-0">
             {meetings.length > 1 && (
-              <h3 className="text-lg font-medium mb-3 text-gray-700">
+              <h3 className="text-base sm:text-lg font-medium mb-2 sm:mb-3 text-gray-700">
                 {meetings.length - index}回目の修正 ({new Date(meeting.createdAt).toLocaleDateString('ja-JP')})
               </h3>
             )}
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
               {editingMeetings[meeting.id] ? (
                 // 編集モード
-                <div className="mb-4">
-                  <div className="mb-4">
+                <div className="mb-3 sm:mb-4">
+                  <div className="mb-3 sm:mb-4">
                     <label className="block text-sm font-medium mb-2">タイトル:</label>
                     <input
                       type="text"
                       value={editingMeetings[meeting.id].title}
                       onChange={(e) => onUpdateField(meeting.id, 'title', e.target.value)}
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border rounded text-sm"
                     />
                   </div>
-                  <div className="mb-4">
+                  <div className="mb-3 sm:mb-4">
                     <label className="block text-sm font-medium mb-2">内容:</label>
                     <Textarea
                       value={editingMeetings[meeting.id].content}
                       onChange={(e) => onUpdateField(meeting.id, 'content', e.target.value)}
-                      className="min-h-[200px]"
+                      className="min-h-[150px] sm:min-h-[200px] text-sm"
                     />
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button 
                       type="button"
                       size="sm" 
@@ -93,7 +93,7 @@ export function MeetingMinutes({
                 </div>
               ) : (
                 // 表示モード
-                <div className="mb-4">
+                <div className="mb-3 sm:mb-4">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="font-medium">{meeting.title}</h4>
                     <Button 
