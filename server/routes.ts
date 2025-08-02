@@ -2575,29 +2575,29 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
         });
       }
 
-      // Groqの場合はモデルのバリデーション
+      // Groqの場合はモデルのバリデーション（カスタムモデル対応）
       if (realtimeProvider === "groq" && groqModel) {
-        if (!isValidGroqModel(groqModel)) {
+        if (!groqModel.trim()) {
           return res.status(400).json({ 
-            error: `無効なGroqモデルです。有効な値: ${GROQ_MODELS.join(", ")}` 
+            error: 'Groqモデルが空です。有効なモデルIDを入力してください。' 
           });
         }
       }
 
-      // Geminiの場合はモデルのバリデーション
+      // Geminiの場合はモデルのバリデーション（カスタムモデル対応）
       if (realtimeProvider === "gemini" && geminiModel) {
-        if (!isValidGeminiModel(geminiModel)) {
+        if (!geminiModel.trim()) {
           return res.status(400).json({ 
-            error: `無効なGeminiモデルです。有効な値: ${GEMINI_MODELS.join(", ")}` 
+            error: 'Geminiモデルが空です。有効なモデルIDを入力してください。' 
           });
         }
       }
 
-      // OpenRouterの場合はモデルのバリデーション
+      // OpenRouterの場合はモデルのバリデーション（カスタムモデル対応）
       if (realtimeProvider === "openrouter" && openrouterModel) {
-        if (!isValidOpenRouterModel(openrouterModel)) {
+        if (!openrouterModel.trim()) {
           return res.status(400).json({ 
-            error: `無効なOpenRouterモデルです。有効な値: ${OPENROUTER_MODELS.join(", ")}` 
+            error: 'OpenRouterモデルが空です。有効なモデルIDを入力してください。' 
           });
         }
       }
@@ -2699,44 +2699,42 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
         }
       }
 
-      // AI_GROQ_MODELの値をバリデーション
+      // AI_GROQ_MODELの値をバリデーション（カスタムモデル対応）
       if (key === "AI_GROQ_MODEL") {
         console.log(`[DEBUG] Validating AI_GROQ_MODEL: ${value}`);
-        console.log(`[DEBUG] Available GROQ_MODELS: ${GROQ_MODELS.join(", ")}`);
-        console.log(`[DEBUG] isValidGroqModel result: ${isValidGroqModel(value)}`);
-        if (!isValidGroqModel(value)) {
+        if (!value.trim()) {
           return res.status(400).json({ 
-            error: `無効なGroqモデルです。送信値: "${value}", 有効な値: ${GROQ_MODELS.join(", ")}` 
+            error: 'Groqモデルが空です。有効なモデルIDを入力してください。' 
           });
         }
+        console.log(`[DEBUG] AI_GROQ_MODEL validation passed: ${value}`);
       }
 
-      // REALTIME_GROQ_MODELの値をバリデーション
+      // REALTIME_GROQ_MODELの値をバリデーション（カスタムモデル対応）
       if (key === "REALTIME_GROQ_MODEL") {
         console.log(`[DEBUG] Validating REALTIME_GROQ_MODEL: ${value}`);
-        console.log(`[DEBUG] Available GROQ_MODELS: ${GROQ_MODELS.join(", ")}`);
-        console.log(`[DEBUG] isValidGroqModel result: ${isValidGroqModel(value)}`);
-        if (!isValidGroqModel(value)) {
+        if (!value.trim()) {
           return res.status(400).json({ 
-            error: `無効なリアルタイムGroqモデルです。送信値: "${value}", 有効な値: ${GROQ_MODELS.join(", ")}` 
+            error: 'リアルタイムGroqモデルが空です。有効なモデルIDを入力してください。' 
           });
         }
+        console.log(`[DEBUG] REALTIME_GROQ_MODEL validation passed: ${value}`);
       }
 
-      // AI_GEMINI_MODELの値をバリデーション
+      // AI_GEMINI_MODELの値をバリデーション（カスタムモデル対応）
       if (key === "AI_GEMINI_MODEL") {
-        if (!isValidGeminiModel(value)) {
+        if (!value.trim()) {
           return res.status(400).json({ 
-            error: `無効なGeminiモデルです。有効な値: ${GEMINI_MODELS.join(", ")}` 
+            error: 'Geminiモデルが空です。有効なモデルIDを入力してください。' 
           });
         }
       }
 
-      // REALTIME_GEMINI_MODELの値をバリデーション
+      // REALTIME_GEMINI_MODELの値をバリデーション（カスタムモデル対応）
       if (key === "REALTIME_GEMINI_MODEL") {
-        if (!isValidGeminiModel(value)) {
+        if (!value.trim()) {
           return res.status(400).json({ 
-            error: `無効なリアルタイムGeminiモデルです。有効な値: ${GEMINI_MODELS.join(", ")}` 
+            error: 'リアルタイムGeminiモデルが空です。有効なモデルIDを入力してください。' 
           });
         }
       }
