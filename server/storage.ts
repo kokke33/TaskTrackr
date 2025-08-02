@@ -108,6 +108,7 @@ type ManagerMeetingSummary = {
   title: string;
   meetingDate: string;
   yearMonth: string;
+  content: string; // 議事録内容を追加
   projectName: string;
   createdAt: Date;
 };
@@ -1549,6 +1550,7 @@ export class DatabaseStorage implements IStorage {
           title: managerMeetings.title,
           meetingDate: managerMeetings.meetingDate,
           yearMonth: managerMeetings.yearMonth,
+          content: managerMeetings.content, // 議事録内容を追加
           createdAt: managerMeetings.createdAt,
           // プロジェクト情報（最小限）
           projectName: projects.name

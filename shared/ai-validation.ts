@@ -25,28 +25,34 @@ export class AIConfigValidator {
       };
     }
 
-    // Groqモデルのバリデーション
-    if (config.provider === 'groq' && config.groqModel && !isValidGroqModel(config.groqModel)) {
-      return {
-        isValid: false,
-        error: `無効なGroqモデルです。有効な値: ${GROQ_MODELS.join(", ")}`
-      };
+    // Groqモデルのバリデーション（カスタムモデル対応）
+    if (config.provider === 'groq' && config.groqModel) {
+      if (!config.groqModel.trim()) {
+        return {
+          isValid: false,
+          error: 'Groqモデルが空です。有効なモデルIDを入力してください。'
+        };
+      }
     }
 
-    // Geminiモデルのバリデーション
-    if (config.provider === 'gemini' && config.geminiModel && !isValidGeminiModel(config.geminiModel)) {
-      return {
-        isValid: false,
-        error: `無効なGeminiモデルです。有効な値: ${GEMINI_MODELS.join(", ")}`
-      };
+    // Geminiモデルのバリデーション（カスタムモデル対応）
+    if (config.provider === 'gemini' && config.geminiModel) {
+      if (!config.geminiModel.trim()) {
+        return {
+          isValid: false,
+          error: 'Geminiモデルが空です。有効なモデルIDを入力してください。'
+        };
+      }
     }
 
-    // OpenRouterモデルのバリデーション
-    if (config.provider === 'openrouter' && config.openrouterModel && !isValidOpenRouterModel(config.openrouterModel)) {
-      return {
-        isValid: false,
-        error: `無効なOpenRouterモデルです。有効な値: ${OPENROUTER_MODELS.join(", ")}`
-      };
+    // OpenRouterモデルのバリデーション（カスタムモデル対応）
+    if (config.provider === 'openrouter' && config.openrouterModel) {
+      if (!config.openrouterModel.trim()) {
+        return {
+          isValid: false,
+          error: 'OpenRouterモデルが空です。有効なモデルIDを入力してください。'
+        };
+      }
     }
 
     return { isValid: true };
