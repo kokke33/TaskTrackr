@@ -1,5 +1,5 @@
 
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/lib/auth';
 import { Button } from './ui/button';
 import { ThemeToggle } from './theme-toggle';
@@ -14,7 +14,14 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ isLoading = false }: SiteHeaderProps) {
   const { isAuthenticated, user, logout } = useAuth();
+  const [location, setLocation] = useLocation();
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'checking'>('online');
+
+  // 週次報告リンクのクリックハンドラー
+  const handleReportsClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setLocation('/reports?reset=true');
+  };
 
   // 接続状態監視
   useEffect(() => {
@@ -75,9 +82,9 @@ export function SiteHeader({ isLoading = false }: SiteHeaderProps) {
                     <span className="transition-colors hover:text-foreground/80 cursor-pointer">案件一覧</span>
                   </Link>
                 </AdminOnly>
-                <Link href="/reports">
+                <a href="#" onClick={handleReportsClick}>
                   <span className="transition-colors hover:text-foreground/80 cursor-pointer">週次報告</span>
-                </Link>
+                </a>
                 <Link href="/meetings">
                   <span className="transition-colors hover:text-foreground/80 cursor-pointer">議事録</span>
                 </Link>

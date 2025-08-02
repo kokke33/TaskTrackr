@@ -66,7 +66,7 @@ type MonthlyReport = {
 
 export default function WeeklyReportList() {
   const { toast } = useToast();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   
   // パフォーマンス監視（レポート件数は後で動的に設定）
   const { measureOperation, measureRender } = useListPerformance('WeeklyReportList', 0);
@@ -244,7 +244,7 @@ export default function WeeklyReportList() {
     }
   });
 
-  // URLパラメータから初初値を設定
+  // URLパラメータから初期値を設定 & リセット機能
   useEffect(() => {
     // ブラウザの場合のみURLSearchParamsを使用
     if (typeof window !== 'undefined') {
@@ -253,20 +253,30 @@ export default function WeeklyReportList() {
         const url = new URL(window.location.href);
         const projectNameParam = url.searchParams.get('projectName');
         const caseIdParam = url.searchParams.get('caseId');
+        const resetParam = url.searchParams.get('reset');
 
-        console.log('URL Params:', { projectNameParam, caseIdParam });
+        console.log('URL Params:', { projectNameParam, caseIdParam, resetParam });
 
-        if (projectNameParam) {
-          setSelectedProject(decodeURIComponent(projectNameParam));
-        }
+        // リセットパラメータがある場合は状態をクリア
+        if (resetParam === 'true') {
+          setSelectedProject(null);
+          setSelectedCase(null);
+          // クリーンなURLに更新（ブラウザ履歴を更新せずに）
+          window.history.replaceState({}, '', '/reports');
+        } else {
+          // 通常のパラメータ処理
+          if (projectNameParam) {
+            setSelectedProject(decodeURIComponent(projectNameParam));
+          }
 
-        if (caseIdParam) {
-          const caseId = parseInt(caseIdParam);
-          if (!isNaN(caseId)) {
-            setSelectedCase(caseId);
+          if (caseIdParam) {
+            const caseId = parseInt(caseIdParam);
+            if (!isNaN(caseId)) {
+              setSelectedCase(caseId);
 
-            // 案件データが読み込まれた後に実行される handleCaseSelect の処理を待つ
-            // 実際の処理は handleCaseSelect 内で行われる
+              // 案件データが読み込まれた後に実行される handleCaseSelect の処理を待つ
+              // 実際の処理は handleCaseSelect 内で行われる
+            }
           }
         }
       } catch (err) {
