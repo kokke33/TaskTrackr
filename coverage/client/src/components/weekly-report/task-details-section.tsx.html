@@ -2787,8 +2787,8 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >  return (</span>
 <span class="cstat-no" title="statement not covered" >    &lt;&gt;</span>
       {/* 今週の作業内容 */}
-<span class="cstat-no" title="statement not covered" >      &lt;div className="p-6 bg-card rounded-lg shadow-sm"&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-xl font-semibold mb-4 pb-2 border-b"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b"&gt;</span>
           2. 今週の作業内容
 <span class="cstat-no" title="statement not covered" >        &lt;/h2&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;FormField</span>
@@ -2797,7 +2797,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >          render={({ field }) =&gt; (</span>
 <span class="cstat-no" title="statement not covered" >            &lt;FormItem&gt;</span>
 <span class="cstat-no" title="statement not covered" >              &lt;div className="flex items-center"&gt;</span>
-<span class="cstat-no" title="statement not covered" >                &lt;FormLabel className="required"&gt;今週の作業内容&lt;/FormLabel&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;FormLabel className="required text-sm sm:text-base"&gt;今週の作業内容&lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;PreviousReportTooltip </span>
 <span class="cstat-no" title="statement not covered" >                  previousContent={latestReport?.weeklyTasks}</span>
 <span class="cstat-no" title="statement not covered" >                  fieldName="今週の作業内容"</span>
@@ -2806,7 +2806,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >              &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;Textarea</span>
 <span class="cstat-no" title="statement not covered" >                  placeholder="作業項目、計画との差異、遅延理由、リスク評価などを記述してください"</span>
-<span class="cstat-no" title="statement not covered" >                  className="h-32"</span>
+<span class="cstat-no" title="statement not covered" >                  className="h-24 sm:h-32 text-sm"</span>
 <span class="cstat-no" title="statement not covered" >                  {...field}</span>
 <span class="cstat-no" title="statement not covered" >                  onBlur={(e) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >                    field.onBlur?.();</span>
@@ -2833,17 +2833,17 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
 &nbsp;
       {/* 進捗状況 */}
-<span class="cstat-no" title="statement not covered" >      &lt;div className="p-6 bg-card rounded-lg shadow-sm"&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-xl font-semibold mb-4 pb-2 border-b"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b"&gt;</span>
           3. 進捗状況
 <span class="cstat-no" title="statement not covered" >        &lt;/h2&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;div className="space-y-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;div className="space-y-3 sm:space-y-4"&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;FormField</span>
 <span class="cstat-no" title="statement not covered" >            control={form.control}</span>
 <span class="cstat-no" title="statement not covered" >            name="progressRate"</span>
 <span class="cstat-no" title="statement not covered" >            render={({ field }) =&gt; (</span>
 <span class="cstat-no" title="statement not covered" >              &lt;FormItem&gt;</span>
-<span class="cstat-no" title="statement not covered" >                &lt;FormLabel className="required"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;FormLabel className="required text-sm sm:text-base"&gt;</span>
                   進捗率 (0～100%)
 <span class="cstat-no" title="statement not covered" >                &lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;div className="flex items-center gap-4"&gt;</span>
@@ -2897,7 +2897,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >                &lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;Select</span>
 <span class="cstat-no" title="statement not covered" >                  onValueChange={field.onChange}</span>
-<span class="cstat-no" title="statement not covered" >                  defaultValue={field.value}</span>
+<span class="cstat-no" title="statement not covered" >                  value={field.value}</span>
                 &gt;
 <span class="cstat-no" title="statement not covered" >                  &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;SelectTrigger&gt;</span>
@@ -2998,8 +2998,8 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
 &nbsp;
       {/* 課題・問題点 */}
-<span class="cstat-no" title="statement not covered" >      &lt;div className="p-6 bg-card rounded-lg shadow-sm"&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-xl font-semibold mb-4 pb-2 border-b"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b"&gt;</span>
           4. 課題・問題点
 <span class="cstat-no" title="statement not covered" >        &lt;/h2&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;FormField</span>
@@ -3044,8 +3044,8 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
 &nbsp;
       {/* 新たなリスク */}
-<span class="cstat-no" title="statement not covered" >      &lt;div className="p-6 bg-card rounded-lg shadow-sm"&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-xl font-semibold mb-4 pb-2 border-b"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b"&gt;</span>
           5. 新たなリスク
 <span class="cstat-no" title="statement not covered" >        &lt;/h2&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;div className="space-y-4"&gt;</span>
@@ -3172,7 +3172,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >                    &lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;Select</span>
 <span class="cstat-no" title="statement not covered" >                      onValueChange={field.onChange}</span>
-<span class="cstat-no" title="statement not covered" >                      defaultValue={field.value ?? ""}</span>
+<span class="cstat-no" title="statement not covered" >                      value={field.value ?? ""}</span>
                     &gt;
 <span class="cstat-no" title="statement not covered" >                      &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                        &lt;SelectTrigger&gt;</span>
@@ -3195,8 +3195,8 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
 &nbsp;
       {/* 品質 */}
-<span class="cstat-no" title="statement not covered" >      &lt;div className="p-6 bg-card rounded-lg shadow-sm"&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-xl font-semibold mb-4 pb-2 border-b"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b"&gt;</span>
           6. 品質
 <span class="cstat-no" title="statement not covered" >        &lt;/h2&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;div className="space-y-4"&gt;</span>
@@ -3210,7 +3210,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >                &lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;Select</span>
 <span class="cstat-no" title="statement not covered" >                  onValueChange={field.onChange}</span>
-<span class="cstat-no" title="statement not covered" >                  defaultValue={field.value}</span>
+<span class="cstat-no" title="statement not covered" >                  value={field.value}</span>
                 &gt;
 <span class="cstat-no" title="statement not covered" >                  &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;SelectTrigger&gt;</span>
@@ -3316,8 +3316,8 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
 &nbsp;
       {/* 変更管理 */}
-<span class="cstat-no" title="statement not covered" >      &lt;div className="p-6 bg-card rounded-lg shadow-sm"&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-xl font-semibold mb-4 pb-2 border-b"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b"&gt;</span>
           7. 変更管理
 <span class="cstat-no" title="statement not covered" >        &lt;/h2&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;div className="space-y-4"&gt;</span>
@@ -3389,8 +3389,8 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
 &nbsp;
       {/* 来週の予定 */}
-<span class="cstat-no" title="statement not covered" >      &lt;div className="p-6 bg-card rounded-lg shadow-sm"&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-xl font-semibold mb-4 pb-2 border-b"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b"&gt;</span>
           8. 来週の予定
 <span class="cstat-no" title="statement not covered" >        &lt;/h2&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;FormField</span>
@@ -3435,8 +3435,8 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
 &nbsp;
       {/* 支援・判断要望 */}
-<span class="cstat-no" title="statement not covered" >      &lt;div className="p-6 bg-card rounded-lg shadow-sm"&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-xl font-semibold mb-4 pb-2 border-b"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b"&gt;</span>
           9. 支援・判断要望
 <span class="cstat-no" title="statement not covered" >        &lt;/h2&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;FormField</span>
@@ -3483,8 +3483,8 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
 &nbsp;
       {/* その他の懸念事項 */}
-<span class="cstat-no" title="statement not covered" >      &lt;div className="p-6 bg-card rounded-lg shadow-sm"&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-xl font-semibold mb-4 pb-2 border-b"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b"&gt;</span>
           10. その他の懸念事項
 <span class="cstat-no" title="statement not covered" >        &lt;/h2&gt;</span>
         {/* リソース */}
@@ -3497,7 +3497,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >                &lt;FormLabel&gt;リソースに関する懸念&lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;Select</span>
 <span class="cstat-no" title="statement not covered" >                  onValueChange={field.onChange}</span>
-<span class="cstat-no" title="statement not covered" >                  defaultValue={field.value ?? ""}</span>
+<span class="cstat-no" title="statement not covered" >                  value={field.value ?? ""}</span>
                 &gt;
 <span class="cstat-no" title="statement not covered" >                  &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;SelectTrigger&gt;</span>
@@ -3560,7 +3560,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >                &lt;FormLabel&gt;顧客に関する懸念&lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;Select</span>
 <span class="cstat-no" title="statement not covered" >                  onValueChange={field.onChange}</span>
-<span class="cstat-no" title="statement not covered" >                  defaultValue={field.value ?? ""}</span>
+<span class="cstat-no" title="statement not covered" >                  value={field.value ?? ""}</span>
                 &gt;
 <span class="cstat-no" title="statement not covered" >                  &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;SelectTrigger&gt;</span>
@@ -3623,7 +3623,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >                &lt;FormLabel&gt;環境に関する懸念&lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;Select</span>
 <span class="cstat-no" title="statement not covered" >                  onValueChange={field.onChange}</span>
-<span class="cstat-no" title="statement not covered" >                  defaultValue={field.value ?? ""}</span>
+<span class="cstat-no" title="statement not covered" >                  value={field.value ?? ""}</span>
                 &gt;
 <span class="cstat-no" title="statement not covered" >                  &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;SelectTrigger&gt;</span>
@@ -3686,7 +3686,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >                &lt;FormLabel&gt;コストに関する懸念&lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;Select</span>
 <span class="cstat-no" title="statement not covered" >                  onValueChange={field.onChange}</span>
-<span class="cstat-no" title="statement not covered" >                  defaultValue={field.value ?? ""}</span>
+<span class="cstat-no" title="statement not covered" >                  value={field.value ?? ""}</span>
                 &gt;
 <span class="cstat-no" title="statement not covered" >                  &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;SelectTrigger&gt;</span>
@@ -3749,7 +3749,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >                &lt;FormLabel&gt;知識・スキルに関する懸念&lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;Select</span>
 <span class="cstat-no" title="statement not covered" >                  onValueChange={field.onChange}</span>
-<span class="cstat-no" title="statement not covered" >                  defaultValue={field.value ?? ""}</span>
+<span class="cstat-no" title="statement not covered" >                  value={field.value ?? ""}</span>
                 &gt;
 <span class="cstat-no" title="statement not covered" >                  &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;SelectTrigger&gt;</span>
@@ -3812,7 +3812,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >                &lt;FormLabel&gt;教育に関する懸念&lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;Select</span>
 <span class="cstat-no" title="statement not covered" >                  onValueChange={field.onChange}</span>
-<span class="cstat-no" title="statement not covered" >                  defaultValue={field.value ?? ""}</span>
+<span class="cstat-no" title="statement not covered" >                  value={field.value ?? ""}</span>
                 &gt;
 <span class="cstat-no" title="statement not covered" >                  &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;SelectTrigger&gt;</span>
@@ -3874,7 +3874,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >                &lt;FormLabel&gt;緊急課題に関する懸念&lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;Select</span>
 <span class="cstat-no" title="statement not covered" >                  onValueChange={field.onChange}</span>
-<span class="cstat-no" title="statement not covered" >                  defaultValue={field.value ?? ""}</span>
+<span class="cstat-no" title="statement not covered" >                  value={field.value ?? ""}</span>
                 &gt;
 <span class="cstat-no" title="statement not covered" >                  &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;SelectTrigger&gt;</span>
@@ -3937,7 +3937,7 @@ type TaskDetailsSectionProps = {
 <span class="cstat-no" title="statement not covered" >                &lt;FormLabel&gt;営業チャンス・顧客ニーズ&lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;Select</span>
 <span class="cstat-no" title="statement not covered" >                  onValueChange={field.onChange}</span>
-<span class="cstat-no" title="statement not covered" >                  defaultValue={field.value ?? ""}</span>
+<span class="cstat-no" title="statement not covered" >                  value={field.value ?? ""}</span>
                 &gt;
 <span class="cstat-no" title="statement not covered" >                  &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;SelectTrigger&gt;</span>
@@ -4000,7 +4000,7 @@ type TaskDetailsSectionProps = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-27T11:47:35.290Z
+                at 2025-08-02T13:57:12.421Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

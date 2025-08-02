@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/944</span>
+                <span class='fraction'>0/951</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/944</span>
+                <span class='fraction'>0/951</span>
             </div>
         
             
@@ -1363,7 +1363,17 @@
 <a name='L1298'></a><a href='#L1298'>1298</a>
 <a name='L1299'></a><a href='#L1299'>1299</a>
 <a name='L1300'></a><a href='#L1300'>1300</a>
-<a name='L1301'></a><a href='#L1301'>1301</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L1301'></a><a href='#L1301'>1301</a>
+<a name='L1302'></a><a href='#L1302'>1302</a>
+<a name='L1303'></a><a href='#L1303'>1303</a>
+<a name='L1304'></a><a href='#L1304'>1304</a>
+<a name='L1305'></a><a href='#L1305'>1305</a>
+<a name='L1306'></a><a href='#L1306'>1306</a>
+<a name='L1307'></a><a href='#L1307'>1307</a>
+<a name='L1308'></a><a href='#L1308'>1308</a>
+<a name='L1309'></a><a href='#L1309'>1309</a>
+<a name='L1310'></a><a href='#L1310'>1310</a>
+<a name='L1311'></a><a href='#L1311'>1311</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1618,8 +1628,17 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1632,6 +1651,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -2731,7 +2751,7 @@ type MonthlyReport = {
 &nbsp;
 <span class="cstat-no" title="statement not covered" >export default function WeeklyReportList() {</span>
 <span class="cstat-no" title="statement not covered" >  const { toast } = useToast();</span>
-<span class="cstat-no" title="statement not covered" >  const [location] = useLocation();</span>
+<span class="cstat-no" title="statement not covered" >  const [location, setLocation] = useLocation();</span>
   
   // パフォーマンス監視（レポート件数は後で動的に設定）
 <span class="cstat-no" title="statement not covered" >  const { measureOperation, measureRender } = useListPerformance('WeeklyReportList', 0);</span>
@@ -2909,7 +2929,7 @@ type MonthlyReport = {
 <span class="cstat-no" title="statement not covered" >    }</span>
 <span class="cstat-no" title="statement not covered" >  });</span>
 &nbsp;
-  // URLパラメータから初初値を設定
+  // URLパラメータから初期値を設定 &amp; リセット機能
 <span class="cstat-no" title="statement not covered" >  useEffect(() =&gt; {</span>
     // ブラウザの場合のみURLSearchParamsを使用
 <span class="cstat-no" title="statement not covered" >    if (typeof window !== 'undefined') {</span>
@@ -2918,20 +2938,30 @@ type MonthlyReport = {
 <span class="cstat-no" title="statement not covered" >        const url = new URL(window.location.href);</span>
 <span class="cstat-no" title="statement not covered" >        const projectNameParam = url.searchParams.get('projectName');</span>
 <span class="cstat-no" title="statement not covered" >        const caseIdParam = url.searchParams.get('caseId');</span>
+<span class="cstat-no" title="statement not covered" >        const resetParam = url.searchParams.get('reset');</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        console.log('URL Params:', { projectNameParam, caseIdParam });</span>
+<span class="cstat-no" title="statement not covered" >        console.log('URL Params:', { projectNameParam, caseIdParam, resetParam });</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        if (projectNameParam) {</span>
-<span class="cstat-no" title="statement not covered" >          setSelectedProject(decodeURIComponent(projectNameParam));</span>
-<span class="cstat-no" title="statement not covered" >        }</span>
+        // リセットパラメータがある場合は状態をクリア
+<span class="cstat-no" title="statement not covered" >        if (resetParam === 'true') {</span>
+<span class="cstat-no" title="statement not covered" >          setSelectedProject(null);</span>
+<span class="cstat-no" title="statement not covered" >          setSelectedCase(null);</span>
+          // クリーンなURLに更新（ブラウザ履歴を更新せずに）
+<span class="cstat-no" title="statement not covered" >          window.history.replaceState({}, '', '/reports');</span>
+<span class="cstat-no" title="statement not covered" >        } else {</span>
+          // 通常のパラメータ処理
+<span class="cstat-no" title="statement not covered" >          if (projectNameParam) {</span>
+<span class="cstat-no" title="statement not covered" >            setSelectedProject(decodeURIComponent(projectNameParam));</span>
+<span class="cstat-no" title="statement not covered" >          }</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        if (caseIdParam) {</span>
-<span class="cstat-no" title="statement not covered" >          const caseId = parseInt(caseIdParam);</span>
-<span class="cstat-no" title="statement not covered" >          if (!isNaN(caseId)) {</span>
-<span class="cstat-no" title="statement not covered" >            setSelectedCase(caseId);</span>
+<span class="cstat-no" title="statement not covered" >          if (caseIdParam) {</span>
+<span class="cstat-no" title="statement not covered" >            const caseId = parseInt(caseIdParam);</span>
+<span class="cstat-no" title="statement not covered" >            if (!isNaN(caseId)) {</span>
+<span class="cstat-no" title="statement not covered" >              setSelectedCase(caseId);</span>
 &nbsp;
-            // 案件データが読み込まれた後に実行される handleCaseSelect の処理を待つ
-            // 実際の処理は handleCaseSelect 内で行われる
+              // 案件データが読み込まれた後に実行される handleCaseSelect の処理を待つ
+              // 実際の処理は handleCaseSelect 内で行われる
+<span class="cstat-no" title="statement not covered" >            }</span>
 <span class="cstat-no" title="statement not covered" >          }</span>
 <span class="cstat-no" title="statement not covered" >        }</span>
 <span class="cstat-no" title="statement not covered" >      } catch (err) {</span>
@@ -3970,7 +4000,7 @@ type MonthlyReport = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-27T11:47:35.290Z
+                at 2025-08-02T13:57:12.421Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

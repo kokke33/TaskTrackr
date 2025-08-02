@@ -352,38 +352,38 @@ type MeetingMinutesProps = {
 <span class="cstat-no" title="statement not covered" >  }</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  return (</span>
-<span class="cstat-no" title="statement not covered" >    &lt;Card className="mt-8"&gt;</span>
-<span class="cstat-no" title="statement not covered" >      &lt;CardContent className="p-6"&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-xl font-semibold mb-4 pb-2 border-b"&gt;■ 確認会議事録&lt;/h2&gt;</span>
+<span class="cstat-no" title="statement not covered" >    &lt;Card className="mt-6 sm:mt-8"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;CardContent className="p-4 sm:p-6"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b"&gt;■ 確認会議事録&lt;/h2&gt;</span>
 <span class="cstat-no" title="statement not covered" >        {meetings.map((meeting, index) =&gt; (</span>
-<span class="cstat-no" title="statement not covered" >          &lt;div key={meeting.id} className="mb-6 last:mb-0"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;div key={meeting.id} className="mb-4 sm:mb-6 last:mb-0"&gt;</span>
 <span class="cstat-no" title="statement not covered" >            {meetings.length &gt; 1 &amp;&amp; (</span>
-<span class="cstat-no" title="statement not covered" >              &lt;h3 className="text-lg font-medium mb-3 text-gray-700"&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;h3 className="text-base sm:text-lg font-medium mb-2 sm:mb-3 text-gray-700"&gt;</span>
 <span class="cstat-no" title="statement not covered" >                {meetings.length - index}回目の修正 ({new Date(meeting.createdAt).toLocaleDateString('ja-JP')})</span>
 <span class="cstat-no" title="statement not covered" >              &lt;/h3&gt;</span>
             )}
-<span class="cstat-no" title="statement not covered" >            &lt;div className="bg-gray-50 rounded-lg p-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div className="bg-gray-50 rounded-lg p-3 sm:p-4"&gt;</span>
 <span class="cstat-no" title="statement not covered" >              {editingMeetings[meeting.id] ? (</span>
                 // 編集モード
-<span class="cstat-no" title="statement not covered" >                &lt;div className="mb-4"&gt;</span>
-<span class="cstat-no" title="statement not covered" >                  &lt;div className="mb-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;div className="mb-3 sm:mb-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;div className="mb-3 sm:mb-4"&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;label className="block text-sm font-medium mb-2"&gt;タイトル:&lt;/label&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;input</span>
 <span class="cstat-no" title="statement not covered" >                      type="text"</span>
 <span class="cstat-no" title="statement not covered" >                      value={editingMeetings[meeting.id].title}</span>
 <span class="cstat-no" title="statement not covered" >                      onChange={(e) =&gt; onUpdateField(meeting.id, 'title', e.target.value)}</span>
-<span class="cstat-no" title="statement not covered" >                      className="w-full p-2 border rounded"</span>
+<span class="cstat-no" title="statement not covered" >                      className="w-full p-2 border rounded text-sm"</span>
 <span class="cstat-no" title="statement not covered" >                    /&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;/div&gt;</span>
-<span class="cstat-no" title="statement not covered" >                  &lt;div className="mb-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;div className="mb-3 sm:mb-4"&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;label className="block text-sm font-medium mb-2"&gt;内容:&lt;/label&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;Textarea</span>
 <span class="cstat-no" title="statement not covered" >                      value={editingMeetings[meeting.id].content}</span>
 <span class="cstat-no" title="statement not covered" >                      onChange={(e) =&gt; onUpdateField(meeting.id, 'content', e.target.value)}</span>
-<span class="cstat-no" title="statement not covered" >                      className="min-h-[200px]"</span>
+<span class="cstat-no" title="statement not covered" >                      className="min-h-[150px] sm:min-h-[200px] text-sm"</span>
 <span class="cstat-no" title="statement not covered" >                    /&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;/div&gt;</span>
-<span class="cstat-no" title="statement not covered" >                  &lt;div className="flex gap-2"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;div className="flex flex-col sm:flex-row gap-2"&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;Button </span>
 <span class="cstat-no" title="statement not covered" >                      type="button"</span>
 <span class="cstat-no" title="statement not covered" >                      size="sm" </span>
@@ -404,7 +404,7 @@ type MeetingMinutesProps = {
 <span class="cstat-no" title="statement not covered" >                &lt;/div&gt;</span>
               ) : (
                 // 表示モード
-<span class="cstat-no" title="statement not covered" >                &lt;div className="mb-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;div className="mb-3 sm:mb-4"&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;div className="flex justify-between items-center mb-2"&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;h4 className="font-medium"&gt;{meeting.title}&lt;/h4&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;Button </span>
@@ -439,7 +439,7 @@ type MeetingMinutesProps = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-27T11:47:35.290Z
+                at 2025-08-02T13:57:12.421Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

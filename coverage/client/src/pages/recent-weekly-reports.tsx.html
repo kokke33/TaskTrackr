@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/135</span>
+                <span class='fraction'>0/140</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/135</span>
+                <span class='fraction'>0/140</span>
             </div>
         
             
@@ -239,7 +239,13 @@
 <a name='L174'></a><a href='#L174'>174</a>
 <a name='L175'></a><a href='#L175'>175</a>
 <a name='L176'></a><a href='#L176'>176</a>
-<a name='L177'></a><a href='#L177'>177</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -265,6 +271,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -303,6 +310,22 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -390,19 +413,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -439,6 +451,7 @@ interface WeeklyReport {
   progressStatus: string;
   issues: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >export default function RecentWeeklyReportsList() {</span>
@@ -470,9 +483,25 @@ interface WeeklyReport {
 <span class="cstat-no" title="statement not covered" >    fetchRecentReports();</span>
 <span class="cstat-no" title="statement not covered" >  }, [toast]);</span>
 &nbsp;
-  // 日付フォーマット関数
-<span class="cstat-no" title="statement not covered" >  const formatDate = (dateString: string) =&gt; {</span>
+  // 日付時刻フォーマット関数（更新日時用）
+<span class="cstat-no" title="statement not covered" >  const formatDateTime = (dateString: string) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    if (!dateString) return '-';</span>
 <span class="cstat-no" title="statement not covered" >    const date = new Date(dateString);</span>
+<span class="cstat-no" title="statement not covered" >    if (isNaN(date.getTime())) return '-';</span>
+<span class="cstat-no" title="statement not covered" >    return date.toLocaleString('ja-JP', {</span>
+<span class="cstat-no" title="statement not covered" >      year: 'numeric',</span>
+<span class="cstat-no" title="statement not covered" >      month: '2-digit',</span>
+<span class="cstat-no" title="statement not covered" >      day: '2-digit',</span>
+<span class="cstat-no" title="statement not covered" >      hour: '2-digit',</span>
+<span class="cstat-no" title="statement not covered" >      minute: '2-digit',</span>
+<span class="cstat-no" title="statement not covered" >    });</span>
+<span class="cstat-no" title="statement not covered" >  };</span>
+&nbsp;
+  // 日付フォーマット関数（報告期間用）
+<span class="cstat-no" title="statement not covered" >  const formatDate = (dateString: string) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    if (!dateString) return '-';</span>
+<span class="cstat-no" title="statement not covered" >    const date = new Date(dateString);</span>
+<span class="cstat-no" title="statement not covered" >    if (isNaN(date.getTime())) return '-';</span>
 <span class="cstat-no" title="statement not covered" >    return date.toLocaleDateString('ja-JP', {</span>
 <span class="cstat-no" title="statement not covered" >      year: 'numeric',</span>
 <span class="cstat-no" title="statement not covered" >      month: '2-digit',</span>
@@ -525,13 +554,13 @@ interface WeeklyReport {
 <span class="cstat-no" title="statement not covered" >        &lt;Card&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;CardHeader&gt;</span>
 <span class="cstat-no" title="statement not covered" >            &lt;CardTitle&gt;最近の週次報告&lt;/CardTitle&gt;</span>
-<span class="cstat-no" title="statement not covered" >            &lt;CardDescription&gt;作成タイムスタンプが新しい順に表示しています&lt;/CardDescription&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;CardDescription&gt;更新タイムスタンプが新しい順に表示しています&lt;/CardDescription&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;/CardHeader&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;CardContent&gt;</span>
 <span class="cstat-no" title="statement not covered" >            &lt;Table&gt;</span>
 <span class="cstat-no" title="statement not covered" >              &lt;TableHeader&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;TableRow&gt;</span>
-<span class="cstat-no" title="statement not covered" >                  &lt;TableHead&gt;作成日時&lt;/TableHead&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;TableHead&gt;更新日時&lt;/TableHead&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;TableHead&gt;報告期間&lt;/TableHead&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;TableHead&gt;プロジェクト&lt;/TableHead&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;TableHead&gt;案件名&lt;/TableHead&gt;</span>
@@ -544,7 +573,7 @@ interface WeeklyReport {
 <span class="cstat-no" title="statement not covered" >              &lt;TableBody&gt;</span>
 <span class="cstat-no" title="statement not covered" >                {reports.map((report) =&gt; (</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;TableRow key={report.id}&gt;</span>
-<span class="cstat-no" title="statement not covered" >                    &lt;TableCell&gt;{formatDate(report.createdAt)}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;TableCell&gt;{formatDateTime(report.updatedAt)}&lt;/TableCell&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;TableCell&gt;{formatDate(report.reportPeriodStart)} 〜 {formatDate(report.reportPeriodEnd)}&lt;/TableCell&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;TableCell&gt;{report.projectName}&lt;/TableCell&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;TableCell&gt;{report.caseName}&lt;/TableCell&gt;</span>
@@ -564,22 +593,11 @@ interface WeeklyReport {
 <span class="cstat-no" title="statement not covered" >                      &lt;/span&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;/TableCell&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;TableCell className="text-right"&gt;</span>
-<span class="cstat-no" title="statement not covered" >                      &lt;div className="flex justify-end gap-2"&gt;</span>
-<span class="cstat-no" title="statement not covered" >                        &lt;Link href={`/reports/${report.id}`}&gt;</span>
-<span class="cstat-no" title="statement not covered" >                          &lt;Button variant="outline" size="sm"&gt;</span>
-                            詳細
-<span class="cstat-no" title="statement not covered" >                          &lt;/Button&gt;</span>
-<span class="cstat-no" title="statement not covered" >                        &lt;/Link&gt;</span>
-<span class="cstat-no" title="statement not covered" >                        {user?.isAdmin &amp;&amp; (</span>
-<span class="cstat-no" title="statement not covered" >                          &lt;AdminOnly&gt;</span>
-<span class="cstat-no" title="statement not covered" >                            &lt;Link href={`/report/edit/${report.id}`}&gt;</span>
-<span class="cstat-no" title="statement not covered" >                              &lt;Button variant="outline" size="sm"&gt;</span>
-                                編集
-<span class="cstat-no" title="statement not covered" >                              &lt;/Button&gt;</span>
-<span class="cstat-no" title="statement not covered" >                            &lt;/Link&gt;</span>
-<span class="cstat-no" title="statement not covered" >                          &lt;/AdminOnly&gt;</span>
-                        )}
-<span class="cstat-no" title="statement not covered" >                      &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >                      &lt;Link href={`/reports/${report.id}`}&gt;</span>
+<span class="cstat-no" title="statement not covered" >                        &lt;Button variant="outline" size="sm"&gt;</span>
+                          詳細
+<span class="cstat-no" title="statement not covered" >                        &lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >                      &lt;/Link&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;/TableCell&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;/TableRow&gt;</span>
 <span class="cstat-no" title="statement not covered" >                ))}</span>
@@ -598,7 +616,7 @@ interface WeeklyReport {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-27T11:47:35.290Z
+                at 2025-08-02T13:57:12.421Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

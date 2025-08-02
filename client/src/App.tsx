@@ -10,56 +10,149 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { AdminRoute } from "./lib/admin-only";
 import Login from "@/pages/login";
 import Home from "@/pages/Home";
-import WeeklyReport from "@/pages/weekly-report";
-import WeeklyReportList from "@/pages/weekly-report-list";
-import WeeklyReportDetail from "@/pages/weekly-report-detail";
-import CaseList from "@/pages/cases";
-import CaseForm from "@/pages/case-form";
-import ProjectList from "@/pages/projects";
-import ProjectForm from "@/pages/project-form";
-import ProjectDetail from "@/pages/project-detail";
-import MeetingList from "@/pages/meeting-list";
-import NotFound from "@/pages/not-found";
-import SearchPage from "@/pages/search";
-import RecentCases from "@/pages/recent-cases";
-import RecentWeeklyReports from "@/pages/recent-weekly-reports";
-import AdminSettings from "@/pages/admin-settings";
-import AdminUsers from "@/pages/admin-users";
+// 動的インポートによるコード分割とパフォーマンス最適化
+const WeeklyReport = lazy(() => import("@/pages/weekly-report"));
+const WeeklyReportList = lazy(() => import("@/pages/weekly-report-list"));
+const WeeklyReportDetail = lazy(() => import("@/pages/weekly-report-detail"));
+const CaseList = lazy(() => import("@/pages/cases"));
+const CaseForm = lazy(() => import("@/pages/case-form"));
+const ProjectList = lazy(() => import("@/pages/projects"));
+const ProjectForm = lazy(() => import("@/pages/project-form"));
+const ProjectDetail = lazy(() => import("@/pages/project-detail"));
+const MeetingList = lazy(() => import("@/pages/meeting-list"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+const SearchPage = lazy(() => import("@/pages/search"));
+const RecentCases = lazy(() => import("@/pages/recent-cases"));
+const RecentWeeklyReports = lazy(() => import("@/pages/recent-weekly-reports"));
+const AdminSettings = lazy(() => import("@/pages/admin-settings"));
+const AdminUsers = lazy(() => import("@/pages/admin-users"));
+const CaseView = lazy(() => import('./pages/case-view'));
 
 
-const CaseView = lazy(() => import('./pages/case-view')); //React.lazyを使用
-
+// Suspense用のローディングコンポーネント
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-[200px]">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    <span className="ml-2 text-muted-foreground">読み込み中...</span>
+  </div>
+);
 
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
       <ProtectedRoute path="/" component={Home} />
-      <ProtectedRoute path="/report/new" component={WeeklyReport} />
-      <ProtectedRoute path="/report/edit/:id" component={WeeklyReport} />
-      <ProtectedRoute path="/reports" component={WeeklyReportList} />
-      <ProtectedRoute path="/reports/:id" component={WeeklyReportDetail} />
-      <ProtectedRoute path="/meetings" component={MeetingList} />
-      <ProtectedRoute path="/cases" component={CaseList} />
-      <AdminRoute path="/case/new" component={CaseForm} />
-      <AdminRoute path="/case/edit/:id" component={CaseForm} />
+      
+      {/* 週次報告関連 - Suspenseでラップ */}
+      <ProtectedRoute path="/report/new" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <WeeklyReport {...props} />
+        </Suspense>
+      )} />
+      <ProtectedRoute path="/report/edit/:id" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <WeeklyReport {...props} />
+        </Suspense>
+      )} />
+      <ProtectedRoute path="/reports" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <WeeklyReportList {...props} />
+        </Suspense>
+      )} />
+      <ProtectedRoute path="/reports/:id" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <WeeklyReportDetail {...props} />
+        </Suspense>
+      )} />
+      
+      {/* 会議・案件関連 */}
+      <ProtectedRoute path="/meetings" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <MeetingList {...props} />
+        </Suspense>
+      )} />
+      <ProtectedRoute path="/cases" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <CaseList {...props} />
+        </Suspense>
+      )} />
+      <AdminRoute path="/case/new" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <CaseForm {...props} />
+        </Suspense>
+      )} />
+      <AdminRoute path="/case/edit/:id" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <CaseForm {...props} />
+        </Suspense>
+      )} />
       <ProtectedRoute path="/case/view/:id" component={(props) => (
-        <Suspense fallback={<div>読み込み中...</div>}>
+        <Suspense fallback={<LoadingSpinner />}>
           <CaseView {...props} />
         </Suspense>
       )} />
-      <AdminRoute path="/projects" component={ProjectList} />
-      <AdminRoute path="/project/new" component={ProjectForm} />
-      <AdminRoute path="/project/edit/:id" component={ProjectForm} />
-      <ProtectedRoute path="/project/:id" component={ProjectDetail} />
-      <ProtectedRoute path="/project/name/:name" component={ProjectDetail} />
-      <ProtectedRoute path="/search" component={SearchPage} />
-      <ProtectedRoute path="/recent-cases" component={RecentCases} />
-      <ProtectedRoute path="/recent-weekly-reports" component={RecentWeeklyReports} />
-      <AdminRoute path="/admin/settings" component={AdminSettings} />
-      <AdminRoute path="/admin/users" component={AdminUsers} />
+      
+      {/* プロジェクト関連 */}
+      <AdminRoute path="/projects" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <ProjectList {...props} />
+        </Suspense>
+      )} />
+      <AdminRoute path="/project/new" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <ProjectForm {...props} />
+        </Suspense>
+      )} />
+      <AdminRoute path="/project/edit/:id" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <ProjectForm {...props} />
+        </Suspense>
+      )} />
+      <ProtectedRoute path="/project/:id" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <ProjectDetail {...props} />
+        </Suspense>
+      )} />
+      <ProtectedRoute path="/project/name/:name" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <ProjectDetail {...props} />
+        </Suspense>
+      )} />
+      
+      {/* その他のページ */}
+      <ProtectedRoute path="/search" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <SearchPage {...props} />
+        </Suspense>
+      )} />
+      <ProtectedRoute path="/recent-cases" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <RecentCases {...props} />
+        </Suspense>
+      )} />
+      <ProtectedRoute path="/recent-weekly-reports" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <RecentWeeklyReports {...props} />
+        </Suspense>
+      )} />
+      
+      {/* 管理者ページ */}
+      <AdminRoute path="/admin/settings" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <AdminSettings {...props} />
+        </Suspense>
+      )} />
+      <AdminRoute path="/admin/users" component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <AdminUsers {...props} />
+        </Suspense>
+      )} />
 
-      <Route component={NotFound} />
+      <Route component={(props) => (
+        <Suspense fallback={<LoadingSpinner />}>
+          <NotFound {...props} />
+        </Suspense>
+      )} />
     </Switch>
   );
 }

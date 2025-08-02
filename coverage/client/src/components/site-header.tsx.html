@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/134</span>
+                <span class='fraction'>0/139</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/134</span>
+                <span class='fraction'>0/139</span>
             </div>
         
             
@@ -238,7 +238,14 @@
 <a name='L173'></a><a href='#L173'>173</a>
 <a name='L174'></a><a href='#L174'>174</a>
 <a name='L175'></a><a href='#L175'>175</a>
-<a name='L176'></a><a href='#L176'>176</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -252,6 +259,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -414,7 +428,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/lib/auth';
 import { Button } from './ui/button';
 import { ThemeToggle } from './theme-toggle';
@@ -429,7 +443,14 @@ type SiteHeaderProps = {
 &nbsp;
 <span class="cstat-no" title="statement not covered" >export function SiteHeader({ isLoading = false }: SiteHeaderProps) {</span>
 <span class="cstat-no" title="statement not covered" >  const { isAuthenticated, user, logout } = useAuth();</span>
+<span class="cstat-no" title="statement not covered" >  const [location, setLocation] = useLocation();</span>
 <span class="cstat-no" title="statement not covered" >  const [connectionStatus, setConnectionStatus] = useState&lt;'online' | 'offline' | 'checking'&gt;('online');</span>
+&nbsp;
+  // 週次報告リンクのクリックハンドラー
+<span class="cstat-no" title="statement not covered" >  const handleReportsClick = (e: React.MouseEvent) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    e.preventDefault();</span>
+<span class="cstat-no" title="statement not covered" >    setLocation('/reports?reset=true');</span>
+<span class="cstat-no" title="statement not covered" >  };</span>
 &nbsp;
   // 接続状態監視
 <span class="cstat-no" title="statement not covered" >  useEffect(() =&gt; {</span>
@@ -473,7 +494,7 @@ type SiteHeaderProps = {
 <span class="cstat-no" title="statement not covered" >  return (</span>
 <span class="cstat-no" title="statement not covered" >    &lt;header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"&gt;</span>
 <span class="cstat-no" title="statement not covered" >      &lt;div className="container flex h-14 items-center"&gt;</span>
-<span class="cstat-no" title="statement not covered" >        &lt;div className="ml-4 hidden md:flex"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;div className="hidden md:flex ml-6"&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;Link href="/" className="mr-6 flex items-center space-x-2"&gt;</span>
 <span class="cstat-no" title="statement not covered" >            &lt;span className="hidden font-bold sm:inline-block"&gt;TOP&lt;/span&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;/Link&gt;</span>
@@ -490,9 +511,9 @@ type SiteHeaderProps = {
 <span class="cstat-no" title="statement not covered" >                    &lt;span className="transition-colors hover:text-foreground/80 cursor-pointer"&gt;案件一覧&lt;/span&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;/Link&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;/AdminOnly&gt;</span>
-<span class="cstat-no" title="statement not covered" >                &lt;Link href="/reports"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;a href="#" onClick={handleReportsClick}&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;span className="transition-colors hover:text-foreground/80 cursor-pointer"&gt;週次報告&lt;/span&gt;</span>
-<span class="cstat-no" title="statement not covered" >                &lt;/Link&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/a&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;Link href="/meetings"&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;span className="transition-colors hover:text-foreground/80 cursor-pointer"&gt;議事録&lt;/span&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;/Link&gt;</span>
@@ -513,7 +534,7 @@ type SiteHeaderProps = {
 <span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
         
         {/* モバイル用のロゴ */}
-<span class="cstat-no" title="statement not covered" >        &lt;div className="md:hidden"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;div className="md:hidden ml-4"&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;Link href="/"&gt;</span>
 <span class="cstat-no" title="statement not covered" >            &lt;span className="flex items-center font-bold cursor-pointer"&gt;PMS&lt;/span&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;/Link&gt;</span>
@@ -595,7 +616,7 @@ type SiteHeaderProps = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-27T11:47:35.290Z
+                at 2025-08-02T13:57:12.421Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

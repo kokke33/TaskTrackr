@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/101</span>
+                <span class='fraction'>0/103</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/101</span>
+                <span class='fraction'>0/103</span>
             </div>
         
             
@@ -195,7 +195,9 @@
 <a name='L130'></a><a href='#L130'>130</a>
 <a name='L131'></a><a href='#L131'>131</a>
 <a name='L132'></a><a href='#L132'>132</a>
-<a name='L133'></a><a href='#L133'>133</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -221,6 +223,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -354,19 +358,20 @@ type BasicInfoFormProps = {
 <span class="cstat-no" title="statement not covered" >  const [isCaseSelectorOpen, setIsCaseSelectorOpen] = useState(false);</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  return (</span>
-<span class="cstat-no" title="statement not covered" >    &lt;div className="p-6 bg-card rounded-lg shadow-sm"&gt;</span>
-<span class="cstat-no" title="statement not covered" >      &lt;div className="space-y-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >    &lt;div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="space-y-3 sm:space-y-4"&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;FormField</span>
 <span class="cstat-no" title="statement not covered" >          control={form.control}</span>
 <span class="cstat-no" title="statement not covered" >          name="reportPeriodStart"</span>
 <span class="cstat-no" title="statement not covered" >          render={({ field }) =&gt; (</span>
 <span class="cstat-no" title="statement not covered" >            &lt;FormItem&gt;</span>
-<span class="cstat-no" title="statement not covered" >              &lt;FormLabel className="required"&gt;報告期間&lt;/FormLabel&gt;</span>
-<span class="cstat-no" title="statement not covered" >              &lt;div className="flex gap-2 items-center"&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;FormLabel className="required text-sm sm:text-base"&gt;報告期間&lt;/FormLabel&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;div className="flex flex-col sm:flex-row gap-2 sm:items-center"&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;Input</span>
 <span class="cstat-no" title="statement not covered" >                    type="date"</span>
 <span class="cstat-no" title="statement not covered" >                    {...field}</span>
+<span class="cstat-no" title="statement not covered" >                    className="text-sm"</span>
 <span class="cstat-no" title="statement not covered" >                    onChange={(e) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >                      field.onChange(e);</span>
 <span class="cstat-no" title="statement not covered" >                      const date = new Date(e.target.value);</span>
@@ -379,11 +384,12 @@ type BasicInfoFormProps = {
 <span class="cstat-no" title="statement not covered" >                    }}</span>
 <span class="cstat-no" title="statement not covered" >                  /&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;/FormControl&gt;</span>
-<span class="cstat-no" title="statement not covered" >                &lt;span&gt;～&lt;/span&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;span className="text-center sm:text-left"&gt;～&lt;/span&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;Input</span>
 <span class="cstat-no" title="statement not covered" >                    type="date"</span>
 <span class="cstat-no" title="statement not covered" >                    {...form.register("reportPeriodEnd")}</span>
+<span class="cstat-no" title="statement not covered" >                    className="text-sm"</span>
 <span class="cstat-no" title="statement not covered" >                    disabled</span>
 <span class="cstat-no" title="statement not covered" >                  /&gt;</span>
 <span class="cstat-no" title="statement not covered" >                &lt;/FormControl&gt;</span>
@@ -401,27 +407,27 @@ type BasicInfoFormProps = {
             
 <span class="cstat-no" title="statement not covered" >            return (</span>
 <span class="cstat-no" title="statement not covered" >              &lt;FormItem&gt;</span>
-<span class="cstat-no" title="statement not covered" >                &lt;FormLabel className="required"&gt;案件&lt;/FormLabel&gt;</span>
-<span class="cstat-no" title="statement not covered" >                &lt;div className="flex items-center gap-2"&gt;</span>
-<span class="cstat-no" title="statement not covered" >                  &lt;FormControl&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;FormLabel className="required text-sm sm:text-base"&gt;案件&lt;/FormLabel&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;FormControl className="flex-1"&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;Button</span>
 <span class="cstat-no" title="statement not covered" >                      type="button"</span>
 <span class="cstat-no" title="statement not covered" >                      variant="outline"</span>
-<span class="cstat-no" title="statement not covered" >                      className="w-full justify-start text-left font-normal"</span>
+<span class="cstat-no" title="statement not covered" >                      className="w-full justify-start text-left font-normal h-auto py-3 px-3"</span>
 <span class="cstat-no" title="statement not covered" >                      onClick={() =&gt; setIsCaseSelectorOpen(true)}</span>
                     &gt;
 <span class="cstat-no" title="statement not covered" >                      {selectedCase ? (</span>
-<span class="cstat-no" title="statement not covered" >                        &lt;div className="flex flex-col items-start"&gt;</span>
-<span class="cstat-no" title="statement not covered" >                          &lt;span className="font-medium"&gt;{selectedCase.caseName}&lt;/span&gt;</span>
+<span class="cstat-no" title="statement not covered" >                        &lt;div className="flex flex-col items-start w-full"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                          &lt;span className="font-medium text-sm"&gt;{selectedCase.caseName}&lt;/span&gt;</span>
 <span class="cstat-no" title="statement not covered" >                          &lt;span className="text-xs text-muted-foreground"&gt;{selectedCase.projectName}&lt;/span&gt;</span>
 <span class="cstat-no" title="statement not covered" >                        &lt;/div&gt;</span>
                       ) : (
-<span class="cstat-no" title="statement not covered" >                        &lt;span className="text-muted-foreground"&gt;案件を選択してください&lt;/span&gt;</span>
+<span class="cstat-no" title="statement not covered" >                        &lt;span className="text-muted-foreground text-sm"&gt;案件を選択してください&lt;/span&gt;</span>
                       )}
 <span class="cstat-no" title="statement not covered" >                    &lt;/Button&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;/FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;Link href="/case/new"&gt;</span>
-<span class="cstat-no" title="statement not covered" >                    &lt;Button variant="outline" size="icon" type="button"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;Button variant="outline" size="icon" type="button" className="h-12 w-12 sm:h-10 sm:w-10 flex-shrink-0"&gt;</span>
 <span class="cstat-no" title="statement not covered" >                      &lt;Plus className="h-4 w-4" /&gt;</span>
 <span class="cstat-no" title="statement not covered" >                    &lt;/Button&gt;</span>
 <span class="cstat-no" title="statement not covered" >                  &lt;/Link&gt;</span>
@@ -437,9 +443,9 @@ type BasicInfoFormProps = {
 <span class="cstat-no" title="statement not covered" >          name="reporterName"</span>
 <span class="cstat-no" title="statement not covered" >          render={({ field }) =&gt; (</span>
 <span class="cstat-no" title="statement not covered" >            &lt;FormItem&gt;</span>
-<span class="cstat-no" title="statement not covered" >              &lt;FormLabel className="required"&gt;報告者氏名&lt;/FormLabel&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;FormLabel className="required text-sm sm:text-base"&gt;報告者氏名&lt;/FormLabel&gt;</span>
 <span class="cstat-no" title="statement not covered" >              &lt;FormControl&gt;</span>
-<span class="cstat-no" title="statement not covered" >                &lt;Input placeholder="例: 山田太郎" {...field} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;Input placeholder="例: 山田太郎" {...field} className="text-sm" /&gt;</span>
 <span class="cstat-no" title="statement not covered" >              &lt;/FormControl&gt;</span>
 <span class="cstat-no" title="statement not covered" >              &lt;FormMessage /&gt;</span>
 <span class="cstat-no" title="statement not covered" >            &lt;/FormItem&gt;</span>
@@ -466,7 +472,7 @@ type BasicInfoFormProps = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-27T11:47:35.290Z
+                at 2025-08-02T13:57:12.421Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>
