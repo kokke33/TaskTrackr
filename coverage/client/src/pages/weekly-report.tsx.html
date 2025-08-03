@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/336</span>
+                <span class='fraction'>0/347</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/336</span>
+                <span class='fraction'>0/347</span>
             </div>
         
             
@@ -509,7 +509,23 @@
 <a name='L444'></a><a href='#L444'>444</a>
 <a name='L445'></a><a href='#L445'>445</a>
 <a name='L446'></a><a href='#L446'>446</a>
-<a name='L447'></a><a href='#L447'>447</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L447'></a><a href='#L447'>447</a>
+<a name='L448'></a><a href='#L448'>448</a>
+<a name='L449'></a><a href='#L449'>449</a>
+<a name='L450'></a><a href='#L450'>450</a>
+<a name='L451'></a><a href='#L451'>451</a>
+<a name='L452'></a><a href='#L452'>452</a>
+<a name='L453'></a><a href='#L453'>453</a>
+<a name='L454'></a><a href='#L454'>454</a>
+<a name='L455'></a><a href='#L455'>455</a>
+<a name='L456'></a><a href='#L456'>456</a>
+<a name='L457'></a><a href='#L457'>457</a>
+<a name='L458'></a><a href='#L458'>458</a>
+<a name='L459'></a><a href='#L459'>459</a>
+<a name='L460'></a><a href='#L460'>460</a>
+<a name='L461'></a><a href='#L461'>461</a>
+<a name='L462'></a><a href='#L462'>462</a>
+<a name='L463'></a><a href='#L463'>463</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -946,6 +962,22 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1393,7 +1425,23 @@ import { useNavigationGuard, NavigationGuardAction } from "@/hooks/use-navigatio
 <span class="cstat-no" title="statement not covered" >          }}</span>
 <span class="cstat-no" title="statement not covered" >          localData={form.getValues()}</span>
 <span class="cstat-no" title="statement not covered" >          serverData={conflictDialog.serverData}</span>
-<span class="cstat-no" title="statement not covered" >          serverUsername={conflictDialog.serverData?.reporterName || "他のユーザー"}</span>
+<span class="cstat-no" title="statement not covered" >          serverUsername={(() =&gt; {</span>
+            // 自分以外の編集中ユーザーから最新の編集者を特定
+<span class="cstat-no" title="statement not covered" >            const otherEditingUsers = editingUsers.filter(user =&gt; </span>
+<span class="cstat-no" title="statement not covered" >              String(user.userId) !== String(currentUserId)</span>
+<span class="cstat-no" title="statement not covered" >            );</span>
+            
+<span class="cstat-no" title="statement not covered" >            if (otherEditingUsers.length &gt; 0) {</span>
+              // 最後にアクティビティがあったユーザーを選択
+<span class="cstat-no" title="statement not covered" >              const latestEditor = otherEditingUsers.reduce((latest, current) =&gt; </span>
+<span class="cstat-no" title="statement not covered" >                new Date(current.lastActivity) &gt; new Date(latest.lastActivity) ? current : latest</span>
+<span class="cstat-no" title="statement not covered" >              );</span>
+<span class="cstat-no" title="statement not covered" >              return latestEditor.username;</span>
+<span class="cstat-no" title="statement not covered" >            }</span>
+            
+            // フォールバック: サーバーデータから報告者名を取得
+<span class="cstat-no" title="statement not covered" >            return conflictDialog.serverData?.reporterName || "他のユーザー";</span>
+<span class="cstat-no" title="statement not covered" >          })()}</span>
 <span class="cstat-no" title="statement not covered" >          onResolve={handleConflictResolve}</span>
 <span class="cstat-no" title="statement not covered" >          onReload={handleConflictReload}</span>
 <span class="cstat-no" title="statement not covered" >        /&gt;</span>
@@ -1408,7 +1456,7 @@ import { useNavigationGuard, NavigationGuardAction } from "@/hooks/use-navigatio
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-08-02T13:57:12.421Z
+                at 2025-08-03T08:51:28.369Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
