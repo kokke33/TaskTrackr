@@ -10,10 +10,12 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # 30分でタイムアウト
 
     strategy:
       matrix:
         node-version: [18.x, 20.x]
+      fail-fast: false  # 1つのマトリックスが失敗しても他は継続
 
     services:
       postgres:
@@ -39,6 +41,7 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
 
     - name: Install dependencies
       run: npm ci
@@ -75,12 +78,43 @@ jobs:
         AI_PROVIDER: test
         NODE_ENV: test
 
+    - name: Check coverage threshold
+      run: |
+        echo "🔍 Checking coverage threshold..."
+        coverage_file="coverage/coverage-summary.json"
+        if [ ! -f "$coverage_file" ]; then
+          echo "❌ Coverage file not found: $coverage_file"
+          exit 1
+        fi
+        
+        # Extract coverage percentage from JSON
+        line_coverage=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$coverage_file')).total.lines.pct)")
+        function_coverage=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$coverage_file')).total.functions.pct)")
+        branch_coverage=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$coverage_file')).total.branches.pct)")
+        statement_coverage=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$coverage_file')).total.statements.pct)")
+        
+        echo "📊 Coverage Report:"
+        echo "   Lines: ${line_coverage}%"
+        echo "   Functions: ${function_coverage}%"
+        echo "   Branches: ${branch_coverage}%"
+        echo "   Statements: ${statement_coverage}%"
+        
+        threshold=80
+        if (( $(echo "$line_coverage < $threshold" | bc -l) )); then
+          echo "❌ Line coverage ${line_coverage}% is below threshold ${threshold}%"
+          exit 1
+        fi
+        
+        echo "✅ All coverage metrics meet the ${threshold}% threshold"
+
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage/lcov.info
         flags: unittests
         name: codecov-umbrella
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
 
     - name: Run build test
       run: npm run build
@@ -102,6 +136,7 @@ jobs:
       with:
         node-version: '20.x'
         cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
 
     - name: Install dependencies
       run: npm ci
@@ -113,10 +148,64 @@ jobs:
       run: npm audit --audit-level=moderate
       continue-on-error: true
 
+  security:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: javascript
+        config-file: ./.github/codeql/codeql-config.yml
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build application
+      run: npm run build
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:javascript"
+
+    - name: Dependency vulnerability scan
+      run: |
+        echo "🔍 Running dependency vulnerability scan..."
+        npm audit --audit-level=high || {
+          echo "⚠️ High or critical vulnerabilities found"
+          npm audit --json > audit-results.json
+          echo "📋 Audit results saved to audit-results.json"
+        }
+
+    - name: Upload audit results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-audit-results
+        path: audit-results.json
+        retention-days: 30
+
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.base.ref == 'main'
+    needs: lint  # lintが成功した場合のみ実行
 
     services:
       postgres:
@@ -142,6 +231,7 @@ jobs:
       with:
         node-version: '20.x'
         cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
 
     - name: Install dependencies
       run: npm ci
