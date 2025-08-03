@@ -1,7 +1,7 @@
 import { AIMessage } from '../ai-providers/iai-provider';
 import { getAIService } from '../ai-service';
 import { aiLogger, generateRequestId } from '../ai-logger';
-import { AIProvider } from '../../shared/ai-constants';
+import { AIProvider } from '@shared/ai-constants';
 
 export async function chatWithAdminEmail(
   emailContent: string,

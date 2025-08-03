@@ -193,9 +193,18 @@ jobs:
           echo "📋 Audit results saved to audit-results.json"
         }
 
+    - name: Check for audit results file
+      id: check_file
+      run: |
+        if [ -f audit-results.json ]; then
+          echo "audit_file_exists=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "audit_file_exists=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Upload audit results
       uses: actions/upload-artifact@v4
-      if: always()
+      if: ${{ steps.check_file.outputs.audit_file_exists == 'true' }}
       with:
         name: security-audit-results
         path: audit-results.json

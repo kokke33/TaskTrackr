@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "../../../../utils/testUtils";
+import { render, screen } from "@tests/utils/testUtils";
 import userEvent from "@testing-library/user-event";
 import { Button } from "@/components/ui/button";
 
