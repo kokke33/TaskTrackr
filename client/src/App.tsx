@@ -148,9 +148,9 @@ function Router() {
         </Suspense>
       )} />
 
-      <Route component={(props) => (
+      <Route component={() => (
         <Suspense fallback={<LoadingSpinner />}>
-          <NotFound {...props} />
+          <NotFound />
         </Suspense>
       )} />
     </Switch>
