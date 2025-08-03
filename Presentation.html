@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TaskTrackr | AI統合型プロジェクト＆週次レポート管理</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Noto Sans JP', sans-serif; background: #111827; color: #e5e7eb; }
+    a { color: #06b6d4; text-decoration: underline; }
+    .hero-bg { background: radial-gradient(ellipse at top, #1e293b 0%, #0f172a 100%); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+
+function Pill({text, icon, className}) {
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-bold text-xs ${className}`}>
+      {icon && <span className="mr-1">{icon}</span>}
+      {text}
+    </span>
+  )
+}
+
+function Section({title, id, children, wide}) {
+  return (
+    <section id={id} className={`py-10 ${wide ? 'max-w-screen-lg' : 'max-w-2xl'} mx-auto px-4`}>
+      {title && <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4">{title}</h2>}
+      <div>{children}</div>
+    </section>
+  );
+}
+
+function Cmd({label, desc, icon}) {
+  return (
+    <div className="flex space-x-3 items-center py-2 border-b border-slate-700 last:border-0">
+      <span className="font-mono bg-slate-800 text-cyan-300 px-2 py-1 rounded text-xs">{label}</span>
+      {icon && <span className="text-base">{icon}</span>}
+      <span className="text-base">{desc}</span>
+    </div>
+  );
+}
+
+function Persona({icon, name, desc}) {
+  return (
+    <div className="flex items-center space-x-4 bg-slate-800/60 p-3 rounded-xl shadow mb-4">
+      <span className="text-2xl">{icon}</span>
+      <span className="font-bold">{name}</span>
+      <span className="text-sm text-gray-400">{desc}</span>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <div>
+      {/* HERO */}
+      <header className="hero-bg pt-12 pb-10 text-center">
+        <h1 className="text-3xl sm:text-5xl font-bold text-cyan-300 drop-shadow">TaskTrackr</h1>
+        <p className="mt-3 text-lg sm:text-2xl text-cyan-100">AI統合型プロジェクト＆週次レポート管理</p>
+        <div className="mt-4 flex justify-center flex-wrap gap-2">
+          <Pill text="TypeScript" icon="💻" className="bg-cyan-900 text-cyan-300"/>
+          <Pill text="React" icon="⚛️" className="bg-cyan-900 text-cyan-300"/>
+          <Pill text="Express" icon="🛠️" className="bg-slate-900 text-slate-200"/>
+          <Pill text="PostgreSQL" icon="🗄️" className="bg-slate-800 text-slate-200"/>
+          <Pill text="AI統合" icon="🤖" className="bg-emerald-900 text-emerald-300"/>
+        </div>
+        <div className="mt-4">
+          <a href="#features" className="inline-block bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-6 rounded-full text-lg">特徴を見る</a>
+        </div>
+      </header>
+
+      {/* FEATURES */}
+      <Section id="features" title="主要特徴">
+        <ul className="space-y-2">
+          <li>🗂️ プロジェクト・案件・週次レポートまで一元管理。</li>
+          <li>🧠 <b>AIによる分析・アドバイス・議事録自動生成</b>対応。</li>
+          <li>📱 モバイル/PCレスポンシブデザイン。</li>
+          <li>🔍 全文検索・フィルタリングで情報探索が高速。</li>
+          <li>👥 管理者パネル・ロール管理・セッション認証標準。</li>
+          <li>⚡ <b>5つのAIプロバイダー</b>を自由切り替え（OpenAI, Gemini, Ollama, Groq, OpenRouter）。</li>
+        </ul>
+        <div className="flex flex-row flex-wrap mt-6 gap-7">
+          <div className="flex-1 min-w-[220px] bg-cyan-900/60 px-4 py-6 rounded-xl shadow text-center">
+            <div className="text-2xl font-bold mb-2">週次レポート × AI分析</div>
+            <div className="text-sm text-cyan-200">リアルタイムで進捗/課題/改善をAIで自動診断・前回比較も一発</div>
+          </div>
+          <div className="flex-1 min-w-[220px] bg-slate-800/60 px-4 py-6 rounded-xl shadow text-center">
+            <div className="text-2xl font-bold mb-2">AI議事録＆アドバイス自動生成</div>
+            <div className="text-sm text-blue-200">報告提出時に会議議事録案や提案を自動生成、会議資料化まで直結</div>
+          </div>
+        </div>
+      </Section>
+
+      {/* COMMANDS */}
+      <Section id="commands" title="主な機能・コマンド例">
+        <Cmd label="案件選択" desc="案件選択モーダルで直感的に案件をグループ・検索" icon="🔍" />
+        <Cmd label="週次レポート自動保存" desc="入力停止2秒後にAI分析＆自動保存" icon="💾" />
+        <Cmd label="AI分析" desc="AI提案/リスク指摘/前回比較をワンクリックで取得" icon="🤖" />
+        <Cmd label="全文検索" desc="プロジェクト・案件・レポート横断検索＆絞り込み" icon="🔎" />
+        <Cmd label="管理者機能" desc="システム設定/ログ/ユーザー管理…すべてUIから" icon="🛠️" />
+      </Section>
+
+      {/* AI PROVIDERS */}
+      <Section id="ai" title="AIプロバイダー対応状況" wide>
+        <div className="flex flex-col sm:flex-row sm:space-x-8 space-y-4 sm:space-y-0 justify-center text-center">
+          <Pill text="OpenAI (GPT-4o, mini)" icon="🟦" className="bg-blue-900 text-blue-200"/>
+          <Pill text="Google Gemini" icon="🟩" className="bg-green-900 text-green-200"/>
+          <Pill text="Ollama (ローカル)" icon="💻" className="bg-gray-800 text-slate-200"/>
+          <Pill text="Groq Llama3" icon="🧮" className="bg-yellow-800 text-yellow-200"/>
+          <Pill text="OpenRouter" icon="🌐" className="bg-slate-900 text-cyan-100"/>
+        </div>
+        <div className="mt-5 text-sm text-gray-400">管理画面や環境変数でAIプロバイダーの切替が可能</div>
+      </Section>
+
+      {/* SMART PERSONAS */}
+      <Section id="personas" title="スマートAIアシスト・ペルソナ">
+        <div className="grid sm:grid-cols-2 gap-5">
+          <Persona icon="🎨" name="フォーマットチェッカー" desc="週次編集時に書式・表現ゆらぎの自動指摘" />
+          <Persona icon="🧠" name="コンテキストアナリスト" desc="進捗/前回比較/リスク抽出など深掘り助言AI" />
+          <Persona icon="📋" name="AI議事録生成" desc="入力済のレポート・会議から構造的な議事録を自動出力" />
+          <Persona icon="🤝" name="ユーザーガイドAI" desc="使い方/トラブル/FAQもAIで即サポート" />
+        </div>
+      </Section>
+
+      {/* FLOW */}
+      <Section id="flow" title="レポート作成フロー">
+        <ol className="list-decimal ml-7 space-y-2 text-base">
+          <li>「案件選択」モーダルで目的案件をすぐ検索・タブで切替</li>
+          <li>セクションごとにAI分析&自動提案（フォーカスアウト/ボタンクリック）</li>
+          <li>保存は2秒停止で自動、報告完了後はワンクリック提出</li>
+          <li>提出時、議事録案・AIアドバイスも自動生成</li>
+        </ol>
+      </Section>
+
+      {/* TECHNOLOGY/ARCHITECTURE */}
+      <Section id="tech" title="技術構成・アーキテクチャ" wide>
+        <div className="grid md:grid-cols-2 gap-7">
+          <div>
+            <h3 className="font-bold mb-2 text-cyan-200 text-lg">主要技術</h3>
+            <ul className="list-disc ml-5 text-base">
+              <li>React 18 + TypeScript + Vite + TailwindCSS</li>
+              <li>Express + Drizzle ORM + PostgreSQL</li>
+              <li>Passport.jsセッション認証</li>
+              <li>Shadcn/ui & TanStack Query</li>
+              <li>Vitest / React Testing Library / MSW</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-bold mb-2 text-cyan-200 text-lg">特徴的パターン</h3>
+            <ul className="list-disc ml-5 text-base">
+              <li>自動保存/リアルタイム同期・多人数競合警告</li>
+              <li>案件・レポート・全文検索の横断一括API</li>
+              <li>AIログ・セッション管理のセキュア設計</li>
+              <li>Zodベースの型バリデーション</li>
+              <li>テスト+CI/CD/カバレッジ可視化</li>
+            </ul>
+          </div>
+        </div>
+      </Section>
+
+      {/* COMMUNITY/FOOTER */}
+      <footer className="text-center py-12 text-sm text-gray-400">
+        <div>© 2025 TaskTrackr. MIT License.</div>
+        <div className="mt-2">本サービス・ドキュメントや開発貢献は <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a> で受付中</div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById('root'))
+  </script>
+</body>
+</html>
