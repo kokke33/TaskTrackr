@@ -63,7 +63,7 @@ function App() {
       {/* HERO */}
       <header className="hero-bg pt-12 pb-10 text-center">
         <h1 className="text-3xl sm:text-5xl font-bold text-cyan-300 drop-shadow">TaskTrackr</h1>
-        <p className="mt-3 text-lg sm:text-2xl text-cyan-100">AI統合型プロジェクト＆週次レポート管理</p>
+        <p className="mt-3 text-lg sm:text-2xl text-cyan-100">AIがあなたの右腕に。プロジェクトの未来を予測し、週次レポート作成を劇的に効率化。</p>
         <div className="mt-4 flex justify-center flex-wrap gap-2">
           <Pill text="TypeScript" icon="💻" className="bg-cyan-900 text-cyan-300"/>
           <Pill text="React" icon="⚛️" className="bg-cyan-900 text-cyan-300"/>
@@ -89,11 +89,11 @@ function App() {
         <div className="flex flex-row flex-wrap mt-6 gap-7">
           <div className="flex-1 min-w-[220px] bg-cyan-900/60 px-4 py-6 rounded-xl shadow text-center">
             <div className="text-2xl font-bold mb-2">週次レポート × AI分析</div>
-            <div className="text-sm text-cyan-200">リアルタイムで進捗/課題/改善をAIで自動診断・前回比較も一発</div>
+            <div className="text-sm text-cyan-200">リアルタイムで進捗/課題/改善をAIで自動診断・前回比較も一発。これにより、手戻りを防ぎ、意思決定を加速します。</div>
           </div>
           <div className="flex-1 min-w-[220px] bg-slate-800/60 px-4 py-6 rounded-xl shadow text-center">
             <div className="text-2xl font-bold mb-2">AI議事録＆アドバイス自動生成</div>
-            <div className="text-sm text-blue-200">報告提出時に会議議事録案や提案を自動生成、会議資料化まで直結</div>
+            <div className="text-sm text-blue-200">報告提出時に会議議事録案や提案を自動生成、会議資料化まで直結。会議後の煩雑な作業から解放され、本質的な業務に集中できます。</div>
           </div>
         </div>
       </Section>
@@ -122,7 +122,7 @@ function App() {
       {/* SMART PERSONAS */}
       <Section id="personas" title="スマートAIアシスト・ペルソナ">
         <div className="grid sm:grid-cols-2 gap-5">
-          <Persona icon="🎨" name="フォーマットチェッカー" desc="週次編集時に書式・表現ゆらぎの自動指摘" />
+          <Persona icon="🎨" name="フォーマットチェッカー" desc="週次レポートの書式・表現ゆらぎを自動指摘" />
           <Persona icon="🧠" name="コンテキストアナリスト" desc="進捗/前回比較/リスク抽出など深掘り助言AI" />
           <Persona icon="📋" name="AI議事録生成" desc="入力済のレポート・会議から構造的な議事録を自動出力" />
           <Persona icon="🤝" name="ユーザーガイドAI" desc="使い方/トラブル/FAQもAIで即サポート" />
@@ -162,6 +162,16 @@ function App() {
               <li>テスト+CI/CD/カバレッジ可視化</li>
             </ul>
           </div>
+        </div>
+      </Section>
+
+      {/* CALL TO ACTION */}
+      <Section id="cta" title="今すぐTaskTrackrを体験する" wide>
+        <div className="text-center mt-6">
+          <a href="#" className="inline-block bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg transition duration-300">
+            無料デモをリクエスト
+          </a>
+          <p className="mt-4 text-gray-300">ご質問やご相談も承ります。</p>
         </div>
       </Section>
 
