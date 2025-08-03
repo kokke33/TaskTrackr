@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor } from "../../../utils/testUtils";
+import { render, screen, waitFor } from "@tests/utils/testUtils";
 import userEvent from "@testing-library/user-event";
 import { ConflictResolutionDialog } from "@/components/conflict-resolution-dialog";
 import { WeeklyReport } from "@shared/schema";

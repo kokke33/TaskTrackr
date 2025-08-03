@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
+import { devLog } from "@shared/logger";
 
 export type NavigationGuardAction = "save" | "discard" | "cancel";
 
@@ -16,7 +17,7 @@ export function useNavigationGuard({
   const isNavigatingRef = useRef(false);
   const originalPushStateRef = useRef(window.history.pushState);
 
-  console.log("🔍 Navigation guard initialized - shouldBlock:", shouldBlock);
+  devLog("🔍 Navigation guard initialized - shouldBlock:", shouldBlock);
 
   // ブラウザの beforeunload イベントをハンドル
   useEffect(() => {
@@ -44,11 +45,11 @@ export function useNavigationGuard({
       originalPushStateRef.current = originalPushState;
 
       window.history.pushState = function(state: any, title: string, url?: string | URL | null) {
-        console.log("🔍 Navigation guard - pushState intercepted:", { url, shouldBlock, isNavigating: isNavigatingRef.current });
+        devLog("🔍 Navigation guard - pushState intercepted:", { url, shouldBlock, isNavigating: isNavigatingRef.current });
         
         if (shouldBlock && !isNavigatingRef.current && url) {
           const targetPath = typeof url === 'string' ? url : url?.toString() || '';
-          console.log("🔍 Navigation guard - blocking pushState to:", targetPath);
+          devLog("🔍 Navigation guard - blocking pushState to:", targetPath);
           
           
           // ナビゲーションフラグを即座に設定して重複呼び出しを防ぐ
@@ -56,11 +57,11 @@ export function useNavigationGuard({
           
           // 非同期で確認ダイアログを表示
           onNavigationAttempt(targetPath).then((action) => {
-            console.log("🔍 Navigation guard - pushState action:", action);
+            devLog("🔍 Navigation guard - pushState action:", action);
             
             if (action !== "cancel") {
               // WouterのsetLocationを使用してクライアントサイドルーティング
-              console.log("🔍 Using Wouter setLocation for:", targetPath);
+              devLog("🔍 Using Wouter setLocation for:", targetPath);
               setLocation(targetPath);
             }
             // フラグをリセット
@@ -111,19 +112,19 @@ export function useNavigationGuard({
         return;
       }
 
-      console.log("🔍 Navigation guard - link click intercepted:", href);
+      devLog("🔍 Navigation guard - link click intercepted:", href);
       
       event.preventDefault();
       event.stopPropagation();
 
       try {
         const action = await onNavigationAttempt(href);
-        console.log("🔍 Navigation guard - link action:", action);
+        devLog("🔍 Navigation guard - link action:", action);
         
         if (action !== "cancel") {
           isNavigatingRef.current = true;
           // WouterのsetLocationを使用してクライアントサイドルーティング
-          console.log("🔍 Using Wouter setLocation for link:", href);
+          devLog("🔍 Using Wouter setLocation for link:", href);
           setLocation(href);
           isNavigatingRef.current = false;
         }

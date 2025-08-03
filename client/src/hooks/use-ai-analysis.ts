@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth";
+import { devLog, devError } from "@shared/logger";
 
 interface ConversationMessage {
   id: string;
@@ -35,7 +36,7 @@ export function useAIAnalysis() {
     
     // 初回分析チェック: 分析が実行済みで強制実行でない場合はスキップ（内容変更に関係なく）
     if (currentState?.hasRunAnalysis && !forceAnalysis) {
-      console.log(`${fieldName}: 分析済みのため自動実行をスキップ（手動再生成のみ有効）`);
+      devLog(`${fieldName}: 分析済みのため自動実行をスキップ（手動再生成のみ有効）`);
       return;
     }
 
@@ -72,7 +73,7 @@ export function useAIAnalysis() {
             }
           }
         } catch (error) {
-          console.log("セッション設定チェック中にエラー:", error);
+          devError("セッション設定チェック中にエラー:", error);
           // エラーの場合は通常のエンドポイントを使用
         }
 
@@ -151,7 +152,7 @@ export function useAIAnalysis() {
     
     // 初回分析チェック: 分析が実行済みで強制実行でない場合はスキップ（内容変更に関係なく）
     if (currentState?.hasRunAnalysis && !forceAnalysis) {
-      console.log(`${fieldName}: 分析済みのため自動実行をスキップ（手動再生成のみ有効）`);
+      devLog(`${fieldName}: 分析済みのため自動実行をスキップ（手動再生成のみ有効）`);
       return;
     }
 

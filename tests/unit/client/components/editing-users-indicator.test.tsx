@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "../../../utils/testUtils";
+import { render, screen } from "@tests/utils/testUtils";
 import { EditingUsersIndicator } from "@/components/editing-users-indicator";
 import { EditingUser } from "@/contexts/WebSocketContext";
 
