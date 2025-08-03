@@ -14,6 +14,12 @@ import type { Case, WeeklyReport } from "@shared/schema";
 import CaseSelectorModal from "@/components/case-selector-modal";
 import { useState } from "react";
 
+// Define a type for the form values that matches the input component's expectations
+type FormWeeklyReport = Omit<WeeklyReport, "reportPeriodStart" | "reportPeriodEnd"> & {
+  reportPeriodStart: string;
+  reportPeriodEnd: string;
+};
+
 type BasicInfoFormProps = {
   cases: Case[];
   selectedCaseId: number | null;
@@ -21,7 +27,7 @@ type BasicInfoFormProps = {
 };
 
 export function BasicInfoForm({ cases, selectedCaseId, onSelectCase }: BasicInfoFormProps) {
-  const form = useFormContext<WeeklyReport>();
+  const form = useFormContext<FormWeeklyReport>();
   const [isCaseSelectorOpen, setIsCaseSelectorOpen] = useState(false);
 
   return (
@@ -39,14 +45,15 @@ export function BasicInfoForm({ cases, selectedCaseId, onSelectCase }: BasicInfo
                     type="date"
                     {...field}
                     className="text-sm"
+                    data-testid="report-period-start-input" // Add data-testid
                     onChange={(e) => {
-                      field.onChange(e);
+                      field.onChange(e.target.value); // Keep as string for form state
                       const date = new Date(e.target.value);
                       const endDate = new Date(date);
                       endDate.setDate(date.getDate() + 7);
                       form.setValue(
                         "reportPeriodEnd",
-                        endDate.toISOString().split("T")[0],
+                        endDate.toISOString().split("T")[0], // Set as string
                       );
                     }}
                   />
@@ -57,6 +64,7 @@ export function BasicInfoForm({ cases, selectedCaseId, onSelectCase }: BasicInfo
                     type="date"
                     {...form.register("reportPeriodEnd")}
                     className="text-sm"
+                    data-testid="report-period-end-input" // Add data-testid
                     disabled
                   />
                 </FormControl>
@@ -82,6 +90,7 @@ export function BasicInfoForm({ cases, selectedCaseId, onSelectCase }: BasicInfo
                       variant="outline"
                       className="w-full justify-start text-left font-normal h-auto py-3 px-3"
                       onClick={() => setIsCaseSelectorOpen(true)}
+                      aria-label="案件を選択" // Add aria-label
                     >
                       {selectedCase ? (
                         <div className="flex flex-col items-start w-full">
@@ -94,7 +103,7 @@ export function BasicInfoForm({ cases, selectedCaseId, onSelectCase }: BasicInfo
                     </Button>
                   </FormControl>
                   <Link href="/case/new">
-                    <Button variant="outline" size="icon" type="button" className="h-12 w-12 sm:h-10 sm:w-10 flex-shrink-0">
+                    <Button variant="outline" size="icon" type="button" className="h-12 w-12 sm:h-10 sm:w-10 flex-shrink-0" aria-label="新規案件作成"> {/* Add aria-label */}
                       <Plus className="h-4 w-4" />
                     </Button>
                   </Link>
