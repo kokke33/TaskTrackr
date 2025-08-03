@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +42,18 @@ export function AIAnalysisResult({
   const [isExpanded, setIsExpanded] = useState(true);
   const [isConversationExpanded, setIsConversationExpanded] = useState(false);
   const [messageInput, setMessageInput] = useState("");
+  const conversationContainerRef = useRef<HTMLDivElement>(null);
+
+  // 会話履歴が更新された時に自動スクロール
+  useEffect(() => {
+    if (isConversationExpanded && conversations.length > 0 && conversationContainerRef.current) {
+      const container = conversationContainerRef.current;
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [conversations, isConversationExpanded, isConversationLoading]);
 
   const handleSendMessage = () => {
     if (messageInput.trim() && onSendMessage) {
@@ -160,6 +172,7 @@ export function AIAnalysisResult({
                           {children}
                         </td>
                       ),
+                      br: () => <br />,
                     }}
                   >
                     {analysis.replace(/\n/g, '  \n')}
@@ -212,17 +225,8 @@ export function AIAnalysisResult({
 
                     {/* 会話履歴表示 */}
                     {conversations.length > 0 && (
-                      <div className="space-y-3 mb-3 max-h-60 overflow-y-auto">
+                      <div ref={conversationContainerRef} className="space-y-3 mb-3 max-h-60 overflow-y-auto">
                         {conversations.filter(message => message && message.id && message.content).map((message) => {
-                          // デバッグログ追加
-                          console.log('Rendering message:', {
-                            id: message.id,
-                            role: message.role,
-                            content: message.content,
-                            contentType: typeof message.content,
-                            timestamp: message.timestamp
-                          });
-                          
                           return (
                           <div
                             key={message.id}
@@ -270,12 +274,28 @@ export function AIAnalysisResult({
                                     strong: ({ children }) => (
                                       <strong className="font-bold">{children}</strong>
                                     ),
+                                    ul: ({ children }) => (
+                                      <ul className="list-disc pl-4 my-1">{children}</ul>
+                                    ),
+                                    ol: ({ children }) => (
+                                      <ol className="list-decimal pl-4 my-1">{children}</ol>
+                                    ),
+                                    li: ({ children }) => (
+                                      <li className="mb-0.5">{children}</li>
+                                    ),
+                                    code: ({ children }) => (
+                                      <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+                                    ),
+                                    pre: ({ children }) => (
+                                      <pre className="bg-gray-100 p-2 rounded my-2 overflow-x-auto text-xs">{children}</pre>
+                                    ),
+                                    br: () => <br />,
                                   }}
                                 >
-                                  {String(message.content || '')}
+                                  {(message.content || '').replace(/\n/g, '  \n')}
                                 </ReactMarkdown>
                               ) : (
-                                String(message.content || '')
+                                message.content || ''
                               )}
                               <div
                                 className={`text-xs mt-1 ${

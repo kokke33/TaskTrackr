@@ -436,7 +436,23 @@ export default function WeeklyReport() {
           }}
           localData={form.getValues()}
           serverData={conflictDialog.serverData}
-          serverUsername={conflictDialog.serverData?.reporterName || "他のユーザー"}
+          serverUsername={(() => {
+            // 自分以外の編集中ユーザーから最新の編集者を特定
+            const otherEditingUsers = editingUsers.filter(user => 
+              String(user.userId) !== String(currentUserId)
+            );
+            
+            if (otherEditingUsers.length > 0) {
+              // 最後にアクティビティがあったユーザーを選択
+              const latestEditor = otherEditingUsers.reduce((latest, current) => 
+                new Date(current.lastActivity) > new Date(latest.lastActivity) ? current : latest
+              );
+              return latestEditor.username;
+            }
+            
+            // フォールバック: サーバーデータから報告者名を取得
+            return conflictDialog.serverData?.reporterName || "他のユーザー";
+          })()}
           onResolve={handleConflictResolve}
           onReload={handleConflictReload}
         />

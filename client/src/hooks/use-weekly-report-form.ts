@@ -218,7 +218,16 @@ export function useWeeklyReportForm({ id }: UseWeeklyReportFormProps) {
   const copyFromLastReport = () => {
     if (!selectedCaseId || !latestReport) return;
 
-    const fieldsToExclude = ["id", "createdAt", "reportPeriodStart", "reportPeriodEnd"];
+    const fieldsToExclude = [
+      "id", 
+      "createdAt", 
+      "updatedAt",
+      "reportPeriodStart", 
+      "reportPeriodEnd",
+      "adminConfirmationEmail",  // 管理者確認メール（各報告で独立すべき）
+      "aiAnalysis",              // AI分析結果（新しい報告内容に基づくべき）
+      "version"                  // 楽観的ロック用バージョン（各報告で独立すべき）
+    ];
     Object.entries(latestReport).forEach(([key, value]) => {
       if (!fieldsToExclude.includes(key)) {
         form.setValue(key as keyof WeeklyReport, value || "");
