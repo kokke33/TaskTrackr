@@ -1,0 +1,27 @@
+name: "TaskTrackr CodeQL Configuration"
+
+disable-default-queries: false
+
+queries:
+  - uses: security-and-quality
+
+paths-ignore:
+  - node_modules
+  - dist
+  - coverage
+  - tests
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+
+paths:
+  - client/src
+  - server
+  - shared
+
+query-filters:
+  - exclude:
+      id: js/unused-local-variable
+  - exclude:
+      id: js/debugger-statement
