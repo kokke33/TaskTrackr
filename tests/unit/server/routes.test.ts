@@ -46,10 +46,18 @@ vi.mock("../../../server/auth", () => ({
 
 vi.mock("../../../server/hybrid-auth-manager", () => ({
   hybridAuthManager: {
-    createAuthResponse: vi.fn().mockReturnValue({
-      authenticated: true,
-      user: { id: 1, username: "testuser", isAdmin: false },
-      token: "mock-jwt-token",
+    createAuthResponse: vi.fn().mockImplementation((req) => {
+      // req.userが設定されている場合は認証済みとして扱う
+      if (req.user) {
+        return {
+          authenticated: true,
+          user: req.user,
+        };
+      }
+      return {
+        authenticated: false,
+        message: "認証されていません。再度ログインしてください。",
+      };
     }),
   },
 }));
@@ -89,9 +97,12 @@ describe("Routes", () => {
     // セッション設定を追加
     app.use((req, res, next) => {
       req.sessionID = "test-session-id";
+      req.user = { id: 1, username: "testuser", isAdmin: false };
       req.isAuthenticated = vi.fn().mockReturnValue(true);
       req.logIn = vi.fn((user, callback) => callback(null));
-      req.logout = vi.fn((callback) => callback());
+      req.logout = vi.fn((callback) => {
+        if (callback) callback();
+      });
       next();
     });
 
@@ -175,6 +186,7 @@ describe("Routes", () => {
 
   describe("認証API", () => {
     it("GET /api/check-auth - 認証済みユーザー情報を返すこと", async () => {
+      // isAuthenticatedミドルウェアが認証済みユーザーとして設定してくれる
       const response = await request(app).get("/api/check-auth");
 
       expect(response.status).toBe(200);
@@ -234,8 +246,8 @@ describe("Routes", () => {
           name: "プロジェクト1",
           overview: "概要1",
           organization: "会社1",
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: "2025-08-03T11:40:05.797Z",
+          updatedAt: "2025-08-03T11:40:05.797Z",
           isDeleted: false,
         },
         {
@@ -243,8 +255,8 @@ describe("Routes", () => {
           name: "プロジェクト2",
           overview: "概要2",
           organization: "会社2",
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: "2025-08-03T11:40:05.797Z",
+          updatedAt: "2025-08-03T11:40:05.797Z",
           isDeleted: false,
         },
       ];
@@ -270,8 +282,8 @@ describe("Routes", () => {
           businessDetails: "詳細1",
           issues: "問題1",
           isDeleted: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: "2025-08-03T11:40:05.807Z",
+          updatedAt: "2025-08-03T11:40:05.807Z",
         },
       ];
 

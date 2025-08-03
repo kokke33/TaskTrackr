@@ -147,7 +147,7 @@ export function ReportHeader({
 
       {/* Form Header inside the main content */}
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-4xl">
-        <header className="mb-6 sm:mb-8">
+        <header data-testid="report-header" className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <h1 className="text-xl sm:text-3xl font-bold text-primary">
               {isAdminEditMode ? (

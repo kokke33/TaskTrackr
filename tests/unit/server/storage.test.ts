@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { DatabaseStorage, OptimisticLockError } from "../../../server/storage";
-import type { InsertUser, InsertProject, InsertCase, InsertWeeklyReport } from "@shared/schema";
+import type { InsertUser, InsertProject, InsertCase, InsertWeeklyReport, WeeklyReport } from "@shared/schema";
 
 // データベースモジュールをモック化
 vi.mock("../../../server/db", () => ({
@@ -35,11 +35,11 @@ describe("DatabaseStorage", () => {
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue([]),
-            orderBy: vi.fn().mockReturnValue([]),
+            limit: vi.fn().mockResolvedValue([]),
+            orderBy: vi.fn().mockResolvedValue([]),
           }),
-          orderBy: vi.fn().mockReturnValue([]),
-          limit: vi.fn().mockReturnValue([]),
+          orderBy: vi.fn().mockResolvedValue([]),
+          limit: vi.fn().mockResolvedValue([]),
         }),
       }),
       insert: vi.fn().mockReturnValue({
@@ -298,10 +298,36 @@ describe("DatabaseStorage", () => {
       };
 
       // 現在のレポートを模擬
-      const currentReport = {
+      const currentReport: WeeklyReport = {
         id: 1,
         ...reportData,
         version: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        aiAnalysis: null,
+        businessDetails: null,
+        delayDetails: null,
+        riskSummary: null,
+        riskCountermeasures: null,
+        riskLevel: null,
+        qualityDetails: null,
+        testProgress: null,
+        changeDetails: null,
+        resourceConcerns: null,
+        resourceDetails: null,
+        customerIssues: null,
+        customerDetails: null,
+        environmentIssues: null,
+        environmentDetails: null,
+        costIssues: null,
+        costDetails: null,
+        knowledgeIssues: null,
+        knowledgeDetails: null,
+        trainingIssues: null,
+        trainingDetails: null,
+        urgentDetails: null,
+        businessOpportunities: null,
+        adminConfirmationEmail: null,
       };
 
       // getWeeklyReportの呼び出しを模擬
@@ -342,10 +368,36 @@ describe("DatabaseStorage", () => {
       };
 
       // 現在のレポートのバージョンが期待と異なる場合を模擬
-      const currentReport = {
+      const currentReport: WeeklyReport = {
         id: 1,
         version: 2, // 期待されたバージョン（1）と異なる
         ...reportData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        aiAnalysis: null,
+        businessDetails: null,
+        delayDetails: null,
+        riskSummary: null,
+        riskCountermeasures: null,
+        riskLevel: null,
+        qualityDetails: null,
+        testProgress: null,
+        changeDetails: null,
+        resourceConcerns: null,
+        resourceDetails: null,
+        customerIssues: null,
+        customerDetails: null,
+        environmentIssues: null,
+        environmentDetails: null,
+        costIssues: null,
+        costDetails: null,
+        knowledgeIssues: null,
+        knowledgeDetails: null,
+        trainingIssues: null,
+        trainingDetails: null,
+        urgentDetails: null,
+        businessOpportunities: null,
+        adminConfirmationEmail: null,
       };
 
       vi.spyOn(storage, 'getWeeklyReport').mockResolvedValue(currentReport);
@@ -385,19 +437,11 @@ describe("DatabaseStorage", () => {
 
   describe("リトライ機能", () => {
     it("接続エラー時にリトライすること", async () => {
-      // withRetry関数をテスト
-      const operation = vi.fn()
-        .mockRejectedValueOnce(new Error("Connection terminated unexpectedly"))
-        .mockResolvedValueOnce("success");
-
-      // withRetryを直接呼び出してテスト
-      const withRetry = (storage as any).constructor.prototype.constructor;
-      
       // 実際の実装をテストするため、getUser メソッドでリトライをテスト
       mockDb.select().from().where.mockRejectedValueOnce(new Error("Connection terminated unexpectedly"))
                             .mockResolvedValueOnce([{ id: 1, username: "test" }]);
 
-      const result = await storage.getUser(1);
+      await storage.getUser(1);
 
       // 結果の検証は実装に依存するため、エラーが投げられないことを確認
       expect(mockDb.select).toHaveBeenCalled();

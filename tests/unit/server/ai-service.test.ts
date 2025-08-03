@@ -65,8 +65,6 @@ vi.mock("../../../server/ai-providers/openrouter-provider", () => ({
   OpenRouterService: vi.fn().mockImplementation(() => mockOpenRouterService),
 }));
 
-const mockGetDynamicAIConfig = vi.fn();
-
 vi.mock("../../../server/config", () => ({
   aiConfig: {
     provider: "openai",
@@ -75,7 +73,7 @@ vi.mock("../../../server/config", () => ({
     groq: { model: "llama-3.1-70b-versatile" },
     openrouter: { model: "anthropic/claude-3.5-sonnet" },
   },
-  getDynamicAIConfig: mockGetDynamicAIConfig,
+  getDynamicAIConfig: vi.fn(),
 }));
 
 // Use casesのモック
@@ -100,8 +98,14 @@ vi.mock("../../../server/use-cases/generate-admin-confirmation-email.usecase", (
 }));
 
 describe("AI Service", () => {
-  beforeEach(() => {
+  let mockGetDynamicAIConfig: any;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
+    // インポート後にモックを取得
+    const configModule = await import("../../../server/config");
+    mockGetDynamicAIConfig = vi.mocked(configModule.getDynamicAIConfig);
+    
     mockGetDynamicAIConfig.mockResolvedValue({
       provider: "openai",
       openai: { model: "gpt-4o-mini" },

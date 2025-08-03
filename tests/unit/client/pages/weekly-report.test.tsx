@@ -9,7 +9,7 @@ vi.mock("wouter", () => ({
   useLocation: vi.fn().mockReturnValue(["/weekly-report/1", vi.fn()]),
 }));
 
-vi.mock("@/hooks/use-weekly-report-form", () => ({
+vi.mock("@/hooks/use-weekly-report-form.ts", () => ({
   useWeeklyReportForm: vi.fn().mockReturnValue({
     form: {
       control: {},
@@ -52,7 +52,7 @@ vi.mock("@/hooks/use-weekly-report-form", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-report-auto-save", () => ({
+vi.mock("@/hooks/use-report-auto-save.ts", () => ({
   useReportAutoSave: vi.fn().mockReturnValue({
     lastSavedTime: null,
     isAutosaving: false,
@@ -65,7 +65,7 @@ vi.mock("@/hooks/use-report-auto-save", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-meeting-minutes-generator", () => ({
+vi.mock("@/hooks/use-meeting-minutes-generator.ts", () => ({
   useMeetingMinutesGenerator: vi.fn().mockReturnValue({
     generateMinutes: vi.fn(),
     isGenerating: false,
@@ -73,7 +73,7 @@ vi.mock("@/hooks/use-meeting-minutes-generator", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-ai-analysis", () => ({
+vi.mock("@/hooks/use-ai-analysis.ts", () => ({
   useAIAnalysis: vi.fn().mockReturnValue({
     analyzeField: vi.fn(),
     isAnalyzing: false,
@@ -83,7 +83,7 @@ vi.mock("@/hooks/use-ai-analysis", () => ({
   }),
 }));
 
-vi.mock("@/contexts/useWebSocket", () => ({
+vi.mock("@/contexts/useWebSocket.ts", () => ({
   useWebSocket: vi.fn().mockReturnValue({
     lastMessage: null,
     sendMessage: vi.fn(),
@@ -93,14 +93,14 @@ vi.mock("@/contexts/useWebSocket", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-performance", () => ({
+vi.mock("@/hooks/use-performance.ts", () => ({
   useFormPerformance: vi.fn().mockReturnValue({
     measureFormOperation: vi.fn(),
     measureRender: vi.fn(),
   }),
 }));
 
-vi.mock("@/hooks/use-navigation-guard", () => ({
+vi.mock("@/hooks/use-navigation-guard.ts", () => ({
   useNavigationGuard: vi.fn().mockReturnValue({
     hasUnsavedChanges: false,
     registerGuard: vi.fn(),
@@ -212,7 +212,8 @@ describe("WeeklyReport Page", () => {
   });
 
   it("WebSocket接続状態が正しく管理されること", async () => {
-    const mockUseWebSocket = vi.mocked(require("@/contexts/useWebSocket").useWebSocket);
+    const { useWebSocket } = await import("@/contexts/useWebSocket");
+    const mockUseWebSocket = vi.mocked(useWebSocket);
     
     renderWeeklyReport();
 
@@ -221,7 +222,8 @@ describe("WeeklyReport Page", () => {
   });
 
   it("フォーム機能が正しく初期化されること", async () => {
-    const mockUseWeeklyReportForm = vi.mocked(require("@/hooks/use-weekly-report-form").useWeeklyReportForm);
+    const { useWeeklyReportForm } = await import("@/hooks/use-weekly-report-form");
+    const mockUseWeeklyReportForm = vi.mocked(useWeeklyReportForm);
     
     renderWeeklyReport();
 
@@ -230,7 +232,8 @@ describe("WeeklyReport Page", () => {
   });
 
   it("自動保存機能が正しく初期化されること", async () => {
-    const mockUseReportAutoSave = vi.mocked(require("@/hooks/use-report-auto-save").useReportAutoSave);
+    const { useReportAutoSave } = await import("@/hooks/use-report-auto-save");
+    const mockUseReportAutoSave = vi.mocked(useReportAutoSave);
     
     renderWeeklyReport();
 
@@ -246,7 +249,8 @@ describe("WeeklyReport Page", () => {
   });
 
   it("AI分析機能が正しく初期化されること", async () => {
-    const mockUseAIAnalysis = vi.mocked(require("@/hooks/use-ai-analysis").useAIAnalysis);
+    const { useAIAnalysis } = await import("@/hooks/use-ai-analysis");
+    const mockUseAIAnalysis = vi.mocked(useAIAnalysis);
     
     renderWeeklyReport();
 
@@ -255,7 +259,8 @@ describe("WeeklyReport Page", () => {
   });
 
   it("パフォーマンス監視が正しく初期化されること", async () => {
-    const mockUseFormPerformance = vi.mocked(require("@/hooks/use-performance").useFormPerformance);
+    const { useFormPerformance } = await import("@/hooks/use-performance");
+    const mockUseFormPerformance = vi.mocked(useFormPerformance);
     
     renderWeeklyReport();
 
@@ -264,7 +269,8 @@ describe("WeeklyReport Page", () => {
   });
 
   it("会議議事録生成機能が正しく初期化されること", async () => {
-    const mockUseMeetingMinutesGenerator = vi.mocked(require("@/hooks/use-meeting-minutes-generator").useMeetingMinutesGenerator);
+    const { useMeetingMinutesGenerator } = await import("@/hooks/use-meeting-minutes-generator");
+    const mockUseMeetingMinutesGenerator = vi.mocked(useMeetingMinutesGenerator);
     
     renderWeeklyReport();
 
@@ -276,7 +282,8 @@ describe("WeeklyReport Page", () => {
   });
 
   it("ナビゲーションガードが正しく初期化されること", async () => {
-    const mockUseNavigationGuard = vi.mocked(require("@/hooks/use-navigation-guard").useNavigationGuard);
+    const { useNavigationGuard } = await import("@/hooks/use-navigation-guard");
+    const mockUseNavigationGuard = vi.mocked(useNavigationGuard);
     
     renderWeeklyReport();
 
@@ -295,7 +302,8 @@ describe("WeeklyReport Page", () => {
   describe("データローディング状態", () => {
     it("ローディング中でも基本構造が表示されること", async () => {
       // ローディング状態のモック
-      vi.mocked(require("@/hooks/use-weekly-report-form").useWeeklyReportForm).mockReturnValue({
+      const { useWeeklyReportForm } = await import("@/hooks/use-weekly-report-form");
+      vi.mocked(useWeeklyReportForm).mockReturnValue({
         form: { control: {}, getValues: vi.fn(), setValue: vi.fn(), watch: vi.fn(), handleSubmit: vi.fn().mockReturnValue(vi.fn()), formState: { errors: {} } },
         isEditMode: true,
         isAdminEditMode: false,
@@ -324,7 +332,8 @@ describe("WeeklyReport Page", () => {
   describe("エラー処理", () => {
     it("WebSocket接続エラー時でも基本機能が動作すること", async () => {
       // WebSocket エラー状態のモック
-      vi.mocked(require("@/contexts/useWebSocket").useWebSocket).mockReturnValue({
+      const { useWebSocket } = await import("@/contexts/useWebSocket");
+      vi.mocked(useWebSocket).mockReturnValue({
         lastMessage: null,
         sendMessage: vi.fn(),
         status: "error",
