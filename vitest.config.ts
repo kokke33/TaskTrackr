@@ -14,7 +14,8 @@ export default defineConfig({
     setupFiles: [path.resolve(__dirname, "tests", "setup.ts")], // 絶対パスに変更
     coverage: {
       provider: "v8",
-      reporter: ["text", "json", "html"],
+      reporter: ["text", "json-summary", "html"],
+      reportsDirectory: "coverage", // カバレッジ出力ディレクトリを明示的に指定
       exclude: [
         "node_modules/",
         "dist/",
