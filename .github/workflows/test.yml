@@ -194,12 +194,14 @@ jobs:
         }
 
     - name: Upload audit results
-      uses: actions/upload-artifact@v4
-      if: always() && exists('audit-results.json')
-      with:
-        name: security-audit-results
-        path: audit-results.json
-        retention-days: 30
+      if: always()
+      run: |
+        if [ -f audit-results.json ]; then
+          echo "Uploading audit-results.json"
+          gh run upload-artifact --name security-audit-results audit-results.json
+        else
+          echo "audit-results.json not found, skipping upload"
+        fi
 
   integration:
     name: Integration Tests
