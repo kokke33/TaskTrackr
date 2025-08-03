@@ -10,9 +10,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Noto Sans JP', sans-serif; background: #111827; color: #e5e7eb; }
-    a { color: #06b6d4; text-decoration: underline; }
-    .hero-bg { background: radial-gradient(ellipse at top, #1e293b 0%, #0f172a 100%); }
+    body { font-family: 'Noto Sans JP', sans-serif; background: #1a1a1a; color: #e0e0e0; }
+    a { color: #007AFF; text-decoration: underline; }
+    .hero-bg { background: radial-gradient(ellipse at top, #2c2c2e 0%, #1a1a1a 100%); }
   </style>
 </head>
 <body>
@@ -62,17 +62,17 @@ function App() {
     <div>
       {/* HERO */}
       <header className="hero-bg pt-12 pb-10 text-center">
-        <h1 className="text-3xl sm:text-5xl font-bold text-cyan-300 drop-shadow">TaskTrackr</h1>
-        <p className="mt-3 text-lg sm:text-2xl text-cyan-100">AIがあなたの右腕に。プロジェクトの未来を予測し、週次レポート作成を劇的に効率化。</p>
+        <h1 className="text-3xl sm:text-5xl font-bold text-gray-200 drop-shadow">TaskTrackr</h1>
+        <p className="mt-3 text-lg sm:text-2xl text-gray-300">AIがあなたの右腕に。プロジェクトの未来を予測し、週次レポート作成を劇的に効率化。</p>
         <div className="mt-4 flex justify-center flex-wrap gap-2">
-          <Pill text="TypeScript" icon="💻" className="bg-cyan-900 text-cyan-300"/>
-          <Pill text="React" icon="⚛️" className="bg-cyan-900 text-cyan-300"/>
-          <Pill text="Express" icon="🛠️" className="bg-slate-900 text-slate-200"/>
-          <Pill text="PostgreSQL" icon="🗄️" className="bg-slate-800 text-slate-200"/>
-          <Pill text="AI統合" icon="🤖" className="bg-emerald-900 text-emerald-300"/>
+          <Pill text="TypeScript" icon="💻" className="bg-gray-700 text-gray-200"/>
+          <Pill text="React" icon="⚛️" className="bg-gray-700 text-gray-200"/>
+          <Pill text="Express" icon="🛠️" className="bg-gray-800 text-gray-300"/>
+          <Pill text="PostgreSQL" icon="🗄️" className="bg-gray-800 text-gray-300"/>
+          <Pill text="AI統合" icon="🤖" className="bg-green-800 text-green-300"/>
         </div>
         <div className="mt-4">
-          <a href="#features" className="inline-block bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-6 rounded-full text-lg">特徴を見る</a>
+          <a href="#features" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full text-lg">特徴を見る</a>
         </div>
       </header>
 
@@ -87,13 +87,13 @@ function App() {
           <li>⚡ <b>5つのAIプロバイダー</b>を自由切り替え（OpenAI, Gemini, Ollama, Groq, OpenRouter）。</li>
         </ul>
         <div className="flex flex-row flex-wrap mt-6 gap-7">
-          <div className="flex-1 min-w-[220px] bg-cyan-900/60 px-4 py-6 rounded-xl shadow text-center">
+          <div className="flex-1 min-w-[220px] bg-gray-800/60 px-4 py-6 rounded-xl shadow text-center">
             <div className="text-2xl font-bold mb-2">週次レポート × AI分析</div>
-            <div className="text-sm text-cyan-200">リアルタイムで進捗/課題/改善をAIで自動診断・前回比較も一発。これにより、手戻りを防ぎ、意思決定を加速します。</div>
+            <div className="text-sm text-gray-300">リアルタイムで進捗/課題/改善をAIで自動診断・前回比較も一発。これにより、手戻りを防ぎ、意思決定を加速します。</div>
           </div>
-          <div className="flex-1 min-w-[220px] bg-slate-800/60 px-4 py-6 rounded-xl shadow text-center">
+          <div className="flex-1 min-w-[220px] bg-gray-800/60 px-4 py-6 rounded-xl shadow text-center">
             <div className="text-2xl font-bold mb-2">AI議事録＆アドバイス自動生成</div>
-            <div className="text-sm text-blue-200">報告提出時に会議議事録案や提案を自動生成、会議資料化まで直結。会議後の煩雑な作業から解放され、本質的な業務に集中できます。</div>
+            <div className="text-sm text-blue-300">報告提出時に会議議事録案や提案を自動生成、会議資料化まで直結。会議後の煩雑な作業から解放され、本質的な業務に集中できます。</div>
           </div>
         </div>
       </Section>
@@ -110,11 +110,11 @@ function App() {
       {/* AI PROVIDERS */}
       <Section id="ai" title="AIプロバイダー対応状況" wide>
         <div className="flex flex-col sm:flex-row sm:space-x-8 space-y-4 sm:space-y-0 justify-center text-center">
-          <Pill text="OpenAI (GPT-4o, mini)" icon="🟦" className="bg-blue-900 text-blue-200"/>
-          <Pill text="Google Gemini" icon="🟩" className="bg-green-900 text-green-200"/>
-          <Pill text="Ollama (ローカル)" icon="💻" className="bg-gray-800 text-slate-200"/>
-          <Pill text="Groq Llama3" icon="🧮" className="bg-yellow-800 text-yellow-200"/>
-          <Pill text="OpenRouter" icon="🌐" className="bg-slate-900 text-cyan-100"/>
+          <Pill text="OpenAI (GPT-4o, mini)" icon="🟦" className="bg-blue-800 text-blue-300"/>
+          <Pill text="Google Gemini" icon="🟩" className="bg-green-800 text-green-300"/>
+          <Pill text="Ollama (ローカル)" icon="💻" className="bg-gray-800 text-gray-300"/>
+          <Pill text="Groq Llama3" icon="🧮" className="bg-yellow-700 text-yellow-300"/>
+          <Pill text="OpenRouter" icon="🌐" className="bg-gray-900 text-gray-300"/>
         </div>
         <div className="mt-5 text-sm text-gray-400">管理画面や環境変数でAIプロバイダーの切替が可能</div>
       </Section>
@@ -143,7 +143,7 @@ function App() {
       <Section id="tech" title="技術構成・アーキテクチャ" wide>
         <div className="grid md:grid-cols-2 gap-7">
           <div>
-            <h3 className="font-bold mb-2 text-cyan-200 text-lg">主要技術</h3>
+            <h3 className="font-bold mb-2 text-gray-200 text-lg">主要技術</h3>
             <ul className="list-disc ml-5 text-base">
               <li>React 18 + TypeScript + Vite + TailwindCSS</li>
               <li>Express + Drizzle ORM + PostgreSQL</li>
@@ -153,7 +153,7 @@ function App() {
             </ul>
           </div>
           <div>
-            <h3 className="font-bold mb-2 text-cyan-200 text-lg">特徴的パターン</h3>
+            <h3 className="font-bold mb-2 text-gray-200 text-lg">特徴的パターン</h3>
             <ul className="list-disc ml-5 text-base">
               <li>自動保存/リアルタイム同期・多人数競合警告</li>
               <li>案件・レポート・全文検索の横断一括API</li>
@@ -168,7 +168,7 @@ function App() {
       {/* CALL TO ACTION */}
       <Section id="cta" title="今すぐTaskTrackrを体験する" wide>
         <div className="text-center mt-6">
-          <a href="#" className="inline-block bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg transition duration-300">
+          <a href="#" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg transition duration-300">
             無料デモをリクエスト
           </a>
           <p className="mt-4 text-gray-300">ご質問やご相談も承ります。</p>
