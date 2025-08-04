@@ -173,23 +173,23 @@ export default function AdminSettings() {
   useEffect(() => {
     if (settings) {
       // 基本AI設定の読み込み
-      const basicProvider = settings.find(s => s.key === "AI_PROVIDER")?.value || DEFAULT_VALUES.AI_PROVIDER;
-      const basicGroqModel = settings.find(s => s.key === "AI_GROQ_MODEL")?.value || DEFAULT_VALUES.GROQ_MODEL;
-      const basicGeminiModel = settings.find(s => s.key === "AI_GEMINI_MODEL")?.value || DEFAULT_VALUES.GEMINI_MODEL;
-      const basicOpenRouterModel = settings.find(s => s.key === "AI_OPENROUTER_MODEL")?.value || DEFAULT_VALUES.OPENROUTER_MODEL;
+      const basicProvider = settings.find(s => s.key === "AI_PROVIDER")?.value;
+      const basicGroqModel = settings.find(s => s.key === "AI_GROQ_MODEL")?.value;
+      const basicGeminiModel = settings.find(s => s.key === "AI_GEMINI_MODEL")?.value;
+      const basicOpenRouterModel = settings.find(s => s.key === "AI_OPENROUTER_MODEL")?.value;
 
       setBasicConfig(AISettingsManager.buildConfigFromSettings(
-        basicProvider, basicGroqModel, basicGeminiModel, basicOpenRouterModel
+        basicProvider || DEFAULT_VALUES.AI_PROVIDER, basicGroqModel, basicGeminiModel, basicOpenRouterModel
       ));
 
       // リアルタイム分析設定の読み込み
-      const realtimeProvider = settings.find(s => s.key === "REALTIME_PROVIDER")?.value || DEFAULT_VALUES.REALTIME_PROVIDER;
-      const realtimeGroqModel = settings.find(s => s.key === "REALTIME_GROQ_MODEL")?.value || DEFAULT_VALUES.GROQ_MODEL;
-      const realtimeGeminiModel = settings.find(s => s.key === "REALTIME_GEMINI_MODEL")?.value || DEFAULT_VALUES.GEMINI_MODEL;
-      const realtimeOpenRouterModel = settings.find(s => s.key === "REALTIME_OPENROUTER_MODEL")?.value || DEFAULT_VALUES.OPENROUTER_MODEL;
+      const realtimeProvider = settings.find(s => s.key === "REALTIME_PROVIDER")?.value;
+      const realtimeGroqModel = settings.find(s => s.key === "REALTIME_GROQ_MODEL")?.value;
+      const realtimeGeminiModel = settings.find(s => s.key === "REALTIME_GEMINI_MODEL")?.value;
+      const realtimeOpenRouterModel = settings.find(s => s.key === "REALTIME_OPENROUTER_MODEL")?.value;
 
       setRealtimeConfig(AISettingsManager.buildConfigFromSettings(
-        realtimeProvider, realtimeGroqModel, realtimeGeminiModel, realtimeOpenRouterModel
+        realtimeProvider || DEFAULT_VALUES.REALTIME_PROVIDER, realtimeGroqModel, realtimeGeminiModel, realtimeOpenRouterModel
       ));
 
       // ストリーミング設定の読み込み
