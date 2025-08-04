@@ -32,9 +32,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       return;
     }
 
-    // URL validation
-    if (!url || url.includes('undefined')) {
-      logger.error('Invalid WebSocket URL', undefined, { url });
+    // URL validation - より厳密なチェック
+    if (!url || url.includes('undefined') || url.includes('null') || !url.startsWith('ws')) {
+      logger.error('Invalid WebSocket URL detected', undefined, { 
+        url, 
+        validFormat: url ? url.startsWith('ws') : false,
+        hasUndefined: url ? url.includes('undefined') : false,
+        hasNull: url ? url.includes('null') : false
+      });
       setStatus('closed');
       return;
     }

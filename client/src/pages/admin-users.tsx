@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,6 +103,7 @@ export default function AdminUsers() {
     user: user ? { id: user.id, username: user.username, isAdmin: user.isAdmin } : null,
     timestamp: new Date().toISOString()
   });
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
@@ -134,6 +135,79 @@ export default function AdminUsers() {
       confirmPassword: "",
     },
   });
+
+  // editingUser状態の変更を監視（セキュリティ追跡用）
+  useEffect(() => {
+    console.log('[ADMIN-USERS] === editingUser STATE CHANGE ===');
+    console.log('[ADMIN-USERS] editingUser changed:', {
+      editingUser: editingUser ? {
+        id: editingUser.id,
+        username: editingUser.username,
+        isAdmin: editingUser.isAdmin,
+        createdAt: editingUser.createdAt
+      } : null,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (editingUser && editingUser.username === 'ss7-1') {
+      console.error('[ADMIN-USERS] ⚠️ CRITICAL: ss7-1 detected in editingUser state!');
+    }
+  }, [editingUser]);
+
+  // フォーム状態の変更を監視
+  useEffect(() => {
+    const subscription = editForm.watch((value, { name, type }) => {
+      console.log('[ADMIN-USERS] Form field changed:', {
+        fieldName: name,
+        changeType: type,
+        newValue: value,
+        currentEditingUser: editingUser?.username,
+        timestamp: new Date().toISOString()
+      });
+      
+      if (value.username === 'ss7-1') {
+        console.error('[ADMIN-USERS] ⚠️ CRITICAL: ss7-1 detected in form field!');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [editForm.watch, editingUser]);
+
+  // editingUser変更時のフォーム同期強化
+  useEffect(() => {
+    console.log('[ADMIN-USERS] === FORM SYNC EFFECT ===');
+    
+    if (editingUser) {
+      console.log('[ADMIN-USERS] Syncing form with editingUser:', {
+        userId: editingUser.id,
+        username: editingUser.username,
+        isAdmin: editingUser.isAdmin
+      });
+
+      // セキュリティチェック
+      if (editingUser.username === 'ss7-1' || !editingUser.id) {
+        console.error('[ADMIN-USERS] ⚠️ CRITICAL: Invalid editingUser in sync effect');
+        return;
+      }
+
+      // フォーム状態を確実に同期
+      editForm.reset({
+        username: editingUser.username,
+        isAdmin: editingUser.isAdmin,
+        password: "",
+        confirmPassword: "",
+      });
+
+      console.log('[ADMIN-USERS] Form synced successfully');
+    } else {
+      console.log('[ADMIN-USERS] editingUser is null, clearing form');
+      editForm.reset({
+        username: "",
+        isAdmin: false,
+        password: "",
+        confirmPassword: "",
+      });
+    }
+  }, [editingUser, editForm]);
 
   // ユーザ作成ミューテーション
   const createMutation = useMutation({
@@ -202,19 +276,105 @@ export default function AdminUsers() {
   };
 
   const handleEditSubmit = (data: UserEditData) => {
-    if (editingUser) {
-      updateMutation.mutate({ id: editingUser.id, data });
+    console.log('[ADMIN-USERS] === FORM SUBMIT SECURITY CHECK ===');
+    console.log('[ADMIN-USERS] Form submission data:', {
+      formData: data,
+      editingUser: editingUser ? { id: editingUser.id, username: editingUser.username } : null,
+      timestamp: new Date().toISOString()
+    });
+
+    // 最終セキュリティチェック
+    if (!editingUser) {
+      console.error('[ADMIN-USERS] ⚠️ SECURITY ALERT: No editingUser at form submit');
+      toast({
+        title: "エラー",
+        description: "編集対象のユーザーが見つかりません。",
+        variant: "destructive",
+      });
+      return;
     }
+
+    if (!editingUser.id || !editingUser.username) {
+      console.error('[ADMIN-USERS] ⚠️ SECURITY ALERT: Invalid editingUser data at submit', editingUser);
+      toast({
+        title: "エラー",
+        description: "無効なユーザー情報です。ページを再読み込みしてください。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // ss7-1の最終チェック
+    if (editingUser.username === 'ss7-1' || data.username === 'ss7-1') {
+      console.error('[ADMIN-USERS] ⚠️ SECURITY ALERT: ss7-1 detected at form submit');
+      toast({
+        title: "セキュリティエラー",
+        description: "セキュリティ上の問題が検出されました。操作を中止します。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log('[ADMIN-USERS] Security checks passed, submitting form');
+    updateMutation.mutate({ id: editingUser.id, data });
   };
 
   const handleEdit = (user: User) => {
-    setEditingUser(user);
-    editForm.reset({
-      username: user.username,
-      isAdmin: user.isAdmin,
-      password: "",
-      confirmPassword: "",
+    console.log('[ADMIN-USERS] === CRITICAL SECURITY CHECK ===');
+    console.log('[ADMIN-USERS] Edit button clicked for user:', {
+      clickedUserId: user.id,
+      clickedUsername: user.username,
+      clickedUserAdmin: user.isAdmin,
+      timestamp: new Date().toISOString()
     });
+
+    // セキュリティチェック: ユーザー情報の妥当性検証
+    if (!user || !user.id || !user.username) {
+      console.error('[ADMIN-USERS] ⚠️ SECURITY ALERT: Invalid user data received', user);
+      toast({
+        title: "エラー",
+        description: "無効なユーザー情報です。ページを再読み込みしてください。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 'ss7-1'の特別チェック（セキュリティ問題の兆候）
+    if (user.username === 'ss7-1') {
+      console.error('[ADMIN-USERS] ⚠️ SECURITY ALERT: ss7-1 user detected in edit operation');
+      console.error('[ADMIN-USERS] This may indicate a state management issue');
+      toast({
+        title: "セキュリティ警告",
+        description: "予期しないユーザー情報が検出されました。ページを再読み込みしてください。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log('[ADMIN-USERS] Security checks passed, proceeding with edit');
+
+    // フォーム状態の完全クリア（既存の状態を確実に削除）
+    console.log('[ADMIN-USERS] Clearing form state completely...');
+    editForm.reset(); // 一度完全にリセット
+
+    // 少し待機してからユーザー情報で再設定（React Hook Formの状態管理を確実にする）
+    setTimeout(() => {
+      console.log('[ADMIN-USERS] Setting form with user data:', {
+        username: user.username,
+        isAdmin: user.isAdmin,
+        passwordCleared: true
+      });
+
+      setEditingUser(user);
+      editForm.reset({
+        username: user.username,
+        isAdmin: user.isAdmin,
+        password: "",
+        confirmPassword: "",
+      });
+
+      console.log('[ADMIN-USERS] Form state set successfully');
+    }, 10); // 10ms の微小な遅延
   };
 
   const handleDelete = (user: User) => {
@@ -454,6 +614,20 @@ export default function AdminUsers() {
             <DialogDescription>
               ユーザ情報を編集します。パスワードは変更する場合のみ入力してください。
             </DialogDescription>
+            {/* セキュリティ警告エリア */}
+            {editingUser && (editingUser.username === 'ss7-1' || !editingUser.id) && (
+              <div className="mt-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <div className="flex items-center gap-2 text-destructive font-medium">
+                  <AlertCircle className="h-4 w-4" />
+                  セキュリティ警告
+                </div>
+                <div className="mt-1 text-sm text-destructive/80">
+                  {editingUser.username === 'ss7-1' && "予期しないユーザー情報（ss7-1）が検出されました。"}
+                  {!editingUser.id && "無効なユーザー情報です。"}
+                  ページを再読み込みしてください。
+                </div>
+              </div>
+            )}
           </DialogHeader>
           <form onSubmit={editForm.handleSubmit(handleEditSubmit)} className="space-y-4">
             <div className="space-y-2">

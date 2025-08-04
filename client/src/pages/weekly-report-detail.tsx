@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createLogger } from "@shared/logger";
 import { useAIAnalysis } from "@/hooks/use-ai-analysis";
 import { AIAnalysisResult } from "@/components/ai-analysis-result";
+import { AIMetadataDisplay } from "@/components/ai-metadata-display";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   progressStatusMap,
@@ -45,7 +46,20 @@ export default function WeeklyReportDetail() {
   const logger = createLogger('WeeklyReportDetail');
   const { id } = useParams<{ id: string }>();
   const [location, setLocation] = useLocation();
-  const { user } = useAuth();
+  
+  // AuthProviderエラーを防ぐためのtry-catch
+  let user;
+  try {
+    const authContext = useAuth();
+    user = authContext.user;
+  } catch (error) {
+    logger.error('AuthProvider not available', error instanceof Error ? error : new Error(String(error)));
+    // 緊急避難: ログインページにリダイレクト
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+    return <div>認証エラーが発生しました。ログインページにリダイレクトしています...</div>;
+  }
   const queryClient = useQueryClient();
   const [originalData, setOriginalData] = useState<WeeklyReport | null>(null);
   const { toast } = useToast();
@@ -109,6 +123,12 @@ export default function WeeklyReportDetail() {
     queryKey: [`/api/weekly-reports/${id}/meetings`],
     staleTime: 0,
     enabled: !!report, // レポートが取得できたら議事録も取得
+  });
+
+  // AIプロバイダー設定を取得
+  const { data: aiProviderSettings } = useQuery<{key: string, value: string}[]>({
+    queryKey: ['/api/system-settings', 'AI_PROVIDER'],
+    staleTime: 1000 * 60 * 5, // 5分間キャッシュ
   });
 
   // URLパラメータからスクロール指示を取得してスクロール実行
@@ -357,6 +377,28 @@ export default function WeeklyReportDetail() {
   // 関連する案件情報を取得
   const relatedCase = cases?.find(c => c.id === report.caseId);
   const projectName = relatedCase?.projectName || report.projectName;
+  
+  // AIプロバイダー設定から現在のAIモデル情報を取得
+  const getCurrentAIModel = (): string | undefined => {
+    if (!aiProviderSettings) return undefined;
+    
+    const aiProviderSetting = aiProviderSettings.find(setting => setting.key === 'AI_PROVIDER');
+    const realtimeProviderSetting = aiProviderSettings.find(setting => setting.key === 'REALTIME_PROVIDER');
+    
+    // リアルタイム分析用のプロバイダーが設定されていればそれを使用、なければ通常のAIプロバイダー
+    const provider = realtimeProviderSetting?.value || aiProviderSetting?.value || 'unknown';
+    
+    // プロバイダー名をより読みやすい形に変換
+    const providerMap: Record<string, string> = {
+      'openai': 'OpenAI GPT',
+      'ollama': 'Ollama',
+      'gemini': 'Google Gemini',
+      'groq': 'Groq',
+      'openrouter': 'OpenRouter',
+    };
+    
+    return providerMap[provider] || provider;
+  };
   
   logger.debug('Report and Case info', {
     reportProjectName: report.projectName,
@@ -643,7 +685,15 @@ export default function WeeklyReportDetail() {
           {report.aiAnalysis && (
             <Card>
               <CardContent className="p-4 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">■ AI分析結果</h2>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3 sm:mb-4 pb-2 border-b">
+                  <h2 className="text-lg sm:text-xl font-semibold">■ AI分析結果</h2>
+                  <AIMetadataDisplay
+                    aiModel={getCurrentAIModel()}
+                    createdAt={report.createdAt}
+                    updatedAt={report.updatedAt}
+                    className="sm:text-right"
+                  />
+                </div>
                 <div className="prose prose-sm max-w-none">
                   <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{report.aiAnalysis}</ReactMarkdown>
                 </div>
@@ -654,7 +704,15 @@ export default function WeeklyReportDetail() {
           {meetings && meetings.length > 0 && (
             <Card>
               <CardContent className="p-4 sm:p-6">
-                <h2 id="meetings-section" className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">■ 確認会議事録</h2>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3 sm:mb-4 pb-2 border-b">
+                  <h2 id="meetings-section" className="text-lg sm:text-xl font-semibold">■ 確認会議事録</h2>
+                  <AIMetadataDisplay
+                    aiModel={getCurrentAIModel()}
+                    createdAt={meetings[0]?.createdAt}
+                    updatedAt={meetings[0]?.createdAt !== meetings[meetings.length - 1]?.createdAt ? meetings[meetings.length - 1]?.createdAt : undefined}
+                    className="sm:text-right"
+                  />
+                </div>
                 {meetings.map((meeting, index) => (
                   <div key={meeting.id} className="mb-4 sm:mb-6 last:mb-0">
                     {meetings.length > 1 && (
@@ -733,17 +791,25 @@ export default function WeeklyReportDetail() {
           {user?.isAdmin && (
             <Card>
               <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mb-3 sm:mb-4 pb-2 border-b">
-                  <h2 className="text-lg sm:text-xl font-semibold">■ 管理者確認メール文章</h2>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => regenerateAdminEmailMutation.mutate()}
-                    disabled={regenerateAdminEmailMutation.isPending}
-                    className="w-full sm:w-auto"
-                  >
-                    {regenerateAdminEmailMutation.isPending ? '再生成中...' : '更新'}
-                  </Button>
+                <div className="flex flex-col gap-2 mb-3 sm:mb-4 pb-2 border-b">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+                    <h2 className="text-lg sm:text-xl font-semibold">■ 管理者確認メール文章</h2>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => regenerateAdminEmailMutation.mutate()}
+                      disabled={regenerateAdminEmailMutation.isPending}
+                      className="w-full sm:w-auto"
+                    >
+                      {regenerateAdminEmailMutation.isPending ? '再生成中...' : '更新'}
+                    </Button>
+                  </div>
+                  <AIMetadataDisplay
+                    aiModel={getCurrentAIModel()}
+                    createdAt={report.createdAt}
+                    updatedAt={report.updatedAt}
+                    className="sm:text-right"
+                  />
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                   {report?.adminConfirmationEmail ? (
