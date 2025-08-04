@@ -157,7 +157,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/logout", (req, res) => {
-    req.logout(() => {
+    req.logout((err) => {
+      if (err) {
+        logger.error('Logout error:', err);
+        return res.status(500).json({ message: "ログアウトエラー" });
+      }
       res.json({ message: "ログアウト成功" });
     });
   });

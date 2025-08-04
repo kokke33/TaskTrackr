@@ -38,7 +38,10 @@ export function ReportHeader({
   return (
     <>
       {/* Sticky Header */}
-      <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div 
+        className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        data-testid="report-header"
+      >
         <div className="container mx-auto px-2 sm:px-4">
           <div className="flex min-h-14 sm:h-14 items-center justify-between py-2 sm:py-0">
             <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">

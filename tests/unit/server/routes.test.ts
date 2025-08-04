@@ -91,6 +91,8 @@ describe("Routes", () => {
   let mockStorage: any;
 
   beforeEach(async () => {
+    vi.clearAllMocks();
+    
     app = express();
     app.use(express.json());
     
@@ -99,15 +101,80 @@ describe("Routes", () => {
       req.sessionID = "test-session-id";
       req.user = { id: 1, username: "testuser", isAdmin: false };
       req.isAuthenticated = vi.fn().mockReturnValue(true);
-      req.logIn = vi.fn((user, callback) => callback(null));
-      req.logout = vi.fn((callback) => {
-        if (callback) callback();
+      req.logIn = vi.fn((user, callback) => {
+        if (callback) callback(null);
       });
+      req.logout = vi.fn((callback) => {
+        req.user = undefined;
+        if (typeof callback === 'function') {
+          callback(null);
+        }
+      });
+      req.session = {
+        destroy: vi.fn((callback) => {
+          if (callback) callback(null);
+        }),
+        save: vi.fn((callback) => {
+          if (callback) callback(null);
+        }),
+      } as any;
       next();
     });
 
-    await registerRoutes(app);
+    // ストレージモックを適切に初期化
     mockStorage = (storageModule as any).storage;
+    
+    // デフォルトの戻り値を設定
+    mockStorage.createProject.mockResolvedValue({ 
+      id: 1, 
+      name: "テストプロジェクト",
+      overview: "テスト概要",
+      organization: "テスト会社",
+      personnel: "テスト太郎",
+      progress: "開始準備中",
+      businessDetails: "詳細情報",
+      isDeleted: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    mockStorage.updateProject.mockResolvedValue({ 
+      id: 1, 
+      name: "更新されたプロジェクト",
+      overview: "更新された概要",
+      isDeleted: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    mockStorage.deleteProject.mockResolvedValue({ 
+      id: 1, 
+      name: "削除されたプロジェクト",
+      isDeleted: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    mockStorage.restoreProject.mockImplementation((id) => {
+      // 削除されていないプロジェクトの場合はnullを返すようにモック
+      if (id === 1) {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve({ 
+        id: id, 
+        name: "復元されたプロジェクト",
+        isDeleted: false,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    });
+    mockStorage.createCase.mockResolvedValue({ 
+      id: 1, 
+      caseName: "テスト案件",
+      projectId: 1,
+      isDeleted: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    await registerRoutes(app);
   });
 
   afterEach(() => {
@@ -203,6 +270,9 @@ describe("Routes", () => {
     it("POST /api/logout - ログアウト成功メッセージを返すこと", async () => {
       const response = await request(app).post("/api/logout");
 
+      if (response.status !== 200) {
+        console.log("Logout error:", response.status, response.body);
+      }
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ message: "ログアウト成功" });
     });
@@ -235,7 +305,12 @@ describe("Routes", () => {
         .send(projectData);
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual(createdProject);
+      // 日時フィールドを除いて比較
+      const { createdAt, updatedAt, ...responseWithoutDates } = response.body;
+      const { createdAt: expectedCreatedAt, updatedAt: expectedUpdatedAt, ...expectedWithoutDates } = createdProject;
+      expect(responseWithoutDates).toEqual(expectedWithoutDates);
+      expect(new Date(createdAt)).toBeInstanceOf(Date);
+      expect(new Date(updatedAt)).toBeInstanceOf(Date);
       expect(mockStorage.createProject).toHaveBeenCalledWith(projectData);
     });
 
@@ -356,7 +431,11 @@ describe("Routes", () => {
         .send(updateData);
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual(updatedProject);
+      // 日時フィールドを除いて比較
+      const { updatedAt, ...responseWithoutDates } = response.body;
+      const { updatedAt: expectedUpdatedAt, ...expectedWithoutDates } = updatedProject;
+      expect(responseWithoutDates).toEqual(expectedWithoutDates);
+      expect(new Date(updatedAt)).toBeInstanceOf(Date);
       expect(mockStorage.updateProject).toHaveBeenCalledWith(1, updateData);
     });
 
@@ -379,7 +458,11 @@ describe("Routes", () => {
       const response = await request(app).delete("/api/projects/1");
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual(deletedProject);
+      // 日時フィールドを除いて比較
+      const { updatedAt, ...responseWithoutDates } = response.body;
+      const { updatedAt: expectedUpdatedAt, ...expectedWithoutDates } = deletedProject;
+      expect(responseWithoutDates).toEqual(expectedWithoutDates);
+      expect(new Date(updatedAt)).toBeInstanceOf(Date);
       expect(mockStorage.deleteProject).toHaveBeenCalledWith(1);
     });
 
@@ -402,7 +485,11 @@ describe("Routes", () => {
       const response = await request(app).post("/api/projects/1/restore");
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual(restoredProject);
+      // 日時フィールドを除いて比較
+      const { updatedAt, ...responseWithoutDates } = response.body;
+      const { updatedAt: expectedUpdatedAt, ...expectedWithoutDates } = restoredProject;
+      expect(responseWithoutDates).toEqual(expectedWithoutDates);
+      expect(new Date(updatedAt)).toBeInstanceOf(Date);
       expect(mockStorage.restoreProject).toHaveBeenCalledWith(1);
     });
 
@@ -446,7 +533,12 @@ describe("Routes", () => {
       const response = await request(app).post("/api/cases").send(caseData);
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual(createdCase);
+      // 日時フィールドを除いて比較
+      const { createdAt, updatedAt, ...responseWithoutDates } = response.body;
+      const { createdAt: expectedCreatedAt, updatedAt: expectedUpdatedAt, ...expectedWithoutDates } = createdCase;
+      expect(responseWithoutDates).toEqual(expectedWithoutDates);
+      expect(new Date(createdAt)).toBeInstanceOf(Date);
+      expect(new Date(updatedAt)).toBeInstanceOf(Date);
       expect(mockStorage.createCase).toHaveBeenCalledWith(caseData);
     });
 

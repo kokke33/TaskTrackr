@@ -31,7 +31,7 @@ export function BasicInfoForm({ cases, selectedCaseId, onSelectCase }: BasicInfo
   const [isCaseSelectorOpen, setIsCaseSelectorOpen] = useState(false);
 
   return (
-    <div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm">
+    <div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm" data-testid="basic-info-form">
       <div className="space-y-3 sm:space-y-4">
         <FormField
           control={form.control}
