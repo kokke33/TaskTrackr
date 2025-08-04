@@ -45,7 +45,20 @@ export default function WeeklyReportDetail() {
   const logger = createLogger('WeeklyReportDetail');
   const { id } = useParams<{ id: string }>();
   const [location, setLocation] = useLocation();
-  const { user } = useAuth();
+  
+  // AuthProviderエラーを防ぐためのtry-catch
+  let user;
+  try {
+    const authContext = useAuth();
+    user = authContext.user;
+  } catch (error) {
+    logger.error('AuthProvider not available', error instanceof Error ? error : new Error(String(error)));
+    // 緊急避難: ログインページにリダイレクト
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+    return <div>認証エラーが発生しました。ログインページにリダイレクトしています...</div>;
+  }
   const queryClient = useQueryClient();
   const [originalData, setOriginalData] = useState<WeeklyReport | null>(null);
   const { toast } = useToast();

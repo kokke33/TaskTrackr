@@ -13,7 +13,8 @@ import Home from "@/pages/Home";
 // 動的インポートによるコード分割とパフォーマンス最適化
 const WeeklyReport = lazy(() => import("@/pages/weekly-report"));
 const WeeklyReportList = lazy(() => import("@/pages/weekly-report-list"));
-const WeeklyReportDetail = lazy(() => import("@/pages/weekly-report-detail"));
+// WeeklyReportDetailを直接インポートしてAuthProviderスコープ問題を回避
+import WeeklyReportDetail from "@/pages/weekly-report-detail";
 const CaseList = lazy(() => import("@/pages/cases"));
 const CaseForm = lazy(() => import("@/pages/case-form"));
 const ProjectList = lazy(() => import("@/pages/projects"));
@@ -60,9 +61,7 @@ function Router() {
         </Suspense>
       )} />
       <ProtectedRoute path="/reports/:id" component={(props) => (
-        <Suspense fallback={<LoadingSpinner />}>
-          <WeeklyReportDetail {...props} />
-        </Suspense>
+        <WeeklyReportDetail {...props} />
       )} />
       
       {/* 会議・案件関連 */}
@@ -158,25 +157,33 @@ function Router() {
 }
 
 function App() {
-  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  
-  // WebSocket URLの安全な構築
+  // WebSocket URLの確実な構築 - 最も安全なアプローチ
   let wsUrl: string;
   try {
-    const host = window.location.host;
-    const defaultPort = import.meta.env?.VITE_PORT || '5000';
+    // 現在の環境情報を収集
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    const port = window.location.port;
     
-    if (!host || host.includes('undefined')) {
-      // fallback to default development settings
-      wsUrl = `ws://localhost:${defaultPort}/ws`;
-      console.warn('[App] Using fallback WebSocket URL:', wsUrl);
+    console.log('[App] Environment:', { protocol, hostname, port });
+    
+    // 本番環境の判定
+    const isProduction = protocol === 'https:';
+    const wsProtocol = isProduction ? 'wss:' : 'ws:';
+    
+    // 開発環境の場合は固定設定を使用
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      wsUrl = `ws://localhost:5000/ws`;
+      console.log('[App] Development mode - Using fixed WebSocket URL:', wsUrl);
     } else {
-      wsUrl = `${wsProtocol}//${host}/ws`;
+      // 本番環境
+      wsUrl = `${wsProtocol}//${hostname}${port ? ':' + port : ''}/ws`;
+      console.log('[App] Production mode - Using dynamic WebSocket URL:', wsUrl);
     }
   } catch (error) {
-    const defaultPort = import.meta.env?.VITE_PORT || '5000';
-    wsUrl = `ws://localhost:${defaultPort}/ws`;
-    console.error('[App] Error constructing WebSocket URL, using fallback:', error);
+    // 最終フォールバック
+    wsUrl = `ws://localhost:5000/ws`;
+    console.error('[App] Critical error in WebSocket URL construction, using emergency fallback:', error);
   }
 
   return (

@@ -60,10 +60,11 @@ export default function Login() {
         data,
       });
       
-      // ログイン成功メッセージを表示
+      // ログイン成功メッセージを表示（成功メッセージには長めの表示時間を設定）
       toast({
         title: "ログイン成功",
         description: `${responseData.user?.username || ''}さん、ようこそ！`,
+        duration: 5000, // 5秒間表示
       });
       
       // ユーザー情報を含めて認証状態を更新
