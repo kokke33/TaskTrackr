@@ -29,6 +29,29 @@ import { createLogger } from "@shared/logger";
 
 const logger = createLogger('Routes');
 
+// 入力値サニタイゼーション関数
+function sanitizeSearchQuery(query: string): string {
+  if (!query || typeof query !== 'string') {
+    return '';
+  }
+  
+  // 長さ制限（1000文字）
+  const trimmed = query.trim().substring(0, 1000);
+  
+  // XSS対策：HTMLタグと危険な文字をエスケープ
+  return trimmed
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;')
+    .replace(/\\/g, '&#x5C;')
+    // SQLインジェクション対策：危険な文字を除去
+    .replace(/[;'"\\]/g, '')
+    // 制御文字を除去
+    .replace(/[\x00-\x1F\x7F]/g, '');
+}
+
 // ユーザー型定義の拡張
 interface AuthenticatedUser {
   id: number;
@@ -50,14 +73,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 検索API
   app.get("/api/search", isAuthenticated, async (req, res) => {
     try {
-      const query = req.query.q as string;
+      const rawQuery = req.query.q as string;
       const type = req.query.type as string | undefined;
+
+      // 入力値サニタイゼーション
+      const query = sanitizeSearchQuery(rawQuery);
 
       if (!query || query.trim() === "") {
         return res.json({ total: 0, results: [] });
       }
 
-      const searchResults = await storage.search(query, type);
+      // タイプフィルターのバリデーション
+      const validTypes = ['project', 'case', 'report', 'meeting'];
+      const sanitizedType = type && validTypes.includes(type) ? type : undefined;
+
+      const searchResults = await storage.search(query, sanitizedType);
       return res.json(searchResults);
     } catch (error) {
       console.error("Search error:", error);
@@ -68,13 +98,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 検索サジェストAPI
   app.get("/api/search/suggest", isAuthenticated, async (req, res) => {
     try {
-      const query = req.query.q as string;
+      const rawQuery = req.query.q as string;
+
+      // 入力値サニタイゼーション
+      const query = sanitizeSearchQuery(rawQuery);
 
       if (!query || query.trim() === "") {
         return res.json([]);
       }
 
-      const suggestions = await storage.getSearchSuggestions(query);
+      // サジェスト用により短い長さ制限（100文字）
+      const truncatedQuery = query.substring(0, 100);
+
+      const suggestions = await storage.getSearchSuggestions(truncatedQuery);
       return res.json(suggestions);
     } catch (error) {
       console.error("Search suggestion error:", error);
@@ -102,12 +138,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(500).json({ error: "セッション作成中にエラーが発生しました" });
         }
         
-        // ログのデバッグ情報を出力
-        logger.info('Login success', {
-          userId: user.id,
-          username: user.username,
-          isAdmin: user.isAdmin
-        });
+        // 本番環境では機密情報をログに出力しない
+        if (process.env.NODE_ENV === 'production') {
+          logger.info('Login success');
+        } else {
+          logger.info('Login success', {
+            userId: user.id,
+            username: user.username,
+            isAdmin: user.isAdmin
+          });
+        }
 
         // ハイブリッド認証レスポンス（JWT付き）を返す
         const authResponse = hybridAuthManager.createAuthResponse(user);
@@ -131,11 +171,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: string;
         isAdmin?: boolean;
       };
-      logger.debug('Check-auth - authenticated user', {
-        userId: user.id,
-        username: user.username,
-        isAdmin: user.isAdmin
-      });
+      // 本番環境では機密情報をログに出力しない
+      if (process.env.NODE_ENV === 'production') {
+        logger.debug('Check-auth - authenticated user');
+      } else {
+        logger.debug('Check-auth - authenticated user', {
+          userId: user.id,
+          username: user.username,
+          isAdmin: user.isAdmin
+        });
+      }
 
       // 明確に管理者フラグを含めて返す
       res.json({
