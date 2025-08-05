@@ -366,6 +366,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 日付による週次報告一覧を取得
+  app.get("/api/weekly-reports/by-date/:date", isAuthenticated, async (req, res) => {
+    try {
+      const { date } = req.params;
+      const reports = await storage.getWeeklyReportsByDate(date);
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching weekly reports by date:", error);
+      res
+        .status(500)
+        .json({ message: "指定日付の週次報告一覧の取得に失敗しました" });
+    }
+  });
+
+  // カレンダー用データを取得
+  app.get("/api/weekly-reports/calendar-data/:year/:month", isAuthenticated, async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+        res.status(400).json({ message: "無効な年月が指定されました" });
+        return;
+      }
+
+      const calendarData = await storage.getWeeklyReportsCalendarData(year, month);
+      res.json(calendarData);
+    } catch (error) {
+      console.error("Error fetching calendar data:", error);
+      res
+        .status(500)
+        .json({ message: "カレンダーデータの取得に失敗しました" });
+    }
+  });
+
   app.delete("/api/projects/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);

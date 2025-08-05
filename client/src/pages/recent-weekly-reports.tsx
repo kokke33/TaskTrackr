@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/lib/auth';
 import { AdminOnly } from '@/lib/admin-only';
 import { Loader2 } from 'lucide-react';
+import WeeklyReportsCalendar from '@/components/weekly-reports-calendar';
 
 // 週次報告データの型定義
 interface WeeklyReport {
@@ -108,6 +109,11 @@ export default function RecentWeeklyReportsList() {
           </Link>
         </div>
       </div>
+      <Separator className="my-4" />
+
+      {/* カレンダーセクション */}
+      <WeeklyReportsCalendar className="mb-6" />
+
       <Separator className="my-4" />
 
       {loading ? (
