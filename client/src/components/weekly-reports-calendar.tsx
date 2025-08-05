@@ -51,6 +51,9 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
   
   // キャッシュ用
   const [reportCache, setReportCache] = useState<{ [date: string]: WeeklyReport[] }>({});
+  
+  // 表示件数制限用
+  const [showAllReports, setShowAllReports] = useState<{ [date: string]: boolean }>({});
 
   // カレンダーデータを取得
   const fetchCalendarData = async (year: number, month: number): Promise<CalendarData> => {
@@ -137,6 +140,11 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
     if (clickedDate === dateString) {
       setClickedDate(null);
       setTooltipReports([]);
+      // 展開状態もリセット
+      setShowAllReports(prev => ({
+        ...prev,
+        [dateString]: false
+      }));
       return;
     }
     
@@ -222,25 +230,75 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
       setLocation(`/reports/${reportId}`);
     };
 
+    // テキストを指定した長さで省略する関数
+    const truncateText = (text: string, maxLength: number): string => {
+      if (text.length <= maxLength) return text;
+      return text.substring(0, maxLength) + '...';
+    };
+
+    const dateString = format(new Date(reports[0].reportPeriodStart), 'yyyy-MM-dd');
+    const maxInitialDisplay = 6; // 初期表示の最大件数
+    const shouldShowToggle = reports.length > maxInitialDisplay;
+    const isShowingAll = showAllReports[dateString] || false;
+    const displayedReports = shouldShowToggle && !isShowingAll 
+      ? reports.slice(0, maxInitialDisplay)
+      : reports;
+    const hiddenCount = reports.length - maxInitialDisplay;
+
+    const handleToggleReports = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setShowAllReports(prev => ({
+        ...prev,
+        [dateString]: !prev[dateString]
+      }));
+    };
+
     return (
-      <div className="space-y-2 max-w-xs">
+      <div className="max-w-md">
         <div className="font-semibold text-sm mb-2">
           {format(new Date(reports[0].reportPeriodStart), 'M月d日', { locale: ja })}の週次報告
+          <span className="ml-1 text-xs text-gray-500">({reports.length}件)</span>
         </div>
-        {reports.map((report) => (
-          <div 
-            key={report.id} 
-            className="border-b border-gray-200 pb-2 last:border-b-0 cursor-pointer hover:bg-blue-50 rounded-md p-2 -m-1 transition-colors duration-150"
-            onClick={(e) => handleReportClick(report.id, e)}
-          >
-            <div className="text-sm font-medium text-blue-600 hover:text-blue-800">{report.projectName}</div>
-            <div className="text-xs text-gray-600">{report.caseName}</div>
-            <div className="text-xs text-gray-500 flex justify-between mt-1">
-              <span>報告者: {report.reporterName}</span>
-              <span>進捗: {report.progressRate}%</span>
+        
+        {/* スクロール可能な報告リスト */}
+        <div className="max-h-80 overflow-y-auto space-y-1 pr-1">
+          {displayedReports.map((report) => (
+            <div 
+              key={report.id} 
+              className="border-b border-gray-200 pb-1 last:border-b-0 cursor-pointer hover:bg-blue-50 rounded-md p-1 -mx-1 transition-colors duration-150"
+              onClick={(e) => handleReportClick(report.id, e)}
+            >
+              <div className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                <span className="font-semibold">{truncateText(report.projectName, 12)}</span>
+                <span className="mx-1">・</span>
+                <span>{truncateText(report.caseName, 15)}</span>
+                <span className="mx-2 text-gray-500">
+                  報告者: {truncateText(report.reporterName, 8)}
+                </span>
+                <span className="text-gray-500">
+                  進捗: {report.progressRate}%
+                </span>
+              </div>
             </div>
+          ))}
+        </div>
+
+        {/* 展開/折りたたみボタン */}
+        {shouldShowToggle && (
+          <div className="mt-2 border-t border-gray-100 pt-2">
+            <button
+              onClick={handleToggleReports}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+            >
+              {isShowingAll 
+                ? '▲ 折りたたむ' 
+                : `▼ 他${hiddenCount}件を表示`
+              }
+            </button>
           </div>
-        ))}
+        )}
+
         <div className="text-xs text-gray-400 mt-2 border-t border-gray-100 pt-1">
           クリックして詳細画面へ
         </div>
@@ -288,7 +346,7 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
           </TooltipTrigger>
           <TooltipContent 
             side="bottom" 
-            className="max-w-sm"
+            className="max-w-md"
           >
             {renderTooltipContent(tooltipReports)}
           </TooltipContent>
