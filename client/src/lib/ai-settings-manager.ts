@@ -219,10 +219,10 @@ export class AISettingsManager {
     const defaults = this.getDefaultConfig();
     
     return {
-      provider: provider as any || defaults.provider,
-      groqModel: groqModel as any || defaults.groqModel,
-      geminiModel: geminiModel as any || defaults.geminiModel,
-      openrouterModel: openrouterModel as any || defaults.openrouterModel,
+      provider: (provider && provider.trim()) ? provider as any : defaults.provider,
+      groqModel: (groqModel && groqModel.trim()) ? groqModel as any : defaults.groqModel,
+      geminiModel: (geminiModel && geminiModel.trim()) ? geminiModel as any : defaults.geminiModel,
+      openrouterModel: (openrouterModel && openrouterModel.trim()) ? openrouterModel as any : defaults.openrouterModel,
     };
   }
 

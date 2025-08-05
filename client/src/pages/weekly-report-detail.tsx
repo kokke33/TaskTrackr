@@ -47,6 +47,11 @@ export default function WeeklyReportDetail() {
   const { id } = useParams<{ id: string }>();
   const [location, setLocation] = useLocation();
   
+  // ページ遷移時に必ずトップにスクロール
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []); // マウント時のみ実行
+
   // AuthProviderエラーを防ぐためのtry-catch
   let user;
   try {

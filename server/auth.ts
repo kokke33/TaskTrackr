@@ -42,11 +42,16 @@ passport.use(
         .from(users)
         .where(eq(users.id, userAuth.id));
 
-      logger.info('認証成功', {
-        userId: completeUser.id,
-        username: completeUser.username,
-        isAdmin: completeUser.isAdmin
-      });
+      // 本番環境では機密情報をログに出力しない
+      if (process.env.NODE_ENV === 'production') {
+        logger.info('認証成功');
+      } else {
+        logger.info('認証成功', {
+          userId: completeUser.id,
+          username: completeUser.username,
+          isAdmin: completeUser.isAdmin
+        });
+      }
 
       return done(null, completeUser);
     } catch (error) {
@@ -60,16 +65,43 @@ passport.serializeUser((user: any, done) => {
   done(null, user.id);
 });
 
-// セッション復元の排他制御用Map
-const activeDeserializations = new Map<number, Promise<any>>();
+// セッション復元の排他制御用Map（タイムアウト機能付き）
+const activeDeserializations = new Map<number, {
+  promise: Promise<any>;
+  timestamp: number;
+  timeout?: NodeJS.Timeout;
+}>();
+
+// 定期的にタイムアウトしたセッション復元を清掃
+const DESERIALIZATION_TIMEOUT = 30000; // 30秒
+const SESSION_CLEANUP_INTERVAL = 60000; // 1分
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, entry] of Array.from(activeDeserializations.entries())) {
+    if (now - entry.timestamp > DESERIALIZATION_TIMEOUT) {
+      console.log(`🧹 セッション復元タイムアウトクリーンアップ - User ID: ${userId}`);
+      if (entry.timeout) {
+        clearTimeout(entry.timeout);
+      }
+      activeDeserializations.delete(userId);
+    }
+  }
+}, SESSION_CLEANUP_INTERVAL);
 
 passport.deserializeUser(async (id: number, done) => {
   try {
     // 同じユーザーIDで並行実行されている場合は結果を待つ
     if (activeDeserializations.has(id)) {
       console.log(`🔄 セッション復元待機中 - User ID: ${id}`);
-      const result = await activeDeserializations.get(id);
-      return done(null, result);
+      const entry = activeDeserializations.get(id)!;
+      try {
+        const result = await entry.promise;
+        return done(null, result);
+      } catch (error) {
+        console.log(`❌ 並行セッション復元エラー - User ID: ${id}`, error);
+        // エラー時は新しい復元処理を開始
+        activeDeserializations.delete(id);
+      }
     }
 
     // 新しいセッション復元処理を開始
@@ -116,25 +148,45 @@ passport.deserializeUser(async (id: number, done) => {
         return false; // 認証失敗
       }
       
-      // 本番環境ではデバッグログを削減
+      // 本番環境では機密情報を含むデバッグログを削減
       if (process.env.NODE_ENV !== 'production') {
         console.log(`✅ セッション復元成功 - ${user.username} (ID: ${user.id})`);
+      } else {
+        console.log(`✅ セッション復元成功`);
       }
       
       return user;
     })();
 
-    // 排他制御Mapに追加
-    activeDeserializations.set(id, deserializationPromise);
+    // 排他制御Mapに追加（タイムアウト付き）
+    const entry = {
+      promise: deserializationPromise,
+      timestamp: Date.now(),
+      timeout: setTimeout(() => {
+        console.log(`⏰ セッション復元タイムアウト - User ID: ${id}`);
+        activeDeserializations.delete(id);
+      }, DESERIALIZATION_TIMEOUT)
+    };
+    activeDeserializations.set(id, entry);
+    
     const result = await deserializationPromise;
     
-    // 完了後にMapから削除
+    // 完了後にMapから削除とタイムアウトクリア
+    const entryToClean = activeDeserializations.get(id);
+    if (entryToClean?.timeout) {
+      clearTimeout(entryToClean.timeout);
+    }
     activeDeserializations.delete(id);
     
     done(null, result);
   } catch (error) {
     console.error(`❌ セッション復元で予期しないエラー - User ID: ${id}`, error);
-    activeDeserializations.delete(id); // エラー時もMapから削除
+    // エラー時もMapから削除とタイムアウトクリア
+    const entryToClean = activeDeserializations.get(id);
+    if (entryToClean?.timeout) {
+      clearTimeout(entryToClean.timeout);
+    }
+    activeDeserializations.delete(id);
     done(null, false); // エラー時はログアウト処理
   }
 });
@@ -227,18 +279,20 @@ export function isAuthenticated(req: any, res: any, next: any) {
   
   console.log(`❌ Auth Failed: ${sessionInfo.method} ${sessionInfo.path}`);
   
-  // 開発環境でのみ詳細ログを出力
+  // 開発環境でのみ詳細ログを出力（機密情報を含む）
   if (!isProduction) {
     console.log(`   Session Info:`, {
-      ...sessionInfo,
-      sessionData: req.session ? {
-        id: req.session.id,
-        cookie: req.session.cookie,
-        passport: req.session.passport
-      } : null
+      method: sessionInfo.method,
+      path: sessionInfo.path,
+      sessionID: sessionInfo.sessionID,
+      hasSession: sessionInfo.hasSession,
+      hasPassport: sessionInfo.hasPassport,
+      timestamp: sessionInfo.timestamp,
+      userAgentShort: sessionInfo.userAgentShort
+      // sessionData と cookieNames は機密情報のため出力を制限
     });
     console.log(`   Cookie Present:`, !!req.headers.cookie);
-    console.log(`   Raw Cookie:`, req.headers.cookie);
+    // Raw Cookie には機密情報が含まれるため出力しない
   }
   
   // セッション期限切れかどうかを判定

@@ -8,7 +8,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ManagerMeetingForm } from "./manager-meeting-form";
@@ -75,10 +75,10 @@ export function ManagerMeetingList({ projectId, selectedMonth }: ManagerMeetingL
               <Calendar className="h-5 w-5" />
               {meeting.title}
             </DialogTitle>
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">
-                {format(new Date(meeting.meetingDate), "yyyy年M月d日", { locale: ja })}
-              </p>
+            <DialogDescription>
+              {format(new Date(meeting.meetingDate), "yyyy年M月d日", { locale: ja })}の議事録を全文表示します
+            </DialogDescription>
+            <div className="flex items-center justify-end">
               <div className="flex items-center gap-2">
                 <Button 
                   variant={isMarkdownView ? "outline" : "default"}

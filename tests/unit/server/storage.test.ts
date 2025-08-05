@@ -2,15 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { DatabaseStorage, OptimisticLockError } from "../../../server/storage";
 import type { InsertUser, InsertProject, InsertCase, InsertWeeklyReport, WeeklyReport } from "@shared/schema";
 
+// Vitestの制約に準拠したモック設定
+const mockDb = vi.hoisted(() => ({
+  select: vi.fn(),
+  insert: vi.fn(), 
+  update: vi.fn(),
+  delete: vi.fn(),
+  selectDistinct: vi.fn(),
+}));
+
 // データベースモジュールをモック化
 vi.mock("../../../server/db", () => ({
-  db: {
-    select: vi.fn(),
-    insert: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-    selectDistinct: vi.fn(),
-  },
+  db: mockDb,
 }));
 
 // bcryptjsをモック化
@@ -26,45 +29,51 @@ vi.mock("@shared/performance-monitor", () => ({
 
 describe("DatabaseStorage", () => {
   let storage: DatabaseStorage;
-  let mockDb: any;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     storage = new DatabaseStorage();
-    // データベースモックの初期化
-    mockDb = {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-            orderBy: vi.fn().mockResolvedValue([]),
-          }),
-          orderBy: vi.fn().mockResolvedValue([]),
+    
+    // データベースモックの完全な初期化
+    mockDbMethods.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
           limit: vi.fn().mockResolvedValue([]),
+          orderBy: vi.fn().mockResolvedValue([]),
         }),
+        orderBy: vi.fn().mockResolvedValue([]),
+        limit: vi.fn().mockResolvedValue([]),
       }),
-      insert: vi.fn().mockReturnValue({
-        values: vi.fn().mockReturnValue({
+    });
+    
+    mockDbMethods.insert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{
+          id: 1,
+          username: "testuser",
+          isAdmin: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }]),
+        onConflictDoUpdate: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([]),
-          onConflictDoUpdate: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([]),
-          }),
         }),
       }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      }),
-      delete: vi.fn().mockReturnValue({
+    });
+    
+    mockDbMethods.update.mockReturnValue({
+      set: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([]),
         }),
       }),
-    };
+    });
     
-    vi.doMock("../../../server/db", () => ({ db: mockDb }));
+    mockDbMethods.delete.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([]),
+      }),
+    });
   });
 
   afterEach(() => {
@@ -87,12 +96,12 @@ describe("DatabaseStorage", () => {
       };
 
       // モックの設定
-      mockDb.insert().values().returning.mockResolvedValue([expectedUser]);
+      mockDbMethods.insert().values().returning.mockResolvedValue([expectedUser]);
 
       const result = await storage.createUser(userData);
 
       expect(result).toEqual(expectedUser);
-      expect(mockDb.insert).toHaveBeenCalled();
+      expect(mockDbMethods.insert).toHaveBeenCalled();
     });
 
     it("ユーザー名で検索できること", async () => {

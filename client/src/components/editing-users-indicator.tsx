@@ -96,7 +96,7 @@ export function EditingUsersIndicator({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={`flex items-center gap-2 text-amber-700 ${className}`}>
+          <div className={`flex items-center gap-2 text-amber-700 ${className}`} data-testid="editing-users-indicator">
             <AlertTriangle className="h-4 w-4" />
             <span className="text-sm font-medium">
               {otherEditingUsers.length > 1

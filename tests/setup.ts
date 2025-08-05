@@ -9,19 +9,26 @@ afterEach(() => {
   cleanup();
 });
 
-// MSW（Mock Service Worker）設定
-const server = setupServer(...handlers);
+// MSW（Mock Service Worker）設定 - 環境変数で制御
+const useMSW = process.env.VITEST_DISABLE_MSW !== 'true';
+const server = useMSW ? setupServer(...handlers) : null;
 
 beforeAll(() => {
-  server.listen();
+  if (server) {
+    server.listen({ onUnhandledRequest: 'bypass' });
+  }
 });
 
 afterEach(() => {
-  server.resetHandlers();
+  if (server) {
+    server.resetHandlers();
+  }
 });
 
 afterAll(() => {
-  server.close();
+  if (server) {
+    server.close();
+  }
 });
 
 // テスト用のグローバル設定（DOM環境でのみ実行）
