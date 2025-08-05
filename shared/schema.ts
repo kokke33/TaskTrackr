@@ -38,6 +38,7 @@ export const cases = pgTable("cases", {
   description: text("description"),
   milestone: text("milestone"),
   includeProgressAnalysis: boolean("include_progress_analysis").notNull().default(true),
+  weeklyMeetingDay: text("weekly_meeting_day"),
   isDeleted: boolean("is_deleted").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

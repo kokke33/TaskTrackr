@@ -37,6 +37,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from 'react-markdown';
@@ -74,6 +75,7 @@ export default function CaseView() {
         description: caseData.description,
         milestone: caseData.milestone,
         includeProgressAnalysis: caseData.includeProgressAnalysis,
+        weeklyMeetingDay: caseData.weeklyMeetingDay,
       });
     }
   }, [caseData]);
@@ -128,6 +130,7 @@ export default function CaseView() {
         description: caseData.description,
         milestone: caseData.milestone,
         includeProgressAnalysis: caseData.includeProgressAnalysis,
+        weeklyMeetingDay: caseData.weeklyMeetingDay,
       });
     }
   }, [caseData, isEditing]);
@@ -199,6 +202,7 @@ export default function CaseView() {
         description: caseData.description,
         milestone: caseData.milestone,
         includeProgressAnalysis: caseData.includeProgressAnalysis,
+        weeklyMeetingDay: caseData.weeklyMeetingDay,
       });
     }
   };
@@ -215,6 +219,13 @@ export default function CaseView() {
     setEditedCase({
       ...editedCase,
       includeProgressAnalysis: checked,
+    });
+  };
+
+  const handleWeeklyMeetingDayChange = (value: string) => {
+    setEditedCase({
+      ...editedCase,
+      weeklyMeetingDay: value === "none" ? null : value,
     });
   };
 
@@ -452,6 +463,50 @@ export default function CaseView() {
                 ) : (
                   <div className="bg-accent/50 p-3 rounded-md">
                     {caseData.includeProgressAnalysis !== false ? "✓ 進捗率分析を含める" : "✗ 進捗率分析を含めない"}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-sm font-medium text-muted-foreground">週次定例曜日</h2>
+                {isEditing ? (
+                  <div className="bg-accent/50 p-3 rounded-md">
+                    <Select
+                      value={editedCase.weeklyMeetingDay || "none"}
+                      onValueChange={handleWeeklyMeetingDayChange}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="曜日を選択してください" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">設定なし</SelectItem>
+                        <SelectItem value="monday">月曜日</SelectItem>
+                        <SelectItem value="tuesday">火曜日</SelectItem>
+                        <SelectItem value="wednesday">水曜日</SelectItem>
+                        <SelectItem value="thursday">木曜日</SelectItem>
+                        <SelectItem value="friday">金曜日</SelectItem>
+                        <SelectItem value="saturday">土曜日</SelectItem>
+                        <SelectItem value="sunday">日曜日</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="bg-accent/50 p-3 rounded-md">
+                    {caseData.weeklyMeetingDay ? 
+                      (() => {
+                        const dayMap: { [key: string]: string } = {
+                          monday: "月曜日",
+                          tuesday: "火曜日", 
+                          wednesday: "水曜日",
+                          thursday: "木曜日",
+                          friday: "金曜日",
+                          saturday: "土曜日",
+                          sunday: "日曜日"
+                        };
+                        return dayMap[caseData.weeklyMeetingDay] || caseData.weeklyMeetingDay;
+                      })()
+                      : "設定なし"
+                    }
                   </div>
                 )}
               </div>
