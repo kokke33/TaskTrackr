@@ -3,10 +3,11 @@ import { useLocation } from 'wouter';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { format, addMonths, subMonths } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
 interface WeeklyReport {
@@ -33,7 +34,6 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
   const { toast } = useToast();
   
   // 現在表示中の月（前月と当月）
-  const [currentDate, setCurrentDate] = useState(new Date());
   const [previousMonth, setPreviousMonth] = useState(subMonths(new Date(), 1));
   const [currentMonth, setCurrentMonth] = useState(new Date());
   
@@ -43,6 +43,14 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
   
   // ローディング状態
   const [loading, setLoading] = useState(true);
+  
+  // ツールチップ用のクリック状態
+  const [clickedDate, setClickedDate] = useState<string | null>(null);
+  const [tooltipReports, setTooltipReports] = useState<WeeklyReport[]>([]);
+  const [tooltipLoading, setTooltipLoading] = useState(false);
+  
+  // キャッシュ用
+  const [reportCache, setReportCache] = useState<{ [date: string]: WeeklyReport[] }>({});
 
   // カレンダーデータを取得
   const fetchCalendarData = async (year: number, month: number): Promise<CalendarData> => {
@@ -91,6 +99,9 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
       
       setPreviousMonthData(prevData);
       setCurrentMonthData(currData);
+      
+      // 月が変わったらキャッシュをクリア
+      setReportCache({});
     } finally {
       setLoading(false);
     }
@@ -109,6 +120,52 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
     } else {
       setPreviousMonth(addMonths(previousMonth, 1));
       setCurrentMonth(addMonths(currentMonth, 1));
+    }
+  };
+
+  // 日付クリック時のツールチップ表示処理
+  const handleDateTooltipClick = async (date: Date, monthData: CalendarData, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const dateString = format(date, 'yyyy-MM-dd');
+    const reportCount = monthData[dateString] || 0;
+    
+    if (reportCount === 0) {
+      return;
+    }
+    
+    // 既にクリックされた日付の場合はツールチップを閉じる
+    if (clickedDate === dateString) {
+      setClickedDate(null);
+      setTooltipReports([]);
+      return;
+    }
+    
+    setClickedDate(dateString);
+    
+    // キャッシュにデータがある場合はすぐに表示
+    if (reportCache[dateString]) {
+      setTooltipReports(reportCache[dateString]);
+      setTooltipLoading(false);
+      return;
+    }
+    
+    // データ取得
+    setTooltipLoading(true);
+    
+    try {
+      const reports = await fetchReportsByDate(dateString);
+      setTooltipReports(reports);
+      
+      // キャッシュに保存
+      setReportCache(prev => ({
+        ...prev,
+        [dateString]: reports
+      }));
+    } catch (error) {
+      console.error('Error fetching tooltip reports:', error);
+      setTooltipReports([]);
+    } finally {
+      setTooltipLoading(false);
     }
   };
 
@@ -148,52 +205,143 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
     }
   };
 
-  // カスタム日付レンダリング
-  const renderDay = (day: Date, monthData: CalendarData) => {
-    const dateString = format(day, 'yyyy-MM-dd');
-    const reportCount = monthData[dateString] || 0;
-    
+  // ツールチップ内容のレンダリング
+  const renderTooltipContent = (reports: WeeklyReport[]) => {
+    if (tooltipLoading) {
+      return <div className="text-sm">読み込み中...</div>;
+    }
+
+    if (reports.length === 0) {
+      return <div className="text-sm">週次報告がありません</div>;
+    }
+
+    const handleReportClick = (reportId: number, event: React.MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setClickedDate(null); // ツールチップを閉じる
+      setLocation(`/reports/${reportId}`);
+    };
+
     return (
-      <div className="relative w-full h-full flex items-center justify-center">
-        <span className={reportCount > 0 ? 'font-semibold text-white' : ''}>
-          {day.getDate()}
-        </span>
-        {reportCount > 0 && (
-          <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-            {reportCount > 9 ? '9+' : reportCount}
+      <div className="space-y-2 max-w-xs">
+        <div className="font-semibold text-sm mb-2">
+          {format(new Date(reports[0].reportPeriodStart), 'M月d日', { locale: ja })}の週次報告
+        </div>
+        {reports.map((report) => (
+          <div 
+            key={report.id} 
+            className="border-b border-gray-200 pb-2 last:border-b-0 cursor-pointer hover:bg-blue-50 rounded-md p-2 -m-1 transition-colors duration-150"
+            onClick={(e) => handleReportClick(report.id, e)}
+          >
+            <div className="text-sm font-medium text-blue-600 hover:text-blue-800">{report.projectName}</div>
+            <div className="text-xs text-gray-600">{report.caseName}</div>
+            <div className="text-xs text-gray-500 flex justify-between mt-1">
+              <span>報告者: {report.reporterName}</span>
+              <span>進捗: {report.progressRate}%</span>
+            </div>
           </div>
-        )}
+        ))}
+        <div className="text-xs text-gray-400 mt-2 border-t border-gray-100 pt-1">
+          クリックして詳細画面へ
+        </div>
       </div>
     );
   };
 
+  // カスタムDayコンポーネント
+  const CustomDay = ({ date, displayMonth, monthData }: { date: Date; displayMonth: Date; monthData: CalendarData }) => {
+    const dateString = format(date, 'yyyy-MM-dd');
+    const reportCount = monthData[dateString] || 0;
+    const isToday = format(new Date(), 'yyyy-MM-dd') === dateString;
+    const isOutsideMonth = date.getMonth() !== displayMonth.getMonth();
+    const isClicked = clickedDate === dateString;
+    
+    const dayElement = (
+      <button
+        className={`relative h-9 w-9 p-0 font-normal aria-selected:opacity-100 inline-flex items-center justify-center rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground ${
+          reportCount > 0 ? (isClicked ? 'bg-blue-700 text-white font-semibold' : 'bg-blue-500 text-white hover:bg-blue-600 font-semibold') :
+          isToday ? 'bg-accent text-accent-foreground font-semibold' :
+          isOutsideMonth ? 'text-muted-foreground opacity-50' : ''
+        }`}
+        onClick={(e) => {
+          if (reportCount > 0) {
+            handleDateTooltipClick(date, monthData, e);
+          } else {
+            handleDateClick(date, monthData);
+          }
+        }}
+      >
+        <span>{date.getDate()}</span>
+        {reportCount > 0 && (
+          <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+            {reportCount > 9 ? '9+' : reportCount}
+          </div>
+        )}
+      </button>
+    );
+
+    if (reportCount > 0 && isClicked) {
+      return (
+        <Tooltip open={true}>
+          <TooltipTrigger asChild>
+            {dayElement}
+          </TooltipTrigger>
+          <TooltipContent 
+            side="bottom" 
+            className="max-w-sm"
+          >
+            {renderTooltipContent(tooltipReports)}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return dayElement;
+  };
+
+  // 外部クリック時にツールチップを閉じる
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (clickedDate) {
+        setClickedDate(null);
+        setTooltipReports([]);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [clickedDate]);
+
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>週次報告カレンダー</CardTitle>
-        <div className="flex justify-center items-center gap-4 mt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigateMonth('prev')}
-            disabled={loading}
-            className="flex items-center gap-1"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            前月
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigateMonth('next')}
-            disabled={loading}
-            className="flex items-center gap-1"
-          >
-            次月
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
+    <TooltipProvider>
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>週次報告カレンダー</CardTitle>
+          <div className="flex justify-center items-center gap-4 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateMonth('prev')}
+              disabled={loading}
+              className="flex items-center gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              前月
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateMonth('next')}
+              disabled={loading}
+              className="flex items-center gap-1"
+            >
+              次月
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* 前月カレンダー */}
@@ -214,7 +362,6 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
                 mode="single"
                 month={previousMonth}
                 onMonthChange={() => {}} // 月変更は上部のボタンで制御
-                onSelect={(date) => date && handleDateClick(date, previousMonthData)}
                 disabled={loading}
                 className="w-full"
                 classNames={{
@@ -228,20 +375,15 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
                   head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem] flex-1 text-center",
                   row: "flex w-full mt-2",
                   cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex-1",
-                  day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 mx-auto hover:bg-accent hover:text-accent-foreground rounded-md",
-                  day_today: "bg-accent text-accent-foreground font-semibold",
-                  day_outside: "text-muted-foreground opacity-50",
-                  day_disabled: "text-muted-foreground opacity-50",
-                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                 }}
-                modifiers={{
-                  hasReports: (date) => {
-                    const dateString = format(date, 'yyyy-MM-dd');
-                    return (previousMonthData[dateString] || 0) > 0;
-                  }
-                }}
-                modifiersClassNames={{
-                  hasReports: "bg-blue-500 text-white hover:bg-blue-600 cursor-pointer font-semibold"
+                components={{
+                  Day: ({ date, displayMonth }) => (
+                    <CustomDay 
+                      date={date} 
+                      displayMonth={displayMonth} 
+                      monthData={previousMonthData} 
+                    />
+                  )
                 }}
               />
             </div>
@@ -265,7 +407,6 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
                 mode="single"
                 month={currentMonth}
                 onMonthChange={() => {}} // 月変更は上部のボタンで制御
-                onSelect={(date) => date && handleDateClick(date, currentMonthData)}
                 disabled={loading}
                 className="w-full"
                 classNames={{
@@ -279,20 +420,15 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
                   head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem] flex-1 text-center",
                   row: "flex w-full mt-2",
                   cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex-1",
-                  day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 mx-auto hover:bg-accent hover:text-accent-foreground rounded-md",
-                  day_today: "bg-accent text-accent-foreground font-semibold",
-                  day_outside: "text-muted-foreground opacity-50",
-                  day_disabled: "text-muted-foreground opacity-50",
-                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                 }}
-                modifiers={{
-                  hasReports: (date) => {
-                    const dateString = format(date, 'yyyy-MM-dd');
-                    return (currentMonthData[dateString] || 0) > 0;
-                  }
-                }}
-                modifiersClassNames={{
-                  hasReports: "bg-blue-500 text-white hover:bg-blue-600 cursor-pointer font-semibold"
+                components={{
+                  Day: ({ date, displayMonth }) => (
+                    <CustomDay 
+                      date={date} 
+                      displayMonth={displayMonth} 
+                      monthData={currentMonthData} 
+                    />
+                  )
                 }}
               />
             </div>
@@ -311,10 +447,11 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
             </div>
           </div>
           <p className="mt-2">
-            青色の日付をクリックして週次報告詳細画面へ移動できます
+            青色の日付をクリックして週次報告一覧を表示し、詳細画面へ移動できます
           </p>
         </div>
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }
