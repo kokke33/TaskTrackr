@@ -200,6 +200,7 @@ describe("API Integration Tests", () => {
         description: "新規ケースの説明",
         milestone: "新規マイルストーン",
         includeProgressAnalysis: true,
+        weeklyMeetingDay: "水曜日",
         isDeleted: false,
         createdAt: new Date(),
       };

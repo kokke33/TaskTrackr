@@ -35,7 +35,7 @@ describe("DatabaseStorage", () => {
     storage = new DatabaseStorage();
     
     // データベースモックの完全な初期化
-    mockDbMethods.select.mockReturnValue({
+    mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           limit: vi.fn().mockResolvedValue([]),
@@ -46,7 +46,7 @@ describe("DatabaseStorage", () => {
       }),
     });
     
-    mockDbMethods.insert.mockReturnValue({
+    mockDb.insert.mockReturnValue({
       values: vi.fn().mockReturnValue({
         returning: vi.fn().mockResolvedValue([{
           id: 1,
@@ -61,7 +61,7 @@ describe("DatabaseStorage", () => {
       }),
     });
     
-    mockDbMethods.update.mockReturnValue({
+    mockDb.update.mockReturnValue({
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([]),
@@ -69,7 +69,7 @@ describe("DatabaseStorage", () => {
       }),
     });
     
-    mockDbMethods.delete.mockReturnValue({
+    mockDb.delete.mockReturnValue({
       where: vi.fn().mockReturnValue({
         returning: vi.fn().mockResolvedValue([]),
       }),
@@ -96,12 +96,12 @@ describe("DatabaseStorage", () => {
       };
 
       // モックの設定
-      mockDbMethods.insert().values().returning.mockResolvedValue([expectedUser]);
+      mockDb.insert().values().returning.mockResolvedValue([expectedUser]);
 
       const result = await storage.createUser(userData);
 
       expect(result).toEqual(expectedUser);
-      expect(mockDbMethods.insert).toHaveBeenCalled();
+      expect(mockDb.insert).toHaveBeenCalled();
     });
 
     it("ユーザー名で検索できること", async () => {
@@ -309,7 +309,21 @@ describe("DatabaseStorage", () => {
       // 現在のレポートを模擬
       const currentReport: WeeklyReport = {
         id: 1,
-        ...reportData,
+        reportPeriodStart: reportData.reportPeriodStart,
+        reportPeriodEnd: reportData.reportPeriodEnd,
+        caseId: reportData.caseId,
+        reporterName: reportData.reporterName,
+        weeklyTasks: reportData.weeklyTasks,
+        progressRate: reportData.progressRate,
+        progressStatus: reportData.progressStatus,
+        delayIssues: reportData.delayIssues,
+        issues: reportData.issues,
+        newRisks: reportData.newRisks,
+        qualityConcerns: reportData.qualityConcerns,
+        changes: reportData.changes,
+        nextWeekPlan: reportData.nextWeekPlan,
+        supportRequests: reportData.supportRequests,
+        urgentIssues: reportData.urgentIssues || null,
         version: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -379,8 +393,22 @@ describe("DatabaseStorage", () => {
       // 現在のレポートのバージョンが期待と異なる場合を模擬
       const currentReport: WeeklyReport = {
         id: 1,
+        reportPeriodStart: reportData.reportPeriodStart,
+        reportPeriodEnd: reportData.reportPeriodEnd,
+        caseId: reportData.caseId,
+        reporterName: reportData.reporterName,
+        weeklyTasks: reportData.weeklyTasks,
+        progressRate: reportData.progressRate,
+        progressStatus: reportData.progressStatus,
+        delayIssues: reportData.delayIssues,
+        issues: reportData.issues,
+        newRisks: reportData.newRisks,
+        qualityConcerns: reportData.qualityConcerns,
+        changes: reportData.changes,
+        nextWeekPlan: reportData.nextWeekPlan,
+        supportRequests: reportData.supportRequests,
+        urgentIssues: reportData.urgentIssues || null,
         version: 2, // 期待されたバージョン（1）と異なる
-        ...reportData,
         createdAt: new Date(),
         updatedAt: new Date(),
         aiAnalysis: null,

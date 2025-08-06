@@ -1,6 +1,6 @@
 {
   "include": ["client/src/**/*", "shared/**/*", "server/**/*", "vite.config.ts", "tests/**/*"], // tests/**/* を追加
-  "exclude": ["node_modules", "build", "dist"],
+  "exclude": ["node_modules", "build", "dist", "tests/e2e/**/*"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",

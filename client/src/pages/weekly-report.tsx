@@ -1,6 +1,7 @@
 import { useParams } from "wouter";
 import { FormProvider } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import type { WeeklyReport } from "@shared/schema";
 import { Send, ShieldCheck } from "lucide-react";
 import { useState, useEffect } from "react";
 import ReactMarkdown from 'react-markdown';
@@ -27,6 +28,7 @@ import { MilestoneDialog } from "@/components/milestone-dialog";
 import { SampleReportDialog } from "@/components/sample-report-dialog";
 import { NavigationConfirmDialog } from "@/components/navigation-confirm-dialog";
 import { VersionConflictDialog } from "@/components/version-conflict-dialog";
+import { ConflictResolutionDialog } from "@/components/conflict-resolution-dialog";
 import { useNavigationGuard, NavigationGuardAction } from "@/hooks/use-navigation-guard";
 
 export default function WeeklyReport() {
@@ -40,6 +42,10 @@ export default function WeeklyReport() {
   } | null>(null);
   const [isSavingForNavigation, setIsSavingForNavigation] = useState(false);
   const [latestAutoSaveVersion, setLatestAutoSaveVersion] = useState<number | undefined>(undefined);
+  
+  // 詳細な競合解決のためのstate
+  const [showDetailedConflictDialog, setShowDetailedConflictDialog] = useState(false);
+  const [conflictServerData, setConflictServerData] = useState<WeeklyReport | null>(null);
 
   // パフォーマンス監視
   const { measureFormOperation, measureRender } = useFormPerformance('WeeklyReport');
@@ -197,6 +203,95 @@ export default function WeeklyReport() {
       // discard や cancel の場合は即座に resolve
       navigationDialog.resolve(action);
     }
+  };
+
+  // 詳細な競合解決のためのサーバーデータ取得
+  const fetchServerDataForConflict = async () => {
+    if (!reportId) {
+      console.error('❌ [weekly-report] No reportId available for server data fetch');
+      return { success: false, error: 'レポートIDが見つかりません' };
+    }
+    
+    console.log('🔍 [weekly-report] Fetching server data for detailed conflict resolution...');
+    try {
+      const { apiRequest } = await import("@/lib/queryClient");
+      const serverData = await apiRequest(`/api/weekly-reports/${reportId}`, { method: "GET" });
+      console.log('✅ [weekly-report] Successfully fetched server data for detailed conflict resolution');
+      return { success: true, data: serverData };
+    } catch (error) {
+      console.error('❌ [weekly-report] Failed to fetch server data for detailed conflict resolution:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        reportId,
+        timestamp: new Date().toISOString()
+      });
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'サーバーとの通信に失敗しました'
+      };
+    }
+  };
+
+  // 競合解決ハンドラー
+  const handleConflictResolve = async (resolution: 'reload' | 'override' | 'merge' | 'detailed') => {
+    console.log('🔥 [weekly-report] Handling conflict resolution:', resolution);
+
+    if (resolution === 'detailed') {
+      // 詳細な競合解決ダイアログを表示
+      const result = await fetchServerDataForConflict();
+      if (result.success && result.data) {
+        setConflictServerData(result.data);
+        setShowDetailedConflictDialog(true);
+        console.log('✅ [weekly-report] Successfully opened detailed conflict resolution dialog');
+      } else {
+        // サーバーデータ取得失敗時はエラーを表示し、簡単な選択肢に戻る
+        console.warn('⚠️ [weekly-report] Server data fetch failed, showing error to user:', result.error);
+        toast({
+          title: "詳細情報の取得に失敗しました",
+          description: result.error || "サーバーとの通信でエラーが発生しました。基本的な選択肢をお使いください。",
+          variant: "destructive",
+        });
+        // リロードではなく、ダイアログを閉じて基本的な選択肢で続行
+        // ユーザーが再度詳細確認を選択することは可能
+        return;
+      }
+    } else {
+      // 従来の解決方法
+      resolveConflict(resolution);
+    }
+  };
+
+  // 詳細競合解決からの最終解決ハンドラー
+  const handleDetailedConflictResolve = (resolvedData: WeeklyReport) => {
+    console.log('🔥 [weekly-report] Applying detailed conflict resolution:', resolvedData);
+    
+    // フォームに解決されたデータを適用
+    Object.keys(resolvedData).forEach((key) => {
+      const fieldKey = key as keyof WeeklyReport;
+      if (form.getValues()[fieldKey] !== undefined) {
+        form.setValue(fieldKey as any, resolvedData[fieldKey]);
+      }
+    });
+    
+    // 競合状態をクリア
+    resolveConflict('merge');
+    setShowDetailedConflictDialog(false);
+    setConflictServerData(null);
+  };
+
+  // 詳細競合解決ダイアログでのリロード
+  const handleDetailedConflictReload = () => {
+    console.log('🔄 [weekly-report] User chose reload from detailed conflict dialog');
+    setShowDetailedConflictDialog(false);
+    setConflictServerData(null);
+    resolveConflict('reload');
+  };
+
+  // 詳細競合解決ダイアログがキャンセルされた場合
+  const handleDetailedConflictCancel = () => {
+    console.log('❌ [weekly-report] User cancelled detailed conflict dialog');
+    setShowDetailedConflictDialog(false);
+    setConflictServerData(null);
+    // 競合状態は維持して、ユーザーが基本的な選択肢から再選択できるようにする
   };
 
   console.log("🔍 Weekly Report - Navigation guard state:", { 
@@ -382,7 +477,7 @@ export default function WeeklyReport() {
       />
 
       <VersionConflictDialog
-        open={hasVersionConflict}
+        open={hasVersionConflict && !showDetailedConflictDialog}
         onOpenChange={(open) => {
           if (!open) {
             // ダイアログを閉じる時にhasVersionConflictをfalseにリセット
@@ -390,8 +485,25 @@ export default function WeeklyReport() {
           }
         }}
         conflictDetails={conflictDetails}
-        onResolve={resolveConflict}
+        onResolve={handleConflictResolve}
       />
+      
+      {/* 詳細な競合解決ダイアログ */}
+      {conflictServerData && (
+        <ConflictResolutionDialog
+          open={showDetailedConflictDialog}
+          onOpenChange={(open) => {
+            if (!open) {
+              handleDetailedConflictCancel();
+            }
+          }}
+          localData={form.getValues() as any}
+          serverData={conflictServerData}
+          serverUsername="他のユーザー"
+          onResolve={handleDetailedConflictResolve}
+          onReload={handleDetailedConflictReload}
+        />
+      )}
     </div>
   );
 }

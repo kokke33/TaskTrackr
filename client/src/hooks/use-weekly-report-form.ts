@@ -472,7 +472,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
   };
 
   // 競合解決機能
-  const resolveConflict = useCallback(async (resolution: 'reload' | 'override' | 'merge') => {
+  const resolveConflict = useCallback(async (resolution: 'reload' | 'override' | 'merge' | 'detailed') => {
     if (!hasVersionConflict || !reportId) return;
     
     switch (resolution) {
@@ -522,6 +522,12 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
           title: "データを更新しました",
           description: "最新のデータで画面を更新しました。変更内容を確認してください。",
         });
+        break;
+        
+      case 'detailed':
+        // 詳細な競合解決は上位コンポーネント（weekly-report.tsx）で処理
+        // ここでは何もしない（状態はそのまま維持）
+        console.log('🔥 [use-weekly-report-form] Detailed resolution requested - handled by parent component');
         break;
     }
   }, [hasVersionConflict, reportId, form, queryClient, toast, setLocation]);

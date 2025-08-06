@@ -42,6 +42,7 @@ export const mockCase = {
   description: "テスト用のケース説明",
   milestone: "テストマイルストーン",
   includeProgressAnalysis: true,
+  weeklyMeetingDay: "火曜日",
   isDeleted: false,
   createdAt: new Date("2024-01-01"),
 };

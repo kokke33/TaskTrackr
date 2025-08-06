@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Upload, GitMerge } from "lucide-react";
+import { RefreshCw, Upload, GitMerge, Eye } from "lucide-react";
 
 interface VersionConflictDialogProps {
   open: boolean;
@@ -18,7 +18,7 @@ interface VersionConflictDialogProps {
     currentVersion: number;
     serverVersion: number;
   } | null;
-  onResolve: (resolution: 'reload' | 'override' | 'merge') => void;
+  onResolve: (resolution: 'reload' | 'override' | 'merge' | 'detailed') => void;
 }
 
 export function VersionConflictDialog({
@@ -33,7 +33,7 @@ export function VersionConflictDialog({
     hasConflictDetails: !!conflictDetails
   });
 
-  const handleResolve = (resolution: 'reload' | 'override' | 'merge') => {
+  const handleResolve = (resolution: 'reload' | 'override' | 'merge' | 'detailed') => {
     console.log('🔥 [VersionConflictDialog] Resolving with:', resolution);
     onResolve(resolution);
     onOpenChange(false);
@@ -59,6 +59,18 @@ export function VersionConflictDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col sm:flex-col space-y-2">
+          <Button 
+            onClick={() => handleResolve('detailed')} 
+            className="w-full"
+            variant="secondary"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            詳細な差分を確認して選択
+          </Button>
+          <div className="text-sm text-muted-foreground">
+            変更内容を詳しく確認し、フィールドごとに選択できます。
+          </div>
+          
           <Button 
             onClick={() => handleResolve('merge')} 
             className="w-full"

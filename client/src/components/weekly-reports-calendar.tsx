@@ -255,7 +255,7 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
     };
 
     return (
-      <div className="max-w-md">
+      <div className="max-w-md text-left">
         <div className="font-semibold text-sm mb-2">
           {format(new Date(reports[0].reportPeriodStart), 'M月d日', { locale: ja })}の週次報告
           <span className="ml-1 text-xs text-gray-500">({reports.length}件)</span>
@@ -346,7 +346,7 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
           </TooltipTrigger>
           <TooltipContent 
             side="bottom" 
-            className="max-w-md"
+            className="max-w-md text-left"
           >
             {renderTooltipContent(tooltipReports)}
           </TooltipContent>

@@ -73,7 +73,7 @@ vi.mock("../../../server/ai-routes", () => ({
 
 vi.mock("passport", () => ({
   default: {
-    authenticate: vi.fn(() => (req, res, next) => next()),
+    authenticate: vi.fn(() => (req: any, res: any, next: any) => next()),
   },
 }));
 
@@ -100,7 +100,7 @@ describe("Routes", () => {
     app.use((req, res, next) => {
       req.sessionID = "test-session-id";
       req.user = { id: 1, username: "testuser", isAdmin: false };
-      req.isAuthenticated = vi.fn().mockReturnValue(true);
+      req.isAuthenticated = vi.fn().mockReturnValue(true) as any;
       req.logIn = vi.fn((user, callback) => {
         if (callback) callback(null);
       });
@@ -152,7 +152,7 @@ describe("Routes", () => {
       createdAt: new Date(),
       updatedAt: new Date()
     });
-    mockStorage.restoreProject.mockImplementation((id) => {
+    mockStorage.restoreProject.mockImplementation((id: any) => {
       // 削除されていないプロジェクトの場合はnullを返すようにモック
       if (id === 1) {
         return Promise.resolve(null);
@@ -174,7 +174,7 @@ describe("Routes", () => {
       updatedAt: new Date()
     });
 
-    await registerRoutes(app);
+    await registerRoutes(app as any);
   });
 
   afterEach(() => {
@@ -526,6 +526,7 @@ describe("Routes", () => {
         ...caseData,
         isDeleted: false,
         createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       mockStorage.createCase.mockResolvedValue(createdCase);
@@ -619,7 +620,7 @@ describe("Routes", () => {
     });
 
     it("GET /api/recent-reports?limit=10 - 指定した件数の週次報告を取得すること", async () => {
-      const mockReports = [];
+      const mockReports: any[] = [];
 
       mockStorage.getRecentWeeklyReports.mockResolvedValue(mockReports);
 
