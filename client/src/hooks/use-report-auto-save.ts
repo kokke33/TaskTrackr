@@ -19,7 +19,8 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
   const [version, setVersion] = useState<number>(currentVersion || 1);
   const [isConflictResolving, setIsConflictResolving] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const versionRef = useRef<number>(currentVersion || 1); // バージョンの ref を追加
+  const versionRef = useRef<number>(currentVersion || 1);
+  const lastSavedDataRef = useRef<string>(''); // 最後に保存したデータのハッシュ
   const { toast } = useToast();
 
   // currentVersion が変更された時に ref も更新
@@ -37,12 +38,22 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
       return;
     }
 
+    // 実質的な変更チェック - データが本当に変わったかハッシュで確認
+    const currentData = form.getValues();
+    const currentDataString = JSON.stringify(currentData);
+    
+    if (currentDataString === lastSavedDataRef.current) {
+      devLog("⏩ Skipping auto-save: No substantial changes detected");
+      setFormChanged(false); // formChanged状態をリセット
+      return;
+    }
+
     try {
       setIsAutosaving(true);
-      const currentVersionValue = versionRef.current; // ref から最新バージョンを取得
-      const data = { ...form.getValues(), version: currentVersionValue };
+      const currentVersionValue = versionRef.current;
+      const data = { ...currentData, version: currentVersionValue };
       
-      devLog("💾 Auto-saving with version:", currentVersionValue);
+      devLog("💾 Auto-saving with version:", currentVersionValue, "dataHash:", currentDataString.length);
 
       let url = "/api/weekly-reports/autosave";
       let method = "POST";
@@ -86,6 +97,9 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
       setLastSavedTime(now);
       setFormChanged(false);
       
+      // 保存成功時にデータハッシュを更新
+      lastSavedDataRef.current = currentDataString;
+      
       // バージョンを更新
       if (result.version) {
         devLog("✅ Auto-save successful, version updated to:", result.version);
@@ -115,9 +129,27 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
     return () => subscription.unsubscribe();
   }, [form]);
 
+  // デバウンス機能付きの自動保存タイマー
+  useEffect(() => {
+    if (!formChanged || !isEditMode) return;
+
+    // デバウンス期間を10秒に延長（頻繁な保存を防止）
+    const debounceTimeout = setTimeout(() => {
+      autoSave();
+    }, 10000); // 10秒
+
+    return () => {
+      clearTimeout(debounceTimeout);
+    };
+  }, [formChanged, autoSave, isEditMode]);
+
+  // 5分間隔のバックアップ保存（変更がある場合のみ）
   useEffect(() => {
     autoSaveTimerRef.current = setInterval(() => {
-      autoSave();
+      if (formChanged) {
+        devLog("⏰ Periodic auto-save triggered");
+        autoSave();
+      }
     }, 5 * 60 * 1000);
 
     return () => {

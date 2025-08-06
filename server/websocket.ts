@@ -131,6 +131,36 @@ class ConnectionManager {
       }
     });
   }
+
+  // データ更新の通知（楽観的ロック用）
+  broadcastDataUpdate(reportId: number, updatedBy: string, newVersion: number) {
+    const message = JSON.stringify({
+      type: 'data_updated',
+      reportId,
+      updatedBy,
+      newVersion,
+      timestamp: new Date().toISOString()
+    });
+    
+    logger.info('Broadcasting data update', { reportId, updatedBy, newVersion });
+    
+    // 該当レポートを編集中のユーザーに通知
+    this.connections.forEach((connection, ws) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        const sessions = this.editSessions.get(reportId) || [];
+        const isEditing = sessions.some(session => session.userId === connection.userId);
+        
+        if (isEditing && connection.username !== updatedBy) {
+          ws.send(message);
+          logger.debug('Sent data update notification', { 
+            to: connection.username, 
+            reportId, 
+            updatedBy 
+          });
+        }
+      }
+    });
+  }
   
   // 非アクティブなセッションをクリーンアップ（5分間非アクティブ）
   cleanupInactiveSessions() {
@@ -368,4 +398,9 @@ export function setupWebSocket(server: Server) {
   
   console.log('WebSocket server setup complete');
   return wss;
+}
+
+// WebSocket通知機能を外部から利用可能にする
+export function notifyDataUpdate(reportId: number, updatedBy: string, newVersion: number) {
+  connectionManager.broadcastDataUpdate(reportId, updatedBy, newVersion);
 }

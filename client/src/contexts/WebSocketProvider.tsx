@@ -8,9 +8,10 @@ import { createLogger } from '@shared/logger';
 interface WebSocketProviderProps {
   children: ReactNode;
   url: string; // WebSocketサーバーのURL
+  onDataUpdate?: (reportId: number, updatedBy: string, newVersion: number) => void;
 }
 
-export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, url }) => {
+export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, url, onDataUpdate }) => {
   const logger = createLogger('WebSocketProvider');
   logger.info('Initializing with URL', { url });
   const { user } = useAuth();
@@ -101,6 +102,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
             setCurrentUserId(userId);
           } else {
             logger.warn('No userId in pong message');
+          }
+        } else if (message.type === 'data_updated') {
+          // データ更新通知の処理
+          const { reportId, updatedBy, newVersion } = message as any;
+          logger.info('Data update notification received', { reportId, updatedBy, newVersion });
+          
+          if (onDataUpdate && reportId && updatedBy && newVersion) {
+            onDataUpdate(reportId, updatedBy, newVersion);
           }
         }
       } catch (error) {
@@ -217,6 +226,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
     sendMessage,
     editingUsers,
     currentUserId,
+    onDataUpdate,
   };
 
   return (

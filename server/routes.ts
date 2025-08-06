@@ -26,6 +26,7 @@ import passport from "passport";
 import { isAuthenticated, isAdmin, isAuthenticatedHybrid, isAdminHybrid } from "./auth";
 import { hybridAuthManager } from "./hybrid-auth-manager";
 import { createLogger } from "@shared/logger";
+import { notifyDataUpdate } from "./websocket";
 
 const logger = createLogger('Routes');
 
@@ -1378,6 +1379,13 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       }
 
       const finalReport = await storage.getWeeklyReport(id);
+      
+      // WebSocket経由で他の編集中ユーザーに更新通知
+      if (finalReport && req.user) {
+        console.log(`📡 [VERSION_LOG] WebSocket通知送信: reportId=${id}, updatedBy=${req.user.username}, newVersion=${finalReport.version}`);
+        notifyDataUpdate(id, req.user.username, finalReport.version);
+      }
+      
       res.json(finalReport);
     } catch (error) {
       if (error instanceof OptimisticLockError) {
@@ -1486,6 +1494,8 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 
         // 楽観的ロック対応の更新を実行
         const updatedReport = await storage.updateWeeklyReportWithVersion(id, mergedData, clientVersion);
+
+        console.log(`📡 [VERSION_LOG] 自動保存完了: reportId=${id}, 新版数=${updatedReport.version}`);
 
         // 簡略化したレスポンスを返す（新しいバージョンを含む）
         res.json({

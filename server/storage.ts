@@ -1191,18 +1191,26 @@ export class DatabaseStorage implements IStorage {
   // 楽観的ロック対応の週次報告更新
   async updateWeeklyReportWithVersion(id: number, report: InsertWeeklyReport, expectedVersion: number): Promise<WeeklyReport> {
     return await withRetry(async () => {
+      console.log(`📊 [VERSION_LOG] 楽観的ロック更新開始: reportId=${id}, expectedVersion=${expectedVersion}`);
+      
       // まず現在のバージョンを確認
       const current = await this.getWeeklyReport(id);
       if (!current) {
         throw new Error("週次報告が見つかりません");
       }
 
+      console.log(`📊 [VERSION_LOG] 現在のサーバー版数確認: reportId=${id}, serverVersion=${current.version}, expectedVersion=${expectedVersion}`);
+
       if (current.version !== expectedVersion) {
+        console.log(`🚨 [VERSION_LOG] 版数競合検出: reportId=${id}, serverVersion=${current.version}, expectedVersion=${expectedVersion}`);
         throw new OptimisticLockError(`データが他のユーザーによって更新されています。現在のバージョン: ${current.version}, 期待されたバージョン: ${expectedVersion}`);
       }
 
       // バージョンを1つ増やして更新
-      const updatedReport = { ...report, version: expectedVersion + 1, updatedAt: new Date() };
+      const newVersion = expectedVersion + 1;
+      const updatedReport = { ...report, version: newVersion, updatedAt: new Date() };
+      
+      console.log(`📊 [VERSION_LOG] 版数を増加して更新実行: reportId=${id}, ${expectedVersion} → ${newVersion}`);
       
       const [updated] = await db
         .update(weeklyReports)
@@ -1214,19 +1222,25 @@ export class DatabaseStorage implements IStorage {
         .returning();
 
       if (!updated) {
+        console.log(`🚨 [VERSION_LOG] 楽観的ロック更新失敗: reportId=${id}, 他のユーザーによる同時更新`);
         throw new OptimisticLockError("データが他のユーザーによって更新されています");
       }
 
+      console.log(`✅ [VERSION_LOG] 楽観的ロック更新成功: reportId=${id}, 新版数=${updated.version}`);
       return updated;
     });
   }
 
   async updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport> {
+    // AI分析の更新は楽観的ロック対象外（updatedAtを更新しない）
+    // これによりユーザーの編集セッション中に版数競合が発生することを防ぐ
     const [updated] = await db
       .update(weeklyReports)
-      .set({ aiAnalysis: analysis, updatedAt: new Date() })
+      .set({ aiAnalysis: analysis })
       .where(eq(weeklyReports.id, id))
       .returning();
+    
+    console.log(`📝 AI分析を更新しました (版数に影響なし): reportId=${id}, analysisLength=${analysis.length}`);
     return updated;
   }
 

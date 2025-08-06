@@ -26,7 +26,7 @@ import { MeetingMinutes } from "@/components/weekly-report/meeting-minutes";
 import { MilestoneDialog } from "@/components/milestone-dialog";
 import { SampleReportDialog } from "@/components/sample-report-dialog";
 import { NavigationConfirmDialog } from "@/components/navigation-confirm-dialog";
-import { ConflictResolutionDialog } from "@/components/conflict-resolution-dialog";
+import { VersionConflictDialog } from "@/components/version-conflict-dialog";
 import { useNavigationGuard, NavigationGuardAction } from "@/hooks/use-navigation-guard";
 
 export default function WeeklyReport() {
@@ -39,15 +39,12 @@ export default function WeeklyReport() {
     resolve: (action: NavigationGuardAction) => void;
   } | null>(null);
   const [isSavingForNavigation, setIsSavingForNavigation] = useState(false);
-  const [conflictDialog, setConflictDialog] = useState<{
-    open: boolean;
-    serverData: any;
-  } | null>(null);
+  const [latestAutoSaveVersion, setLatestAutoSaveVersion] = useState<number | undefined>(undefined);
 
   // パフォーマンス監視
   const { measureFormOperation, measureRender } = useFormPerformance('WeeklyReport');
 
-  const formHook = useWeeklyReportForm({ id });
+  const formHook = useWeeklyReportForm({ id, latestVersionFromAutoSave: latestAutoSaveVersion });
   const {
     form,
     isEditMode,
@@ -63,7 +60,21 @@ export default function WeeklyReport() {
     isSubmitting,
     onSubmit,
     copyFromLastReport,
+    // 競合管理関連
+    hasVersionConflict,
+    conflictDetails,
+    resolveConflict,
+    checkVersionConflict,
   } = formHook;
+
+  // [DEBUG] hasVersionConflict状態の変化を追跡
+  useEffect(() => {
+    console.log('🔥 [weekly-report] hasVersionConflict state changed:', {
+      hasVersionConflict,
+      conflictDetails,
+      timestamp: new Date().toISOString()
+    });
+  }, [hasVersionConflict, conflictDetails]);
 
   const autoSaveHook = useReportAutoSave({ 
     form, 
@@ -71,27 +82,18 @@ export default function WeeklyReport() {
     id,
     currentVersion: existingReport?.version,
     onVersionConflict: async (message: string) => {
-      // 最新のサーバーデータを取得
-      try {
-        const response = await fetch(`/api/weekly-reports/${id}`, {
-          credentials: "include"
-        });
-        if (response.ok) {
-          const serverData = await response.json();
-          setConflictDialog({
-            open: true,
-            serverData
-          });
-        } else {
-          // フォールバック: ページリロード
-          window.location.reload();
-        }
-      } catch (error) {
-        console.error("Failed to fetch server data:", error);
-        window.location.reload();
-      }
+      // 新しい競合解決システムを使用
+      checkVersionConflict();
     }
   });
+  
+  // 自動保存フックからのバージョン更新を監視
+  useEffect(() => {
+    if (autoSaveHook.version !== latestAutoSaveVersion) {
+      console.log(`🔄 [weekly-report] Updating latest auto-save version: ${autoSaveHook.version}`);
+      setLatestAutoSaveVersion(autoSaveHook.version);
+    }
+  }, [autoSaveHook.version, latestAutoSaveVersion]);
   const {
     lastSavedTime,
     isAutosaving,
@@ -121,7 +123,7 @@ export default function WeeklyReport() {
         sendMessage({ type: 'stop_editing', reportId: reportId });
       };
     }
-  }, [isEditMode, reportId, status, sendMessage]);
+  }, [isEditMode, reportId, status]); // sendMessageを依存配列から除去
 
   // lastMessage を監視して編集ユーザー情報を更新
   useEffect(() => {
@@ -208,53 +210,6 @@ export default function WeeklyReport() {
     onNavigationAttempt: handleNavigationAttempt,
   });
 
-  // 競合解決のハンドラー
-  const handleConflictResolve = async (resolvedData: any) => {
-    console.log("🔧 Starting conflict resolution with resolved data:", resolvedData);
-    
-    if (!conflictDialog) {
-      console.error("❌ No conflict dialog state found");
-      return;
-    }
-    
-    // ダイアログ情報を保存してからダイアログを閉じる
-    const serverVersion = conflictDialog.serverData?.version;
-    
-    try {
-      // 先にダイアログを閉じる
-      setConflictDialog(null);
-      
-      // 競合解決状態をリセット（自動保存を再開するため）
-      resetConflictResolving();
-      
-      // サーバーのバージョン番号を更新（これで次の自動保存は正しいバージョンを使用）
-      if (serverVersion) {
-        console.log("📝 Updating version to:", serverVersion);
-        updateVersion(serverVersion);
-      }
-      
-      // 解決済みデータでフォームを更新（これによりformChangedがtrueになる）
-      form.reset(resolvedData);
-      
-      // 即座に手動保存を実行
-      console.log("💾 Executing immediate save after conflict resolution");
-      const success = await handleImmediateSave();
-      
-      if (success) {
-        console.log("✅ Conflict resolution completed successfully");
-      } else {
-        console.error("❌ Conflict resolution save failed");
-      }
-      
-    } catch (error) {
-      console.error("💥 Failed to resolve conflict:", error);
-      resetConflictResolving();
-    }
-  };
-
-  const handleConflictReload = () => {
-    window.location.reload();
-  };
 
   if (isLoadingReport || isLoadingCases) {
     return (
@@ -425,38 +380,18 @@ export default function WeeklyReport() {
         targetPath={navigationDialog?.targetPath}
         isSaving={isSavingForNavigation}
       />
-      
-      {conflictDialog && (
-        <ConflictResolutionDialog
-          open={conflictDialog.open}
-          onOpenChange={(open) => {
-            if (!open) {
-              setConflictDialog(null);
-            }
-          }}
-          localData={form.getValues()}
-          serverData={conflictDialog.serverData}
-          serverUsername={(() => {
-            // 自分以外の編集中ユーザーから最新の編集者を特定
-            const otherEditingUsers = editingUsers.filter(user => 
-              String(user.userId) !== String(currentUserId)
-            );
-            
-            if (otherEditingUsers.length > 0) {
-              // 最後にアクティビティがあったユーザーを選択
-              const latestEditor = otherEditingUsers.reduce((latest, current) => 
-                new Date(current.lastActivity) > new Date(latest.lastActivity) ? current : latest
-              );
-              return latestEditor.username;
-            }
-            
-            // フォールバック: サーバーデータから報告者名を取得
-            return conflictDialog.serverData?.reporterName || "他のユーザー";
-          })()}
-          onResolve={handleConflictResolve}
-          onReload={handleConflictReload}
-        />
-      )}
+
+      <VersionConflictDialog
+        open={hasVersionConflict}
+        onOpenChange={(open) => {
+          if (!open) {
+            // ダイアログを閉じる時にhasVersionConflictをfalseにリセット
+            resolveConflict('reload');
+          }
+        }}
+        conflictDetails={conflictDetails}
+        onResolve={resolveConflict}
+      />
     </div>
   );
 }
