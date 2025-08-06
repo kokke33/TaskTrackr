@@ -13,7 +13,6 @@ interface WebSocketProviderProps {
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, url, onDataUpdate }) => {
   const logger = createLogger('WebSocketProvider');
-  logger.info('Initializing with URL', { url });
   const { user } = useAuth();
   const [status, setStatus] = useState<WebSocketStatus>('closed');
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
@@ -45,7 +44,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       return;
     }
 
-    logger.info('Connecting to WebSocket');
+    logger.info('Initializing WebSocket connection', { url });
     setStatus('connecting');
     
     try {
@@ -155,8 +154,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
 
   // 認証状態に基づく接続制御
   useEffect(() => {
-    logger.debug('Auth state changed', { username: user?.username, status });
-    
     if (user && status === 'closed') {
       logger.info('User authenticated, connecting WebSocket');
       connect();
@@ -220,6 +217,48 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
     }
   }, []);
 
+  const checkEditingPermission = useCallback(async (reportId: number): Promise<{ allowed: boolean; message?: string; editingUsers?: EditingUser[] }> => {
+    logger.info('Checking editing permission', { reportId, status });
+    
+    if (status !== 'open') {
+      return { allowed: false, message: 'WebSocket接続が確立されていません。' };
+    }
+    
+    if (!currentUserId) {
+      return { allowed: false, message: 'ユーザー認証に失敗しました。' };
+    }
+
+    try {
+      // サーバーに編集状況を問い合わせる
+      const { apiRequest } = await import('@/lib/queryClient');
+      const response = await apiRequest(`/api/reports/${reportId}/editing-users`, { method: 'GET' });
+      
+      logger.debug('Editing users response', { response });
+      
+      if (response.editingUsers && response.editingUsers.length > 0) {
+        // 他のユーザーが編集中の場合、自分を除外して確認
+        const otherEditingUsers = response.editingUsers.filter((user: EditingUser) => 
+          String(user.userId) !== String(currentUserId)
+        );
+        
+        if (otherEditingUsers.length > 0) {
+          const usernames = otherEditingUsers.map((user: EditingUser) => user.username).join(', ');
+          return {
+            allowed: false,
+            message: `このレポートは現在 ${usernames} が編集中です。編集が完了するまでお待ちください。`,
+            editingUsers: otherEditingUsers
+          };
+        }
+      }
+      
+      // 他のユーザーが編集中でなければ許可
+      return { allowed: true };
+    } catch (error) {
+      logger.error('Failed to check editing permission', error instanceof Error ? error : new Error(String(error)));
+      return { allowed: false, message: '編集権限の確認中にエラーが発生しました。' };
+    }
+  }, [status, currentUserId, logger]);
+
   const contextValue = {
     status,
     lastMessage,
@@ -227,6 +266,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
     editingUsers,
     currentUserId,
     onDataUpdate,
+    checkEditingPermission,
   };
 
   return (

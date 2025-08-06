@@ -404,3 +404,13 @@ export function setupWebSocket(server: Server) {
 export function notifyDataUpdate(reportId: number, updatedBy: string, newVersion: number) {
   connectionManager.broadcastDataUpdate(reportId, updatedBy, newVersion);
 }
+
+// 編集中ユーザー取得機能を外部から利用可能にする（排他制御用）
+export function getEditingUsers(reportId: number): EditSession[] {
+  const sessions = connectionManager['editSessions'].get(reportId) || [];
+  return sessions.filter(session => {
+    // 5分以上非アクティブなセッションは除外
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    return session.lastActivity > fiveMinutesAgo;
+  });
+}

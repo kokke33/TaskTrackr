@@ -112,6 +112,8 @@ vi.mock("@/contexts/useWebSocket.ts", () => ({
     status: "open",
     editingUsers: [],
     currentUserId: 1,
+    checkEditingPermission: vi.fn().mockResolvedValue({ allowed: true }),
+    onDataUpdate: undefined,
   }),
 }));
 
@@ -410,6 +412,8 @@ describe("WeeklyReport Page", () => {
         status: "closed",
         editingUsers: [],
         currentUserId: "1",
+        checkEditingPermission: vi.fn().mockResolvedValue({ allowed: true }),
+        onDataUpdate: undefined,
       });
 
       // 通常の状態（ローディング完了）でフォームを表示するため、ローディングフラグをfalseに設定

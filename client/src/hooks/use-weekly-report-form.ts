@@ -24,13 +24,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
   const queryClient = useQueryClient();
   const { onDataUpdate } = useWebSocket();
   
-  // フォーカス復帰時の版数チェック用の状態
-  const [hasVersionConflict, setHasVersionConflict] = useState(false);
-  const [conflictDetails, setConflictDetails] = useState<{
-    currentVersion: number;
-    serverVersion: number;
-  } | null>(null);
-  const lastFocusTime = useRef<number>(Date.now());
+  // 簡素化：版数コンフリクト関連の状態を削除
 
   const { data: existingReport, isLoading: isLoadingReport } = useQuery<WeeklyReport>({
     queryKey: [`/api/weekly-reports/${id}`],
@@ -211,87 +205,25 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
     localStorage.removeItem(saveKey);
   }, [reportId]);
 
-  // 版数チェック機能
-  const checkVersionConflict = useCallback(async () => {
-    console.log('🔥 [use-weekly-report-form] checkVersionConflict called', { 
-      isEditMode, 
-      reportId, 
-      existingReportVersion: existingReport?.version 
-    });
-    
-    if (!isEditMode || !reportId || !existingReport) {
-      console.log('🔥 [use-weekly-report-form] checkVersionConflict skipped - missing prerequisites');
-      return;
-    }
+  // 簡素化：版数チェック機能を削除
 
-    try {
-      console.log('🔥 [use-weekly-report-form] Fetching server report version');
-      const serverReport = await apiRequest(`/api/weekly-reports/${reportId}`, { method: "GET" });
-      
-      console.log('🔥 [use-weekly-report-form] Version comparison:', { 
-        serverVersion: serverReport.version, 
-        currentVersion: existingReport.version 
-      });
-      
-      if (serverReport.version !== existingReport.version) {
-        console.log('🔥 [use-weekly-report-form] Version conflict detected! Setting conflict details');
-        
-        setHasVersionConflict(true);
-        setConflictDetails({
-          currentVersion: existingReport.version,
-          serverVersion: serverReport.version
-        });
-        
-        console.log('🔥 [use-weekly-report-form] Conflict details set:', {
-          currentVersion: existingReport.version,
-          serverVersion: serverReport.version
-        });
-        
-        toast({
-          title: "データが更新されています",
-          description: "他のユーザーがこのレポートを更新しました。最新版を確認してください。",
-          variant: "destructive",
-        });
-      } else {
-        console.log('🔥 [use-weekly-report-form] No version conflict detected');
-      }
-    } catch (error) {
-      console.error('🔥 [use-weekly-report-form] Version check failed:', error);
-    }
-  }, [isEditMode, reportId, existingReport, toast]);
-
-  // フォーカス復帰時の版数チェック
+  // 簡素化：フォーカス復帰時のドラフト保存のみ
   useEffect(() => {
-    const handleFocus = () => {
-      const now = Date.now();
-      const timeSinceLastFocus = now - lastFocusTime.current;
-      
-      // 5分以上非アクティブだった場合は版数チェックを実行
-      if (timeSinceLastFocus > 5 * 60 * 1000) {
-        checkVersionConflict();
-      }
-      
-      lastFocusTime.current = now;
-    };
-
     const handleBlur = () => {
-      lastFocusTime.current = Date.now();
       // フォーカスが離れる時にドラフトを保存
       saveFormData();
     };
 
-    window.addEventListener('focus', handleFocus);
     window.addEventListener('blur', handleBlur);
     
     return () => {
-      window.removeEventListener('focus', handleFocus);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [checkVersionConflict, saveFormData]);
+  }, [saveFormData]);
 
   // 初回読み込み時にドラフトを復元
   useEffect(() => {
-    if (isEditMode && existingReport && !hasVersionConflict) {
+    if (isEditMode && existingReport) {
       // 既存データがロードされた後でドラフトを復元を試行
       const hasRestored = loadFormData();
       if (!hasRestored) {
@@ -303,49 +235,9 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
         setSelectedCaseId(existingReport.caseId);
       }
     }
-  }, [isEditMode, existingReport, hasVersionConflict, loadFormData, form]);
+  }, [isEditMode, existingReport, loadFormData, form]);
 
-  // WebSocket通知でのデータ更新を処理
-  useEffect(() => {
-    if (!onDataUpdate || !reportId) return;
-
-    const handleDataUpdate = (notifiedReportId: number, updatedBy: string, newVersion: number) => {
-      // 現在編集中のレポートの更新通知の場合のみ処理
-      if (notifiedReportId === reportId && existingReport) {
-        console.log('Received data update notification', { 
-          reportId: notifiedReportId, 
-          updatedBy, 
-          newVersion,
-          currentVersion: existingReport.version 
-        });
-
-        // バージョン競合をチェック
-        if (newVersion > existingReport.version) {
-          setHasVersionConflict(true);
-          setConflictDetails({
-            currentVersion: existingReport.version,
-            serverVersion: newVersion
-          });
-          
-          toast({
-            title: "他のユーザーがデータを更新しました",
-            description: `${updatedBy}さんがこのレポートを更新しました。競合を解決してください。`,
-            variant: "destructive",
-          });
-        }
-      }
-    };
-
-    // onDataUpdateが関数の場合は直接呼び出し、プロパティの場合は設定
-    if (typeof onDataUpdate === 'function') {
-      // WebSocketProviderのonDataUpdateを直接使用する場合のハック
-      // この実装では、WebSocketProviderにハンドラを設定する必要があります
-      console.warn('onDataUpdate is a function, need to implement proper subscription');
-    }
-
-    // 現在の実装では、WebSocketProviderでonDataUpdateがコンテキストに含まれているため、
-    // 直接処理することはできません。代わりに、WebSocketContextを通じて処理する必要があります。
-  }, [onDataUpdate, reportId, existingReport, toast]);
+  // 簡素化：WebSocket通知処理を削除（排他制御で事前防止するため不要）
 
   const mutation = useMutation({
     mutationFn: async (data: WeeklyReport) => {
@@ -401,53 +293,15 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
       console.log('🔥 [use-weekly-report-form] onError triggered:', { error, status: error?.status });
       
       if (error?.status === 409) {
-        console.log('🔥 [use-weekly-report-form] 409 Conflict detected - starting new conflict resolution');
+        // 簡素化：楽観的ロック競合エラーを単純なエラーメッセージに変更
+        saveFormData(); // 編集内容を保護
         
-        // 楽観的ロック競合エラー - 編集内容を一時保存してから対応
-        saveFormData(); // 競合発生時に編集内容を保護
-        console.log('🔥 [use-weekly-report-form] Form data saved');
-        
-        try {
-          // 最新のサーバーデータを取得
-          console.log('🔥 [use-weekly-report-form] Fetching latest server data for conflict resolution');
-          const serverReport = await apiRequest(`/api/weekly-reports/${reportId}`, { method: "GET" });
-          
-          console.log('🔥 [use-weekly-report-form] Setting conflict details:', {
-            currentVersion: existingReport?.version,
-            serverVersion: serverReport.version
-          });
-          
-          setHasVersionConflict(true);
-          setConflictDetails({
-            currentVersion: existingReport?.version || 0,
-            serverVersion: serverReport.version
-          });
-          
-          toast({
-            title: "データ競合が発生しました",
-            description: "他のユーザーがデータを更新しました。対応方法を選択してください。",
-            variant: "destructive",
-            duration: 10000, // 10秒間表示
-          });
-          
-          console.log('🔥 [use-weekly-report-form] Conflict resolution setup completed');
-        } catch (fetchError) {
-          console.error('🔥 [use-weekly-report-form] Failed to fetch server data for conflict resolution:', fetchError);
-          
-          // フォールバック: 基本的な競合状態だけ設定
-          setHasVersionConflict(true);
-          setConflictDetails({
-            currentVersion: existingReport?.version || 0,
-            serverVersion: (existingReport?.version || 0) + 1 // 推定
-          });
-          
-          toast({
-            title: "データ競合が発生しました",
-            description: "編集内容は保存されました。対応方法を選択してください。",
-            variant: "destructive",
-            duration: 10000,
-          });
-        }
+        toast({
+          title: "データ競合エラー",
+          description: "他のユーザーがこのレポートを更新しました。ページをリロードして最新版で作業してください。",
+          variant: "destructive",
+          duration: 10000,
+        });
       } else {
         toast({
           title: "エラー",
@@ -471,78 +325,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
     mutation.mutate(data);
   };
 
-  // 競合解決機能
-  const resolveConflict = useCallback(async (resolution: 'reload' | 'override' | 'merge' | 'detailed') => {
-    if (!hasVersionConflict || !reportId) return;
-    
-    switch (resolution) {
-      case 'reload':
-        // ページをリロードして最新データを取得
-        window.location.reload();
-        break;
-        
-      case 'override':
-        // 現在の編集内容で強制的に上書き
-        try {
-          const currentFormData = form.getValues();
-          const serverReport = await apiRequest(`/api/weekly-reports/${reportId}`, { method: "GET" });
-          
-          // 最新バージョンを使用して再送信
-          const requestData = { ...currentFormData, version: serverReport.version };
-          const result = await apiRequest(`/api/weekly-reports/${reportId}`, { 
-            method: "PUT", 
-            data: requestData 
-          });
-          
-          setHasVersionConflict(false);
-          setConflictDetails(null);
-          
-          toast({
-            title: "更新完了",
-            description: "編集内容で上書き更新しました。",
-          });
-          
-          setLocation(`/reports/${result.id}`);
-        } catch (error) {
-          toast({
-            title: "更新失敗",
-            description: "上書き更新に失敗しました。",
-            variant: "destructive",
-          });
-        }
-        break;
-        
-      case 'merge':
-        // データを最新版で更新し、クライアントキャッシュをリフレッシュ
-        await queryClient.invalidateQueries({ queryKey: [`/api/weekly-reports/${reportId}`] });
-        setHasVersionConflict(false);
-        setConflictDetails(null);
-        
-        toast({
-          title: "データを更新しました",
-          description: "最新のデータで画面を更新しました。変更内容を確認してください。",
-        });
-        break;
-        
-      case 'detailed':
-        // 詳細な競合解決は上位コンポーネント（weekly-report.tsx）で処理
-        // ここでは何もしない（状態はそのまま維持）
-        console.log('🔥 [use-weekly-report-form] Detailed resolution requested - handled by parent component');
-        break;
-    }
-  }, [hasVersionConflict, reportId, form, queryClient, toast, setLocation]);
-
-  // 競合状態をクリアする専用関数
-  const clearConflictState = useCallback(() => {
-    console.log('🔥 [use-weekly-report-form] Clearing conflict state');
-    setHasVersionConflict(false);
-    setConflictDetails(null);
-    
-    toast({
-      title: "競合解決をキャンセルしました",
-      description: "データの競合状態を解除しました。編集を続けることができます。",
-    });
-  }, [toast]);
+  // 簡素化：競合解決機能を削除（排他制御で事前防止）
 
   const copyFromLastReport = () => {
     if (!selectedCaseId || !latestReport) return;
@@ -595,12 +378,6 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
     isSubmitting,
     onSubmit,
     copyFromLastReport,
-    // 競合管理関連
-    hasVersionConflict,
-    conflictDetails,
-    resolveConflict,
-    clearConflictState,
-    checkVersionConflict,
     // 一時保存関連
     saveFormData,
     loadFormData,

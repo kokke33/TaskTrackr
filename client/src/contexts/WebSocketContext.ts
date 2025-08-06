@@ -25,6 +25,7 @@ export interface WebSocketContextState {
   editingUsers: EditingUser[];
   currentUserId?: string;
   onDataUpdate?: (reportId: number, updatedBy: string, newVersion: number) => void;
+  checkEditingPermission: (reportId: number) => Promise<{ allowed: boolean; message?: string; editingUsers?: EditingUser[] }>;
 }
 
 // Contextの作成
@@ -38,6 +39,7 @@ const defaultContextValue: WebSocketContextState = {
   editingUsers: [],
   currentUserId: undefined,
   onDataUpdate: undefined,
+  checkEditingPermission: async () => ({ allowed: false, message: 'WebSocket not connected' }),
 };
 
 export const WebSocketContext = createContext<WebSocketContextState | null>(null);

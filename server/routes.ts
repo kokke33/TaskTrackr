@@ -1343,6 +1343,29 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     }
   });
 
+  // 編集状況取得API（排他制御用）
+  app.get("/api/reports/:id/editing-users", isAuthenticated, async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      
+      // WebSocket ConnectionManagerから編集中ユーザー情報を取得
+      const { getEditingUsers } = await import('./websocket');
+      const editingUsers = getEditingUsers(reportId);
+      
+      res.json({ 
+        editingUsers: editingUsers.map(user => ({
+          userId: user.userId,
+          username: user.username,
+          startTime: user.startTime,
+          lastActivity: user.lastActivity
+        }))
+      });
+    } catch (error) {
+      console.error("Error fetching editing users:", error);
+      res.status(500).json({ message: "編集状況の取得に失敗しました" });
+    }
+  });
+
   app.put("/api/weekly-reports/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
