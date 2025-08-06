@@ -19,6 +19,7 @@ import { useAIAnalysis } from "@/hooks/use-ai-analysis";
 import { useWebSocket } from "@/contexts/useWebSocket"; // 新しいパスに変更
 import { EditingUsersIndicator } from "@/components/editing-users-indicator";
 import { useFormPerformance } from "@/hooks/use-performance";
+import { useToast } from "@/hooks/use-toast";
 
 import { ReportHeader } from "@/components/weekly-report/report-header";
 import { BasicInfoForm } from "@/components/weekly-report/basic-info-form";
@@ -46,9 +47,11 @@ export default function WeeklyReport() {
   // 詳細な競合解決のためのstate
   const [showDetailedConflictDialog, setShowDetailedConflictDialog] = useState(false);
   const [conflictServerData, setConflictServerData] = useState<WeeklyReport | null>(null);
+  const [isTransitioningToDetailedConflict, setIsTransitioningToDetailedConflict] = useState(false);
 
   // パフォーマンス監視
   const { measureFormOperation, measureRender } = useFormPerformance('WeeklyReport');
+  const { toast } = useToast();
 
   const formHook = useWeeklyReportForm({ id, latestVersionFromAutoSave: latestAutoSaveVersion });
   const {
@@ -70,6 +73,7 @@ export default function WeeklyReport() {
     hasVersionConflict,
     conflictDetails,
     resolveConflict,
+    clearConflictState,
     checkVersionConflict,
   } = formHook;
 
@@ -236,15 +240,24 @@ export default function WeeklyReport() {
     console.log('🔥 [weekly-report] Handling conflict resolution:', resolution);
 
     if (resolution === 'detailed') {
+      console.log('🔥 [weekly-report] Setting transition flag for detailed conflict resolution');
+      setIsTransitioningToDetailedConflict(true);
+      
+      // 小さな遅延を追加してフラグが確実に設定されるようにする
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
       // 詳細な競合解決ダイアログを表示
       const result = await fetchServerDataForConflict();
       if (result.success && result.data) {
         setConflictServerData(result.data);
         setShowDetailedConflictDialog(true);
         console.log('✅ [weekly-report] Successfully opened detailed conflict resolution dialog');
+        // 詳細ダイアログが開いたのでフラグをリセット
+        setIsTransitioningToDetailedConflict(false);
       } else {
         // サーバーデータ取得失敗時はエラーを表示し、簡単な選択肢に戻る
         console.warn('⚠️ [weekly-report] Server data fetch failed, showing error to user:', result.error);
+        setIsTransitioningToDetailedConflict(false);
         toast({
           title: "詳細情報の取得に失敗しました",
           description: result.error || "サーバーとの通信でエラーが発生しました。基本的な選択肢をお使いください。",
@@ -276,6 +289,7 @@ export default function WeeklyReport() {
     resolveConflict('merge');
     setShowDetailedConflictDialog(false);
     setConflictServerData(null);
+    setIsTransitioningToDetailedConflict(false);
   };
 
   // 詳細競合解決ダイアログでのリロード
@@ -283,6 +297,7 @@ export default function WeeklyReport() {
     console.log('🔄 [weekly-report] User chose reload from detailed conflict dialog');
     setShowDetailedConflictDialog(false);
     setConflictServerData(null);
+    setIsTransitioningToDetailedConflict(false);
     resolveConflict('reload');
   };
 
@@ -291,6 +306,7 @@ export default function WeeklyReport() {
     console.log('❌ [weekly-report] User cancelled detailed conflict dialog');
     setShowDetailedConflictDialog(false);
     setConflictServerData(null);
+    setIsTransitioningToDetailedConflict(false);
     // 競合状態は維持して、ユーザーが基本的な選択肢から再選択できるようにする
   };
 
@@ -478,14 +494,17 @@ export default function WeeklyReport() {
 
       <VersionConflictDialog
         open={hasVersionConflict && !showDetailedConflictDialog}
-        onOpenChange={(open) => {
-          if (!open) {
-            // ダイアログを閉じる時にhasVersionConflictをfalseにリセット
-            resolveConflict('reload');
-          }
+        onOpenChange={() => {
+          // onOpenChangeでは何も処理しない
+          // ダイアログの制御は各解決方法のボタンで明示的に行う
+          console.log('🔥 [weekly-report] VersionConflictDialog onOpenChange called - no action taken');
         }}
         conflictDetails={conflictDetails}
         onResolve={handleConflictResolve}
+        onCancel={() => {
+          console.log('🔥 [weekly-report] VersionConflictDialog cancel requested');
+          clearConflictState();
+        }}
       />
       
       {/* 詳細な競合解決ダイアログ */}

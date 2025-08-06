@@ -532,6 +532,18 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
     }
   }, [hasVersionConflict, reportId, form, queryClient, toast, setLocation]);
 
+  // 競合状態をクリアする専用関数
+  const clearConflictState = useCallback(() => {
+    console.log('🔥 [use-weekly-report-form] Clearing conflict state');
+    setHasVersionConflict(false);
+    setConflictDetails(null);
+    
+    toast({
+      title: "競合解決をキャンセルしました",
+      description: "データの競合状態を解除しました。編集を続けることができます。",
+    });
+  }, [toast]);
+
   const copyFromLastReport = () => {
     if (!selectedCaseId || !latestReport) return;
 
@@ -587,6 +599,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
     hasVersionConflict,
     conflictDetails,
     resolveConflict,
+    clearConflictState,
     checkVersionConflict,
     // 一時保存関連
     saveFormData,

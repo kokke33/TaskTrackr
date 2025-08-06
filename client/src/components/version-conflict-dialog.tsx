@@ -19,6 +19,7 @@ interface VersionConflictDialogProps {
     serverVersion: number;
   } | null;
   onResolve: (resolution: 'reload' | 'override' | 'merge' | 'detailed') => void;
+  onCancel?: () => void;
 }
 
 export function VersionConflictDialog({
@@ -26,6 +27,7 @@ export function VersionConflictDialog({
   onOpenChange,
   conflictDetails,
   onResolve,
+  onCancel,
 }: VersionConflictDialogProps) {
   console.log('🔥 [VersionConflictDialog] Rendering with props:', {
     open,
@@ -35,7 +37,26 @@ export function VersionConflictDialog({
 
   const handleResolve = (resolution: 'reload' | 'override' | 'merge' | 'detailed') => {
     console.log('🔥 [VersionConflictDialog] Resolving with:', resolution);
+    
+    // 解決方法を親コンポーネントに通知
     onResolve(resolution);
+    
+    // 'detailed'の場合は親コンポーネントが詳細ダイアログへの遷移を管理
+    // 'detailed'以外はダイアログを閉じる
+    if (resolution !== 'detailed') {
+      onOpenChange(false);
+    }
+  };
+
+  const handleCancel = () => {
+    console.log('🔥 [VersionConflictDialog] Cancel pressed');
+    
+    // キャンセル時は専用のコールバックを呼び出し（提供されている場合）
+    if (onCancel) {
+      onCancel();
+    }
+    
+    // ダイアログを閉じる
     onOpenChange(false);
   };
 
@@ -96,7 +117,7 @@ export function VersionConflictDialog({
           </div>
           
           <AlertDialogCancel asChild>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={handleCancel}>
               キャンセル
             </Button>
           </AlertDialogCancel>
