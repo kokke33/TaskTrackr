@@ -34,6 +34,11 @@
             "date": 1754523272969,
             "name": "logs/ai-error-2025-08-07.log",
             "hash": "0232da2fe82cce1e65332f0a3e6aa0450d2804db9b09ff86fd4cf02a28c2bb42"
+        },
+        {
+            "date": 1754579548397,
+            "name": "logs/ai-error-2025-08-08.log",
+            "hash": "18d0dc5b4892018ec314759e27a7f4471a3bff26fde5ebe98abf547a53b5c739"
         }
     ],
     "hashType": "sha256"

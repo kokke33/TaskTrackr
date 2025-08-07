@@ -182,6 +182,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
           toast({
             title: "管理者編集モード",
             description: "管理者編集モードが有効になりました",
+            duration: 1000,
           });
         } catch (error) {
           console.error('Failed to parse stored original data:', error);
@@ -189,6 +190,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
             title: "エラー",
             description: "元データの取得に失敗しました",
             variant: "destructive",
+            duration: 1000,
           });
         }
       } else {
@@ -196,6 +198,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
           title: "エラー",
           description: "管理者編集モードの準備ができていません",
           variant: "destructive",
+          duration: 1000,
         });
         setLocation(`/reports/${id}`);
       }
@@ -263,6 +266,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
       toast({
         title: "ドラフトを復元しました",
         description: `${timeDescription}の編集内容を復元しました。`,
+        duration: 1000,
       });
       
       console.log('[Draft] Restored form data from:', savedTime);
@@ -382,6 +386,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
         toast({
           title: "修正完了",
           description: "修正と議事録生成が完了しました",
+          duration: 1000,
         });
         // 管理者編集完了時は result.report.id を使用
         setLocation(`/reports/${result.report?.id || id}`);
@@ -391,6 +396,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
           description: isEditMode
             ? "週次報告が正常に更新されました。"
             : "週次報告が正常に送信されました。",
+          duration: 1000,
         });
         // 通常の編集・作成時は result.id を使用
         setLocation(`/reports/${result.id}`);
@@ -418,6 +424,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
             ? "週次報告の更新に失敗しました。"
             : "週次報告の送信に失敗しました。",
           variant: "destructive",
+          duration: 1000,
         });
       }
     },
@@ -466,6 +473,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
     toast({
       title: "前回の報告をコピーしました",
       description: "報告内容を確認・編集してください。",
+      duration: 1000,
     });
   };
 

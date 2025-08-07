@@ -85,7 +85,8 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
             toast({
               title: "競合エラー", 
               description: errorData.message,
-              variant: "destructive"
+              variant: "destructive",
+              duration: 1000,
             });
           }
           return;
