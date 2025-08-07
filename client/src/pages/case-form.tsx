@@ -96,6 +96,7 @@ export default function CaseForm() {
       toast({
         title: isEditMode ? "案件が更新されました" : "案件が作成されました",
         description: "案件情報が正常に保存されました。",
+        duration: 1000,
       });
       // 個別の案件キャッシュも無効化
       if (isEditMode && id) {
@@ -113,6 +114,7 @@ export default function CaseForm() {
           ? "案件の更新に失敗しました。"
           : "案件の作成に失敗しました。",
         variant: "destructive",
+        duration: 1000,
       });
     },
   });

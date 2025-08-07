@@ -44,10 +44,10 @@ export function ManagerMeetingList({ projectId, selectedMonth }: ManagerMeetingL
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "manager-meetings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "manager-meetings", "months"] });
-      toast({ title: "議事録を削除しました" });
+      toast({duration: 1000,});
     },
     onError: () => {
-      toast({ title: "エラー", description: "議事録の削除に失敗しました", variant: "destructive" });
+      toast({duration: 1000,});
     },
   });
 

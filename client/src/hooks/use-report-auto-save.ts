@@ -117,7 +117,8 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
       toast({
         title: "自動保存エラー",
         description: "自動保存に失敗しました。手動で保存してください。",
-        variant: "destructive"
+        variant: "destructive",
+        duration: 1000,
       });
     } finally {
       setIsAutosaving(false);
@@ -174,6 +175,7 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
     toast({
       title: "自動保存しました",
       description: `${new Date().toLocaleTimeString()}に保存されました`,
+      duration: 1000,
     });
   };
 

@@ -40,6 +40,7 @@ export default function ProjectForm() {
         title: "権限エラー",
         description: "プロジェクト管理は管理者のみが行えます",
         variant: "destructive",
+        duration: 1000,
       });
       setLocation("/projects");
     }
@@ -103,6 +104,7 @@ export default function ProjectForm() {
       toast({
         title: "プロジェクトを作成しました",
         description: "プロジェクトの作成が完了しました",
+        duration: 1000,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setLocation("/projects");
@@ -112,6 +114,7 @@ export default function ProjectForm() {
         title: "エラーが発生しました",
         description: error.message,
         variant: "destructive",
+        duration: 1000,
       });
     },
   });
@@ -128,6 +131,7 @@ export default function ProjectForm() {
       toast({
         title: "プロジェクトを更新しました",
         description: "プロジェクトの更新が完了しました",
+        duration: 1000,
       });
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
@@ -138,6 +142,7 @@ export default function ProjectForm() {
         title: "エラーが発生しました",
         description: error.message,
         variant: "destructive",
+        duration: 1000,
       });
     },
   });
@@ -171,6 +176,7 @@ export default function ProjectForm() {
         title: "エラーが発生しました",
         description: error.message,
         variant: "destructive",
+        duration: 1000,
       });
     },
   });

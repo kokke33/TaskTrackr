@@ -92,6 +92,7 @@ export default function WeeklyReport() {
         title: "保存エラー",
         description: "他のユーザーがデータを更新しました。ページをリロードしてください。",
         variant: "destructive",
+        duration: 1000,
       });
     }
   });

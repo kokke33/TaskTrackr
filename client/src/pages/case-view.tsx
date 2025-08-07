@@ -176,19 +176,12 @@ export default function CaseView() {
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
 
       // 成功メッセージを表示
-      toast({
-        title: "保存成功",
-        description: "案件情報が正常に更新されました。"
-      });
+      toast({duration: 1000,});
     } catch (error) {
       console.error('Error updating case:', error);
 
       // エラーメッセージを表示
-      toast({
-        title: "エラー",
-        description: "案件情報の更新に失敗しました。",
-        variant: "destructive"
-      });
+      toast({duration: 1000,});
     }
   };
 
@@ -253,21 +246,13 @@ export default function CaseView() {
       // 一覧キャッシュを無効化
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
 
-      toast({
-        title: "削除成功",
-        description: "案件を削除しました。",
-        variant: "default"
-      });
+      toast({duration: 1000,});
 
       // 案件一覧ページにリダイレクト
       setLocation("/cases");
     } catch (error) {
       console.error('Error deleting case:', error);
-      toast({
-        title: "エラー",
-        description: "案件の削除に失敗しました。",
-        variant: "destructive"
-      });
+      toast({duration: 1000,});
     }
   };
 

@@ -42,11 +42,7 @@ export default function RecentWeeklyReportsList() {
         setReports(data);
       } catch (error) {
         console.error('Error fetching weekly reports:', error);
-        toast({
-          title: 'エラー',
-          description: '最近の週次報告一覧の取得に失敗しました',
-          variant: 'destructive',
-        });
+        toast({duration: 1000,});
       } finally {
         setLoading(false);
       }

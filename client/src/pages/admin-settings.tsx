@@ -61,17 +61,10 @@ export default function AdminSettings() {
     mutationFn: (config: AIProviderConfig) => AISettingsManager.updateSystemSettings('basic', config),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["systemSettings"] });
-      toast({
-        title: "設定を更新しました",
-        description: "AIプロバイダーが正常に更新されました",
-      });
+      toast({duration: 1000,});
     },
     onError: (error: Error) => {
-      toast({
-        title: "更新に失敗しました",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     },
   });
 
@@ -80,17 +73,10 @@ export default function AdminSettings() {
     mutationFn: (config: AIProviderConfig) => AISettingsManager.updateSystemSettings('realtime', config),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["systemSettings"] });
-      toast({
-        title: "リアルタイム分析設定を更新しました",
-        description: "AIプロバイダーが正常に更新されました",
-      });
+      toast({duration: 1000,});
     },
     onError: (error: Error) => {
-      toast({
-        title: "更新に失敗しました",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     },
   });
 
@@ -100,17 +86,10 @@ export default function AdminSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessionAISettings"] });
       setIsTrialMode(true);
-      toast({
-        title: "お試し設定を有効にしました",
-        description: "次回のリアルタイム分析でこの設定が使用されます（DB保存なし）",
-      });
+      toast({duration: 1000,});
     },
     onError: (error: Error) => {
-      toast({
-        title: "お試し設定の更新に失敗しました",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     },
   });
 
@@ -121,17 +100,10 @@ export default function AdminSettings() {
       queryClient.invalidateQueries({ queryKey: ["sessionAISettings"] });
       setIsTrialMode(false);
       setTrialConfig(AISettingsManager.getDefaultConfig());
-      toast({
-        title: "お試し設定をクリアしました",
-        description: "通常のシステム設定が使用されます",
-      });
+      toast({duration: 1000,});
     },
     onError: (error: Error) => {
-      toast({
-        title: "お試し設定のクリアに失敗しました",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     },
   });
 
@@ -155,17 +127,10 @@ export default function AdminSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["systemSettings"] });
-      toast({
-        title: "ストリーミング設定を更新しました",
-        description: "AI分析の表示方法が変更されました",
-      });
+      toast({duration: 1000,});
     },
     onError: (error: Error) => {
-      toast({
-        title: "ストリーミング設定の更新に失敗しました",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     },
   });
 
@@ -216,11 +181,7 @@ export default function AdminSettings() {
   const handleBasicSave = () => {
     const validation = AISettingsManager.validateConfig(basicConfig);
     if (!validation.isValid) {
-      toast({
-        title: "設定エラー",
-        description: validation.error,
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
       return;
     }
     updateBasicMutation.mutate(basicConfig);
@@ -229,11 +190,7 @@ export default function AdminSettings() {
   const handleRealtimeSave = () => {
     const validation = AISettingsManager.validateConfig(realtimeConfig);
     if (!validation.isValid) {
-      toast({
-        title: "設定エラー",
-        description: validation.error,
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
       return;
     }
     updateRealtimeMutation.mutate(realtimeConfig);
@@ -242,11 +199,7 @@ export default function AdminSettings() {
   const handleTrialSave = () => {
     const validation = AISettingsManager.validateConfig(trialConfig);
     if (!validation.isValid) {
-      toast({
-        title: "設定エラー",
-        description: validation.error,
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
       return;
     }
     updateTrialMutation.mutate(trialConfig);

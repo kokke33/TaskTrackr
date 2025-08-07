@@ -413,7 +413,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
           title: "データ競合エラー",
           description: "他のユーザーがこのレポートを更新しました。ページをリロードして最新版で作業してください。",
           variant: "destructive",
-          duration: 10000,
+          duration: 1000,
         });
       } else {
         toast({

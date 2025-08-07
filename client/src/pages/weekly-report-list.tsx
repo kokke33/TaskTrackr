@@ -106,19 +106,12 @@ export default function WeeklyReportList() {
         fetchLatestCaseData(updatedCase.id);
       }, 100);
 
-      toast({
-        title: "マイルストーンを更新しました",
-        description: "案件のマイルストーン情報が正常に更新されました。",
-      });
+      toast({duration: 1000,});
       setIsMilestoneEditing(false);
     },
     onError: (error) => {
       console.error("Error updating milestone:", error);
-      toast({
-        title: "エラー",
-        description: "マイルストーンの更新に失敗しました。",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     }
   });
 
@@ -149,11 +142,7 @@ export default function WeeklyReportList() {
     },
     onError: (error) => {
       console.error("Error retrieving monthly summary input data:", error);
-      toast({
-        title: "エラー",
-        description: "月次報告書の入力データの取得に失敗しました",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     }
   });
 
@@ -198,11 +187,7 @@ export default function WeeklyReportList() {
     },
     onError: (error) => {
       console.error("Error generating monthly summary:", error);
-      toast({
-        title: "エラー",
-        description: "月次報告書の生成に失敗しました",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     }
   });
 
@@ -235,11 +220,7 @@ export default function WeeklyReportList() {
         handleGenerateNewReport();
       } else {
         console.error("Error fetching latest monthly report:", error);
-        toast({
-          title: "エラー",
-          description: "月次報告書の取得に失敗しました",
-          variant: "destructive",
-        });
+        toast({duration: 1000,});
       }
     }
   });
@@ -465,17 +446,10 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
     navigator.clipboard
       .writeText(markdownData)
       .then(() => {
-        toast({
-          title: "コピー完了",
-          description: "報告内容をマークダウン形式でクリップボードにコピーしました。",
-        });
+        toast({duration: 1000,});
       })
       .catch(() => {
-        toast({
-          title: "エラー",
-          description: "クリップボードへのコピーに失敗しました。",
-          variant: "destructive",
-        });
+        toast({duration: 1000,});
       });
   };
 
@@ -609,10 +583,7 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
     setMonthlySummary("");
     setMonthlySummaryPeriod(null);
 
-    toast({
-      title: "月次報告書を生成中",
-      description: "AIを使って処理中です。しばらくお待ちください...",
-    });
+    toast({duration: 1000,});
 
     monthlySummaryMutation.mutate(selectedChoiceParams);
   };
@@ -640,10 +611,7 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
       return date.toISOString().split('T')[0];
     };
 
-    toast({
-      title: "入力データを取得中",
-      description: "インプットデータの準備中です...",
-    });
+    toast({duration: 1000,});
 
     console.log("プロジェクト処理開始:", tempProjectName);
 
@@ -691,11 +659,7 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
             });
           })
           .catch(() => {
-            toast({
-              title: "エラー",
-              description: "クリップボードへのコピーに失敗しました。",
-              variant: "destructive",
-            });
+            toast({duration: 1000,});
           });
       }
     });
@@ -708,17 +672,10 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
     navigator.clipboard
       .writeText(monthlySummary)
       .then(() => {
-        toast({
-          title: "コピー完了",
-          description: "月次報告書をクリップボードにコピーしました。",
-        });
+        toast({duration: 1000,});
       })
       .catch(() => {
-        toast({
-          title: "エラー",
-          description: "クリップボードへのコピーに失敗しました。",
-          variant: "destructive",
-        });
+        toast({duration: 1000,});
       });
   };
 
