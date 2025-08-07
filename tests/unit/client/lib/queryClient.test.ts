@@ -212,7 +212,7 @@ describe("queryClient", () => {
       };
       
       const { performanceMonitor } = await import("@shared/performance-monitor");
-      vi.mocked(performanceMonitor.startTimer).mockReturnValue(mockTimer);
+      vi.mocked(performanceMonitor.startTimer).mockReturnValue(mockTimer as any);
 
       mockFetch.mockResolvedValue({
         ok: true,
@@ -245,7 +245,7 @@ describe("queryClient", () => {
       };
       
       const { performanceMonitor } = await import("@shared/performance-monitor");
-      vi.mocked(performanceMonitor.startTimer).mockReturnValue(mockTimer);
+      vi.mocked(performanceMonitor.startTimer).mockReturnValue(mockTimer as any);
 
       const error = new Error("Network error");
       mockFetch.mockRejectedValue(error);

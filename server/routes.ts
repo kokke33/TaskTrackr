@@ -26,6 +26,7 @@ import passport from "passport";
 import { isAuthenticated, isAdmin, isAuthenticatedHybrid, isAdminHybrid } from "./auth";
 import { hybridAuthManager } from "./hybrid-auth-manager";
 import { createLogger } from "@shared/logger";
+import { notifyDataUpdate, getEditingUsers } from "./websocket";
 
 const logger = createLogger('Routes');
 
@@ -363,6 +364,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res
         .status(500)
         .json({ message: "最近の週次報告一覧の取得に失敗しました" });
+    }
+  });
+
+  // 日付による週次報告一覧を取得
+  app.get("/api/weekly-reports/by-date/:date", isAuthenticated, async (req, res) => {
+    try {
+      const { date } = req.params;
+      const reports = await storage.getWeeklyReportsByDate(date);
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching weekly reports by date:", error);
+      res
+        .status(500)
+        .json({ message: "指定日付の週次報告一覧の取得に失敗しました" });
+    }
+  });
+
+  // カレンダー用データを取得
+  app.get("/api/weekly-reports/calendar-data/:year/:month", isAuthenticated, async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+        res.status(400).json({ message: "無効な年月が指定されました" });
+        return;
+      }
+
+      const calendarData = await storage.getWeeklyReportsCalendarData(year, month);
+      res.json(calendarData);
+    } catch (error) {
+      console.error("Error fetching calendar data:", error);
+      res
+        .status(500)
+        .json({ message: "カレンダーデータの取得に失敗しました" });
     }
   });
 
@@ -1307,6 +1343,34 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     }
   });
 
+  // 編集状況取得API（排他制御用）
+  app.get("/api/reports/:id/editing-users", isAuthenticated, async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      
+      // 🔥 修正: 直接インポートされた関数を使用（動的インポートの問題を完全回避）
+      const editingUsers = getEditingUsers(reportId);
+      
+      console.log(`🔍 [API] Fetching editing users for report ${reportId}:`, {
+        reportId,
+        editingUsersCount: editingUsers.length,
+        users: editingUsers.map(user => ({ userId: user.userId, username: user.username }))
+      });
+      
+      res.json({ 
+        editingUsers: editingUsers.map(user => ({
+          userId: user.userId,
+          username: user.username,
+          startTime: user.startTime,
+          lastActivity: user.lastActivity
+        }))
+      });
+    } catch (error) {
+      console.error("❌ [API] Error fetching editing users:", error);
+      res.status(500).json({ message: "編集状況の取得に失敗しました" });
+    }
+  });
+
   app.put("/api/weekly-reports/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -1343,6 +1407,13 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       }
 
       const finalReport = await storage.getWeeklyReport(id);
+      
+      // WebSocket経由で他の編集中ユーザーに更新通知
+      if (finalReport && req.user) {
+        console.log(`📡 [VERSION_LOG] WebSocket通知送信: reportId=${id}, updatedBy=${req.user.username}, newVersion=${finalReport.version}`);
+        notifyDataUpdate(id, req.user.username, finalReport.version);
+      }
+      
       res.json(finalReport);
     } catch (error) {
       if (error instanceof OptimisticLockError) {
@@ -1451,6 +1522,8 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 
         // 楽観的ロック対応の更新を実行
         const updatedReport = await storage.updateWeeklyReportWithVersion(id, mergedData, clientVersion);
+
+        console.log(`📡 [VERSION_LOG] 自動保存完了: reportId=${id}, 新版数=${updatedReport.version}`);
 
         // 簡略化したレスポンスを返す（新しいバージョンを含む）
         res.json({

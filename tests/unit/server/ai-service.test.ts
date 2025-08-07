@@ -14,35 +14,40 @@ const mockOpenAIService = {
   generateResponse: vi.fn(),
   supportsStreaming: false,
   generateStreamResponse: undefined,
-  getName: () => "OpenAI",
+  provider: "OpenAI" as const,
+  cleanThinkTags: vi.fn((content: string) => content),
 };
 
 const mockGeminiService = {
   generateResponse: vi.fn(),
   supportsStreaming: true,
   generateStreamResponse: vi.fn(),
-  getName: () => "Gemini",
+  provider: "Gemini" as const,
+  cleanThinkTags: vi.fn((content: string) => content),
 };
 
 const mockOllamaService = {
   generateResponse: vi.fn(),
   supportsStreaming: false,
   generateStreamResponse: undefined,
-  getName: () => "Ollama",
+  provider: "Ollama" as const,
+  cleanThinkTags: vi.fn((content: string) => content),
 };
 
 const mockGroqService = {
   generateResponse: vi.fn(),
   supportsStreaming: false,
   generateStreamResponse: undefined,
-  getName: () => "Groq",
+  provider: "Groq" as const,
+  cleanThinkTags: vi.fn((content: string) => content),
 };
 
 const mockOpenRouterService = {
   generateResponse: vi.fn(),
   supportsStreaming: false,
   generateStreamResponse: undefined,
-  getName: () => "OpenRouter",
+  provider: "OpenRouter" as const,
+  cleanThinkTags: vi.fn((content: string) => content),
 };
 
 vi.mock("../../../server/ai-providers/openai-provider", () => ({
@@ -129,7 +134,7 @@ describe("AI Service", () => {
       const service = await getAIService();
 
       expect(service).toBeDefined();
-      expect(service.getName()).toBe("OpenAI");
+      expect(service.provider).toBe("OpenAI");
     });
 
     it("Geminiプロバイダーのサービスを取得できること", async () => {
@@ -141,7 +146,7 @@ describe("AI Service", () => {
       const service = await getAIService();
 
       expect(service).toBeDefined();
-      expect(service.getName()).toBe("Gemini");
+      expect(service.provider).toBe("Gemini");
     });
 
     it("プロバイダーが変更された場合、新しいサービスインスタンスを作成すること", async () => {
@@ -152,7 +157,7 @@ describe("AI Service", () => {
       });
 
       const openaiService = await getAIService();
-      expect(openaiService.getName()).toBe("OpenAI");
+      expect(openaiService.provider).toBe("OpenAI");
 
       // Geminiに変更
       mockGetDynamicAIConfig.mockResolvedValue({
@@ -161,7 +166,7 @@ describe("AI Service", () => {
       });
 
       const geminiService = await getAIService();
-      expect(geminiService.getName()).toBe("Gemini");
+      expect(geminiService.provider).toBe("Gemini");
     });
 
     it("同じプロバイダーの場合、既存のサービスインスタンスを再利用すること", async () => {
@@ -180,19 +185,19 @@ describe("AI Service", () => {
   describe("getAIServiceForProvider", () => {
     it("指定されたプロバイダーのサービスを作成できること", () => {
       const openaiService = getAIServiceForProvider("openai");
-      expect(openaiService.getName()).toBe("OpenAI");
+      expect(openaiService.provider).toBe("OpenAI");
 
       const geminiService = getAIServiceForProvider("gemini", undefined, "gemini-2.5-flash");
-      expect(geminiService.getName()).toBe("Gemini");
+      expect(geminiService.provider).toBe("Gemini");
 
       const ollamaService = getAIServiceForProvider("ollama");
-      expect(ollamaService.getName()).toBe("Ollama");
+      expect(ollamaService.provider).toBe("Ollama");
 
       const groqService = getAIServiceForProvider("groq", "llama-3.1-70b-versatile");
-      expect(groqService.getName()).toBe("Groq");
+      expect(groqService.provider).toBe("Groq");
 
       const openrouterService = getAIServiceForProvider("openrouter", undefined, undefined, "anthropic/claude-3.5-sonnet");
-      expect(openrouterService.getName()).toBe("OpenRouter");
+      expect(openrouterService.provider).toBe("OpenRouter");
     });
 
     it("サポートされていないプロバイダーでエラーを投げること", () => {
@@ -244,7 +249,11 @@ describe("AI Service", () => {
 
       const mockResponse: AIResponse = {
         content: "Complete response",
-        metadata: { model: "gpt-4o-mini" },
+        usage: {
+          promptTokens: 10,
+          completionTokens: 20,
+          totalTokens: 30,
+        },
       };
 
       mockOpenAIService.generateResponse = vi.fn().mockResolvedValue(mockResponse);
@@ -295,10 +304,10 @@ describe("AI Service", () => {
       getAIServiceForProvider("openrouter", undefined, undefined, "anthropic/claude-3.5-sonnet");
 
       // サービスが正しく作成されることを確認
-      expect(getAIServiceForProvider("openai").getName()).toBe("OpenAI");
-      expect(getAIServiceForProvider("gemini").getName()).toBe("Gemini");
-      expect(getAIServiceForProvider("groq").getName()).toBe("Groq");
-      expect(getAIServiceForProvider("openrouter").getName()).toBe("OpenRouter");
+      expect(getAIServiceForProvider("openai").provider).toBe("OpenAI");
+      expect(getAIServiceForProvider("gemini").provider).toBe("Gemini");
+      expect(getAIServiceForProvider("groq").provider).toBe("Groq");
+      expect(getAIServiceForProvider("openrouter").provider).toBe("OpenRouter");
     });
 
     it("ストリーミング機能の検出が正しく動作すること", async () => {
@@ -341,7 +350,11 @@ describe("AI Service", () => {
 
       const mockResponse: AIResponse = {
         content: "Test response",
-        metadata: { model: "gpt-4o-mini" },
+        usage: {
+          promptTokens: 5,
+          completionTokens: 10,
+          totalTokens: 15,
+        },
       };
 
       mockOpenAIService.generateResponse = vi.fn().mockResolvedValue(mockResponse);

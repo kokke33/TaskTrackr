@@ -1,0 +1,111 @@
+
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+Neon PostgreSQL環境に接続します
+Neonデータベースへの接続をテスト中...
+AI Logger: File logging initialized at ./logs
+📦 セッションストア: MemoryStore (Neon.tech対応)
+📦 セッションストア: memory
+📊 セッションストア統計: {
+  type: 'memory',
+  timestamp: '2025-08-06T04:39:06.779Z',
+  info: {
+    sessionCount: [Function (anonymous)],
+    memoryUsage: {
+      rss: 406827008,
+      heapTotal: 115843072,
+      heapUsed: 87922624,
+      external: 5156972,
+      arrayBuffers: 153928
+    }
+  }
+}
+案件データからプロジェクトを移行中...
+AI Provider: gemini
+Gemini Model: gemini-2.5-flash
+WebSocket server setup complete
+1:39:07 PM [express] Server is running on port 5000 in development mode
+1:39:07 PM [express] WebSocket is available at ws://localhost:5000/ws
+⚠️ Neonデータベース接続失敗 (残り2回)
+10秒後にリトライします...
+🔄 初期ユーザー作成でデータベース接続エラー (残り2回)
+5秒後にリトライします...
+🔗 新しいデータベース接続が確立されました
+🚨 CRITICAL: database 'getAllCases' took 3722.136019ms (threshold: 500ms)
+✅ [PERF] DATABASE getAllCases: 3722.136019ms { includeDeleted: true, threshold: { warning: 100, critical: 500 } }
+一意なプロジェクト名を12件検出
+⚠️ WARNING: database 'getAllProjects' took 414.54981399999997ms (threshold: 100ms)
+✅ [PERF] DATABASE getAllProjects: 414.54981399999997ms { includeDeleted: true, threshold: { warning: 100, critical: 500 } }
+プロジェクト "PNEC_MS1AD1オンライン" は既に存在します
+プロジェクト "SAMPLE_PRJ２" は既に存在します
+プロジェクト "PNEC_SMSK_Stage3" は既に存在します
+プロジェクト "PHIT_LMJY_企業保険" は既に存在します
+プロジェクト "PNEC_SMSK_保守" は既に存在します
+プロジェクト "SAMPLE_PRJ" は既に存在します
+プロジェクト "ITCS_SAIG" は既に存在します
+プロジェクト "VACC_SSJN" は既に存在します
+プロジェクト "PNEC_SMSK_基盤" は既に存在します
+プロジェクト "IIBM_FWAM" は既に存在します
+プロジェクト "INSL_SNSK" は既に存在します
+プロジェクト "PNEC_SMSK_性能" は既に存在します
+マイグレーション完了: 0件のプロジェクトを作成しました
+✅ 初期ユーザーの作成が完了しました
+Neonデータベースへの接続をテスト中...
+✅ Neonデータベース接続成功
+GET /api/check-auth - Auth: false
+[2025-08-06T04:40:04.231Z] DEBUG: Check-auth - not authenticated | {"component":"Routes","isAuthenticated":false,"hasUser":false,"sessionID":"33dzz49SO3OXZBaFTMfgaFgz0P8dbMhC"}
+1:40:04 PM [express] GET /api/check-auth 200 in 5ms :: {"authenticated":false,"message":"認証されていません。再…
+GET /api/check-auth - Auth: false
+[2025-08-06T04:40:31.117Z] DEBUG: Check-auth - not authenticated | {"component":"Routes","isAuthenticated":false,"hasUser":false,"sessionID":"gzZYp2Kau30iS_GHGTn2aF9xWifQ8xSQ"}
+1:40:31 PM [express] GET /api/check-auth 200 in 1ms :: {"authenticated":false,"message":"認証されていません。再…
+1:40:31 PM [vite] Internal server error: Duplicate declaration "WeeklyReport"
+  32 | import { useNavigationGuard, NavigationGuardAction } from "@/hooks/use-navigation-guard";
+  33 |
+> 34 | export default function WeeklyReport() {
+     |                         ^^^^^^^^^^^^
+  35 |   const { id } = useParams<{ id: string }>();
+  36 |   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
+  37 |   const [showSampleDialog, setShowSampleDialog] = useState(false);
+  Plugin: vite:react-babel
+  File: /home/kokke/TaskTrackr/client/src/pages/weekly-report.tsx
+      at buildCodeFrameError (/home/kokke/TaskTrackr/node_modules/@babel/core/src/transformation/file/file.ts:256:12)
+      at checkBlockScopedCollisions (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/scope/index.ts:665:27)
+      at registerBinding (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/scope/index.ts:813:16)
+      at registerDeclaration (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/scope/index.ts:727:12)
+      at BlockScoped (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/scope/index.ts:365:12)
+      at Object.newFn (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/visitors.ts:349:17)
+      at call (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/path/context.ts:36:20)
+      at call (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/path/context.ts:17:15)
+      at NodePath.visit (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/path/context.ts:97:31)
+      at visitQueue (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/context.ts:148:16)
+      at visitSingle (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/context.ts:109:19)
+      at visit (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/context.ts:180:19)
+      at traverseNode (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/traverse-node.ts:208:17)
+      at NodePath.visit (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/path/context.ts:104:33)
+      at visitQueue (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/context.ts:148:16)
+      at visitMultiple (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/context.ts:99:17)
+      at visit (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/context.ts:178:19)
+      at traverseNode (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/traverse-node.ts:208:17)
+      at traverse (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/index.ts:83:15)
+      at traverse (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/path/index.ts:148:13)
+      at crawl (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/scope/index.ts:1046:10)
+      at init (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/scope/index.ts:998:12)
+      at call (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/path/context.ts:160:15)
+      at NodePath.setContext (/home/kokke/TaskTrackr/node_modules/@babel/traverse/src/path/context.ts:180:12)
+      at new constructor (/home/kokke/TaskTrackr/node_modules/@babel/core/src/transformation/file/file.ts:57:8)
+      at normalizeFile (/home/kokke/TaskTrackr/node_modules/@babel/core/src/transformation/normalize-file.ts:101:10)
+      at normalizeFile.next (<anonymous>)
+      at run (/home/kokke/TaskTrackr/node_modules/@babel/core/src/transformation/index.ts:40:36)
+      at run.next (<anonymous>)
+      at transform (/home/kokke/TaskTrackr/node_modules/@babel/core/src/transform.ts:29:20)
+      at transform.next (<anonymous>)
+      at step (/home/kokke/TaskTrackr/node_modules/gensync/index.js:261:32)
+      at /home/kokke/TaskTrackr/node_modules/gensync/index.js:273:13
+      at async.call.result.err.err (/home/kokke/TaskTrackr/node_modules/gensync/index.js:223:11)
+      at /home/kokke/TaskTrackr/node_modules/gensync/index.js:189:28
+      at <anonymous> (/home/kokke/TaskTrackr/node_modules/@babel/core/src/gensync-utils/async.ts:90:7)
+      at /home/kokke/TaskTrackr/node_modules/gensync/index.js:113:33
+      at step (/home/kokke/TaskTrackr/node_modules/gensync/index.js:287:14)
+      at /home/kokke/TaskTrackr/node_modules/gensync/index.js:273:13
+      at async.call.result.err.err (/home/kokke/TaskTrackr/node_modules/gensync/index.js:223:11)

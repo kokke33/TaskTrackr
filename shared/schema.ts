@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, date, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, date, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -38,9 +38,17 @@ export const cases = pgTable("cases", {
   description: text("description"),
   milestone: text("milestone"),
   includeProgressAnalysis: boolean("include_progress_analysis").notNull().default(true),
+  weeklyMeetingDay: text("weekly_meeting_day"),
   isDeleted: boolean("is_deleted").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Performance indexes for common queries
+  isDeletedIdx: index("cases_is_deleted_idx").on(table.isDeleted),
+  createdAtIdx: index("cases_created_at_idx").on(table.createdAt),
+  projectNameIdx: index("cases_project_name_idx").on(table.projectName),
+  // Composite index for the most common query pattern (isDeleted + createdAt)
+  isDeletedCreatedAtIdx: index("cases_is_deleted_created_at_idx").on(table.isDeleted, table.createdAt),
+}));
 
 // 管理者確認メールテーブル
 export const adminConfirmationEmails = pgTable("admin_confirmation_emails", {

@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -157,34 +157,39 @@ function Router() {
 }
 
 function App() {
-  // WebSocket URLの確実な構築 - 最も安全なアプローチ
-  let wsUrl: string;
-  try {
-    // 現在の環境情報を収集
-    const protocol = window.location.protocol;
-    const hostname = window.location.hostname;
-    const port = window.location.port;
-    
-    console.log('[App] Environment:', { protocol, hostname, port });
-    
-    // 本番環境の判定
-    const isProduction = protocol === 'https:';
-    const wsProtocol = isProduction ? 'wss:' : 'ws:';
-    
-    // 開発環境の場合は固定設定を使用
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      wsUrl = `ws://localhost:5000/ws`;
-      console.log('[App] Development mode - Using fixed WebSocket URL:', wsUrl);
-    } else {
-      // 本番環境
-      wsUrl = `${wsProtocol}//${hostname}${port ? ':' + port : ''}/ws`;
-      console.log('[App] Production mode - Using dynamic WebSocket URL:', wsUrl);
+  // WebSocket URLの確実な構築をメモ化して不要な再計算を防止
+  const wsUrl = useMemo(() => {
+    try {
+      // 現在の環境情報を収集
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      const port = window.location.port;
+      
+      console.log('[App] Initializing WebSocket URL - Environment:', { protocol, hostname, port });
+      
+      // 本番環境の判定
+      const isProduction = protocol === 'https:';
+      const wsProtocol = isProduction ? 'wss:' : 'ws:';
+      
+      let url: string;
+      // 開発環境の場合は固定設定を使用
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        url = `ws://localhost:5000/ws`;
+        console.log('[App] Development mode - Using fixed WebSocket URL:', url);
+      } else {
+        // 本番環境
+        url = `${wsProtocol}//${hostname}${port ? ':' + port : ''}/ws`;
+        console.log('[App] Production mode - Using dynamic WebSocket URL:', url);
+      }
+      
+      return url;
+    } catch (error) {
+      // 最終フォールバック
+      const fallbackUrl = `ws://localhost:5000/ws`;
+      console.error('[App] Critical error in WebSocket URL construction, using emergency fallback:', error);
+      return fallbackUrl;
     }
-  } catch (error) {
-    // 最終フォールバック
-    wsUrl = `ws://localhost:5000/ws`;
-    console.error('[App] Critical error in WebSocket URL construction, using emergency fallback:', error);
-  }
+  }, []); // 依存配列を空にして一度だけ実行
 
   return (
     <QueryClientProvider client={queryClient}>

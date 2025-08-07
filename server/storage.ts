@@ -166,6 +166,8 @@ export interface IStorage {
   getWeeklyReportsByCase(caseId: number): Promise<WeeklyReport[]>;
   getWeeklyReportsByCases(caseIds: number[], startDate?: Date, endDate?: Date): Promise<WeeklyReport[]>;
   getRecentWeeklyReports(limit?: number): Promise<WeeklyReport[]>;
+  getWeeklyReportsByDate(date: string): Promise<WeeklyReport[]>;
+  getWeeklyReportsCalendarData(year: number, month: number): Promise<{ [date: string]: number }>;
 
   // 検索関連
   search(query: string, type?: string): Promise<{ total: number, results: SearchResult[] }>;
@@ -1189,18 +1191,26 @@ export class DatabaseStorage implements IStorage {
   // 楽観的ロック対応の週次報告更新
   async updateWeeklyReportWithVersion(id: number, report: InsertWeeklyReport, expectedVersion: number): Promise<WeeklyReport> {
     return await withRetry(async () => {
+      console.log(`📊 [VERSION_LOG] 楽観的ロック更新開始: reportId=${id}, expectedVersion=${expectedVersion}`);
+      
       // まず現在のバージョンを確認
       const current = await this.getWeeklyReport(id);
       if (!current) {
         throw new Error("週次報告が見つかりません");
       }
 
+      console.log(`📊 [VERSION_LOG] 現在のサーバー版数確認: reportId=${id}, serverVersion=${current.version}, expectedVersion=${expectedVersion}`);
+
       if (current.version !== expectedVersion) {
+        console.log(`🚨 [VERSION_LOG] 版数競合検出: reportId=${id}, serverVersion=${current.version}, expectedVersion=${expectedVersion}`);
         throw new OptimisticLockError(`データが他のユーザーによって更新されています。現在のバージョン: ${current.version}, 期待されたバージョン: ${expectedVersion}`);
       }
 
       // バージョンを1つ増やして更新
-      const updatedReport = { ...report, version: expectedVersion + 1, updatedAt: new Date() };
+      const newVersion = expectedVersion + 1;
+      const updatedReport = { ...report, version: newVersion, updatedAt: new Date() };
+      
+      console.log(`📊 [VERSION_LOG] 版数を増加して更新実行: reportId=${id}, ${expectedVersion} → ${newVersion}`);
       
       const [updated] = await db
         .update(weeklyReports)
@@ -1212,19 +1222,25 @@ export class DatabaseStorage implements IStorage {
         .returning();
 
       if (!updated) {
+        console.log(`🚨 [VERSION_LOG] 楽観的ロック更新失敗: reportId=${id}, 他のユーザーによる同時更新`);
         throw new OptimisticLockError("データが他のユーザーによって更新されています");
       }
 
+      console.log(`✅ [VERSION_LOG] 楽観的ロック更新成功: reportId=${id}, 新版数=${updated.version}`);
       return updated;
     });
   }
 
   async updateAIAnalysis(id: number, analysis: string): Promise<WeeklyReport> {
+    // AI分析の更新は楽観的ロック対象外（updatedAtを更新しない）
+    // これによりユーザーの編集セッション中に版数競合が発生することを防ぐ
     const [updated] = await db
       .update(weeklyReports)
-      .set({ aiAnalysis: analysis, updatedAt: new Date() })
+      .set({ aiAnalysis: analysis })
       .where(eq(weeklyReports.id, id))
       .returning();
+    
+    console.log(`📝 AI分析を更新しました (版数に影響なし): reportId=${id}, analysisLength=${analysis.length}`);
     return updated;
   }
 
@@ -1460,6 +1476,101 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
 
     return result as unknown as WeeklyReport[];
+  }
+
+  // 日付による週次報告取得
+  async getWeeklyReportsByDate(date: string): Promise<WeeklyReport[]> {
+    return measureAsync('database', 'getWeeklyReportsByDate', async () => {
+      const result = await db
+        .select({
+          id: weeklyReports.id,
+          reportPeriodStart: weeklyReports.reportPeriodStart,
+          reportPeriodEnd: weeklyReports.reportPeriodEnd,
+          caseId: weeklyReports.caseId,
+          reporterName: weeklyReports.reporterName,
+          weeklyTasks: weeklyReports.weeklyTasks,
+          progressRate: weeklyReports.progressRate,
+          progressStatus: weeklyReports.progressStatus,
+          delayIssues: weeklyReports.delayIssues,
+          delayDetails: weeklyReports.delayDetails,
+          issues: weeklyReports.issues,
+          newRisks: weeklyReports.newRisks,
+          riskSummary: weeklyReports.riskSummary,
+          riskCountermeasures: weeklyReports.riskCountermeasures,
+          riskLevel: weeklyReports.riskLevel,
+          qualityConcerns: weeklyReports.qualityConcerns,
+          qualityDetails: weeklyReports.qualityDetails,
+          testProgress: weeklyReports.testProgress,
+          changes: weeklyReports.changes,
+          changeDetails: weeklyReports.changeDetails,
+          nextWeekPlan: weeklyReports.nextWeekPlan,
+          supportRequests: weeklyReports.supportRequests,
+          resourceConcerns: weeklyReports.resourceConcerns,
+          resourceDetails: weeklyReports.resourceDetails,
+          customerIssues: weeklyReports.customerIssues,
+          customerDetails: weeklyReports.customerDetails,
+          environmentIssues: weeklyReports.environmentIssues,
+          environmentDetails: weeklyReports.environmentDetails,
+          costIssues: weeklyReports.costIssues,
+          costDetails: weeklyReports.costDetails,
+          knowledgeIssues: weeklyReports.knowledgeIssues,
+          knowledgeDetails: weeklyReports.knowledgeDetails,
+          trainingIssues: weeklyReports.trainingIssues,
+          trainingDetails: weeklyReports.trainingDetails,
+          urgentIssues: weeklyReports.urgentIssues,
+          urgentDetails: weeklyReports.urgentDetails,
+          businessOpportunities: weeklyReports.businessOpportunities,
+          businessDetails: weeklyReports.businessDetails,
+          aiAnalysis: weeklyReports.aiAnalysis,
+          createdAt: weeklyReports.createdAt,
+          updatedAt: weeklyReports.updatedAt,
+          version: weeklyReports.version,
+          adminConfirmationEmail: weeklyReports.adminConfirmationEmail,
+          // 案件情報
+          projectName: cases.projectName,
+          caseName: cases.caseName
+        })
+        .from(weeklyReports)
+        .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+        .where(and(
+          eq(cases.isDeleted, false),
+          eq(weeklyReports.reportPeriodStart, date)
+        ))
+        .orderBy(desc(weeklyReports.createdAt));
+      
+      return result as unknown as WeeklyReport[];
+    }, { date });
+  }
+
+  // カレンダー用データ取得（指定月の報告期間開始日とレポート件数）
+  async getWeeklyReportsCalendarData(year: number, month: number): Promise<{ [date: string]: number }> {
+    return measureAsync('database', 'getWeeklyReportsCalendarData', async () => {
+      // 指定月の範囲を設定
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0);
+      
+      const result = await db
+        .select({
+          reportPeriodStart: weeklyReports.reportPeriodStart,
+          count: sql<number>`count(*)`.as('count')
+        })
+        .from(weeklyReports)
+        .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
+        .where(and(
+          eq(cases.isDeleted, false),
+          gte(weeklyReports.reportPeriodStart, startDate.toISOString().split('T')[0]),
+          lte(weeklyReports.reportPeriodStart, endDate.toISOString().split('T')[0])
+        ))
+        .groupBy(weeklyReports.reportPeriodStart);
+      
+      // 結果を { date: count } の形式に変換
+      const calendarData: { [date: string]: number } = {};
+      result.forEach(item => {
+        calendarData[item.reportPeriodStart] = item.count;
+      });
+      
+      return calendarData;
+    }, { year, month });
   }
 
   // マネージャ定例議事録関連のメソッド

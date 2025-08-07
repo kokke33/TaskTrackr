@@ -79,7 +79,27 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // 静的ファイルを適切なMIMEタイプで配信
+  app.use(express.static(distPath, {
+    setHeaders: (res, filePath) => {
+      // JavaScriptファイルの場合はapplication/javascriptを設定
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      }
+      // CSSファイルの場合はtext/cssを設定
+      if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      }
+      // JSONファイルの場合はapplication/jsonを設定
+      if (filePath.endsWith('.json')) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      }
+      // HTMLファイルの場合はtext/htmlを設定
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      }
+    }
+  }));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {

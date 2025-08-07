@@ -46,17 +46,24 @@ class ConnectionManager {
   removeConnection(ws: WebSocket) {
     const connection = this.connections.get(ws);
     if (connection) {
+      console.log(`🔥 [ConnectionManager] Removing connection for user: ${connection.username} (${connection.userId})`);
+      
       // ユーザーの編集セッションをすべて終了
       this.editSessions.forEach((sessions, reportId) => {
+        const originalLength = sessions.length;
         const filteredSessions = sessions.filter(session => session.userId !== connection.userId);
-        if (filteredSessions.length !== sessions.length) {
+        if (filteredSessions.length !== originalLength) {
+          console.log(`🔥 [ConnectionManager] Removed editing session for user ${connection.username} from report ${reportId}`);
+          console.log(`🔥 [ConnectionManager] Sessions before: ${originalLength}, after: ${filteredSessions.length}`);
           this.editSessions.set(reportId, filteredSessions);
           this.broadcastEditingUsers(reportId);
         }
       });
       
       this.connections.delete(ws);
-      console.log(`WebSocket connection closed for user: ${connection.username}`);
+      console.log(`🔥 [ConnectionManager] WebSocket connection fully closed for user: ${connection.username}`);
+    } else {
+      console.log(`🔥 [ConnectionManager] No connection found to remove`);
     }
   }
   
@@ -88,9 +95,15 @@ class ConnectionManager {
     const sessions = this.editSessions.get(reportId) || [];
     const filteredSessions = sessions.filter(s => s.userId !== userId);
     
+    console.log(`🔥 [ConnectionManager] stopEditing called for user ${userId} on report ${reportId}`);
+    console.log(`🔥 [ConnectionManager] Sessions before: ${sessions.length}, after: ${filteredSessions.length}`);
+    
     if (filteredSessions.length !== sessions.length) {
       this.editSessions.set(reportId, filteredSessions);
       this.broadcastEditingUsers(reportId);
+      console.log(`🔥 [ConnectionManager] Successfully removed editing session for user ${userId} from report ${reportId}`);
+    } else {
+      console.log(`🔥 [ConnectionManager] No editing session found to remove for user ${userId} on report ${reportId}`);
     }
   }
   
@@ -131,15 +144,46 @@ class ConnectionManager {
       }
     });
   }
+
+  // データ更新の通知（楽観的ロック用）
+  broadcastDataUpdate(reportId: number, updatedBy: string, newVersion: number) {
+    const message = JSON.stringify({
+      type: 'data_updated',
+      reportId,
+      updatedBy,
+      newVersion,
+      timestamp: new Date().toISOString()
+    });
+    
+    logger.info('Broadcasting data update', { reportId, updatedBy, newVersion });
+    
+    // 該当レポートを編集中のユーザーに通知
+    this.connections.forEach((connection, ws) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        const sessions = this.editSessions.get(reportId) || [];
+        const isEditing = sessions.some(session => session.userId === connection.userId);
+        
+        if (isEditing && connection.username !== updatedBy) {
+          ws.send(message);
+          logger.debug('Sent data update notification', { 
+            to: connection.username, 
+            reportId, 
+            updatedBy 
+          });
+        }
+      }
+    });
+  }
   
-  // 非アクティブなセッションをクリーンアップ（5分間非アクティブ）
+  // 非アクティブなセッションをクリーンアップ（3分間非アクティブ）
   cleanupInactiveSessions() {
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
     
     this.editSessions.forEach((sessions, reportId) => {
-      const activeSessions = sessions.filter(s => s.lastActivity > fiveMinutesAgo);
+      const activeSessions = sessions.filter(s => s.lastActivity > threeMinutesAgo);
       
       if (activeSessions.length !== sessions.length) {
+        console.log(`🔥 [cleanupInactiveSessions] Cleaned up inactive sessions for report ${reportId}: ${sessions.length} -> ${activeSessions.length}`);
         this.editSessions.set(reportId, activeSessions);
         this.broadcastEditingUsers(reportId);
       }
@@ -152,7 +196,7 @@ const connectionManager = new ConnectionManager();
 // 定期的なクリーンアップ
 setInterval(() => {
   connectionManager.cleanupInactiveSessions();
-}, 60 * 1000); // 1分ごと
+}, 30 * 1000); // 30秒ごとに変更して即座にクリーンアップ
 
 // セッション検証のヘルパー関数
 async function getSessionUser(sessionId: string): Promise<{ userId: string; username: string } | null> {
@@ -334,7 +378,7 @@ export function setupWebSocket(server: Server) {
               break;
               
             case 'stop_editing':
-              console.log(`User ${user.username} stopped editing report ${message.reportId}`);
+              console.log(`🔥 [WebSocket] User ${user.username} (${user.userId}) stopped editing report ${message.reportId}`);
               connectionManager.stopEditing(user.userId, message.reportId);
               break;
               
@@ -368,4 +412,37 @@ export function setupWebSocket(server: Server) {
   
   console.log('WebSocket server setup complete');
   return wss;
+}
+
+// WebSocket通知機能を外部から利用可能にする
+export function notifyDataUpdate(reportId: number, updatedBy: string, newVersion: number) {
+  connectionManager.broadcastDataUpdate(reportId, updatedBy, newVersion);
+}
+
+// 編集中ユーザー取得機能を外部から利用可能にする（排他制御用）
+export function getEditingUsers(reportId: number): EditSession[] {
+  const sessions = connectionManager['editSessions'].get(reportId) || [];
+  
+  // 現在時刻
+  const now = new Date();
+  const threeMinutesAgo = new Date(now.getTime() - 3 * 60 * 1000);
+  
+  const activeSessions = sessions.filter(session => {
+    // 3分以上非アクティブなセッションは除外
+    const isActive = session.lastActivity > threeMinutesAgo;
+    if (!isActive) {
+      console.log(`🔥 [getEditingUsers] Excluding inactive session: user ${session.username} (${session.userId}), last activity: ${session.lastActivity}`);
+    }
+    return isActive;
+  });
+  
+  // 非アクティブセッションがあった場合は即座にクリーンアップ
+  if (activeSessions.length !== sessions.length) {
+    console.log(`🔥 [getEditingUsers] Cleaning up inactive sessions for report ${reportId}: ${sessions.length} -> ${activeSessions.length}`);
+    connectionManager['editSessions'].set(reportId, activeSessions);
+    connectionManager['broadcastEditingUsers'](reportId);
+  }
+  
+  console.log(`🔥 [getEditingUsers] Report ${reportId} active editing users:`, activeSessions.map(s => `${s.username} (${s.userId})`));
+  return activeSessions;
 }

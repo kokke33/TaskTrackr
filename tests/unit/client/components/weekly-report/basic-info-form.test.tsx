@@ -38,8 +38,8 @@ const TestFormWrapper = ({ children, defaultValues }: { children: React.ReactNod
 
 describe("BasicInfoForm", () => {
   const mockCases: Case[] = [
-    { id: 1, caseName: "案件A", projectName: "プロジェクトX", createdAt: new Date("2023-01-01T00:00:00Z"), description: null, milestone: null, includeProgressAnalysis: true, isDeleted: false },
-    { id: 2, caseName: "案件B", projectName: "プロジェクトY", createdAt: new Date("2023-01-01T00:00:00Z"), description: null, milestone: null, includeProgressAnalysis: true, isDeleted: false },
+    { id: 1, caseName: "案件A", projectName: "プロジェクトX", createdAt: new Date("2023-01-01T00:00:00Z"), description: null, milestone: null, includeProgressAnalysis: true, weeklyMeetingDay: null, isDeleted: false },
+    { id: 2, caseName: "案件B", projectName: "プロジェクトY", createdAt: new Date("2023-01-01T00:00:00Z"), description: null, milestone: null, includeProgressAnalysis: true, weeklyMeetingDay: null, isDeleted: false },
   ];
 
   const mockOnSelectCase = vi.fn();

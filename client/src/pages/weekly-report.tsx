@@ -1,8 +1,9 @@
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { FormProvider } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import type { WeeklyReport } from "@shared/schema";
 import { Send, ShieldCheck } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -15,9 +16,10 @@ import { useWeeklyReportForm } from "@/hooks/use-weekly-report-form";
 import { useReportAutoSave } from "@/hooks/use-report-auto-save";
 import { useMeetingMinutesGenerator } from "@/hooks/use-meeting-minutes-generator";
 import { useAIAnalysis } from "@/hooks/use-ai-analysis";
-import { useWebSocket } from "@/contexts/useWebSocket"; // 新しいパスに変更
+import { useWebSocket } from "@/contexts/useWebSocket";
 import { EditingUsersIndicator } from "@/components/editing-users-indicator";
 import { useFormPerformance } from "@/hooks/use-performance";
+import { useToast } from "@/hooks/use-toast";
 
 import { ReportHeader } from "@/components/weekly-report/report-header";
 import { BasicInfoForm } from "@/components/weekly-report/basic-info-form";
@@ -26,11 +28,12 @@ import { MeetingMinutes } from "@/components/weekly-report/meeting-minutes";
 import { MilestoneDialog } from "@/components/milestone-dialog";
 import { SampleReportDialog } from "@/components/sample-report-dialog";
 import { NavigationConfirmDialog } from "@/components/navigation-confirm-dialog";
-import { ConflictResolutionDialog } from "@/components/conflict-resolution-dialog";
+import { EditBlockedDialog } from "@/components/edit-blocked-dialog";
 import { useNavigationGuard, NavigationGuardAction } from "@/hooks/use-navigation-guard";
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
+  const [location, setLocation] = useLocation();
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [showSampleDialog, setShowSampleDialog] = useState(false);
   const [navigationDialog, setNavigationDialog] = useState<{
@@ -39,15 +42,23 @@ export default function WeeklyReport() {
     resolve: (action: NavigationGuardAction) => void;
   } | null>(null);
   const [isSavingForNavigation, setIsSavingForNavigation] = useState(false);
-  const [conflictDialog, setConflictDialog] = useState<{
+  const [latestAutoSaveVersion, setLatestAutoSaveVersion] = useState<number | undefined>(undefined);
+  
+  // 編集ブロック用のstate
+  const [editBlockedDialog, setEditBlockedDialog] = useState<{
     open: boolean;
-    serverData: any;
-  } | null>(null);
+    message: string;
+    editingUsers?: any[];
+  }>({ open: false, message: '', editingUsers: [] });
+  
+  // 編集権限チェック済みフラグ（無限ループ防止）
+  const [permissionChecked, setPermissionChecked] = useState(false);
 
   // パフォーマンス監視
   const { measureFormOperation, measureRender } = useFormPerformance('WeeklyReport');
+  const { toast } = useToast();
 
-  const formHook = useWeeklyReportForm({ id });
+  const formHook = useWeeklyReportForm({ id, latestVersionFromAutoSave: latestAutoSaveVersion });
   const {
     form,
     isEditMode,
@@ -63,35 +74,35 @@ export default function WeeklyReport() {
     isSubmitting,
     onSubmit,
     copyFromLastReport,
+    initializeFormData,
+    isInitializing,
   } = formHook;
+
+  // 簡素化：版数コンフリクト状態の監視を削除
 
   const autoSaveHook = useReportAutoSave({ 
     form, 
     isEditMode, 
     id,
     currentVersion: existingReport?.version,
+    isInitializing,
     onVersionConflict: async (message: string) => {
-      // 最新のサーバーデータを取得
-      try {
-        const response = await fetch(`/api/weekly-reports/${id}`, {
-          credentials: "include"
-        });
-        if (response.ok) {
-          const serverData = await response.json();
-          setConflictDialog({
-            open: true,
-            serverData
-          });
-        } else {
-          // フォールバック: ページリロード
-          window.location.reload();
-        }
-      } catch (error) {
-        console.error("Failed to fetch server data:", error);
-        window.location.reload();
-      }
+      // 簡素化：簡単なエラーメッセージのみ
+      toast({
+        title: "保存エラー",
+        description: "他のユーザーがデータを更新しました。ページをリロードしてください。",
+        variant: "destructive",
+      });
     }
   });
+  
+  // 自動保存フックからのバージョン更新を監視
+  useEffect(() => {
+    if (autoSaveHook.version !== latestAutoSaveVersion) {
+      console.log(`🔄 [weekly-report] Updating latest auto-save version: ${autoSaveHook.version}`);
+      setLatestAutoSaveVersion(autoSaveHook.version);
+    }
+  }, [autoSaveHook.version, latestAutoSaveVersion]);
   const {
     lastSavedTime,
     isAutosaving,
@@ -101,38 +112,137 @@ export default function WeeklyReport() {
     handleImmediateSave,
     updateVersion,
     resetConflictResolving,
+    resetFormChanged,
   } = autoSaveHook;
 
   const meetingMinutesHook = useMeetingMinutesGenerator({ reportId, isEditMode });
   const aiAnalysisHook = useAIAnalysis();
   
   // WebSocket接続とリアルタイム編集状況管理
-  const { lastMessage, sendMessage, status, editingUsers, currentUserId } = useWebSocket();
+  const { lastMessage, sendMessage, status, editingUsers, currentUserId, checkEditingPermission } = useWebSocket();
 
-  // WebSocketのステータスが'open'になったら編集開始を通知
+  // 編集開始前の編集権チェック（無限ループ防止版）
   useEffect(() => {
-    if (status === 'open' && isEditMode && reportId) {
-      console.log('[WeeklyReport] Conditions met, starting editing...', { reportId });
-      sendMessage({ type: 'start_editing', reportId: reportId });
+    if (status === 'open' && isEditMode && reportId && checkEditingPermission && !permissionChecked) {
+      console.log('[WeeklyReport] Checking editing permission (once only)...', { reportId });
+      
+      const checkAndStartEditing = async () => {
+        try {
+          setPermissionChecked(true); // フラグを即座に立てて重複実行を防止
+          
+          const result = await checkEditingPermission(reportId);
+          
+          if (!result.allowed) {
+            // 編集が許可されない場合、エラーダイアログを表示
+            console.log('[WeeklyReport] Editing not allowed:', result.message);
+            setEditBlockedDialog({
+              open: true,
+              message: result.message || '他のユーザーが編集中です。',
+              editingUsers: result.editingUsers || []
+            });
+            // 強制リロードは行わず、ダイアログでユーザーに選択を委ねる
+            return;
+          }
+          
+          // 編集権限が得られた場合、編集開始を通知
+          console.log('[WeeklyReport] Editing permission granted, starting editing...', { reportId });
+          sendMessage({ type: 'start_editing', reportId: reportId });
+          
+          // 編集権限確認後にフォームデータを初期化（ドラフト復元を含む）
+          if (initializeFormData) {
+            console.log('[WeeklyReport] Initializing form data after permission granted');
+            initializeFormData();
+            
+            // 初期化完了後にauto-saveのformChangedもリセット（initializeFormData完了を確実に待機）
+            setTimeout(() => {
+              resetFormChanged();
+              console.log('[WeeklyReport] Auto-save formChanged reset completed');
+            }, 350); // initializeFormData の300ms完了を確実に待機
+          }
+        } catch (error) {
+          console.error('[WeeklyReport] Failed to check editing permission:', error);
+          setPermissionChecked(false); // エラー時のみリセットしてリトライを許可
+          setEditBlockedDialog({
+            open: true,
+            message: '編集権限の確認中にエラーが発生しました。',
+            editingUsers: []
+          });
+        }
+      };
 
-      // コンポーネントがアンマウントされるか、条件が変わる時に編集終了
+      checkAndStartEditing();
+
+      // コンポーネントがアンマウントされる時に編集終了
       return () => {
-        console.log('[WeeklyReport] Cleanup effect, stopping editing...', { reportId });
-        sendMessage({ type: 'stop_editing', reportId: reportId });
+        if (isEditMode && reportId && sendMessage && permissionChecked) {
+          console.log('[WeeklyReport] Cleanup effect, stopping editing...', { reportId });
+          sendMessage({ type: 'stop_editing', reportId: reportId });
+        }
       };
     }
-  }, [isEditMode, reportId, status, sendMessage]);
+  }, [isEditMode, reportId, status, permissionChecked, initializeFormData, sendMessage]); // sendMessageを依存配列に追加
+
+  // 編集ブロックダイアログが表示されている場合にのみ編集権限を再チェック
+  useEffect(() => {
+    if (editBlockedDialog.open && status === 'open' && reportId && checkEditingPermission) {
+      const interval = setInterval(async () => {
+        console.log('[WeeklyReport] Re-checking editing permission while dialog is open...');
+        try {
+          const result = await checkEditingPermission(reportId);
+          
+          // 他のユーザーが編集を終了した場合
+          if (result.allowed) {
+            console.log('[WeeklyReport] Editing now allowed, closing dialog and starting editing...');
+            setEditBlockedDialog({ open: false, message: '', editingUsers: [] });
+            
+            // 編集開始処理を実行
+            sendMessage({ type: 'start_editing', reportId: reportId });
+            if (initializeFormData) {
+              initializeFormData();
+              setTimeout(() => {
+                resetFormChanged();
+              }, 350);
+            }
+          }
+        } catch (error) {
+          console.error('[WeeklyReport] Failed to re-check editing permission:', error);
+        }
+      }, 3000); // 3秒ごとに再チェック
+
+      return () => clearInterval(interval);
+    }
+  }, [editBlockedDialog.open, status, reportId, checkEditingPermission, sendMessage, initializeFormData]);
+
+  // 無限ループを防ぐための最終的なガード
+  useEffect(() => {
+    // コンポーネントがマウントされたことを記録
+    console.log('[WeeklyReport] Component mounted with props:', {
+      isEditMode,
+      reportId,
+      status,
+      permissionChecked
+    });
+    
+    // クリーンアップ時にログを出力
+    return () => {
+      console.log('[WeeklyReport] Component unmounting');
+    };
+  }, []);
+
 
   // lastMessage を監視して編集ユーザー情報を更新
   useEffect(() => {
     if (lastMessage) {
-      // WebSocketProviderで既に処理されているため、ここでは追加処理のみ
-      // 必要であれば、ここで追加のロジックを実装
       console.log('[DEBUG] weekly-report.tsx: lastMessage received:', lastMessage);
+      
+      // editing_users メッセージを受信した場合、状態を更新
+      if (lastMessage.type === 'editing_users') {
+        console.log('[DEBUG] weekly-report.tsx: editing_users message received, updating state');
+      }
     }
   }, [lastMessage]);
 
-  // [DEBUG] editingUsers の変更を監視
+  // editingUsers の変更を監視して編集ブロックダイアログを制御
   useEffect(() => {
     console.log('[DEBUG] weekly-report.tsx: editingUsers state updated:', {
       editingUsers,
@@ -160,8 +270,14 @@ export default function WeeklyReport() {
         otherUsersCount: otherUsers.length,
         otherUsers: otherUsers.map(u => ({ userId: u.userId, username: u.username }))
       });
+      
+      // 編集ブロックダイアログが表示されている場合、他のユーザーが編集を終了したかチェック
+      if (editBlockedDialog.open && otherUsers.length === 0) {
+        console.log('[DEBUG] weekly-report.tsx: No other users editing, closing edit blocked dialog');
+        setEditBlockedDialog({ open: false, message: '', editingUsers: [] });
+      }
     }
-  }, [editingUsers, currentUserId]);
+  }, [editingUsers, currentUserId, editBlockedDialog.open]);
 
   // ナビゲーションガードのセットアップ
   const handleNavigationAttempt = async (targetPath: string): Promise<NavigationGuardAction> => {
@@ -173,6 +289,14 @@ export default function WeeklyReport() {
       });
     });
   };
+
+  // 編集終了処理
+  const handleStopEditing = useCallback(() => {
+    if (isEditMode && reportId && sendMessage) {
+      console.log('[WeeklyReport] Stopping editing due to navigation...', { reportId });
+      sendMessage({ type: 'stop_editing', reportId: reportId });
+    }
+  }, [isEditMode, reportId, sendMessage]);
 
   const handleNavigationAction = async (action: NavigationGuardAction) => {
     if (!navigationDialog) return;
@@ -191,16 +315,24 @@ export default function WeeklyReport() {
       } finally {
         setIsSavingForNavigation(false);
       }
+    } else if (action === "discard") {
+      // 編集を破棄してナビゲーションする前に編集終了処理を実行
+      handleStopEditing();
+      navigationDialog.resolve("discard");
     } else {
-      // discard や cancel の場合は即座に resolve
+      // cancel の場合は即座に resolve
       navigationDialog.resolve(action);
     }
   };
 
+  // 簡素化：詳細な競合解決ハンドラーを削除
+
   console.log("🔍 Weekly Report - Navigation guard state:", { 
     formChanged, 
     isSubmitting, 
-    shouldBlock: formChanged && !isSubmitting 
+    shouldBlock: formChanged && !isSubmitting,
+    permissionChecked,
+    isEditMode
   });
 
   useNavigationGuard({
@@ -208,53 +340,6 @@ export default function WeeklyReport() {
     onNavigationAttempt: handleNavigationAttempt,
   });
 
-  // 競合解決のハンドラー
-  const handleConflictResolve = async (resolvedData: any) => {
-    console.log("🔧 Starting conflict resolution with resolved data:", resolvedData);
-    
-    if (!conflictDialog) {
-      console.error("❌ No conflict dialog state found");
-      return;
-    }
-    
-    // ダイアログ情報を保存してからダイアログを閉じる
-    const serverVersion = conflictDialog.serverData?.version;
-    
-    try {
-      // 先にダイアログを閉じる
-      setConflictDialog(null);
-      
-      // 競合解決状態をリセット（自動保存を再開するため）
-      resetConflictResolving();
-      
-      // サーバーのバージョン番号を更新（これで次の自動保存は正しいバージョンを使用）
-      if (serverVersion) {
-        console.log("📝 Updating version to:", serverVersion);
-        updateVersion(serverVersion);
-      }
-      
-      // 解決済みデータでフォームを更新（これによりformChangedがtrueになる）
-      form.reset(resolvedData);
-      
-      // 即座に手動保存を実行
-      console.log("💾 Executing immediate save after conflict resolution");
-      const success = await handleImmediateSave();
-      
-      if (success) {
-        console.log("✅ Conflict resolution completed successfully");
-      } else {
-        console.error("❌ Conflict resolution save failed");
-      }
-      
-    } catch (error) {
-      console.error("💥 Failed to resolve conflict:", error);
-      resetConflictResolving();
-    }
-  };
-
-  const handleConflictReload = () => {
-    window.location.reload();
-  };
 
   if (isLoadingReport || isLoadingCases) {
     return (
@@ -283,6 +368,7 @@ export default function WeeklyReport() {
           onCopyFromLastReport={copyFromLastReport}
           onShowMilestoneDialog={() => setShowMilestoneDialog(true)}
           onShowSampleDialog={() => setShowSampleDialog(true)}
+          onStopEditing={handleStopEditing}
         />
         <div className="container mx-auto px-2 sm:px-4 max-w-4xl pb-4 sm:pb-2">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
@@ -425,38 +511,24 @@ export default function WeeklyReport() {
         targetPath={navigationDialog?.targetPath}
         isSaving={isSavingForNavigation}
       />
-      
-      {conflictDialog && (
-        <ConflictResolutionDialog
-          open={conflictDialog.open}
-          onOpenChange={(open) => {
-            if (!open) {
-              setConflictDialog(null);
-            }
-          }}
-          localData={form.getValues()}
-          serverData={conflictDialog.serverData}
-          serverUsername={(() => {
-            // 自分以外の編集中ユーザーから最新の編集者を特定
-            const otherEditingUsers = editingUsers.filter(user => 
-              String(user.userId) !== String(currentUserId)
-            );
-            
-            if (otherEditingUsers.length > 0) {
-              // 最後にアクティビティがあったユーザーを選択
-              const latestEditor = otherEditingUsers.reduce((latest, current) => 
-                new Date(current.lastActivity) > new Date(latest.lastActivity) ? current : latest
-              );
-              return latestEditor.username;
-            }
-            
-            // フォールバック: サーバーデータから報告者名を取得
-            return conflictDialog.serverData?.reporterName || "他のユーザー";
-          })()}
-          onResolve={handleConflictResolve}
-          onReload={handleConflictReload}
-        />
-      )}
+
+      {/* 簡素化：版数コンフリクトダイアログを削除 */}
+
+      {/* 編集ブロックダイアログ */}
+      <EditBlockedDialog
+        open={editBlockedDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            // ダイアログが閉じられる場合も編集終了処理を実行してから閲覧モードに遷移
+            handleStopEditing();
+            setEditBlockedDialog({ open: false, message: '', editingUsers: [] });
+            const viewPath = `/reports/${id}`;
+            setLocation(viewPath);
+          }
+        }}
+        message={editBlockedDialog.message}
+        editingUsers={editBlockedDialog.editingUsers}
+      />
     </div>
   );
 }

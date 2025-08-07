@@ -24,6 +24,8 @@ export interface WebSocketContextState {
   sendMessage: (message: any) => void;
   editingUsers: EditingUser[];
   currentUserId?: string;
+  onDataUpdate?: (reportId: number, updatedBy: string, newVersion: number) => void;
+  checkEditingPermission: (reportId: number) => Promise<{ allowed: boolean; message?: string; editingUsers?: EditingUser[] }>;
 }
 
 // Contextの作成
@@ -36,6 +38,8 @@ const defaultContextValue: WebSocketContextState = {
   sendMessage: () => console.log('[WebSocketContext] sendMessage called but not connected'),
   editingUsers: [],
   currentUserId: undefined,
+  onDataUpdate: undefined,
+  checkEditingPermission: async () => ({ allowed: false, message: 'WebSocket not connected' }),
 };
 
 export const WebSocketContext = createContext<WebSocketContextState | null>(null);

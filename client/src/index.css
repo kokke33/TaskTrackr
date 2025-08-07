@@ -19,3 +19,12 @@
     margin-left: 2px;
   }
 }
+
+/* テキストエリアのスクロールバーを非表示にする */
+textarea {
+  scrollbar-width: none; /* Firefox */
+}
+
+textarea::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}

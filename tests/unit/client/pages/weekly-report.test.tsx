@@ -12,12 +12,25 @@ vi.mock("wouter", () => ({
 vi.mock("@/hooks/use-weekly-report-form.ts", () => ({
   useWeeklyReportForm: vi.fn().mockReturnValue({
     form: {
-      control: {},
+      control: {} as any,
       getValues: vi.fn(),
       setValue: vi.fn(),
       watch: vi.fn(),
       handleSubmit: vi.fn().mockReturnValue(vi.fn()),
-      formState: { errors: {}, isDirty: false },
+      formState: { 
+        errors: {},
+        isDirty: false,
+        isLoading: false,
+        isSubmitted: false,
+        isSubmitSuccessful: false,
+        isSubmitting: false,
+        isValid: true,
+        isValidating: false,
+        touchedFields: {},
+        dirtyFields: {},
+        defaultValues: {} as any,
+        submitCount: 0,
+      } as any,
     },
     isEditMode: true,
     isAdminEditMode: false,
@@ -43,12 +56,21 @@ vi.mock("@/hooks/use-weekly-report-form.ts", () => ({
       },
     ],
     isLoadingCases: false,
-    latestReport: null,
+    latestReport: undefined,
     selectedCaseId: 1,
     setSelectedCaseId: vi.fn(),
     isSubmitting: false,
     onSubmit: vi.fn(),
     copyFromLastReport: vi.fn(),
+    isLoadingLatest: false,
+    hasVersionConflict: false,
+    conflictDetails: null,
+    resolveConflict: vi.fn(),
+    currentUser: { id: 1, username: "testuser", isAdmin: false },
+    clearFormData: vi.fn(),
+    checkVersionConflict: vi.fn(),
+    saveFormData: vi.fn(),
+    loadFormData: vi.fn(),
   }),
 }));
 
@@ -90,6 +112,8 @@ vi.mock("@/contexts/useWebSocket.ts", () => ({
     status: "open",
     editingUsers: [],
     currentUserId: 1,
+    checkEditingPermission: vi.fn().mockResolvedValue({ allowed: true }),
+    onDataUpdate: undefined,
   }),
 }));
 
@@ -173,20 +197,59 @@ describe("WeeklyReport Page", () => {
   
   // デフォルトのモックフックデータ
   const defaultMockFormHook = {
-    form: { control: {}, getValues: vi.fn(), setValue: vi.fn(), watch: vi.fn(), handleSubmit: vi.fn().mockReturnValue(vi.fn()), formState: { errors: {} } },
+    form: { 
+      control: {} as any, 
+      getValues: vi.fn(), 
+      setValue: vi.fn(), 
+      watch: vi.fn(), 
+      handleSubmit: vi.fn().mockReturnValue(vi.fn()), 
+      formState: { 
+        errors: {},
+        isDirty: false,
+        isLoading: false,
+        isSubmitted: false,
+        isSubmitSuccessful: false,
+        isSubmitting: false,
+        isValid: true,
+        isValidating: false,
+        touchedFields: {},
+        dirtyFields: {},
+        defaultValues: {} as any,
+        submitCount: 0,
+      } as any,
+      getFieldState: vi.fn(),
+      setError: vi.fn(),
+      clearErrors: vi.fn(),
+      trigger: vi.fn(),
+      setFocus: vi.fn(),
+      reset: vi.fn(),
+      resetField: vi.fn(),
+      unregister: vi.fn(),
+      register: vi.fn(),
+      getFieldsState: vi.fn(),
+    } as any,
     isEditMode: true,
     isAdminEditMode: false,
     reportId: 1,
-    existingReport: null,
+    existingReport: undefined,
     isLoadingReport: false,
     cases: [],
     isLoadingCases: false,
-    latestReport: null,
+    latestReport: undefined,
     selectedCaseId: null,
     setSelectedCaseId: vi.fn(),
     isSubmitting: false,
     onSubmit: vi.fn(),
     copyFromLastReport: vi.fn(),
+    isLoadingLatest: false,
+    hasVersionConflict: false,
+    conflictDetails: null,
+    resolveConflict: vi.fn(),
+    currentUser: { id: 1, username: "testuser", isAdmin: false },
+    clearFormData: vi.fn(),
+    checkVersionConflict: vi.fn(),
+    saveFormData: vi.fn(),
+    loadFormData: vi.fn(),
   };
 
   beforeEach(() => {
@@ -323,20 +386,12 @@ describe("WeeklyReport Page", () => {
       // ローディング状態のモック
       const { useWeeklyReportForm } = await import("@/hooks/use-weekly-report-form");
       vi.mocked(useWeeklyReportForm).mockReturnValue({
-        form: { control: {}, getValues: vi.fn(), setValue: vi.fn(), watch: vi.fn(), handleSubmit: vi.fn().mockReturnValue(vi.fn()), formState: { errors: {} } },
-        isEditMode: true,
-        isAdminEditMode: false,
-        reportId: 1,
-        existingReport: null,
+        ...defaultMockFormHook,
+        existingReport: undefined,
         isLoadingReport: true,
         cases: [],
         isLoadingCases: true,
-        latestReport: null,
         selectedCaseId: null,
-        setSelectedCaseId: vi.fn(),
-        isSubmitting: false,
-        onSubmit: vi.fn(),
-        copyFromLastReport: vi.fn(),
       });
 
       renderWeeklyReport();
@@ -354,9 +409,11 @@ describe("WeeklyReport Page", () => {
       vi.mocked(useWebSocket).mockReturnValue({
         lastMessage: null,
         sendMessage: vi.fn(),
-        status: "error",
+        status: "closed",
         editingUsers: [],
-        currentUserId: 1,
+        currentUserId: "1",
+        checkEditingPermission: vi.fn().mockResolvedValue({ allowed: true }),
+        onDataUpdate: undefined,
       });
 
       // 通常の状態（ローディング完了）でフォームを表示するため、ローディングフラグをfalseに設定
