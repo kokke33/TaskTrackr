@@ -1,7 +1,7 @@
 import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, systemSettings, monthlyReports, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting, type SystemSetting, type InsertSystemSetting, type MonthlyReport, type InsertMonthlyReport } from "@shared/schema";
 import { DEFAULT_VALUES } from "@shared/ai-constants";
 import { db } from "./db";
-import { eq, desc, and, isNull, inArray, or, ne, sql, gte, lte, lt } from "drizzle-orm";
+import { eq, desc, asc, and, isNull, inArray, or, ne, sql, gte, lte, lt } from "drizzle-orm";
 import { hash } from "bcryptjs";
 import { performanceMonitor, measureAsync } from "@shared/performance-monitor";
 
@@ -1414,7 +1414,7 @@ export class DatabaseStorage implements IStorage {
       .from(weeklyReports)
       .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
       .where(and(...conditions))
-      .orderBy(desc(weeklyReports.reportPeriodStart));
+      .orderBy(asc(weeklyReports.reportPeriodStart));
     
     // 週次報告のデータのみを返す（JOINしたcasesデータは除く）
     return result.map(item => item.weekly_reports);

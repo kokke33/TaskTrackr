@@ -1035,6 +1035,14 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
             </DialogDescription>
           </DialogHeader>
 
+          {/* 注意書き */}
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-700">
+              <strong>注意:</strong> 各案件につき最大10件の週次報告が表示されます。
+              多数の報告がある場合は、期間内の最初の10件が時系列順で表示されます。
+            </p>
+          </div>
+
           <div className="flex flex-col space-y-6 py-4">
             {/* カレンダー部分 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">

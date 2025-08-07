@@ -977,6 +977,14 @@ export default function CaseList() {
                 デフォルトでは直近1ヶ月と全案件が選択されています。
               </DialogDescription>
             </DialogHeader>
+
+            {/* 注意書き */}
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-700">
+                <strong>注意:</strong> 各案件につき最大10件の週次報告が表示されます。
+                多数の報告がある場合は、期間内の最初の10件が時系列順で表示されます。
+              </p>
+            </div>
             
             <div className="flex flex-col space-y-6 py-4">
               {/* カレンダー部分 */}

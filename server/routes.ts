@@ -1034,15 +1034,15 @@ ${milestone ? `- **マイルストーン**: ${milestone}` : ""}
 
         // 各案件の報告内容をプロンプトに追加
         if (caseInfo.reports.length > 0) {
-          // 日付順にソート
+          // 日付順にソート（reportPeriodStart基準で古い順）
           caseInfo.reports.sort(
             (a: any, b: any) =>
-              new Date(a.reportPeriodEnd).getTime() -
-              new Date(b.reportPeriodEnd).getTime(),
+              new Date(a.reportPeriodStart).getTime() -
+              new Date(b.reportPeriodStart).getTime(),
           );
 
-          // 最大5件までの報告を表示
-          const displayReports = caseInfo.reports.slice(-5);
+          // 最大10件までの報告を表示（期間の最初から時系列順）
+          const displayReports = caseInfo.reports.slice(0, 10);
 
           displayReports.forEach((report: any, index: number) => {
             // レポートの値を日本語変換
@@ -1982,15 +1982,15 @@ ${milestone ? `マイルストーン: ${milestone}` : ""}
 
         // 各案件の報告内容をプロンプトに追加
         if (caseInfo.reports.length > 0) {
-          // 日付順にソート
+          // 日付順にソート（reportPeriodStart基準で古い順）
           caseInfo.reports.sort(
             (a: any, b: any) =>
-              new Date(a.reportPeriodEnd).getTime() -
-              new Date(b.reportPeriodEnd).getTime(),
+              new Date(a.reportPeriodStart).getTime() -
+              new Date(b.reportPeriodStart).getTime(),
           );
 
-          // 最大5件までの報告を表示
-          const displayReports = caseInfo.reports.slice(-5);
+          // 最大10件までの報告を表示（期間の最初から時系列順）
+          const displayReports = caseInfo.reports.slice(0, 10);
 
           displayReports.forEach((report: any) => {
             // レポートの値を日本語変換
