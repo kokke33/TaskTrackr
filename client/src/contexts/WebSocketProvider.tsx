@@ -252,7 +252,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
         );
         
         logger.debug('🔍 [RESTORE] Other editing users after filtering', { 
-          otherEditingUsers: otherEditingUsers.map(user => ({ userId: user.userId, username: user.username })),
+          otherEditingUsers: otherEditingUsers.map((user: { userId: string; username: string }) => ({ userId: user.userId, username: user.username })),
           otherUsersCount: otherEditingUsers.length,
           currentUserId,
           currentUserIdType: typeof currentUserId
