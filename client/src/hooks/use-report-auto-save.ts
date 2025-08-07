@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { WeeklyReport } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -123,16 +123,16 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
     }
   }, [isEditMode, id, form, formChanged, isConflictResolving, onVersionConflict, toast]); // version を依存配列から削除
 
-  // フォームの変更を監視（初期化中は完全無効化）
-  useEffect(() => {
+  // フォームの変更を監視（初期化中は完全無効化）- 同期実行でフリッカー防止
+  useLayoutEffect(() => {
     const subscription = form.watch(() => {
       if (isInitializing) {
-        console.log('[AutoSave] Skipping change detection during initialization');
+        console.log('[AutoSave] Skipping change detection during initialization (sync)');
         return;
       }
       
       // 初期化が完了している場合のみ変更検知
-      console.log('[AutoSave] Form changed detected (user action)');
+      console.log('[AutoSave] Form changed detected (user action - sync)');
       setFormChanged(true);
     });
     return () => subscription.unsubscribe();
