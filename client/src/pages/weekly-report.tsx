@@ -1,4 +1,4 @@
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { FormProvider } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import type { WeeklyReport } from "@shared/schema";
@@ -34,6 +34,7 @@ import { useNavigationGuard, NavigationGuardAction } from "@/hooks/use-navigatio
 
 export default function WeeklyReport() {
   const { id } = useParams<{ id: string }>();
+  const [location, setLocation] = useLocation();
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [showSampleDialog, setShowSampleDialog] = useState(false);
   const [navigationDialog, setNavigationDialog] = useState<{
@@ -52,6 +53,9 @@ export default function WeeklyReport() {
     message: string;
     editingUsers?: any[];
   }>({ open: false, message: '', editingUsers: [] });
+  
+  // 編集権限チェック済みフラグ（無限ループ防止）
+  const [permissionChecked, setPermissionChecked] = useState(false);
 
   // パフォーマンス監視
   const { measureFormOperation, measureRender } = useFormPerformance('WeeklyReport');
@@ -73,6 +77,8 @@ export default function WeeklyReport() {
     isSubmitting,
     onSubmit,
     copyFromLastReport,
+    initializeFormData,
+    isInitializing,
   } = formHook;
 
   // 簡素化：版数コンフリクト状態の監視を削除
@@ -82,6 +88,7 @@ export default function WeeklyReport() {
     isEditMode, 
     id,
     currentVersion: existingReport?.version,
+    isInitializing,
     onVersionConflict: async (message: string) => {
       // 簡素化：簡単なエラーメッセージのみ
       toast({
@@ -108,6 +115,7 @@ export default function WeeklyReport() {
     handleImmediateSave,
     updateVersion,
     resetConflictResolving,
+    resetFormChanged,
   } = autoSaveHook;
 
   const meetingMinutesHook = useMeetingMinutesGenerator({ reportId, isEditMode });
@@ -116,13 +124,15 @@ export default function WeeklyReport() {
   // WebSocket接続とリアルタイム編集状況管理
   const { lastMessage, sendMessage, status, editingUsers, currentUserId, checkEditingPermission } = useWebSocket();
 
-  // 編集開始前の編集権チェック
+  // 編集開始前の編集権チェック（無限ループ防止版）
   useEffect(() => {
-    if (status === 'open' && isEditMode && reportId && checkEditingPermission) {
-      console.log('[WeeklyReport] Checking editing permission...', { reportId });
+    if (status === 'open' && isEditMode && reportId && checkEditingPermission && !permissionChecked) {
+      console.log('[WeeklyReport] Checking editing permission (once only)...', { reportId });
       
       const checkAndStartEditing = async () => {
         try {
+          setPermissionChecked(true); // フラグを即座に立てて重複実行を防止
+          
           const result = await checkEditingPermission(reportId);
           
           if (!result.allowed) {
@@ -133,18 +143,28 @@ export default function WeeklyReport() {
               message: result.message || '他のユーザーが編集中です。',
               editingUsers: result.editingUsers || []
             });
-            // 編集モードを無効化するため、閲覧モードにリダイレクト
-            const newUrl = window.location.pathname.replace(/\/edit$/, '');
-            window.history.replaceState({}, '', newUrl);
-            window.location.reload();
+            // 強制リロードは行わず、ダイアログでユーザーに選択を委ねる
             return;
           }
           
           // 編集権限が得られた場合、編集開始を通知
           console.log('[WeeklyReport] Editing permission granted, starting editing...', { reportId });
           sendMessage({ type: 'start_editing', reportId: reportId });
+          
+          // 編集権限確認後にフォームデータを初期化（ドラフト復元を含む）
+          if (initializeFormData) {
+            console.log('[WeeklyReport] Initializing form data after permission granted');
+            initializeFormData();
+            
+            // 初期化完了後にauto-saveのformChangedもリセット（initializeFormData完了を確実に待機）
+            setTimeout(() => {
+              resetFormChanged();
+              console.log('[WeeklyReport] Auto-save formChanged reset completed');
+            }, 350); // initializeFormData の300ms完了を確実に待機
+          }
         } catch (error) {
           console.error('[WeeklyReport] Failed to check editing permission:', error);
+          setPermissionChecked(false); // エラー時のみリセットしてリトライを許可
           setEditBlockedDialog({
             open: true,
             message: '編集権限の確認中にエラーが発生しました。',
@@ -161,7 +181,7 @@ export default function WeeklyReport() {
         sendMessage({ type: 'stop_editing', reportId: reportId });
       };
     }
-  }, [isEditMode, reportId, status, checkEditingPermission]); // sendMessageを依存配列から除去
+  }, [isEditMode, reportId, status, permissionChecked, initializeFormData]); // initializeFormDataを依存配列に追加
 
   // lastMessage を監視して編集ユーザー情報を更新
   useEffect(() => {
@@ -242,7 +262,9 @@ export default function WeeklyReport() {
   console.log("🔍 Weekly Report - Navigation guard state:", { 
     formChanged, 
     isSubmitting, 
-    shouldBlock: formChanged && !isSubmitting 
+    shouldBlock: formChanged && !isSubmitting,
+    permissionChecked,
+    isEditMode
   });
 
   useNavigationGuard({
@@ -426,15 +448,16 @@ export default function WeeklyReport() {
       {/* 編集ブロックダイアログ */}
       <EditBlockedDialog
         open={editBlockedDialog.open}
-        onOpenChange={(open) => setEditBlockedDialog(prev => ({ ...prev, open }))}
+        onOpenChange={(open) => {
+          if (!open) {
+            // ダイアログが閉じられる場合も閲覧モードに遷移
+            setEditBlockedDialog({ open: false, message: '', editingUsers: [] });
+            const viewPath = `/reports/${id}`;
+            setLocation(viewPath);
+          }
+        }}
         message={editBlockedDialog.message}
         editingUsers={editBlockedDialog.editingUsers}
-        onGoBack={() => {
-          setEditBlockedDialog({ open: false, message: '', editingUsers: [] });
-          // 閲覧モードにリダイレクト
-          const newUrl = window.location.pathname.replace(/\/edit$/, '');
-          window.location.href = newUrl;
-        }}
       />
     </div>
   );

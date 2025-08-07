@@ -21,6 +21,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  
+  // 編集権限チェック結果のキャッシュ（パフォーマンス最適化）
+  const permissionCacheRef = useRef<Map<number, { result: any; timestamp: number }>>(new Map());
 
   const MAX_RECONNECT_ATTEMPTS = 10;
   const INITIAL_RECONNECT_DELAY = 1000;
@@ -85,6 +88,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
             }));
             logger.debug('Setting editing users', { users, userTypes: users.map((u: any) => ({ userId: u.userId, type: typeof u.userId })) });
             setEditingUsers(users);
+            
+            // 編集ユーザーリストが更新された際に該当レポートの権限キャッシュをクリア
+            const reportId = (message as any).reportId;
+            if (reportId && permissionCacheRef.current.has(reportId)) {
+              logger.debug('Clearing permission cache due to editing users update', { reportId });
+              permissionCacheRef.current.delete(reportId);
+            }
           }
         } else if (message.type === 'pong') {
           logger.debug('PONG MESSAGE RECEIVED', { message });
@@ -228,6 +238,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       return { allowed: false, message: 'ユーザー認証に失敗しました。' };
     }
 
+    // キャッシュチェック（5秒間有効）
+    const cached = permissionCacheRef.current.get(reportId);
+    const now = Date.now();
+    if (cached && (now - cached.timestamp) < 5000) {
+      logger.debug('Using cached permission result', { reportId });
+      return cached.result;
+    }
+
     try {
       // サーバーに編集状況を問い合わせる
       const { apiRequest } = await import('@/lib/queryClient');
@@ -243,21 +261,32 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
         
         if (otherEditingUsers.length > 0) {
           const usernames = otherEditingUsers.map((user: EditingUser) => user.username).join(', ');
-          return {
+          const blockedResult = {
             allowed: false,
             message: `このレポートは現在 ${usernames} が編集中です。編集が完了するまでお待ちください。`,
             editingUsers: otherEditingUsers
           };
+          
+          // ブロック結果もキャッシュに保存（短時間）
+          permissionCacheRef.current.set(reportId, { result: blockedResult, timestamp: now });
+          return blockedResult;
         }
       }
       
       // 他のユーザーが編集中でなければ許可
-      return { allowed: true };
+      const result = { allowed: true };
+      
+      // 成功時はキャッシュに保存
+      permissionCacheRef.current.set(reportId, { result, timestamp: now });
+      return result;
     } catch (error) {
       logger.error('Failed to check editing permission', error instanceof Error ? error : new Error(String(error)));
-      return { allowed: false, message: '編集権限の確認中にエラーが発生しました。' };
+      
+      // エラー時はキャッシュしない
+      const errorResult = { allowed: false, message: '編集権限の確認中にエラーが発生しました。' };
+      return errorResult;
     }
-  }, [status, currentUserId, logger]);
+  }, [status, currentUserId]); // loggerを削除（安定した参照のため）
 
   const contextValue = {
     status,

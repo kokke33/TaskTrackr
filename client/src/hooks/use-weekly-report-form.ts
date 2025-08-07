@@ -41,6 +41,8 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [originalData, setOriginalData] = useState<WeeklyReport | null>(null);
   const [currentVersion, setCurrentVersion] = useState<number>(1);
+  const [hasFormChanges, setHasFormChanges] = useState(false); // フォーム変更フラグ
+  const [isInitializing, setIsInitializing] = useState(false); // 初期化中フラグ
 
   const form = useForm<WeeklyReport>({
     resolver: zodResolver(insertWeeklyReportSchema),
@@ -85,6 +87,66 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
       adminConfirmationEmail: "",
     },
   });
+
+  // フォーム変更検出のためのwatcher
+  const watchedValues = form.watch();
+  const watchedValuesRef = useRef(watchedValues);
+  const initialDataRef = useRef<WeeklyReport | null>(null);
+
+  // フォームデータが実際に変更されたかをチェックする関数
+  const checkFormChanges = useCallback(() => {
+    if (!initialDataRef.current) return false;
+    
+    const current = form.getValues();
+    const initial = initialDataRef.current;
+    
+    // 重要なフィールドの変更をチェック
+    const importantFields: (keyof WeeklyReport)[] = [
+      'weeklyTasks', 'progressStatus', 'issues', 'nextWeekPlan', 
+      'supportRequests', 'delayDetails', 'riskSummary', 
+      'riskCountermeasures', 'qualityDetails', 'testProgress',
+      'changeDetails', 'resourceDetails', 'customerDetails',
+      'environmentDetails', 'costDetails', 'knowledgeDetails',
+      'trainingDetails', 'urgentDetails', 'businessDetails',
+      'adminConfirmationEmail', 'reporterName'
+    ];
+    
+    for (const field of importantFields) {
+      const currentValue = (current[field] || '').toString().trim();
+      const initialValue = (initial[field] || '').toString().trim();
+      if (currentValue !== initialValue) {
+        console.log(`[Draft] Form change detected in field '${field}':`, {
+          initial: initialValue.substring(0, 50),
+          current: currentValue.substring(0, 50),
+          isInitializing: isInitializing
+        });
+        return true;
+      }
+    }
+    
+    return false;
+  }, [form, isInitializing]);
+
+  // フォーム値の変更を監視（初期化中は完全無効化）
+  useEffect(() => {
+    // 🔥 重要: 初期化中は変更検知を完全にスキップ
+    if (isInitializing) {
+      console.log('[Draft] Skipping change detection during initialization - isInitializing:', isInitializing);
+      return;
+    }
+    
+    // 初期データが設定されていない場合もスキップ
+    if (!initialDataRef.current) {
+      console.log('[Draft] Skipping change detection - no initial data reference');
+      return;
+    }
+    
+    const hasChanges = checkFormChanges();
+    if (hasChanges !== hasFormChanges) {
+      setHasFormChanges(hasChanges);
+      console.log(`[Draft] Form changes state updated: ${hasChanges} (user action)`);
+    }
+  }, [watchedValues, checkFormChanges, hasFormChanges, isInitializing]);
 
   const { data: latestReport, isLoading: isLoadingLatest } = useQuery<WeeklyReport>({
     queryKey: [`/api/weekly-reports/previous/${selectedCaseId}`, reportId, existingReport?.reportPeriodStart],
@@ -140,9 +202,9 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
     }
   }, [isAdminEditMode, isEditMode, id, setLocation, toast]);
 
-  // 一時保存機能
+  // 一時保存機能（実際の変更がある場合のみ）
   const saveFormData = useCallback(() => {
-    if (!reportId) return;
+    if (!reportId || !hasFormChanges) return; // 変更がない場合は保存しない
     
     const formData = form.getValues();
     const saveKey = `weekly-report-draft-${reportId}`;
@@ -153,10 +215,11 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
         timestamp: Date.now(),
         version: existingReport?.version
       }));
+      console.log('[Draft] Saved form data with changes');
     } catch (error) {
       console.error('Failed to save draft:', error);
     }
-  }, [form, reportId, existingReport?.version]);
+  }, [form, reportId, existingReport?.version, hasFormChanges]);
 
   const loadFormData = useCallback(() => {
     if (!reportId) return false;
@@ -186,11 +249,23 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
         form.setValue(key as keyof WeeklyReport, value as any);
       });
       
+      // 復元時刻の計算と表示
+      const savedTime = new Date(timestamp);
+      const now = new Date();
+      const minutesAgo = Math.floor((now.getTime() - savedTime.getTime()) / (1000 * 60));
+      
+      const timeDescription = minutesAgo < 1 
+        ? "1分以内" 
+        : minutesAgo < 60 
+        ? `${minutesAgo}分前` 
+        : `${Math.floor(minutesAgo / 60)}時間前`;
+      
       toast({
         title: "ドラフトを復元しました",
-        description: "前回の編集内容を復元しました。",
+        description: `${timeDescription}の編集内容を復元しました。`,
       });
       
+      console.log('[Draft] Restored form data from:', savedTime);
       return true;
     } catch (error) {
       console.error('Failed to load draft:', error);
@@ -221,20 +296,52 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
     };
   }, [saveFormData]);
 
-  // 初回読み込み時にドラフトを復元
-  useEffect(() => {
+  // 初期データの設定（編集権限確認後に外部から呼び出される）
+  const initializeFormData = useCallback(() => {
     if (isEditMode && existingReport) {
-      // 既存データがロードされた後でドラフトを復元を試行
-      const hasRestored = loadFormData();
-      if (!hasRestored) {
-        // ドラフトがない場合は既存データでフォームを初期化
-        Object.entries(existingReport).forEach(([key, value]) => {
-          const formValue = value === null || value === undefined ? "" : value;
-          form.setValue(key as keyof WeeklyReport, formValue);
-        });
-        setSelectedCaseId(existingReport.caseId);
+      console.log('[Draft] Starting form initialization');
+      
+      // 🔥 重要: 最初に初期化フラグを設定して変更検知を無効化
+      setIsInitializing(true);
+      setHasFormChanges(false); // 変更フラグも事前にリセット
+      
+      try {
+        // 初期データを先に保存（変更検出のため）
+        // existingReport の null/undefined を空文字列に変換して初期データとして設定
+        const cleanedExistingReport = Object.fromEntries(
+          Object.entries(existingReport).map(([key, value]) => [key, value === null || value === undefined ? "" : value])
+        ) as WeeklyReport;
+        initialDataRef.current = { ...cleanedExistingReport };
+        console.log('[Draft] Initial data reference set with cleaned data');
+        
+        // 既存データがロードされた後でドラフトを復元を試行
+        const hasRestored = loadFormData();
+        if (!hasRestored) {
+          // ドラフトがない場合は既存データでフォームを初期化
+          Object.entries(cleanedExistingReport).forEach(([key, value]) => {
+            form.setValue(key as keyof WeeklyReport, value as any);
+          });
+          setSelectedCaseId(existingReport.caseId);
+          console.log('[Draft] Form initialized with existing data');
+        } else {
+          console.log('[Draft] Form initialized with draft data');
+        }
+        
+        // 初期化完了後に十分待ってから変更検出を有効化（300msに延長）
+        setTimeout(() => {
+          setIsInitializing(false);
+          setHasFormChanges(false); // 二重確認でリセット
+          console.log('[Draft] Form initialization completed - change detection enabled');
+        }, 300);
+        
+        return true;
+      } catch (error) {
+        console.error('[Draft] Error during form initialization:', error);
+        setIsInitializing(false);
+        return false;
       }
     }
+    return false;
   }, [isEditMode, existingReport, loadFormData, form]);
 
   // 簡素化：WebSocket通知処理を削除（排他制御で事前防止するため不要）
@@ -382,5 +489,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
     saveFormData,
     loadFormData,
     clearFormData,
+    initializeFormData,
+    isInitializing,
   };
 }

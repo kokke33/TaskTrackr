@@ -10,9 +10,10 @@ type UseReportAutoSaveProps = {
   id?: string;
   currentVersion?: number;
   onVersionConflict?: (message: string) => void;
+  isInitializing?: boolean; // 初期化中フラグ
 };
 
-export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVersionConflict }: UseReportAutoSaveProps) {
+export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVersionConflict, isInitializing = false }: UseReportAutoSaveProps) {
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [isAutosaving, setIsAutosaving] = useState(false);
   const [formChanged, setFormChanged] = useState(false);
@@ -122,12 +123,20 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
     }
   }, [isEditMode, id, form, formChanged, isConflictResolving, onVersionConflict, toast]); // version を依存配列から削除
 
+  // フォームの変更を監視（初期化中は完全無効化）
   useEffect(() => {
     const subscription = form.watch(() => {
+      if (isInitializing) {
+        console.log('[AutoSave] Skipping change detection during initialization');
+        return;
+      }
+      
+      // 初期化が完了している場合のみ変更検知
+      console.log('[AutoSave] Form changed detected (user action)');
       setFormChanged(true);
     });
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, isInitializing]);
 
   // デバウンス機能付きの自動保存タイマー
   useEffect(() => {
@@ -189,6 +198,11 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
     setIsConflictResolving(false);
   }, []);
 
+  const resetFormChanged = useCallback(() => {
+    setFormChanged(false);
+    console.log('[AutoSave] Form changed reset to false');
+  }, []);
+
   return {
     lastSavedTime,
     isAutosaving,
@@ -198,5 +212,6 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
     handleImmediateSave,
     updateVersion,
     resetConflictResolving,
+    resetFormChanged,
   };
 }
