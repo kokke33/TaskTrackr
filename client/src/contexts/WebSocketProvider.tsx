@@ -220,11 +220,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
   }, []);
 
   const checkEditingPermission = useCallback(async (reportId: number): Promise<{ allowed: boolean; message?: string; editingUsers?: EditingUser[] }> => {
-    logger.info('🔍 [Fixed] Checking editing permission using WebSocket editingUsers state', { 
+    logger.info('🔍 [RESTORE] Checking editing permission using API for specific reportId', { 
       reportId, 
       status, 
-      currentUserId, 
-      editingUsersCount: editingUsers.length 
+      currentUserId
     });
     
     if (status !== 'open') {
@@ -235,47 +234,62 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       return { allowed: false, message: 'ユーザー認証に失敗しました。' };
     }
 
-    // 🔥 修正: WebSocketで管理しているeditingUsers状態を直接参照
-    // APIリクエストを削除し、リアルタイムデータを使用
-    logger.debug('🔍 [Fixed] Current editing users from WebSocket state', { 
-      editingUsers: editingUsers.map(user => ({ userId: user.userId, username: user.username })),
-      currentUserId,
-      currentUserIdType: typeof currentUserId
-    });
-    
-    // 他のユーザーが編集中かどうかを確認（自分を除外）
-    const otherEditingUsers = editingUsers.filter((user: EditingUser) => 
-      String(user.userId) !== String(currentUserId)
-    );
-    
-    logger.debug('🔍 [Fixed] Other editing users after filtering', { 
-      otherEditingUsers: otherEditingUsers.map(user => ({ userId: user.userId, username: user.username })),
-      otherUsersCount: otherEditingUsers.length
-    });
-    
-    if (otherEditingUsers.length > 0) {
-      const usernames = otherEditingUsers.map((user: EditingUser) => user.username).join(', ');
-      const blockedResult = {
-        allowed: false,
-        message: `このレポートは現在 ${usernames} が編集中です。編集が完了するまでお待ちください。`,
-        editingUsers: otherEditingUsers
-      };
+    try {
+      // 🔥 元のAPI方式に戻す: 特定のreportIdの編集ユーザーを取得
+      const { apiRequest } = await import('@/lib/queryClient');
+      const response = await apiRequest(`/api/reports/${reportId}/editing-users`, { method: 'GET' });
       
-      logger.info('🚫 [Fixed] Editing blocked - other users are editing', { 
-        blockedBy: usernames,
-        otherUsersCount: otherEditingUsers.length
+      logger.debug('🔍 [RESTORE] API response for editing users', { 
+        reportId,
+        response,
+        editingUsersCount: response.editingUsers?.length || 0
       });
-      return blockedResult;
+      
+      if (response.editingUsers && response.editingUsers.length > 0) {
+        // 他のユーザーが編集中の場合、自分を除外して確認
+        const otherEditingUsers = response.editingUsers.filter((user: EditingUser) => 
+          String(user.userId) !== String(currentUserId)
+        );
+        
+        logger.debug('🔍 [RESTORE] Other editing users after filtering', { 
+          otherEditingUsers: otherEditingUsers.map(user => ({ userId: user.userId, username: user.username })),
+          otherUsersCount: otherEditingUsers.length,
+          currentUserId,
+          currentUserIdType: typeof currentUserId
+        });
+        
+        if (otherEditingUsers.length > 0) {
+          const usernames = otherEditingUsers.map((user: EditingUser) => user.username).join(', ');
+          const blockedResult = {
+            allowed: false,
+            message: `このレポートは現在 ${usernames} が編集中です。編集が完了するまでお待ちください。`,
+            editingUsers: otherEditingUsers
+          };
+          
+          logger.info('🚫 [RESTORE] Editing blocked - other users are editing', { 
+            reportId,
+            blockedBy: usernames,
+            otherUsersCount: otherEditingUsers.length
+          });
+          return blockedResult;
+        }
+      }
+      
+      // 他のユーザーが編集中でなければ許可
+      const result = { allowed: true };
+      logger.info('✅ [RESTORE] Editing permission granted - no other users editing', { 
+        reportId,
+        currentUserId
+      });
+      return result;
+    } catch (error) {
+      logger.error('❌ [RESTORE] Failed to check editing permission', error instanceof Error ? error : new Error(String(error)));
+      
+      // エラー時も編集を許可しない
+      const errorResult = { allowed: false, message: '編集権限の確認中にエラーが発生しました。' };
+      return errorResult;
     }
-    
-    // 他のユーザーが編集中でなければ許可
-    const result = { allowed: true };
-    logger.info('✅ [Fixed] Editing permission granted - no other users editing', { 
-      reportId,
-      currentUserId
-    });
-    return result;
-  }, [status, currentUserId, editingUsers]); // editingUsersを依存配列に追加
+  }, [status, currentUserId]); // editingUsersを依存配列から削除
 
   const contextValue = {
     status,

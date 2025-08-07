@@ -26,7 +26,7 @@ import passport from "passport";
 import { isAuthenticated, isAdmin, isAuthenticatedHybrid, isAdminHybrid } from "./auth";
 import { hybridAuthManager } from "./hybrid-auth-manager";
 import { createLogger } from "@shared/logger";
-import { notifyDataUpdate } from "./websocket";
+import { notifyDataUpdate, getEditingUsers } from "./websocket";
 
 const logger = createLogger('Routes');
 
@@ -1348,9 +1348,14 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     try {
       const reportId = parseInt(req.params.id);
       
-      // WebSocket ConnectionManagerから編集中ユーザー情報を取得
-      const { getEditingUsers } = await import('./websocket');
+      // 🔥 修正: 直接インポートされた関数を使用（動的インポートの問題を完全回避）
       const editingUsers = getEditingUsers(reportId);
+      
+      console.log(`🔍 [API] Fetching editing users for report ${reportId}:`, {
+        reportId,
+        editingUsersCount: editingUsers.length,
+        users: editingUsers.map(user => ({ userId: user.userId, username: user.username }))
+      });
       
       res.json({ 
         editingUsers: editingUsers.map(user => ({
@@ -1361,7 +1366,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
         }))
       });
     } catch (error) {
-      console.error("Error fetching editing users:", error);
+      console.error("❌ [API] Error fetching editing users:", error);
       res.status(500).json({ message: "編集状況の取得に失敗しました" });
     }
   });
