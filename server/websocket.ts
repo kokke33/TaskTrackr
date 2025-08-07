@@ -175,14 +175,15 @@ class ConnectionManager {
     });
   }
   
-  // 非アクティブなセッションをクリーンアップ（5分間非アクティブ）
+  // 非アクティブなセッションをクリーンアップ（3分間非アクティブ）
   cleanupInactiveSessions() {
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
     
     this.editSessions.forEach((sessions, reportId) => {
-      const activeSessions = sessions.filter(s => s.lastActivity > fiveMinutesAgo);
+      const activeSessions = sessions.filter(s => s.lastActivity > threeMinutesAgo);
       
       if (activeSessions.length !== sessions.length) {
+        console.log(`🔥 [cleanupInactiveSessions] Cleaned up inactive sessions for report ${reportId}: ${sessions.length} -> ${activeSessions.length}`);
         this.editSessions.set(reportId, activeSessions);
         this.broadcastEditingUsers(reportId);
       }
@@ -195,7 +196,7 @@ const connectionManager = new ConnectionManager();
 // 定期的なクリーンアップ
 setInterval(() => {
   connectionManager.cleanupInactiveSessions();
-}, 60 * 1000); // 1分ごと
+}, 30 * 1000); // 30秒ごとに変更して即座にクリーンアップ
 
 // セッション検証のヘルパー関数
 async function getSessionUser(sessionId: string): Promise<{ userId: string; username: string } | null> {
@@ -424,11 +425,11 @@ export function getEditingUsers(reportId: number): EditSession[] {
   
   // 現在時刻
   const now = new Date();
-  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+  const threeMinutesAgo = new Date(now.getTime() - 3 * 60 * 1000);
   
   const activeSessions = sessions.filter(session => {
-    // 5分以上非アクティブなセッションは除外
-    const isActive = session.lastActivity > fiveMinutesAgo;
+    // 3分以上非アクティブなセッションは除外
+    const isActive = session.lastActivity > threeMinutesAgo;
     if (!isActive) {
       console.log(`🔥 [getEditingUsers] Excluding inactive session: user ${session.username} (${session.userId}), last activity: ${session.lastActivity}`);
     }

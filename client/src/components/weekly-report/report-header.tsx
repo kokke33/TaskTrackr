@@ -18,6 +18,7 @@ type ReportHeaderProps = {
   onCopyFromLastReport: () => void;
   onShowMilestoneDialog: () => void;
   onShowSampleDialog: () => void;
+  onStopEditing?: () => void; // 追加：編集終了処理用のコールバック
 };
 
 export function ReportHeader({
@@ -34,6 +35,7 @@ export function ReportHeader({
   onCopyFromLastReport,
   onShowMilestoneDialog,
   onShowSampleDialog,
+  onStopEditing,
 }: ReportHeaderProps) {
   return (
     <>
@@ -137,7 +139,20 @@ export function ReportHeader({
                   <FileText className="h-4 w-4" />
                 </Button>
               </div>
-              <Link href={isEditMode ? `/reports/${reportId}` : "/reports"}>
+              <Link
+                href={isEditMode ? `/reports/${reportId}` : "/reports"}
+                onClick={(e) => {
+                  if (isEditMode && onStopEditing) {
+                    e.preventDefault();
+                    // 編集終了処理を実行してからナビゲーション
+                    onStopEditing();
+                    // 少し遅延させてからナビゲーションを実行
+                    setTimeout(() => {
+                      window.location.href = `/reports/${reportId}`;
+                    }, 100);
+                  }
+                }}
+              >
                 <Button variant="ghost" size="sm" className="px-2 sm:px-3">
                   <span className="hidden sm:inline">戻る</span>
                   <span className="sm:hidden">×</span>
