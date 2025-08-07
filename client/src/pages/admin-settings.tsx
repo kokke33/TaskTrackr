@@ -28,8 +28,8 @@ async function getSystemSettings(): Promise<SystemSetting[]> {
 }
 
 // セッション設定を取得する関数
-async function getSessionAISettings(): Promise<{ realtimeProvider?: string; groqModel?: string; geminiModel?: string; openrouterModel?: string }> {
-  return await apiRequest<{ realtimeProvider?: string; groqModel?: string; geminiModel?: string; openrouterModel?: string }>("/api/session-ai-settings", { method: "GET" });
+async function getSessionAISettings(): Promise<{ realtimeProvider?: string; openaiModel?: string; groqModel?: string; geminiModel?: string; openrouterModel?: string }> {
+  return await apiRequest<{ realtimeProvider?: string; openaiModel?: string; groqModel?: string; geminiModel?: string; openrouterModel?: string }>("/api/session-ai-settings", { method: "GET" });
 }
 
 export default function AdminSettings() {
@@ -139,22 +139,24 @@ export default function AdminSettings() {
     if (settings) {
       // 基本AI設定の読み込み
       const basicProvider = settings.find(s => s.key === "AI_PROVIDER")?.value;
+      const basicOpenAIModel = settings.find(s => s.key === "AI_OPENAI_MODEL")?.value;
       const basicGroqModel = settings.find(s => s.key === "AI_GROQ_MODEL")?.value;
       const basicGeminiModel = settings.find(s => s.key === "AI_GEMINI_MODEL")?.value;
       const basicOpenRouterModel = settings.find(s => s.key === "AI_OPENROUTER_MODEL")?.value;
 
       setBasicConfig(AISettingsManager.buildConfigFromSettings(
-        basicProvider || DEFAULT_VALUES.AI_PROVIDER, basicGroqModel, basicGeminiModel, basicOpenRouterModel
+        basicProvider || DEFAULT_VALUES.AI_PROVIDER, basicGroqModel, basicGeminiModel, basicOpenRouterModel, basicOpenAIModel
       ));
 
       // リアルタイム分析設定の読み込み
       const realtimeProvider = settings.find(s => s.key === "REALTIME_PROVIDER")?.value;
+      const realtimeOpenAIModel = settings.find(s => s.key === "REALTIME_OPENAI_MODEL")?.value;
       const realtimeGroqModel = settings.find(s => s.key === "REALTIME_GROQ_MODEL")?.value;
       const realtimeGeminiModel = settings.find(s => s.key === "REALTIME_GEMINI_MODEL")?.value;
       const realtimeOpenRouterModel = settings.find(s => s.key === "REALTIME_OPENROUTER_MODEL")?.value;
 
       setRealtimeConfig(AISettingsManager.buildConfigFromSettings(
-        realtimeProvider || DEFAULT_VALUES.REALTIME_PROVIDER, realtimeGroqModel, realtimeGeminiModel, realtimeOpenRouterModel
+        realtimeProvider || DEFAULT_VALUES.REALTIME_PROVIDER, realtimeGroqModel, realtimeGeminiModel, realtimeOpenRouterModel, realtimeOpenAIModel
       ));
 
       // ストリーミング設定の読み込み
@@ -170,7 +172,8 @@ export default function AdminSettings() {
         sessionSettings.realtimeProvider,
         sessionSettings.groqModel,
         sessionSettings.geminiModel,
-        sessionSettings.openrouterModel
+        sessionSettings.openrouterModel,
+        sessionSettings.openaiModel
       ));
       setIsTrialMode(true);
     } else {

@@ -139,7 +139,8 @@ router.post('/api/ai/analyze-text', isAuthenticated, async (req, res) => {
       realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter',
       realtimeConfig.provider === 'groq' ? realtimeConfig.groqModel : undefined,
       realtimeConfig.provider === 'gemini' ? realtimeConfig.geminiModel : undefined,
-      realtimeConfig.provider === 'openrouter' ? realtimeConfig.openrouterModel : undefined
+      realtimeConfig.provider === 'openrouter' ? realtimeConfig.openrouterModel : undefined,
+      realtimeConfig.provider === 'openai' ? realtimeConfig.openaiModel : undefined
     );
     
     const analysis = await analyzeText(aiService, content, fieldType, originalContent, previousReportContent, userId);
@@ -182,7 +183,8 @@ router.post('/api/ai/analyze-text-trial', isAuthenticated, async (req, res) => {
         sessionSettings.realtimeProvider,
         sessionSettings.realtimeProvider === 'groq' ? sessionSettings.groqModel : undefined,
         sessionSettings.realtimeProvider === 'gemini' ? sessionSettings.geminiModel : undefined,
-        sessionSettings.realtimeProvider === 'openrouter' ? sessionSettings.openrouterModel : undefined
+        sessionSettings.realtimeProvider === 'openrouter' ? sessionSettings.openrouterModel : undefined,
+        sessionSettings.realtimeProvider === 'openai' ? sessionSettings.openaiModel : undefined
       );
     } else {
       // デフォルトの設定を使用
@@ -242,7 +244,8 @@ router.post('/api/ai/conversation', isAuthenticated, async (req, res) => {
           sessionSettings.realtimeProvider,
           sessionSettings.realtimeProvider === 'groq' ? sessionSettings.groqModel : undefined,
           sessionSettings.realtimeProvider === 'gemini' ? sessionSettings.geminiModel : undefined,
-          sessionSettings.realtimeProvider === 'openrouter' ? sessionSettings.openrouterModel : undefined
+          sessionSettings.realtimeProvider === 'openrouter' ? sessionSettings.openrouterModel : undefined,
+          sessionSettings.realtimeProvider === 'openai' ? sessionSettings.openaiModel : undefined
         );
       } else {
         // リアルタイム分析設定を取得
@@ -252,7 +255,8 @@ router.post('/api/ai/conversation', isAuthenticated, async (req, res) => {
           realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter',
           realtimeConfig.provider === 'groq' ? realtimeConfig.groqModel : undefined,
           realtimeConfig.provider === 'gemini' ? realtimeConfig.geminiModel : undefined,
-          realtimeConfig.provider === 'openrouter' ? realtimeConfig.openrouterModel : undefined
+          realtimeConfig.provider === 'openrouter' ? realtimeConfig.openrouterModel : undefined,
+          realtimeConfig.provider === 'openai' ? realtimeConfig.openaiModel : undefined
         );
       }
     } catch (error) {
@@ -355,7 +359,8 @@ router.post('/api/ai/analyze-text-stream', isAuthenticated, async (req, res) => 
           sessionSettings.realtimeProvider,
           sessionSettings.realtimeProvider === 'groq' ? sessionSettings.groqModel : undefined,
           sessionSettings.realtimeProvider === 'gemini' ? sessionSettings.geminiModel : undefined,
-          sessionSettings.realtimeProvider === 'openrouter' ? sessionSettings.openrouterModel : undefined
+          sessionSettings.realtimeProvider === 'openrouter' ? sessionSettings.openrouterModel : undefined,
+          sessionSettings.realtimeProvider === 'openai' ? sessionSettings.openaiModel : undefined
         );
       } else {
         // リアルタイム分析設定を取得
@@ -365,7 +370,8 @@ router.post('/api/ai/analyze-text-stream', isAuthenticated, async (req, res) => 
           realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter',
           realtimeConfig.provider === 'groq' ? realtimeConfig.groqModel : undefined,
           realtimeConfig.provider === 'gemini' ? realtimeConfig.geminiModel : undefined,
-          realtimeConfig.provider === 'openrouter' ? realtimeConfig.openrouterModel : undefined
+          realtimeConfig.provider === 'openrouter' ? realtimeConfig.openrouterModel : undefined,
+          realtimeConfig.provider === 'openai' ? realtimeConfig.openaiModel : undefined
         );
       }
     } catch (configError) {

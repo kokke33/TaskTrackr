@@ -5,6 +5,17 @@
 export const AI_PROVIDERS = ["openai", "ollama", "gemini", "groq", "openrouter"] as const;
 export type AIProvider = typeof AI_PROVIDERS[number];
 
+// OpenAIモデル
+export const OPENAI_MODELS = [
+  "gpt-4o",
+  "gpt-4o-mini",
+  "gpt-3.5-turbo",
+  "gpt-5-2025-08-07",
+  "gpt-5-mini-2025-08-07",
+  "gpt-5-nano-2025-08-07"
+] as const;
+export type OpenAIModel = typeof OPENAI_MODELS[number];
+
 // Groqモデル
 export const GROQ_MODELS = [
   "qwen/qwen3-32b", 
@@ -34,6 +45,7 @@ export type OpenRouterModel = typeof OPENROUTER_MODELS[number];
 export const DEFAULT_VALUES = {
   AI_PROVIDER: "gemini" as AIProvider,
   REALTIME_PROVIDER: "gemini" as AIProvider,
+  OPENAI_MODEL: "gpt-4o" as OpenAIModel,
   GROQ_MODEL: "llama-3.3-70b-versatile" as GroqModel,
   GEMINI_MODEL: "gemini-2.5-flash" as GeminiModel,
   OPENROUTER_MODEL: "anthropic/claude-3.5-sonnet" as OpenRouterModel,
@@ -46,6 +58,16 @@ export const AI_PROVIDER_OPTIONS = [
   { value: "gemini", label: "Google Gemini" },
   { value: "groq", label: "Groq" },
   { value: "openrouter", label: "OpenRouter" },
+] as const;
+
+// UI表示用のOpenAIモデル選択肢（ラベル付き）
+export const OPENAI_MODEL_OPTIONS = [
+  { value: "gpt-4o", label: "GPT-4o (推奨)" },
+  { value: "gpt-4o-mini", label: "GPT-4o Mini" },
+  { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+  { value: "gpt-5-2025-08-07", label: "GPT-5 (2025-08-07)" },
+  { value: "gpt-5-mini-2025-08-07", label: "GPT-5 Mini (2025-08-07)" },
+  { value: "gpt-5-nano-2025-08-07", label: "GPT-5 Nano (2025-08-07)" },
 ] as const;
 
 // UI表示用のGroqモデル選択肢（ラベル付き）
@@ -109,6 +131,10 @@ export const isValidGroqModel = (value: string): value is GroqModel => {
 
 export const isValidGeminiModel = (value: string): value is GeminiModel => {
   return GEMINI_MODELS.includes(value as GeminiModel);
+};
+
+export const isValidOpenAIModel = (value: string): value is OpenAIModel => {
+  return OPENAI_MODELS.includes(value as OpenAIModel);
 };
 
 export const isValidOpenRouterModel = (value: string): value is OpenRouterModel => {
