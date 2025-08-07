@@ -1401,11 +1401,11 @@ export class DatabaseStorage implements IStorage {
       eq(cases.isDeleted, false)
     ];
 
-    // 日付範囲でフィルタリング
+    // 日付範囲でフィルタリング（報告期間が指定期間と重複する場合を取得）
     if (startDate && endDate) {
       conditions.push(
-        gte(weeklyReports.reportPeriodEnd, startDate.toISOString().split('T')[0]),
-        lte(weeklyReports.reportPeriodEnd, endDate.toISOString().split('T')[0])
+        lte(weeklyReports.reportPeriodStart, endDate.toISOString().split('T')[0]),
+        gte(weeklyReports.reportPeriodEnd, startDate.toISOString().split('T')[0])
       );
     }
 
