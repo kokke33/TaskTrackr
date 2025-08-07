@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -26,6 +26,9 @@ export function useMeetingMinutesGenerator({ reportId, isEditMode }: UseMeetingM
   });
 
   const [editingMeetings, setEditingMeetings] = useState<{ [key: number]: { title: string; content: string } }>({});
+  
+  // debounce用のタイマーリファレンス
+  const debounceTimers = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   const updateMeetingMutation = useMutation({
     mutationFn: async ({ meetingId, title, content }: { meetingId: number; title: string; content: string }) => {
@@ -74,15 +77,25 @@ export function useMeetingMinutesGenerator({ reportId, isEditMode }: UseMeetingM
     }
   };
 
-  const updateMeetingField = (meetingId: number, field: 'title' | 'content', value: string) => {
-    setEditingMeetings(prev => ({
-      ...prev,
-      [meetingId]: {
-        ...prev[meetingId],
-        [field]: value,
-      },
-    }));
-  };
+  const updateMeetingField = useCallback((meetingId: number, field: 'title' | 'content', value: string) => {
+    const timerKey = `${meetingId}-${field}`;
+    
+    // 既存のタイマーをクリア
+    if (debounceTimers.current[timerKey]) {
+      clearTimeout(debounceTimers.current[timerKey]);
+    }
+    
+    // 新しいタイマーを設定（100msのdebounce）
+    debounceTimers.current[timerKey] = setTimeout(() => {
+      setEditingMeetings(prev => ({
+        ...prev,
+        [meetingId]: {
+          ...prev[meetingId],
+          [field]: value,
+        },
+      }));
+    }, 100);
+  }, []);
 
   return {
     meetings,

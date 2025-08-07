@@ -1,3 +1,4 @@
+import React, { useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -27,7 +28,7 @@ type MeetingMinutesProps = {
   onUpdateField: (meetingId: number, field: 'title' | 'content', value: string) => void;
 };
 
-export function MeetingMinutes({
+const MeetingMinutes = React.memo(({
   meetings,
   editingMeetings,
   isUpdating,
@@ -35,7 +36,36 @@ export function MeetingMinutes({
   onCancelEditing,
   onSave,
   onUpdateField,
-}: MeetingMinutesProps) {
+}: MeetingMinutesProps) => {
+  // フォーカス保持のためのref
+  const activeElementRef = useRef<{ id: number; type: 'title' | 'content' } | null>(null);
+  const cursorPositionRef = useRef<number | null>(null);
+  
+  // フォーカスとカーソル位置を保存するハンドラ
+  const handleFocus = (meetingId: number, type: 'title' | 'content') => {
+    activeElementRef.current = { id: meetingId, type };
+  };
+  
+  const handleSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>, meetingId: number, type: 'title' | 'content') => {
+    const target = e.target as HTMLTextAreaElement;
+    if (activeElementRef.current?.id === meetingId && activeElementRef.current?.type === type) {
+      cursorPositionRef.current = target.selectionStart;
+    }
+  };
+  
+  // フォーカスとカーソル位置を復元するuseEffect
+  useEffect(() => {
+    if (activeElementRef.current) {
+      // コンポーネントが再レンダリングされた後にフォーカスを復元
+      setTimeout(() => {
+        const element = document.querySelector(`[data-meeting-id="${activeElementRef.current?.id}"][data-field="${activeElementRef.current?.type}"]`) as HTMLTextAreaElement | null;
+        if (element && cursorPositionRef.current !== null) {
+          element.focus();
+          element.setSelectionRange(cursorPositionRef.current, cursorPositionRef.current);
+        }
+      }, 0);
+    }
+  });
   if (!meetings || meetings.length === 0) {
     return null;
   }
@@ -62,6 +92,9 @@ export function MeetingMinutes({
                       value={editingMeetings[meeting.id].title}
                       onChange={(e) => onUpdateField(meeting.id, 'title', e.target.value)}
                       className="w-full p-2 border rounded text-sm"
+                      data-meeting-id={meeting.id}
+                      data-field="title"
+                      onFocus={() => handleFocus(meeting.id, 'title')}
                     />
                   </div>
                   <div className="mb-3 sm:mb-4">
@@ -69,7 +102,11 @@ export function MeetingMinutes({
                     <Textarea
                       value={editingMeetings[meeting.id].content}
                       onChange={(e) => onUpdateField(meeting.id, 'content', e.target.value)}
-                      className="min-h-[150px] sm:min-h-[200px] text-sm"
+                      className="min-h-[150px] sm:min-h-[200px] text-sm resize-none"
+                      data-meeting-id={meeting.id}
+                      data-field="content"
+                      onFocus={() => handleFocus(meeting.id, 'content')}
+                      onSelect={(e) => handleSelect(e, meeting.id, 'content')}
                     />
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -121,4 +158,9 @@ export function MeetingMinutes({
       </CardContent>
     </Card>
   );
-}
+});
+
+// メモ化のためにpropsの比較関数を定義
+MeetingMinutes.displayName = 'MeetingMinutes';
+
+export { MeetingMinutes };
