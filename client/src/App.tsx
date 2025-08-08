@@ -9,6 +9,7 @@ import { WebSocketProvider } from "./contexts/WebSocketProvider";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AdminRoute } from "./lib/admin-only";
 import Login from "@/pages/login";
+import Register from "@/pages/register";
 import Home from "@/pages/Home";
 // 動的インポートによるコード分割とパフォーマンス最適化
 const WeeklyReport = lazy(() => import("@/pages/weekly-report"));
@@ -42,6 +43,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <ProtectedRoute path="/" component={Home} />
       
       {/* 週次報告関連 - Suspenseでラップ */}

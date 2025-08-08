@@ -167,6 +167,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // ユーザー登録エンドポイント
+  app.post("/api/register", async (req, res) => {
+    try {
+      // 入力データをバリデーション
+      const userData = insertUserSchema.parse(req.body);
+      
+      // ユーザー名の重複チェック
+      const existingUser = await storage.getUserByUsername(userData.username);
+      if (existingUser) {
+        return res.status(400).json({ error: "このユーザー名は既に使用されています" });
+      }
+      
+      // 新規ユーザーを作成（パスワードは自動的にハッシュ化される）
+      const newUser = await storage.createUser(userData);
+      
+      logger.info('User registration success', {
+        userId: newUser.id,
+        username: newUser.username
+      });
+      
+      res.status(201).json({
+        message: "ユーザー登録が完了しました",
+        user: newUser
+      });
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      
+      // Zodバリデーションエラー
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          error: "入力データに問題があります",
+          details: error.errors 
+        });
+      }
+      
+      // その他のエラー
+      res.status(500).json({ error: "ユーザー登録中にエラーが発生しました" });
+    }
+  });
+
   app.get("/api/check-auth", (req, res) => {
     
     if (req.isAuthenticated() && req.user) {
