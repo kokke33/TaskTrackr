@@ -9,6 +9,7 @@ export class OpenRouterService extends BaseProvider {
   constructor(model?: string) {
     super('openrouter');
     this.model = model || aiConfig.openrouter.model;
+    console.log('[OPENROUTER-DEBUG] Constructor - model param:', model, 'config model:', aiConfig.openrouter.model, 'final model:', this.model);
   }
 
   async generateResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): Promise<AIResponse> {
