@@ -143,6 +143,14 @@ export async function getDynamicAIConfig(): Promise<AIConfig> {
         }
       }
       
+      // OpenAIの場合はモデルもデータベースから取得
+      if (dynamicProvider === 'openai') {
+        const openaiModelSetting = await storage.getSystemSetting('AI_OPENAI_MODEL');
+        if (openaiModelSetting && openaiModelSetting.value) {
+          dynamicConfig.openai.model = openaiModelSetting.value;
+        }
+      }
+      
       // OpenRouterの場合はモデルもデータベースから取得
       if (dynamicProvider === 'openrouter') {
         const openrouterModelSetting = await storage.getSystemSetting('AI_OPENROUTER_MODEL');

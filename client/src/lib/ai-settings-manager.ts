@@ -43,18 +43,21 @@ export class AISettingsManager {
     const descriptions = {
       basic: {
         provider: '基本AIサービスプロバイダー (openai, ollama, gemini, groq, openrouter)',
+        openaiModel: '基本AI設定用OpenAIモデル',
         groqModel: '基本AI設定用Groqモデル',
         geminiModel: '基本AI設定用Geminiモデル',
         openrouterModel: '基本AI設定用OpenRouterモデル',
       },
       realtime: {
         provider: 'リアルタイム分析用AIプロバイダー (openai, ollama, gemini, groq, openrouter)',
+        openaiModel: 'リアルタイム分析用OpenAIモデル',
         groqModel: 'リアルタイム分析用Groqモデル',
         geminiModel: 'リアルタイム分析用Geminiモデル',
         openrouterModel: 'リアルタイム分析用OpenRouterモデル',
       },
       trial: {
         provider: 'お試し用AIプロバイダー',
+        openaiModel: 'お試し用OpenAIモデル',
         groqModel: 'お試し用Groqモデル',
         geminiModel: 'お試し用Geminiモデル',
         openrouterModel: 'お試し用OpenRouterモデル',
@@ -70,6 +73,7 @@ export class AISettingsManager {
   static getDefaultConfig(): AIProviderConfig {
     return {
       provider: DEFAULT_VALUES.AI_PROVIDER,
+      openaiModel: DEFAULT_VALUES.OPENAI_MODEL,
       groqModel: DEFAULT_VALUES.GROQ_MODEL,
       geminiModel: DEFAULT_VALUES.GEMINI_MODEL,
       openrouterModel: DEFAULT_VALUES.OPENROUTER_MODEL,
@@ -91,6 +95,15 @@ export class AISettingsManager {
       config.provider,
       this.getDescription(type, 'provider')
     );
+
+    // OpenAIモデルを更新
+    if (config.provider === 'openai' && config.openaiModel) {
+      await this.updateSystemSetting(
+        `${prefix}OPENAI_MODEL`,
+        config.openaiModel,
+        this.getDescription(type, 'openaiModel')
+      );
+    }
 
     // Groqモデルを更新
     if (config.provider === 'groq' && config.groqModel) {
@@ -126,6 +139,9 @@ export class AISettingsManager {
   static async updateSessionSettings(config: AIProviderConfig): Promise<void> {
     const body: any = { realtimeProvider: config.provider };
 
+    if (config.provider === 'openai' && config.openaiModel) {
+      body.openaiModel = config.openaiModel;
+    }
     if (config.provider === 'groq' && config.groqModel) {
       body.groqModel = config.groqModel;
     }
@@ -214,12 +230,14 @@ export class AISettingsManager {
     provider: string,
     groqModel?: string,
     geminiModel?: string,
-    openrouterModel?: string
+    openrouterModel?: string,
+    openaiModel?: string
   ): AIProviderConfig {
     const defaults = this.getDefaultConfig();
     
     return {
       provider: (provider && provider.trim()) ? provider as any : defaults.provider,
+      openaiModel: (openaiModel && openaiModel.trim()) ? openaiModel as any : defaults.openaiModel,
       groqModel: (groqModel && groqModel.trim()) ? groqModel as any : defaults.groqModel,
       geminiModel: (geminiModel && geminiModel.trim()) ? geminiModel as any : defaults.geminiModel,
       openrouterModel: (openrouterModel && openrouterModel.trim()) ? openrouterModel as any : defaults.openrouterModel,
@@ -232,6 +250,7 @@ export class AISettingsManager {
   static extractConfigValues(config: AIProviderConfig) {
     return {
       provider: config.provider,
+      openaiModel: config.openaiModel,
       groqModel: config.groqModel,
       geminiModel: config.geminiModel,
       openrouterModel: config.openrouterModel,

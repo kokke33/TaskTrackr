@@ -42,6 +42,7 @@ export function useMeetingMinutesGenerator({ reportId, isEditMode }: UseMeetingM
       toast({
         title: "成功",
         description: "議事録が更新されました",
+        duration: 1000,
       });
     },
     onError: () => {
@@ -49,6 +50,7 @@ export function useMeetingMinutesGenerator({ reportId, isEditMode }: UseMeetingM
         title: "エラー",
         description: "議事録の更新に失敗しました",
         variant: "destructive",
+        duration: 1000,
       });
     },
   });

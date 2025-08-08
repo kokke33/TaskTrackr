@@ -8,6 +8,10 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true });
+  </script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Noto Sans JP', sans-serif; background: #1a1a1a; color: #e0e0e0; }
@@ -28,10 +32,10 @@ function Pill({text, icon, className}) {
   )
 }
 
-function Section({title, id, children, wide}) {
+function Section({title, id, children}) { // wideプロパティを削除
   return (
-    <section id={id} className={`py-10 ${wide ? 'max-w-screen-lg' : 'max-w-2xl'} mx-auto px-4`}>
-      {title && <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4">{title}</h2>}
+    <section id={id} className={`py-10 max-w-2xl mx-auto px-4 text-center`}> {/* 常にmax-w-2xlを適用し、text-centerを追加 */}
+      {title && <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 text-center">{title}</h2>}
       <div>{children}</div>
     </section>
   );
@@ -57,6 +61,16 @@ function Persona({icon, name, desc}) {
   );
 }
 
+function FlowStep({icon, title, description}) {
+  return (
+    <div className="bg-gray-800/60 p-4 rounded-xl shadow flex flex-col items-center text-center">
+      <span className="text-4xl mb-3">{icon}</span>
+      <h4 className="font-bold text-lg text-gray-200 mb-2">{title}</h4>
+      <p className="text-sm text-gray-400">{description}</p>
+    </div>
+  );
+}
+
 function App() {
   return (
     <div>
@@ -78,15 +92,17 @@ function App() {
 
       {/* FEATURES */}
       <Section id="features" title="主要特徴">
-        <ul className="space-y-2">
-          <li>🗂️ プロジェクト・案件・週次レポートまで一元管理。</li>
-          <li>🧠 <b>AIによる分析・アドバイス・議事録自動生成</b>対応。</li>
-          <li>📱 モバイル/PCレスポンシブデザイン。</li>
-          <li>🔍 全文検索・フィルタリングで情報探索が高速。</li>
-          <li>👥 管理者パネル・ロール管理・セッション認証標準。</li>
-          <li>⚡ <b>5つのAIプロバイダー</b>を自由切り替え（OpenAI, Gemini, Ollama, Groq, OpenRouter）。</li>
-        </ul>
-        <div className="flex flex-row flex-wrap mt-6 gap-7">
+        <div className="max-w-lg mx-auto"> {/* max-w-lgとmx-autoを追加 */}
+          <ul className="space-y-2 list-none p-0"> {/* text-leftを削除 */}
+            <li>🗂️ プロジェクト・案件・週次レポートまで一元管理。</li>
+            <li>🧠 <b>AIによる分析・アドバイス・議事録自動生成</b>対応。</li>
+            <li>📱 モバイル/PCレスポンシブデザイン。</li>
+            <li>🔍 全文検索・フィルタリングで情報探索が高速。</li>
+            <li>👥 管理者パネル・ロール管理・セッション認証標準。</li>
+            <li>⚡ <b>5つのAIプロバイダー</b>を自由切り替え（OpenAI, Gemini, Ollama, Groq, OpenRouter）。</li>
+          </ul>
+        </div>
+        <div className="flex flex-row flex-wrap mt-6 gap-7 justify-center"> {/* justify-centerを追加 */}
           <div className="flex-1 min-w-[220px] bg-gray-800/60 px-4 py-6 rounded-xl shadow text-center">
             <div className="text-2xl font-bold mb-2">週次レポート × AI分析</div>
             <div className="text-sm text-gray-300">リアルタイムで進捗/課題/改善をAIで自動診断・前回比較も一発。これにより、手戻りを防ぎ、意思決定を加速します。</div>
@@ -100,11 +116,13 @@ function App() {
 
       {/* COMMANDS */}
       <Section id="commands" title="主な機能・コマンド例">
-        <Cmd label="案件選択" desc="案件選択モーダルで直感的に案件をグループ・検索" icon="🔍" />
-        <Cmd label="週次レポート自動保存" desc="入力内容変更後、5分ごとに自動保存" icon="💾" />
-        <Cmd label="AI分析" desc="AI提案/リスク指摘/前回比較をワンクリックで取得" icon="🤖" />
-        <Cmd label="全文検索" desc="プロジェクト・案件・レポート横断検索＆絞り込み" icon="🔎" />
-        <Cmd label="管理者機能" desc="システム設定/ログ/ユーザー管理…すべてUIから" icon="🛠️" />
+        <div className="max-w-md mx-auto">
+          <Cmd label="案件選択" desc="案件選択モーダルでグループ・検索" icon="🔍" />
+          <Cmd label="週次レポート自動保存" desc="入力後5分ごとに自動保存" icon="💾" />
+          <Cmd label="AI分析" desc="AI提案/リスク指摘/前回比較をワンクリック" icon="🤖" />
+          <Cmd label="全文検索" desc="プロジェクト・案件・レポート横断検索" icon="🔎" />
+          <Cmd label="管理者機能" desc="システム設定/ログ/ユーザー管理" icon="🛠️" />
+        </div>
       </Section>
 
       {/* AI PROVIDERS */}
@@ -131,36 +149,59 @@ function App() {
 
       {/* FLOW */}
       <Section id="flow" title="レポート作成フロー">
-        <ol className="list-decimal ml-7 space-y-2 text-base">
-          <li>「案件選択」モーダルで目的案件をすぐ検索・タブで切替</li>
-          <li>セクションごとにAI分析&自動提案（フォーカスアウト/ボタンクリック）</li>
-          <li>保存は5分ごとに自動、報告完了後はワンクリック提出</li>
-          <li>提出時、議事録案・AIアドバイスも自動生成</li>
-        </ol>
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <FlowStep
+            icon="✍️"
+            title="週次報告作成"
+            description="現場リーダーが週次報告を作成し、進捗や課題を記録します。"
+          />
+          <FlowStep
+            icon="💬"
+            title="マネージャーによる追記"
+            description="マネージャーが週次中に直接コメントや指示内容を追記します。"
+          />
+          <FlowStep
+            icon="📝"
+            title="議事録自動生成"
+            description="追記された内容に基づき、AIが自動で議事録を作成します。"
+          />
+          <FlowStep
+            icon="📊"
+            title="リスク分析"
+            description="週次報告書の内容をもとに、マネージャー向けのリスク分析が行われます。"
+          />
+          <FlowStep
+            icon="💡"
+            title="指示ドラフト作成"
+            description="リスク分析結果に基づき、現場リーダー向けに指示内容のドラフト版が作成されます。"
+          />
+        </div>
       </Section>
 
       {/* TECHNOLOGY/ARCHITECTURE */}
       <Section id="tech" title="技術構成・アーキテクチャ" wide>
         <div className="grid md:grid-cols-2 gap-7">
           <div>
-            <h3 className="font-bold mb-2 text-gray-200 text-lg">主要技術</h3>
-            <ul className="list-disc ml-5 text-base">
-              <li>React 18 + TypeScript + Vite + TailwindCSS</li>
-              <li>Express + Drizzle ORM + PostgreSQL</li>
-              <li>Passport.jsセッション認証</li>
-              <li>Shadcn/ui & TanStack Query</li>
-              <li>Vitest / React Testing Library / MSW</li>
-            </ul>
+            <h3 className="font-bold mb-4 text-gray-200 text-lg text-center">主要技術</h3>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Pill text="React/TS" icon="⚛️" className="bg-blue-800 text-blue-300"/>
+              <Pill text="Vite/Tailwind" icon="🎨" className="bg-cyan-800 text-cyan-300"/>
+              <Pill text="Express/Drizzle" icon="🛠️" className="bg-green-800 text-green-300"/>
+              <Pill text="PostgreSQL" icon="🗄️" className="bg-indigo-800 text-indigo-300"/>
+              <Pill text="Passport.js認証" icon="🔑" className="bg-purple-800 text-purple-300"/>
+              <Pill text="Shadcn/TanStack Query" icon="✨" className="bg-pink-800 text-pink-300"/>
+              <Pill text="Vitest/RTL/MSW" icon="🧪" className="bg-orange-800 text-orange-300"/>
+            </div>
           </div>
           <div>
-            <h3 className="font-bold mb-2 text-gray-200 text-lg">特徴的パターン</h3>
-            <ul className="list-disc ml-5 text-base">
-              <li>自動保存/リアルタイム同期・多人数競合警告</li>
-              <li>案件・レポート・全文検索の横断一括API</li>
-              <li>AIログ・セッション管理のセキュア設計</li>
-              <li>Zodベースの型バリデーション</li>
-              <li>テスト+CI/CD/カバレッジ可視化</li>
-            </ul>
+            <h3 className="font-bold mb-4 text-gray-200 text-lg text-center">特徴的パターン</h3>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Pill text="自動保存/リアルタイム同期" icon="🔄" className="bg-gray-700 text-gray-200"/>
+              <Pill text="横断検索API" icon="🔍" className="bg-gray-700 text-gray-200"/>
+              <Pill text="AIログ/セキュア設計" icon="🔒" className="bg-gray-700 text-gray-200"/>
+              <Pill text="Zod型バリデーション" icon="✅" className="bg-gray-700 text-gray-200"/>
+              <Pill text="テスト/CI/CD" icon="🚀" className="bg-gray-700 text-gray-200"/>
+            </div>
           </div>
         </div>
       </Section>

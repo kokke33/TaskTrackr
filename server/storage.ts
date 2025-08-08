@@ -1,7 +1,7 @@
 import { cases, weeklyReports, projects, users, managerMeetings, weeklyReportMeetings, systemSettings, monthlyReports, type User, type InsertUser, type WeeklyReport, type InsertWeeklyReport, type Case, type InsertCase, type Project, type InsertProject, type ManagerMeeting, type InsertManagerMeeting, type WeeklyReportMeeting, type InsertWeeklyReportMeeting, type SystemSetting, type InsertSystemSetting, type MonthlyReport, type InsertMonthlyReport } from "@shared/schema";
 import { DEFAULT_VALUES } from "@shared/ai-constants";
 import { db } from "./db";
-import { eq, desc, and, isNull, inArray, or, ne, sql, gte, lte, lt } from "drizzle-orm";
+import { eq, desc, asc, and, isNull, inArray, or, ne, sql, gte, lte, lt } from "drizzle-orm";
 import { hash } from "bcryptjs";
 import { performanceMonitor, measureAsync } from "@shared/performance-monitor";
 
@@ -1401,11 +1401,11 @@ export class DatabaseStorage implements IStorage {
       eq(cases.isDeleted, false)
     ];
 
-    // 日付範囲でフィルタリング
+    // 日付範囲でフィルタリング（報告期間が指定期間と重複する場合を取得）
     if (startDate && endDate) {
       conditions.push(
-        gte(weeklyReports.reportPeriodEnd, startDate.toISOString().split('T')[0]),
-        lte(weeklyReports.reportPeriodEnd, endDate.toISOString().split('T')[0])
+        lte(weeklyReports.reportPeriodStart, endDate.toISOString().split('T')[0]),
+        gte(weeklyReports.reportPeriodEnd, startDate.toISOString().split('T')[0])
       );
     }
 
@@ -1414,7 +1414,7 @@ export class DatabaseStorage implements IStorage {
       .from(weeklyReports)
       .innerJoin(cases, eq(weeklyReports.caseId, cases.id))
       .where(and(...conditions))
-      .orderBy(desc(weeklyReports.reportPeriodStart));
+      .orderBy(asc(weeklyReports.reportPeriodStart));
     
     // 週次報告のデータのみを返す（JOINしたcasesデータは除く）
     return result.map(item => item.weekly_reports);
@@ -1820,18 +1820,21 @@ export class DatabaseStorage implements IStorage {
   // リアルタイム分析用AI設定の取得
   async getRealtimeAnalysisConfig(): Promise<{
     provider: string;
+    openaiModel?: string;
     groqModel?: string;
     geminiModel?: string;
     openrouterModel?: string;
   }> {
     return await withRetry(async () => {
       const provider = await this.getSystemSetting('REALTIME_PROVIDER') || { value: DEFAULT_VALUES.REALTIME_PROVIDER };
+      const openaiModel = await this.getSystemSetting('REALTIME_OPENAI_MODEL') || { value: DEFAULT_VALUES.OPENAI_MODEL };
       const groqModel = await this.getSystemSetting('REALTIME_GROQ_MODEL') || { value: DEFAULT_VALUES.GROQ_MODEL };
       const geminiModel = await this.getSystemSetting('REALTIME_GEMINI_MODEL') || { value: DEFAULT_VALUES.GEMINI_MODEL };
       const openrouterModel = await this.getSystemSetting('REALTIME_OPENROUTER_MODEL') || { value: DEFAULT_VALUES.OPENROUTER_MODEL };
 
       return {
         provider: provider.value,
+        openaiModel: openaiModel.value,
         groqModel: groqModel.value,
         geminiModel: geminiModel.value,
         openrouterModel: openrouterModel.value,

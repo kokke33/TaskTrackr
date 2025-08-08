@@ -2,260 +2,260 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-TaskTrackrプロジェクトのClaude Code用設定ファイルです。このファイルは、Claude Codeがこのリポジトリで作業する際のガイダンスを提供します。
+This is the configuration file for Claude Code in the TaskTrackr project. This file provides guidance for Claude Code when working with this repository.
 
-## 更新履歴
-- **2025/1/30**: ドキュメント全面更新、最新の技術スタックと機能を反映
-- **2024年後半**: AIプロバイダー拡張（5つ対応）、テストインフラ構築
+## Update History
+- **2025/1/30**: Full documentation update, reflecting the latest tech stack and features
+- **Late 2024**: AI provider expansion (5 supported), test infrastructure built
 
-## 知識管理システム
+## Knowledge Management System
 
-このプロジェクトでは、以下のファイル構成で知識を体系的に管理しています：
+This project systematically manages knowledge with the following file structure:
 
-- **CLAUDE.md** (このファイル) - プロジェクト概要と開発ガイド
-- **.claude/context.md** - プロジェクトの背景と制約
-- **.claude/project-knowledge.md** - 技術的な洞察とパターン
-- **.claude/project-improvements.md** - 改善履歴と学習内容
-- **.claude/common-patterns.md** - よく使うコマンドパターン
-- **.claude/debug-log.md** - 重要なデバッグ記録
-- **.claude/debug/** - セッション固有のログとアーカイブ
-- **.claude/commands/** - コマンド関連の記録
-- **.claude/settings.local.json** - Claude Code ローカル設定
+- **CLAUDE.md** (This file) - Project overview and development guide
+- **.claude/context.md** - Project background and constraints
+- **.claude/project-knowledge.md** - Technical insights and patterns
+- **.claude/project-improvements.md** - Improvement history and lessons learned
+- **.claude/common-patterns.md** - Frequently used command patterns
+- **.claude/debug-log.md** - Important debug records
+- **.claude/debug/** - Session-specific logs and archives
+- **.claude/commands/** - Command-related records
+- **.claude/settings.local.json** - Claude Code local settings
 
-このシステムにより、プロジェクトの知識を継続的に蓄積・共有し、開発効率と品質の向上を目指しています。
+This system aims to continuously accumulate and share project knowledge, improving development efficiency and quality.
 
-## グローバル設定
-- すべての応答は日本語で行ってください
+## Global Settings
+- All responses must be in Japanese
 - YOU MUST always respond in Japanese
 
-## 開発コマンド
+## Development Commands
 
-### 基本開発コマンド
-- `npm run dev` - 開発サーバー起動（Expressバックエンドがlocalhost:5000でフロントエンドを配信）
-- `npm run build` - 本番ビルド（Viteフロントエンド + ESBuildバックエンド）
-- `npm start` - 本番サーバー起動
-- `npm run check` - TypeScript型チェック（注意：現在フォームで型エラーあり）
-- `npm run db:push` - Drizzle Kitを使用してデータベーススキーマ変更をプッシュ
-- `tsx server/index.ts` - サーバーの直接実行（デバッグ用）
-- `npx drizzle-kit push` - データベーススキーマの手動プッシュ
+### Basic Development Commands
+- `npm run dev` - Start development server (Express backend serves frontend on localhost:5000)
+- `npm run build` - Production build (Vite frontend + ESBuild backend)
+- `npm start` - Start production server
+- `npm run check` - TypeScript type check (Note: currently type errors in forms)
+- `npm run db:push` - Push database schema changes using Drizzle Kit
+- `tsx server/index.ts` - Direct server execution (for debugging)
+- `npx drizzle-kit push` - Manual database schema push
 
-### テストコマンド
-- `npm test` - 全テスト実行（ユニット + 統合テスト）
-- `npm run test:unit` - ユニットテストのみ実行
-- `npm run test:integration` - 統合テストのみ実行
-- `npm run test:watch` - ウォッチモード（開発時）
-- `npm run test:coverage` - カバレッジレポート付きテスト実行
-- `npm run test:ui` - ブラウザでテスト結果表示
-- `npm test tests/unit/server/basic.test.ts` - 特定ファイルのテスト実行
-- `npm test button` - パターンマッチによるテスト実行
-- `npm test -- --reporter=verbose` - 詳細ログ付きテスト実行
+### Test Commands
+- `npm test` - Run all tests (unit + integration tests)
+- `npm run test:unit` - Run unit tests only
+- `npm run test:integration` - Run integration tests only
+- `npm run test:watch` - Watch mode (during development)
+- `npm run test:coverage` - Run tests with coverage report
+- `npm run test:ui` - Display test results in browser
+- `npm test tests/unit/server/basic.test.ts` - Run specific file tests
+- `npm test button` - Run tests by pattern matching
+- `npm test -- --reporter=verbose` - Run tests with detailed logs
 
-### 重要：統合サーバー設計
-- **統一ポート構成**: 開発時は単一のExpressサーバーがポート5000でフロントエンドとバックエンドの両方を配信
-- **個別起動不可**: フロントエンドとバックエンドを個別に起動するコマンドは存在しない
-- **ビルド出力**: フロントエンドは`dist/public/`、バックエンドは`dist/index.js`に出力
+### Important: Integrated Server Design
+- **Unified Port Configuration**: During development, a single Express server serves both frontend and backend on port 5000.
+- **No Separate Startup**: There are no commands to start frontend and backend separately.
+- **Build Output**: Frontend outputs to `dist/public/`, backend to `dist/index.js`.
 
-### 既知の問題（2025年1月時点）
-TypeScriptチェックは以下のフォーム値型エラーで現在失敗しています：
-- `client/src/pages/weekly-report.tsx` - Textareaコンポーネントが`null`値を受信
-- `server/routes.ts` - ユーザーオブジェクトプロパティアクセスの問題
+### Known Issues (as of January 2025)
+TypeScript checks currently fail with the following form value type errors:
+- `client/src/pages/weekly-report.tsx` - Textarea component receives `null` values
+- `server/routes.ts` - User object property access issues
 
-**対処法**: フォームフィールドで `value={field.value ?? ""}` パターンを使用
+**Workaround**: Use `value={field.value ?? ""}` pattern for form fields.
 
-## アーキテクチャ概要
+## Architecture Overview
 
-### 技術スタック（2025年1月最新）
-- **フロントエンド**: React 18 + TypeScript + Vite + TailwindCSS + Wouter（ルーティング）
-- **バックエンド**: Express + TypeScript + Drizzle ORM + PostgreSQL
-- **認証**: Passport.jsによるセッションベース認証 + 自動フォールバック（PostgreSQL→MemoryStore）
-- **UI**: Shadcn/uiコンポーネント（Radix UIプリミティブ） - 48+コンポーネント利用可能
-- **状態管理**: TanStack Query（React Query v5.60.5）
-- **AI統合**: 5つのプロバイダー完全対応（OpenAI、Ollama、Google Gemini、Groq、OpenRouter）
-- **フォーム処理**: React Hook Form + Zod バリデーション
-- **スタイリング**: TailwindCSS + Tailwind Animate + class-variance-authority
-- **テスト**: Vitest 3.2.4 + React Testing Library + MSW + Supertest + Happy DOM（51件のテスト）
-- **WebSocket**: リアルタイム通信（ws v8.18.0）
-- **ログ**: Winston + daily-rotate-file（AI専用ログ機能）
+### Tech Stack (Latest as of January 2025)
+- **Frontend**: React 18 + TypeScript + Vite + TailwindCSS + Wouter (routing)
+- **Backend**: Express + TypeScript + Drizzle ORM + PostgreSQL
+- **Authentication**: Passport.js session-based authentication + automatic fallback (PostgreSQL → MemoryStore)
+- **UI**: Shadcn/ui components (Radix UI primitives) - 48+ components available
+- **State Management**: TanStack Query (React Query v5.60.5)
+- **AI Integration**: Full support for 5 providers (OpenAI, Ollama, Google Gemini, Groq, OpenRouter)
+- **Form Handling**: React Hook Form + Zod validation
+- **Styling**: TailwindCSS + Tailwind Animate + class-variance-authority
+- **Testing**: Vitest 3.2.4 + React Testing Library + MSW + Supertest + Happy DOM (51 tests)
+- **WebSocket**: Real-time communication (ws v8.18.0)
+- **Logging**: Winston + daily-rotate-file (AI-specific logging)
 
-### プロジェクト構造
+### Project Structure
 ```
 TaskTrackr/
-├── client/src/           # Reactフロントエンド
-│   ├── components/       # 再利用可能なReactコンポーネント
-│   │   ├── ui/          # Shadcn/uiコンポーネント（48+コンポーネント）
-│   │   ├── ai-analysis-result.tsx      # AI分析結果表示
-│   │   ├── case-selector-modal.tsx     # 案件選択モーダル
-│   │   ├── previous-report-tooltip.tsx # 前回レポート比較機能
-│   │   └── search-bar.tsx              # 全文検索機能
-│   ├── pages/           # ルートコンポーネント（Wouterルーティング）
-│   ├── lib/             # ユーティリティと認証ヘルパー
-│   │   ├── auth.tsx     # 認証コンテキスト
-│   │   ├── queryClient.ts # API リクエスト共通処理
-│   │   └── utils.ts     # ユーティリティ関数
-│   ├── hooks/           # カスタムReactフック
-│   │   ├── use-ai-analysis.ts # AI分析フック
-│   │   └── use-toast.ts       # トースト通知フック
-│   └── utils/           # その他ユーティリティ
-├── server/              # Expressバックエンド
-│   ├── routes.ts        # APIルート定義
-│   ├── storage.ts       # データベース操作（Drizzle ORM）
-│   ├── ai-service.ts    # AIプロバイダー抽象化
-│   ├── ai-logger.ts     # AIインタラクションログ
-│   ├── ai-routes.ts     # AI専用ルート
-│   ├── auth.ts          # Passport.js認証設定
-│   ├── config.ts        # 設定バリデーション
-│   ├── db.ts            # データベース接続設定
-│   ├── migrations/      # データベースマイグレーションファイル
-│   └── prompts/         # AI プロンプトテンプレート
-│       ├── config/      # 設定用プロンプト
-│       ├── core/        # 基本プロンプト
-│       └── reports/     # レポート用プロンプト
-├── shared/              # 共有TypeScript型定義
-│   └── schema.ts        # Drizzle ORMスキーマ定義
-├── tests/               # テストファイル
-│   ├── unit/           # ユニットテスト
-│   │   ├── client/     # フロントエンドテスト
-│   │   └── server/     # バックエンドテスト
-│   ├── integration/    # 統合テスト
-│   ├── __fixtures__/   # テストデータ
-│   ├── __mocks__/      # MSWモック
-│   ├── utils/          # テストユーティリティ
-│   └── setup.ts        # テスト環境設定
-├── .claude/             # Claude Code 知識管理
-│   ├── context.md       # プロジェクトコンテキスト
-│   ├── project-knowledge.md # 技術知識
-│   └── common-patterns.md   # 共通パターン
+├── client/src/           # React Frontend
+│   ├── components/       # Reusable React components
+│   │   ├── ui/          # Shadcn/ui components (48+ components)
+│   │   ├── ai-analysis-result.tsx      # AI analysis result display
+│   │   ├── case-selector-modal.tsx     # Case selection modal
+│   │   ├── previous-report-tooltip.tsx # Previous report comparison feature
+│   │   └── search-bar.tsx              # Full-text search feature
+│   ├── pages/           # Route components (Wouter routing)
+│   ├── lib/             # Utilities and authentication helpers
+│   │   ├── auth.tsx     # Authentication context
+│   │   ├── queryClient.ts # API request common processing
+│   │   └── utils.ts     # Utility functions
+│   ├── hooks/           # Custom React hooks
+│   │   ├── use-ai-analysis.ts # AI analysis hook
+│   │   └── use-toast.ts       # Toast notification hook
+│   └── utils/           # Other utilities
+├── server/              # Express Backend
+│   ├── routes.ts        # API route definitions
+│   ├── storage.ts       # Database operations (Drizzle ORM)
+│   ├── ai-service.ts    # AI provider abstraction
+│   ├── ai-logger.ts     # AI interaction logs
+│   ├── ai-routes.ts     # AI-specific routes
+│   ├── auth.ts          # Passport.js authentication settings
+│   ├── config.ts        # Configuration validation
+│   ├── db.ts            # Database connection settings
+│   ├── migrations/      # Database migration files
+│   └── prompts/         # AI Prompt templates
+│       ├── config/      # Configuration prompts
+│       ├── core/        # Core prompts
+│       └── reports/     # Report prompts
+├── shared/              # Shared TypeScript type definitions
+│   └── schema.ts        # Drizzle ORM schema definition
+├── tests/               # Test files
+│   ├── unit/           # Unit tests
+│   │   ├── client/     # Frontend tests
+│   │   └── server/     # Backend tests
+│   ├── integration/    # Integration tests
+│   ├── __fixtures__/   # Test data
+│   ├── __mocks__/      # MSW mocks
+│   ├── utils/          # Test utilities
+│   └── setup.ts        # Test environment setup
+├── .claude/             # Claude Code Knowledge Management
+│   ├── context.md       # Project context
+│   ├── project-knowledge.md # Technical knowledge
+│   └── common-patterns.md   # Common patterns
 ```
 
-### データベーススキーマ
-Drizzle ORMで管理される主要エンティティ：
-- **users** - 認証と役割ベースアクセス（管理者/一般）
-- **projects** - 詳細な追跡フィールドを持つ高レベルプロジェクト情報
-- **cases** - プロジェクト内の特定のケース/タスク
-- **weeklyReports** - ケースにリンクされた包括的な週次ステータスレポート
-- **managerMeetings** - プロジェクトにリンクされた会議議事録と記録
-- **weeklyReportMeetings** - 週次レポートにリンクされた会議記録
-- **systemSettings** - アプリケーション設定
+### Database Schema
+Key entities managed by Drizzle ORM:
+- **users** - Authentication and role-based access (admin/general)
+- **projects** - High-level project information with detailed tracking fields
+- **cases** - Specific cases/tasks within a project
+- **weeklyReports** - Comprehensive weekly status reports linked to cases
+- **managerMeetings** - Meeting minutes and records linked to projects
+- **weeklyReportMeetings** - Meeting records linked to weekly reports
+- **systemSettings** - Application settings
 
-### 重要なアーキテクチャパターン
+### Important Architecture Patterns
 
-#### APIクライアントパターン
-すべてのAPI呼び出しは`client/src/lib/queryClient.ts`の`apiRequest(url, { method, data? })`を使用：
-- セッションクッキーのために常に`credentials: "include"`を含む
-- 詳細ログ付きで401エラーを処理
-- `throwIfResNotOk`エラーハンドリングで型付きレスポンスを返す
+#### API Client Pattern
+All API calls use `apiRequest(url, { method, data? })` in `client/src/lib/queryClient.ts`:
+- Always includes `credentials: "include"` for session cookies
+- Handles 401 errors with detailed logging
+- Returns typed responses with `throwIfResNotOk` error handling
 
-#### 認証フロー
-- PostgreSQLセッションストアを使用したPassport.jsベースのセッション認証
-- Neon.tech互換性のためのMemoryStoreへのフォールバック
-- `isAuthenticated`と`isAdmin`ミドルウェアがルートを保護
-- `client/src/lib/auth.tsx`の認証コンテキストがユーザー状態を管理
+#### Authentication Flow
+- Passport.js based session authentication using PostgreSQL session store
+- Fallback to MemoryStore for Neon.tech compatibility
+- `isAuthenticated` and `isAdmin` middleware protect routes
+- Authentication context in `client/src/lib/auth.tsx` manages user state
 
-#### データベースアクセスパターン
-すべてのデータベース操作は`server/storage.ts`を通じて実行され、以下を含む：
-- `withRetry()`関数による自動リトライロジック
-- コネクションプーリングとエラーハンドリング
-- Drizzle ORMに対する一貫したインターフェース抽象化
-- ソフト削除パターン（isDeletedフラグ）
+#### Database Access Pattern
+All database operations are executed via `server/storage.ts`, including:
+- Automatic retry logic with `withRetry()` function
+- Connection pooling and error handling
+- Consistent interface abstraction for Drizzle ORM
+- Soft delete pattern (isDeleted flag)
 
-#### AIサービスアーキテクチャ
-`server/ai-service.ts`の抽象`AIService`クラスが複数プロバイダーをサポート：
-- OpenAI、Ollama、Google Gemini、Groq、OpenRouter実装
-- `ai-logger.ts`による包括的ログ
-- コンテンツクリーニング（`<think>`タグ、マークダウンブロックを除去）
-- トークン使用量追跡とリクエストID生成
-- `getDynamicAIConfig()`による動的設定
+#### AI Service Architecture
+The abstract `AIService` class in `server/ai-service.ts` supports multiple providers:
+- OpenAI, Ollama, Google Gemini, Groq, OpenRouter implementations
+- Comprehensive logging via `ai-logger.ts`
+- Content cleaning (removes `<think>` tags, markdown blocks)
+- Token usage tracking and request ID generation
+- Dynamic configuration via `getDynamicAIConfig()`
 
-#### フォームハンドリングパターン
-- 全体でReact Hook Form + Zodバリデーション
-- `drizzle-zod`を使用した`shared/schema.ts`の共有スキーマ
-- 既知の問題：フォームは非null値を期待するがDBフィールドはnullable
-- 週次レポートでデバウンス付き自動保存機能
+#### Form Handling Pattern
+- React Hook Form + Zod validation used throughout
+- Shared schema in `shared/schema.ts` using `drizzle-zod`
+- Known issue: forms expect non-null values but DB fields are nullable
+- Debounced auto-save feature for weekly reports
 
-### 主要機能
-- プロジェクト、ケース、レポート横断の**全文検索**と候補機能
-- テキスト要約とリアルタイム分析のための**AI統合**
-- **役割ベースアクセス制御**（管理者/一般ユーザー）
-- PostgreSQLストレージによる**セッション管理**
-- React Hook Form + Zodバリデーションによる**包括的フォームハンドリング**
-- 週次レポート編集のための**前回レポート比較ツールチップ**
-- プロジェクトベースフィルタリングと履歴機能付き**ケース選択モーダル**
+### Key Features
+- **Full-text search** and suggestion functionality across projects, cases, and reports
+- **AI integration** for text summarization and real-time analysis
+- **Role-based access control** (admin/general user)
+- **Session management** with PostgreSQL storage
+- **Comprehensive form handling** with React Hook Form + Zod validation
+- **Previous report comparison tooltip** for weekly report editing
+- **Case selection modal** with project-based filtering and history feature
 
-## 環境設定
+## Environment Configuration
 
-必要な環境変数：
+Required environment variables:
 ```env
-# データベース
+# Database
 DATABASE_URL=postgres://user:pass@localhost:5432/tasktrackr
 
-# セッション
+# Session
 SESSION_SECRET=your-session-secret
 
-# AIプロバイダー
-AI_PROVIDER=openai  # または "ollama", "gemini", "groq", "openrouter"
-AI_LOG_LEVEL=info   # debug, info, warn, error (本番環境では自動的にwarnに設定)
-AI_LOG_CONSOLE=true # 本番環境では自動的にfalseに設定
-AI_LOG_FILE=false   # ファイルログを有効にする場合はtrueに設定
-AI_LOG_MASK_SENSITIVE=true  # 機密データのマスク化を有効にする
+# AI Provider
+AI_PROVIDER=openai  # or "ollama", "gemini", "groq", "openrouter"
+AI_LOG_LEVEL=info   # debug, info, warn, error (automatically set to warn in production)
+AI_LOG_CONSOLE=true # automatically set to false in production
+AI_LOG_FILE=false   # set to true to enable file logging
+AI_LOG_MASK_SENSITIVE=true  # enable masking of sensitive data
 
-# OpenAI（使用する場合）
+# OpenAI (if used)
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_MAX_TOKENS=10000
 OPENAI_TEMPERATURE=0.7
 
-# Ollama（使用する場合）
+# Ollama (if used)
 OLLAMA_BASE_URL=http://localhost:11434/
 OLLAMA_MODEL=qwen3:latest
 
-# Gemini（使用する場合）
+# Gemini (if used)
 GEMINI_API_KEY=your-key
 GEMINI_MODEL=gemini-2.5-flash
 
-# Groq（使用する場合）
+# Groq (if used)
 GROQ_API_KEY=your-key
 GROQ_MODEL=llama-3.1-70b-versatile
 
-# OpenRouter（使用する場合）
+# OpenRouter (if used)
 OPENROUTER_API_KEY=sk-or-your-key
-OPENROUTER_MODEL=anthropic/claude-3.5-sonnet  # または "anthropic/claude-sonnet-4", "google/gemini-2.0-flash-001", "google/gemini-2.5-flash", "google/gemini-2.5-pro"
+OPENROUTER_MODEL=anthropic/claude-3.5-sonnet  # or "anthropic/claude-sonnet-4", "google/gemini-2.0-flash-001", "google/gemini-2.5-flash", "google/gemini-2.5-pro"
 OPENROUTER_MAX_TOKENS=4000
 OPENROUTER_TEMPERATURE=0.7
 
-# 開発環境設定
+# Development Environment Settings
 PORT=3000
 NODE_ENV=development
 ```
 
-## 開発パターン
+## Development Patterns
 
-### 新しいデータベースフィールドの追加
-1. `shared/schema.ts`でスキーマを更新
-2. `npm run db:push`を実行して変更を適用
-3. 必要に応じてTypeScript型とフォームを更新
-4. コンポーネントでnullableフィールドを適切に処理
+### Adding New Database Fields
+1. Update schema in `shared/schema.ts`
+2. Run `npm run db:push` to apply changes
+3. Update TypeScript types and forms as needed
+4. Handle nullable fields appropriately in components
 
-### 新しいAPIルートの追加
-1. `server/routes.ts`でルートハンドラーを追加
-2. `server/storage.ts`で対応するストレージメソッドを追加
-3. 保護のために`isAuthenticated`/`isAdmin`ミドルウェアを使用
-4. データ取得のためにフロントエンドフック/クエリを更新
+### Adding New API Routes
+1. Add route handler in `server/routes.ts`
+2. Add corresponding storage method in `server/storage.ts`
+3. Use `isAuthenticated`/`isAdmin` middleware for protection
+4. Update frontend hooks/queries for data fetching
 
-### コンポーネント開発
-- `client/src/components/ui/`のShadcn/uiコンポーネントを使用
-- `client/src/components/`の既存パターンに従う
-- 適切なTypeScript型付けとエラーハンドリングを実装
-- 履歴データを持つフォームフィールドにはPreviousReportTooltipを使用
+### Component Development
+- Use Shadcn/ui components in `client/src/components/ui/`
+- Follow existing patterns in `client/src/components/`
+- Implement proper TypeScript typing and error handling
+- Use PreviousReportTooltip for form fields with historical data
 
-### AI統合
-- 新しいAI機能には抽象AIServiceパターンを使用
-- aiLoggerを通じてすべてのAIインタラクションをログ
-- cleanThinkTagsメソッドでコンテンツをクリーニング
-- 設定によるプロバイダー切り替えを処理
+### AI Integration
+- Use the abstract AIService pattern for new AI features
+- Log all AI interactions via aiLogger
+- Clean content with cleanThinkTags method
+- Handle provider switching via configuration
 
-### フォーム開発パターン
+### Form Development Pattern
 ```typescript
-// React Hook Form + Zod バリデーション
+// React Hook Form + Zod Validation
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertProjectSchema } from "@shared/schema";
@@ -265,242 +265,242 @@ const form = useForm<z.infer<typeof insertProjectSchema>>({
   defaultValues: {
     name: "",
     overview: "",
-    // null値対応: value={field.value ?? ""}
+    // Handle null values: value={field.value ?? ""}
   },
 });
 ```
 
-## 特別な設定
+## Special Configurations
 
-### データベース互換性
-- **Neon.tech対応**: PostgreSQLセッションが失敗した場合のMemoryStoreへの自動フォールバック
-- **接続リトライロジック**: ストレージ操作で接続失敗を適切に処理
-- **マイグレーションシステム**: スキーマバージョニングにDrizzle Kitを使用
+### Database Compatibility
+- **Neon.tech Support**: Automatic fallback to MemoryStore if PostgreSQL session fails
+- **Connection Retry Logic**: Gracefully handles connection failures in storage operations
+- **Migration System**: Uses Drizzle Kit for schema versioning
 
-### ビルド設定
-- **ハイブリッドビルドシステム**: フロントエンドはVite、バックエンドはESBuildでビルド
-- **パスエイリアス**: クライアントコード用`@/`、共有型用`@shared/`
-- **開発サーバー**: 単一の`npm run dev`コマンドでフロントエンドとバックエンドの両方を実行
-- **出力**: フロントエンドは`dist/public/`、バックエンドは`dist/index.js`
-- **TypeScript設定**: incremental buildとtsBuildInfoFileによる高速コンパイル
-- **モジュール解決**: bundler方式でallowImportingTsExtensions有効
+### Build Configuration
+- **Hybrid Build System**: Frontend built with Vite, backend with ESBuild
+- **Path Aliases**: `@/` for client code, `@shared/` for shared types
+- **Development Server**: Single `npm run dev` command runs both frontend and backend
+- **Output**: Frontend to `dist/public/`, backend to `dist/index.js`
+- **TypeScript Configuration**: Fast compilation with incremental build and tsBuildInfoFile
+- **Module Resolution**: Bundler method with allowImportingTsExtensions enabled
 
-### 認証機能
-- **初期ユーザー作成**: 初回実行時の自動管理者ユーザー設定（admin/password）
-- **セッションデバッグ**: セッショントラブルシューティング用の開発ミドルウェア
-- **役割ベースミドルウェア**: APIルート用の`isAuthenticated`と`isAdmin`ガード
+### Authentication Features
+- **Initial User Creation**: Automatic admin user setup on first run (admin/password)
+- **Session Debugging**: Development middleware for session troubleshooting
+- **Role-Based Middleware**: `isAuthenticated` and `isAdmin` guards for API routes
 
-## 重要な実装注意事項
+## Important Implementation Notes
 
-### フォームのnull値ハンドリング
-既知のTypeScript問題：データベースフィールドはnullableだがReactコンポーネントは非null値を期待。TextAreaには`value={field.value ?? ""}`パターンを使用。
+### Form Null Value Handling
+Known TypeScript issue: Database fields are nullable but React components expect non-null values. Use `value={field.value ?? ""}` pattern for TextAreas.
 
-### APIリクエストパターン
-常に`apiRequest(url, { method: "GET"|"POST"|"PUT"|"DELETE", data? })`を使用 - fetchを直接呼び出さない。
+### API Request Pattern
+Always use `apiRequest(url, { method: "GET"|"POST"|"PUT"|"DELETE", data? })` - do not call `fetch` directly.
 
-### AI分析統合
-週次レポートフィールドは初回編集時のみblur時に自動的にAI分析をトリガー。2回目以降は手動再生成ボタンでのみ実行。`analyzeField(fieldName, content, originalContent?, previousReportContent?)`パターンを使用。`useAIAnalysis`フックの`hasRunAnalysis`フラグで初回実行を追跡。
+### AI Analysis Integration
+Weekly report fields automatically trigger AI analysis on blur only for the first edit. Subsequent edits require manual regeneration via a button. Use `analyzeField(fieldName, content, originalContent?, previousReportContent?)` pattern. The `hasRunAnalysis` flag in `useAIAnalysis` hook tracks the first run.
 
-### 前回レポートデータ
-履歴比較には週次レポートクエリの`latestReport`を使用。レポートは`/api/weekly-reports/previous/:caseId`エンドポイント経由でケースと日付関係に基づいて取得。
+### Previous Report Data
+Use `latestReport` from weekly report queries for historical comparison. Reports are fetched via `/api/weekly-reports/previous/:caseId` endpoint based on case and date relationships.
 
-### 設定キー名の整合性
-リアルタイム分析設定は`REALTIME_PROVIDER`キーを使用（`REALTIME_AI_PROVIDER`ではない）。画面表示、DB保存、サーバー読み込み全てで統一。
+### Configuration Key Name Consistency
+Real-time analysis configuration uses `REALTIME_PROVIDER` key (not `REALTIME_AI_PROVIDER`). Ensure consistency across screen display, DB storage, and server loading.
 
-### AIログ機能
-AIサービスのログは本番環境で自動的に最適化されます：
-- ログレベルが自動的にWARNINGに設定
-- コンソールログが自動的に無効化
-- 大きなレスポンスボディは1000文字で切り詰め
-- APIキーは自動的にマスク化（OpenAI、Groq、Gemini、OpenRouter対応）
-- リクエストデータはキャッシュされ、レスポンス/エラーログで再利用
+### AI Logging Features
+AI service logs are automatically optimized in production environments:
+- Log level automatically set to WARNING
+- Console logging automatically disabled
+- Large response bodies truncated to 1000 characters
+- API keys automatically masked (OpenAI, Groq, Gemini, OpenRouter supported)
+- Request data cached and reused in response/error logs
 
-### ストリーミング対応
-一部のAIプロバイダーでリアルタイムストリーミングをサポート：
-- **Gemini**: `generateStreamResponse`メソッドでストリーミング対応
-- **OpenAI**: 標準でストリーミング機能を提供
-- フロントエンドの`streamingSupportedProviders`配列で管理
+### Streaming Support
+Supports real-time streaming for some AI providers:
+- **Gemini**: Streaming supported with `generateStreamResponse` method
+- **OpenAI**: Provides streaming functionality by default
+- Managed in frontend `streamingSupportedProviders` array
 
-### 管理者向け確認メール機能
-週次レポート作成時に管理者向けの確認メールを自動生成：
-- `generate-admin-confirmation-email.usecase.ts`でメール内容を生成
-- レポート詳細ページで管理者がメールを確認・再生成可能
-- `/api/weekly-reports/:id/regenerate-admin-email`エンドポイントで再生成
+### Admin Confirmation Email Feature
+Automatically generates confirmation emails for administrators when weekly reports are created:
+- Email content generated in `generate-admin-confirmation-email.usecase.ts`
+- Administrators can review and regenerate emails on the report detail page
+- Regenerate via `/api/weekly-reports/:id/regenerate-admin-email` endpoint
 
-## デバッグとトラブルシューティング
+## Debugging and Troubleshooting
 
-### 一般的な問題と解決策
+### Common Issues and Solutions
 
-#### 1. TypeScript型エラー
+#### 1. TypeScript Type Errors
 ```bash
-# 型チェックを実行
+# Run type check
 npm run check
 
-# 既知の問題：
-# - client/src/pages/weekly-report.tsx の TextArea null値エラー
-# - server/routes.ts のユーザーオブジェクトプロパティアクセス
+# Known issues:
+# - TextArea null value error in client/src/pages/weekly-report.tsx
+# - User object property access in server/routes.ts
 ```
 
-#### 2. データベース接続エラー
+#### 2. Database Connection Errors
 ```bash
-# スキーマをプッシュ
+# Push schema
 npm run db:push
 
-# 接続確認
-# 環境変数 DATABASE_URL を確認
-# PostgreSQL/Neon.tech への接続状況を確認
+# Check connection
+# Verify DATABASE_URL environment variable
+# Check connection status to PostgreSQL/Neon.tech
 ```
 
-#### 3. AI機能のデバッグ
+#### 3. Debugging AI Features
 ```bash
-# AI ログの確認
-# 環境変数 AI_LOG_LEVEL=debug に設定
-# AI_LOG_CONSOLE=true でコンソール出力を有効化
+# Check AI logs
+# Set AI_LOG_LEVEL=debug in environment variables
+# Enable console output with AI_LOG_CONSOLE=true
 
-# プロバイダー別のトラブルシューティング：
-# - OpenAI: API キーと利用制限を確認
-# - Ollama: ローカルサーバーの起動状況を確認
-# - Gemini: APIキーと地域制限を確認
-# - Groq: APIキーとレート制限を確認
+# Provider-specific troubleshooting:
+# - OpenAI: Check API key and usage limits
+# - Ollama: Check local server status
+# - Gemini: Check API key and regional restrictions
+# - Groq: Check API key and rate limits
 ```
 
-#### 4. セッション認証エラー
+#### 4. Session Authentication Errors
 ```bash
-# セッションストレージの確認
-# PostgreSQL セッションテーブルの状況を確認
-# MemoryStore フォールバック動作を確認
+# Check session storage
+# Check status of PostgreSQL session table
+# Verify MemoryStore fallback behavior
 ```
 
-### 開発サーバーの再起動手順
+### Development Server Restart Procedure
 ```bash
-# 完全な再起動（推奨）
+# Full restart (recommended)
 npm run dev
 
-# 注意：個別起動コマンドは存在しません
-# npm run dev で統合サーバーが localhost:5000 で起動
+# Note: No separate startup commands exist
+# npm run dev starts the integrated server on localhost:5000
 ```
 
-### 開発時のポート構成
-- **開発サーバー**: `localhost:5000` - 統合サーバー（フロント + バック）
-- **本番サーバー**: `PORT`環境変数で指定（デフォルト5000）
-- **データベース**: PostgreSQL標準ポート5432またはNeon.tech
+### Development Port Configuration
+- **Development Server**: `localhost:5000` - Integrated server (frontend + backend)
+- **Production Server**: Specified by `PORT` environment variable (default 5000)
+- **Database**: PostgreSQL standard port 5432 or Neon.tech
 
-### パフォーマンス監視
-- React Query DevTools を使用してキャッシュ状況を確認
-- ブラウザの Network タブでAPI呼び出しを監視
-- AI分析処理の応答時間を `ai-logger.ts` で確認
-- データベースクエリのパフォーマンスを監視
+### Performance Monitoring
+- Use React Query DevTools to check cache status
+- Monitor API calls in browser's Network tab
+- Check AI analysis processing response times in `ai-logger.ts`
+- Monitor database query performance
 
-## 知識管理と継続的改善
+## Knowledge Management and Continuous Improvement
 
-### 知識の記録場所
-- **.claude/context.md** - プロジェクトの背景と制約情報
-- **.claude/project-knowledge.md** - 技術的な洞察と実装パターン
-- **.claude/project-improvements.md** - 改善履歴と学習内容
-- **.claude/common-patterns.md** - 頻繁に使用するコマンドとパターン
-- **.claude/debug-log.md** - 重要なデバッグ記録
+### Knowledge Recording Locations
+- **.claude/context.md** - Project background and constraint information
+- **.claude/project-knowledge.md** - Technical insights and implementation patterns
+- **.claude/project-improvements.md** - Improvement history and lessons learned
+- **.claude/common-patterns.md** - Frequently used commands and patterns
+- **.claude/debug-log.md** - Important debug records
 
-### 継続的改善のプロセス
-1. **新しい技術パターンの発見** → `.claude/project-knowledge.md` に記録
-2. **問題解決の手順** → `.claude/debug-log.md` に記録
-3. **改善された実装** → `.claude/project-improvements.md` に記録
-4. **よく使うコマンド** → `.claude/common-patterns.md` に記録
+### Continuous Improvement Process
+1. **Discovery of new technical patterns** → Record in `.claude/project-knowledge.md`
+2. **Problem-solving procedures** → Record in `.claude/debug-log.md`
+3. **Improved implementations** → Record in `.claude/project-improvements.md`
+4. **Frequently used commands** → Record in `.claude/common-patterns.md`
 
-## テストとデプロイメント
+## Testing and Deployment
 
-### 初期ユーザー作成
-初回実行時に自動的に管理者ユーザーが作成されます：
-- **ユーザー名**: `admin`
-- **パスワード**: `password`
+### Initial User Creation
+An administrator user is automatically created on first run:
+- **Username**: `admin`
+- **Password**: `password`
 
-### テスト実行
-包括的なテストインフラが構築されています：
+### Test Execution
+A comprehensive testing infrastructure has been built:
 
-#### 基本テスト実行
+#### Basic Test Execution
 ```bash
-npm test                    # 全テスト実行（51件のテスト）
-npm run test:unit          # ユニットテスト（26件）
-npm run test:integration   # 統合テスト（25件）
-npm run test:watch         # ウォッチモード（開発時）
-npm run test:coverage      # カバレッジレポート生成
+npm test                    # Run all tests (51 tests)
+npm run test:unit          # Unit tests (26 tests)
+npm run test:integration   # Integration tests (25 tests)
+npm run test:watch         # Watch mode (during development)
+npm run test:coverage      # Generate coverage report
 ```
 
-#### 個別テスト実行
+#### Individual Test Execution
 ```bash
-npm test tests/unit/server/basic.test.ts    # 特定ファイル
-npm test button                             # パターンマッチ
-npm test -- --reporter=verbose             # 詳細ログ
+npm test tests/unit/server/basic.test.ts    # Specific file
+npm test button                             # Pattern match
+npm test -- --reporter=verbose             # Detailed logs
 ```
 
-#### テスト環境
-- **テストフレームワーク**: Vitest 3.2.4
-- **Reactテスト**: React Testing Library 16.3.0
-- **モッキング**: MSW (Mock Service Worker)
-- **カバレッジ**: @vitest/coverage-v8
-- **現在のカバレッジ**: 1.06%（基盤構築完了）
+#### Test Environment
+- **Test Framework**: Vitest 3.2.4
+- **React Testing**: React Testing Library 16.3.0
+- **Mocking**: MSW (Mock Service Worker)
+- **Coverage**: @vitest/coverage-v8
+- **Current Coverage**: 1.06% (foundation building complete)
 
-#### CI/CD統合
-- GitHub Actionsで自動テスト実行
-- Node.js 18.x, 20.x マトリックステスト
-- PostgreSQLデータベースサービス
-- Codecovカバレッジレポート
+#### CI/CD Integration
+- Automated test execution with GitHub Actions
+- Node.js 18.x, 20.x matrix testing
+- PostgreSQL database service
+- Codecov coverage report
 
-### 品質チェック
+### Quality Checks
 ```bash
-npm run check    # TypeScript型チェック
-npm run build    # ビルドエラーチェック
-npm test         # 全テスト実行
+npm run check    # TypeScript type check
+npm run build    # Build error check
+npm test         # Run all tests
 ```
 
-## セキュリティとベストプラクティス
+## Security and Best Practices
 
-### 認証・セッション管理
-- Passport.jsによるセッションベース認証を採用
-- PostgreSQLセッションストア使用（Neon.tech環境ではMemoryStoreにフォールバック）
-- セッション有効期限とCookie設定の適切な管理
-- 初期管理者アカウント（admin/password）は本番環境では必ず変更
+### Authentication and Session Management
+- Adopts Passport.js for session-based authentication
+- Uses PostgreSQL session store (falls back to MemoryStore in Neon.tech environment)
+- Proper management of session expiration and cookie settings
+- Initial administrator account (admin/password) must be changed in production
 
-### データベースセキュリティ
-- Drizzle ORMによるクエリインジェクション対策
-- 適切なバリデーション（Zod）による入力値検証
-- ソフト削除パターン（isDeletedフラグ）によるデータ保護
+### Database Security
+- Drizzle ORM for protection against query injection
+- Input validation with appropriate validation (Zod)
+- Data protection with soft delete pattern (isDeleted flag)
 
-### AI統合のセキュリティ
-- APIキーの環境変数管理と自動マスキング
-- プロンプトインジェクション対策
-- AIレスポンスのコンテンツクリーニング（`<think>`タグ除去）
+### AI Integration Security
+- Environment variable management and automatic masking of API keys
+- Protection against prompt injection
+- Content cleaning of AI responses (removes `<think>` tags)
 
-## パフォーマンス最適化ガイド
+## Performance Optimization Guide
 
-### フロントエンド最適化
-- React Query による適切なキャッシュ戦略（2-5分間）
-- コンポーネントの適切な分割とレンダリング最適化
-- 大量データに対する検索制限（20件）とページネーション
+### Frontend Optimization
+- Appropriate caching strategy with React Query (2-5 minutes)
+- Proper component splitting and rendering optimization
+- Search limits (20 items) and pagination for large datasets
 
-### バックエンド最適化
-- データベースクエリの最適化（必要最小限のフィールド取得）
-- N+1問題の解決（一括データ取得）
-- 並列AI処理による応答時間の短縮（30-50%改善）
+### Backend Optimization
+- Database query optimization (fetching minimum required fields)
+- Resolution of N+1 problems (batch data fetching)
+- Reduced response times with parallel AI processing (30-50% improvement)
 
-## テスト開発パターン
+## Test Development Patterns
 
-### 新しいテスト作成
-1. **ユニットテスト**: `tests/unit/[client|server]/component.test.ts`
-2. **統合テスト**: `tests/integration/feature.test.ts`
-3. **テストデータ**: `tests/__fixtures__/testData.ts`に追加
-4. **モック**: `tests/__mocks__/handlers.ts`でMSWハンドラー追加
+### Creating New Tests
+1. **Unit Tests**: `tests/unit/[client|server]/component.test.ts`
+2. **Integration Tests**: `tests/integration/feature.test.ts`
+3. **Test Data**: Add to `tests/__fixtures__/testData.ts`
+4. **Mocks**: Add MSW handlers in `tests/__mocks__/handlers.ts`
 
-### テストのベストプラクティス
-- React Testing Libraryの`render()`でコンポーネントテスト
-- `userEvent.setup()`でユーザーインタラクション
-- `vi.mock()`で外部依存をモック化
-- `expect().toBeInTheDocument()`でDOM要素の存在確認
-- 非同期処理は`waitFor()`で適切に待機
+### Test Best Practices
+- Component testing with React Testing Library's `render()`
+- User interactions with `userEvent.setup()`
+- Mock external dependencies with `vi.mock()`
+- Assert DOM element presence with `expect().toBeInTheDocument()`
+- Properly await asynchronous operations with `waitFor()`
 
-### テスト環境設定
-- `.env.test`: テスト用環境変数
-- `tests/setup.ts`: グローバルテスト設定
-- `vitest.config.ts`: Vitest設定とエイリアス
-- `tests/utils/testUtils.tsx`: カスタムレンダー関数
+### Test Environment Setup
+- `.env.test`: Environment variables for testing
+- `tests/setup.ts`: Global test setup
+- `vitest.config.ts`: Vitest configuration and aliases
+- `tests/utils/testUtils.tsx`: Custom render function
 
-詳細は`TESTING.md`を参照してください。
+Refer to `TESTING.md` for more details.

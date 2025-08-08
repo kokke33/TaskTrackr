@@ -221,11 +221,7 @@ export default function CaseList() {
         // 手動コピーダイアログを表示
         setManualCopyData(text);
         setManualCopyDialogOpen(true);
-        toast({
-          title: "手動コピーが必要",
-          description: "自動コピーに失敗しました。表示されたダイアログからデータをコピーしてください。",
-          variant: "destructive",
-        });
+        toast({duration: 1000,});
       });
   };
 
@@ -324,21 +320,13 @@ export default function CaseList() {
       // データの整合性を詳細チェック
       if (!data || typeof data !== 'object') {
         console.error("[CLIPBOARD] Invalid data structure:", data);
-        toast({
-          title: "データエラー",
-          description: "サーバーから無効なデータが返されました",
-          variant: "destructive",
-        });
+        toast({duration: 1000,});
         return;
       }
 
       if (!data.prompt || typeof data.prompt !== 'string' || data.prompt.trim() === "") {
         console.error("[CLIPBOARD] Empty or invalid prompt:", data.prompt);
-        toast({
-          title: "データなし",
-          description: "指定された期間に週次報告のある案件が見つかりませんでした",
-          variant: "destructive",
-        });
+        toast({duration: 1000,});
         return;
       }
 
@@ -376,11 +364,7 @@ export default function CaseList() {
     },
     onError: (error: Error) => {
       console.error("Error retrieving monthly summary input data:", error);
-      toast({
-        title: "エラー",
-        description: error.message || "月次報告書のインプットデータの取得に失敗しました",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     }
   });
   
@@ -431,11 +415,7 @@ export default function CaseList() {
     onSuccess: (data) => {
       // サマリーが空でないか確認
       if (!data.summary || data.summary.trim() === "") {
-        toast({
-          title: "データなし",
-          description: "指定された期間に週次報告のある案件が見つかりませんでした",
-          variant: "destructive",
-        });
+        toast({duration: 1000,});
         return;
       }
       
@@ -457,11 +437,7 @@ export default function CaseList() {
     },
     onError: (error: Error) => {
       console.error("Error generating monthly summary:", error);
-      toast({
-        title: "エラー",
-        description: error.message || "月次報告書の生成に失敗しました",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     }
   });
   
@@ -603,11 +579,7 @@ export default function CaseList() {
   // 選択された期間で月次サマリーを生成
   const generateMonthlySummaryWithDates = () => {
     if (!selectedProjects.length || !startDate || !endDate) {
-      toast({
-        title: "エラー",
-        description: "プロジェクトと期間を選択してください",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
       return;
     }
     
@@ -615,10 +587,7 @@ export default function CaseList() {
     setMonthlySummaryPeriod(null);
     setDateDialogOpen(false);
     
-    toast({
-      title: "月次報告書を生成中",
-      description: "OpenAI APIを使って処理中です。しばらくお待ちください...",
-    });
+    toast({duration: 1000,});
     
     // yyyy-MM-dd形式にフォーマット
     const formatDate = (date: Date) => {
@@ -653,17 +622,10 @@ export default function CaseList() {
     navigator.clipboard
       .writeText(monthlySummary)
       .then(() => {
-        toast({
-          title: "コピー完了",
-          description: "月次報告書をクリップボードにコピーしました",
-        });
+        toast({duration: 1000,});
       })
       .catch(() => {
-        toast({
-          title: "エラー",
-          description: "クリップボードへのコピーに失敗しました",
-          variant: "destructive",
-        });
+        toast({duration: 1000,});
       });
   };
 
@@ -1015,6 +977,14 @@ export default function CaseList() {
                 デフォルトでは直近1ヶ月と全案件が選択されています。
               </DialogDescription>
             </DialogHeader>
+
+            {/* 注意書き */}
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-700">
+                <strong>注意:</strong> 各案件につき最大10件の週次報告が表示されます。
+                多数の報告がある場合は、期間内の最初の10件が時系列順で表示されます。
+              </p>
+            </div>
             
             <div className="flex flex-col space-y-6 py-4">
               {/* カレンダー部分 */}
@@ -1243,17 +1213,11 @@ export default function CaseList() {
                       // 最後にもう一度コピーを試行
                       navigator.clipboard?.writeText(manualCopyData)
                         .then(() => {
-                          toast({
-                            title: "コピー完了",
-                            description: "データがクリップボードにコピーされました",
-                          });
+                          toast({duration: 1000,});
                           setManualCopyDialogOpen(false);
                         })
                         .catch(() => {
-                          toast({
-                            title: "コピー指示",
-                            description: "Ctrl+C (Windows/Linux) または Cmd+C (Mac) でコピーしてください",
-                          });
+                          toast({duration: 1000,});
                         });
                     }
                   }}
@@ -1307,10 +1271,7 @@ export default function CaseList() {
                   document.body.removeChild(a);
                   URL.revokeObjectURL(url);
                   
-                  toast({
-                    title: "ダウンロード完了",
-                    description: "データがテキストファイルとしてダウンロードされました",
-                  });
+                  toast({duration: 1000,});
                 }}
                 className="flex items-center gap-2"
               >

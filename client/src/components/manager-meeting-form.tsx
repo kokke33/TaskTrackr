@@ -67,13 +67,13 @@ export function ManagerMeetingForm({ projectId, meeting, onSuccess }: ManagerMee
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "manager-meetings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "manager-meetings", "months"] });
-      toast({ title: "議事録を作成しました" });
+      toast({duration: 1000,});
       setOpen(false);
       form.reset();
       onSuccess?.();
     },
     onError: () => {
-      toast({ title: "エラー", description: "議事録の作成に失敗しました", variant: "destructive" });
+      toast({duration: 1000,});
     },
   });
 
@@ -90,12 +90,12 @@ export function ManagerMeetingForm({ projectId, meeting, onSuccess }: ManagerMee
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "manager-meetings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/manager-meetings", meeting!.id] });
-      toast({ title: "議事録を更新しました" });
+      toast({duration: 1000,});
       setOpen(false);
       onSuccess?.();
     },
     onError: () => {
-      toast({ title: "エラー", description: "議事録の更新に失敗しました", variant: "destructive" });
+      toast({duration: 1000,});
     },
   });
 

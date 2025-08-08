@@ -50,11 +50,7 @@ export default function RecentCases() {
         setCases(data);
       } catch (error) {
         console.error("Error fetching recent cases:", error);
-        toast({
-          title: "エラー",
-          description: "最近の案件一覧の取得に失敗しました",
-          variant: "destructive",
-        });
+        toast({duration: 1000,});
       } finally {
         setLoading(false);
       }

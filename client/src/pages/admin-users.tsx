@@ -216,17 +216,10 @@ export default function AdminUsers() {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setIsCreateDialogOpen(false);
       createForm.reset();
-      toast({
-        title: "ユーザを作成しました",
-        description: "新しいユーザが正常に作成されました",
-      });
+      toast({duration: 1000,});
     },
     onError: (error: any) => {
-      toast({
-        title: "作成に失敗しました",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     },
   });
 
@@ -237,17 +230,10 @@ export default function AdminUsers() {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setEditingUser(null);
       editForm.reset();
-      toast({
-        title: "ユーザを更新しました",
-        description: "ユーザ情報が正常に更新されました",
-      });
+      toast({duration: 1000,});
     },
     onError: (error: any) => {
-      toast({
-        title: "更新に失敗しました",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     },
   });
 
@@ -257,17 +243,10 @@ export default function AdminUsers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setDeletingUser(null);
-      toast({
-        title: "ユーザを削除しました",
-        description: "ユーザが正常に削除されました",
-      });
+      toast({duration: 1000,});
     },
     onError: (error: any) => {
-      toast({
-        title: "削除に失敗しました",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     },
   });
 
@@ -286,32 +265,20 @@ export default function AdminUsers() {
     // 最終セキュリティチェック
     if (!editingUser) {
       console.error('[ADMIN-USERS] ⚠️ SECURITY ALERT: No editingUser at form submit');
-      toast({
-        title: "エラー",
-        description: "編集対象のユーザーが見つかりません。",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
       return;
     }
 
     if (!editingUser.id || !editingUser.username) {
       console.error('[ADMIN-USERS] ⚠️ SECURITY ALERT: Invalid editingUser data at submit', editingUser);
-      toast({
-        title: "エラー",
-        description: "無効なユーザー情報です。ページを再読み込みしてください。",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
       return;
     }
 
     // ss7-1の最終チェック
     if (editingUser.username === 'ss7-1' || data.username === 'ss7-1') {
       console.error('[ADMIN-USERS] ⚠️ SECURITY ALERT: ss7-1 detected at form submit');
-      toast({
-        title: "セキュリティエラー",
-        description: "セキュリティ上の問題が検出されました。操作を中止します。",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
       return;
     }
 
@@ -331,11 +298,7 @@ export default function AdminUsers() {
     // セキュリティチェック: ユーザー情報の妥当性検証
     if (!user || !user.id || !user.username) {
       console.error('[ADMIN-USERS] ⚠️ SECURITY ALERT: Invalid user data received', user);
-      toast({
-        title: "エラー",
-        description: "無効なユーザー情報です。ページを再読み込みしてください。",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
       return;
     }
 
@@ -343,11 +306,7 @@ export default function AdminUsers() {
     if (user.username === 'ss7-1') {
       console.error('[ADMIN-USERS] ⚠️ SECURITY ALERT: ss7-1 user detected in edit operation');
       console.error('[ADMIN-USERS] This may indicate a state management issue');
-      toast({
-        title: "セキュリティ警告",
-        description: "予期しないユーザー情報が検出されました。ページを再読み込みしてください。",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
       return;
     }
 
@@ -380,11 +339,7 @@ export default function AdminUsers() {
   const handleDelete = (user: User) => {
     // adminユーザの削除を防ぐ
     if (user.username === 'admin') {
-      toast({
-        title: "削除できません",
-        description: "adminユーザは削除できません",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
       return;
     }
     setDeletingUser(user);

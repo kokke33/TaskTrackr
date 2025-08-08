@@ -6,13 +6,33 @@ import { BaseProvider } from './base-provider.js';
 
 export class OpenAIService extends BaseProvider {
   private client: OpenAI;
+  private model: string;
   readonly supportsStreaming: boolean = true;
 
-  constructor() {
+  constructor(model?: string) {
     super('openai');
     this.client = new OpenAI({
       apiKey: aiConfig.openai.apiKey,
     });
+    this.model = model || aiConfig.openai.model;
+  }
+
+  private getTokensParamName(): 'max_tokens' | 'max_completion_tokens' {
+    // GPT-4o, GPT-5シリーズは max_completion_tokens を使用
+    if (this.model.includes('gpt-4o') || this.model.includes('gpt-5')) {
+      return 'max_completion_tokens';
+    }
+    // その他のモデル（GPT-3.5など）は max_tokens を使用
+    return 'max_tokens';
+  }
+
+  private supportsCustomTemperature(): boolean {
+    // GPT-5シリーズは temperature のカスタム値をサポートしない（デフォルト値1のみ）
+    if (this.model.includes('gpt-5')) {
+      return false;
+    }
+    // その他のモデルは temperature のカスタム値をサポート
+    return true;
   }
 
   async generateResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): Promise<AIResponse> {
@@ -24,27 +44,40 @@ export class OpenAIService extends BaseProvider {
       'Content-Type': 'application/json',
     };
 
+    const tokensParam = this.getTokensParamName();
+    const supportsTemperature = this.supportsCustomTemperature();
+    
+    const requestBody: any = {
+      model: this.model,
+      messages: messages,
+      [tokensParam]: aiConfig.openai.maxTokens,
+    };
+    
+    if (supportsTemperature) {
+      requestBody.temperature = aiConfig.openai.temperature;
+    }
+
     const requestData = {
       endpoint: 'https://api.openai.com/v1/chat/completions',
       method: 'POST',
       headers: this.maskSensitiveHeaders(headers),
-      body: {
-        model: aiConfig.openai.model,
-        messages: messages,
-        max_tokens: aiConfig.openai.maxTokens,
-        temperature: aiConfig.openai.temperature,
-      }
+      body: requestBody
     };
 
     aiLogger.logRequest('openai', 'generateResponse', requestId, requestData, userId, metadata);
 
     try {
-      const response = await this.client.chat.completions.create({
-        model: aiConfig.openai.model,
+      const apiParams: any = {
+        model: this.model,
         messages: messages,
-        max_tokens: aiConfig.openai.maxTokens,
-        temperature: aiConfig.openai.temperature,
-      });
+        [tokensParam]: aiConfig.openai.maxTokens,
+      };
+
+      if (supportsTemperature) {
+        apiParams.temperature = aiConfig.openai.temperature;
+      }
+
+      const response = await this.client.chat.completions.create(apiParams);
 
       const duration = Date.now() - startTime;
       const choice = response.choices[0];
@@ -87,7 +120,7 @@ export class OpenAIService extends BaseProvider {
     } catch (error) {
       const duration = Date.now() - startTime;
       aiLogger.logError('openai', 'generateResponse', requestId, error as Error, userId, 
-        { ...metadata, duration, model: aiConfig.openai.model });
+        { ...metadata, duration, model: this.model });
       
       throw new Error(`OpenAI API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -96,6 +129,19 @@ export class OpenAIService extends BaseProvider {
   async* generateStreamResponse(messages: AIMessage[], userId?: string, metadata?: Record<string, any>): AsyncIterable<string> {
     const requestId = generateRequestId();
     const startTime = Date.now();
+    const tokensParam = this.getTokensParamName();
+    const supportsTemperature = this.supportsCustomTemperature();
+
+    const streamBody: any = {
+      model: this.model,
+      messages: messages,
+      [tokensParam]: aiConfig.openai.maxTokens,
+      stream: true,
+    };
+
+    if (supportsTemperature) {
+      streamBody.temperature = aiConfig.openai.temperature;
+    }
 
     const requestData = {
       endpoint: 'https://api.openai.com/v1/chat/completions',
@@ -104,25 +150,24 @@ export class OpenAIService extends BaseProvider {
         'Authorization': `Bearer ${aiConfig.openai.apiKey}`,
         'Content-Type': 'application/json',
       }),
-      body: {
-        model: aiConfig.openai.model,
-        messages: messages,
-        max_tokens: aiConfig.openai.maxTokens,
-        temperature: aiConfig.openai.temperature,
-        stream: true,
-      }
+      body: streamBody
     };
 
     aiLogger.logRequest('openai', 'generateStreamResponse', requestId, requestData, userId, metadata);
 
     try {
-      const stream = await this.client.chat.completions.create({
-        model: aiConfig.openai.model,
+      const streamParams: any = {
+        model: this.model,
         messages: messages,
-        max_tokens: aiConfig.openai.maxTokens,
-        temperature: aiConfig.openai.temperature,
         stream: true,
-      });
+        [tokensParam]: aiConfig.openai.maxTokens,
+      };
+
+      if (supportsTemperature) {
+        streamParams.temperature = aiConfig.openai.temperature;
+      }
+
+      const stream = await this.client.chat.completions.create(streamParams) as any;
 
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta?.content;
@@ -137,7 +182,7 @@ export class OpenAIService extends BaseProvider {
     } catch (error) {
       const duration = Date.now() - startTime;
       aiLogger.logError('openai', 'generateStreamResponse', requestId, error as Error, userId, 
-        { ...metadata, duration, model: aiConfig.openai.model });
+        { ...metadata, duration, model: this.model });
       
       throw new Error(`OpenAI streaming API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

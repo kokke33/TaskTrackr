@@ -106,19 +106,12 @@ export default function WeeklyReportList() {
         fetchLatestCaseData(updatedCase.id);
       }, 100);
 
-      toast({
-        title: "マイルストーンを更新しました",
-        description: "案件のマイルストーン情報が正常に更新されました。",
-      });
+      toast({duration: 1000,});
       setIsMilestoneEditing(false);
     },
     onError: (error) => {
       console.error("Error updating milestone:", error);
-      toast({
-        title: "エラー",
-        description: "マイルストーンの更新に失敗しました。",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     }
   });
 
@@ -149,11 +142,7 @@ export default function WeeklyReportList() {
     },
     onError: (error) => {
       console.error("Error retrieving monthly summary input data:", error);
-      toast({
-        title: "エラー",
-        description: "月次報告書の入力データの取得に失敗しました",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     }
   });
 
@@ -198,11 +187,7 @@ export default function WeeklyReportList() {
     },
     onError: (error) => {
       console.error("Error generating monthly summary:", error);
-      toast({
-        title: "エラー",
-        description: "月次報告書の生成に失敗しました",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     }
   });
 
@@ -235,11 +220,7 @@ export default function WeeklyReportList() {
         handleGenerateNewReport();
       } else {
         console.error("Error fetching latest monthly report:", error);
-        toast({
-          title: "エラー",
-          description: "月次報告書の取得に失敗しました",
-          variant: "destructive",
-        });
+        toast({duration: 1000,});
       }
     }
   });
@@ -465,17 +446,10 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
     navigator.clipboard
       .writeText(markdownData)
       .then(() => {
-        toast({
-          title: "コピー完了",
-          description: "報告内容をマークダウン形式でクリップボードにコピーしました。",
-        });
+        toast({duration: 1000,});
       })
       .catch(() => {
-        toast({
-          title: "エラー",
-          description: "クリップボードへのコピーに失敗しました。",
-          variant: "destructive",
-        });
+        toast({duration: 1000,});
       });
   };
 
@@ -609,10 +583,7 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
     setMonthlySummary("");
     setMonthlySummaryPeriod(null);
 
-    toast({
-      title: "月次報告書を生成中",
-      description: "AIを使って処理中です。しばらくお待ちください...",
-    });
+    toast({duration: 1000,});
 
     monthlySummaryMutation.mutate(selectedChoiceParams);
   };
@@ -640,10 +611,7 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
       return date.toISOString().split('T')[0];
     };
 
-    toast({
-      title: "入力データを取得中",
-      description: "インプットデータの準備中です...",
-    });
+    toast({duration: 1000,});
 
     console.log("プロジェクト処理開始:", tempProjectName);
 
@@ -691,11 +659,7 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
             });
           })
           .catch(() => {
-            toast({
-              title: "エラー",
-              description: "クリップボードへのコピーに失敗しました。",
-              variant: "destructive",
-            });
+            toast({duration: 1000,});
           });
       }
     });
@@ -708,17 +672,10 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
     navigator.clipboard
       .writeText(monthlySummary)
       .then(() => {
-        toast({
-          title: "コピー完了",
-          description: "月次報告書をクリップボードにコピーしました。",
-        });
+        toast({duration: 1000,});
       })
       .catch(() => {
-        toast({
-          title: "エラー",
-          description: "クリップボードへのコピーに失敗しました。",
-          variant: "destructive",
-        });
+        toast({duration: 1000,});
       });
   };
 
@@ -1077,6 +1034,14 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
               デフォルトでは直近1ヶ月と全案件が選択されています。
             </DialogDescription>
           </DialogHeader>
+
+          {/* 注意書き */}
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-700">
+              <strong>注意:</strong> 各案件につき最大10件の週次報告が表示されます。
+              多数の報告がある場合は、期間内の最初の10件が時系列順で表示されます。
+            </p>
+          </div>
 
           <div className="flex flex-col space-y-6 py-4">
             {/* カレンダー部分 */}

@@ -95,17 +95,10 @@ export default function WeeklyReportDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/weekly-reports/${id}`] });
-      toast({
-        title: "成功",
-        description: "管理者確認メール文章が再生成されました",
-      });
+      toast({duration: 1000,});
     },
     onError: (error) => {
-      toast({
-        title: "エラー",
-        description: "メール文章の再生成に失敗しました",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     },
   });
   
@@ -174,17 +167,10 @@ export default function WeeklyReportDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/weekly-reports/${id}/meetings`] });
-      toast({
-        title: "成功",
-        description: "議事録が更新されました",
-      });
+      toast({duration: 1000,});
     },
     onError: (error) => {
-      toast({
-        title: "エラー",
-        description: "議事録の更新に失敗しました",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     },
   });
 
@@ -200,18 +186,11 @@ export default function WeeklyReportDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/weekly-reports'] });
-      toast({
-        title: "成功",
-        description: "週次報告が削除されました",
-      });
+      toast({duration: 1000,});
       setLocation('/reports');
     },
     onError: (error) => {
-      toast({
-        title: "エラー",
-        description: "週次報告の削除に失敗しました",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     },
   });
 
@@ -268,10 +247,7 @@ export default function WeeklyReportDetail() {
       sessionStorage.setItem(`adminEdit_original_${id}`, JSON.stringify(data.report));
       // 編集画面に遷移（管理者編集モード）
       setLocation(`/report/edit/${id}?adminEdit=true`);
-      toast({
-        title: "管理者編集モードを開始しました",
-        description: "修正作業を開始してください。",
-      });
+      toast({duration: 1000,});
     },
     onError: (error: Error) => {
       logger.error('管理者編集開始エラー', error);
@@ -294,11 +270,7 @@ export default function WeeklyReportDetail() {
         errorMessage = "サーバー内部でエラーが発生しました。しばらく時間をおいて再試行してください。";
       }
       
-      toast({
-        title: errorTitle,
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     }
   });
 

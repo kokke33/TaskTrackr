@@ -10,6 +10,47 @@ import { createLogger } from '@shared/logger';
 
 const logger = createLogger('WebSocket');
 
+// Rate Limit管理クラス
+class RateLimiter {
+  private attempts = new Map<string, number[]>();
+  private readonly maxAttempts = 5;
+  private readonly windowMs = 5 * 60 * 1000; // 5分間
+
+  isAllowed(clientIp: string): boolean {
+    const now = Date.now();
+    const clientAttempts = this.attempts.get(clientIp) || [];
+    
+    // 5分以内の試行回数をフィルタ
+    const recentAttempts = clientAttempts.filter(time => now - time < this.windowMs);
+    
+    if (recentAttempts.length >= this.maxAttempts) {
+      logger.warn('Rate limit exceeded for client', { clientIp, attempts: recentAttempts.length });
+      return false;
+    }
+    
+    // 新しい試行を記録
+    recentAttempts.push(now);
+    this.attempts.set(clientIp, recentAttempts);
+    
+    return true;
+  }
+
+  // 定期的なクリーンアップ
+  cleanup() {
+    const now = Date.now();
+    this.attempts.forEach((times, ip) => {
+      const recent = times.filter(time => now - time < this.windowMs);
+      if (recent.length === 0) {
+        this.attempts.delete(ip);
+      } else {
+        this.attempts.set(ip, recent);
+      }
+    });
+  }
+}
+
+const rateLimiter = new RateLimiter();
+
 // 編集セッション情報の型定義
 interface EditSession {
   reportId: number;
@@ -40,30 +81,30 @@ class ConnectionManager {
   
   addConnection(ws: WebSocket, userId: string, username: string) {
     this.connections.set(ws, { userId, username });
-    console.log(`WebSocket connection established for user: ${username}`);
+    logger.debug('Connection added to manager', { username, userId });
   }
   
   removeConnection(ws: WebSocket) {
     const connection = this.connections.get(ws);
     if (connection) {
-      console.log(`🔥 [ConnectionManager] Removing connection for user: ${connection.username} (${connection.userId})`);
+      logger.debug('Removing connection from manager', { username: connection.username, userId: connection.userId });
       
       // ユーザーの編集セッションをすべて終了
       this.editSessions.forEach((sessions, reportId) => {
         const originalLength = sessions.length;
         const filteredSessions = sessions.filter(session => session.userId !== connection.userId);
         if (filteredSessions.length !== originalLength) {
-          console.log(`🔥 [ConnectionManager] Removed editing session for user ${connection.username} from report ${reportId}`);
-          console.log(`🔥 [ConnectionManager] Sessions before: ${originalLength}, after: ${filteredSessions.length}`);
+          logger.debug('Removed editing session during connection cleanup', { username: connection.username, reportId });
+          logger.debug('Session count after cleanup', { before: originalLength, after: filteredSessions.length, reportId });
           this.editSessions.set(reportId, filteredSessions);
           this.broadcastEditingUsers(reportId);
         }
       });
       
       this.connections.delete(ws);
-      console.log(`🔥 [ConnectionManager] WebSocket connection fully closed for user: ${connection.username}`);
+      logger.debug('Connection fully removed', { username: connection.username });
     } else {
-      console.log(`🔥 [ConnectionManager] No connection found to remove`);
+      logger.debug('No connection found to remove');
     }
   }
   
@@ -196,6 +237,7 @@ const connectionManager = new ConnectionManager();
 // 定期的なクリーンアップ
 setInterval(() => {
   connectionManager.cleanupInactiveSessions();
+  rateLimiter.cleanup(); // Rate Limiterのクリーンアップも追加
 }, 30 * 1000); // 30秒ごとに変更して即座にクリーンアップ
 
 // セッション検証のヘルパー関数
@@ -277,45 +319,56 @@ export function setupWebSocket(server: Server) {
     path: '/ws',
     verifyClient: async (info: { req: any; origin?: string; secure?: boolean }) => {
       try {
-        console.log('[WebSocket] Verifying client connection...');
-        console.log('[WebSocket] Request headers:', {
-          host: info.req.headers.host,
+        // Rate Limit チェック - IPアドレスを取得
+        const clientIp = info.req.headers['x-forwarded-for']?.split(',')[0] || 
+                        info.req.connection?.remoteAddress || 
+                        info.req.socket?.remoteAddress || 
+                        'unknown';
+        
+        if (!rateLimiter.isAllowed(clientIp)) {
+          logger.debug('WebSocket connection rejected due to rate limit', { clientIp });
+          return false;
+        }
+
+        logger.debug('WebSocket client verification starting', {
+          clientIp,
           origin: info.req.headers.origin,
-          cookie: info.req.headers.cookie ? 'present' : 'missing'
+          hasCookie: !!info.req.headers.cookie
         });
         
         // Cookieからセッション情報を取得して認証確認
         const cookies = parse(info.req.headers.cookie || '');
-        console.log('[WebSocket] Parsed cookies:', Object.keys(cookies));
         const sessionId = cookies['tasktrackr_session'];
         
         if (!sessionId) {
-          console.log('[WebSocket] No session ID found in cookies');
-          console.log('[WebSocket] Available cookie keys:', Object.keys(cookies));
+          logger.debug('No session ID found in cookies', { 
+            clientIp,
+            availableCookies: Object.keys(cookies) 
+          });
           return false;
         }
         
         // セッション検証 - セッションIDの解析を改善
-        console.log('[WebSocket] Raw session ID:', sessionId);
         let cleanSessionId = sessionId;
-        
-        // Signedクッキーの形式 (s:sessionId.signature) の場合
         if (sessionId.startsWith('s:')) {
           cleanSessionId = sessionId.substring(2).split('.')[0];
         }
         
-        console.log('[WebSocket] Clean session ID:', cleanSessionId);
         const user = await getSessionUser(cleanSessionId);
         
         if (!user) {
-          console.log('[WebSocket] Session validation failed');
+          logger.debug('Session validation failed', { clientIp, sessionId: cleanSessionId });
           return false;
         }
         
-        console.log(`[WebSocket] Session validated for user ${user.username}`);
+        logger.info('WebSocket connection authorized', { 
+          clientIp, 
+          username: user.username,
+          userId: user.userId 
+        });
         return true;
       } catch (error) {
-        console.error('[WebSocket] Authentication error:', error);
+        logger.error('WebSocket authentication error', error instanceof Error ? error : new Error(String(error)));
         return false;
       }
     }
@@ -326,40 +379,42 @@ export function setupWebSocket(server: Server) {
       let user: { userId: string; username: string } | null = null;
       
       // セッションからユーザー情報を取得（厳密認証）
-      console.log('[WebSocket] Attempting session authentication...');
+      logger.debug('Attempting session authentication');
       const cookies = parse(req.headers.cookie || '');
       const sessionId = cookies['tasktrackr_session'];
       
       if (sessionId) {
         // セッション検証してユーザー情報を取得
-        console.log('[WebSocket] Raw session ID:', sessionId);
         let cleanSessionId = sessionId;
-        
-        // Signedクッキーの形式 (s:sessionId.signature) の場合
         if (sessionId.startsWith('s:')) {
           cleanSessionId = sessionId.substring(2).split('.')[0];
         }
         
-        console.log('[WebSocket] Clean session ID:', cleanSessionId);
         user = await getSessionUser(cleanSessionId);
         
         if (user) {
-          console.log('[WebSocket] Session authentication successful for real user:', user);
+          logger.debug('Session authentication successful', { 
+            username: user.username, 
+            userId: user.userId 
+          });
         } else {
-          console.log('[WebSocket] Session authentication failed - no valid user found');
+          logger.debug('Session authentication failed - no valid user found');
         }
       } else {
-        console.log('[WebSocket] No session ID found in cookies - authentication required');
+        logger.debug('No session ID found in cookies - authentication required');
       }
       
       // セッション認証失敗時は接続拒否
       if (!user) {
-        console.log('[WebSocket] Authentication failed - closing connection');
+        logger.debug('Authentication failed - closing connection');
         ws.close(1008, 'Authentication required');
         return;
       }
       
-      console.log(`WebSocket connection established for user: ${user.username} (ID: ${user.userId})`);
+      logger.info('WebSocket connection established', { 
+        username: user.username, 
+        userId: user.userId 
+      });
       connectionManager.addConnection(ws, user.userId, user.username);
       
       ws.on('message', async (data) => {
@@ -368,30 +423,48 @@ export function setupWebSocket(server: Server) {
           
           switch (message.type) {
             case 'ping':
-              console.log(`WebSocket ping from user: ${user.username} (ID: ${user.userId}, type: ${typeof user.userId})`);
+              logger.debug('WebSocket ping received', { 
+                username: user.username, 
+                userId: user.userId 
+              });
               ws.send(JSON.stringify({ type: 'pong', userId: user.userId, username: user.username }));
               break;
               
             case 'start_editing':
-              console.log(`User ${user.username} started editing report ${message.reportId}`);
+              logger.info('User started editing report', { 
+                username: user.username, 
+                reportId: message.reportId 
+              });
               connectionManager.startEditing(user.userId, user.username, message.reportId);
               break;
               
             case 'stop_editing':
-              console.log(`🔥 [WebSocket] User ${user.username} (${user.userId}) stopped editing report ${message.reportId}`);
+              logger.info('User stopped editing report', { 
+                username: user.username, 
+                userId: user.userId, 
+                reportId: message.reportId 
+              });
               connectionManager.stopEditing(user.userId, message.reportId);
               break;
               
             case 'activity':
-              console.log(`Activity update from user ${user.username} for report ${message.reportId}`);
+              logger.debug('Activity update received', { 
+                username: user.username, 
+                reportId: message.reportId 
+              });
               connectionManager.updateActivity(user.userId, message.reportId);
               break;
               
             default:
-              console.log('Unknown message type:', message.type);
+              logger.warn('Unknown message type received', { 
+                messageType: message.type,
+                username: user.username 
+              });
           }
         } catch (error) {
-          console.error('Error processing WebSocket message:', error);
+          logger.error('Error processing WebSocket message', error instanceof Error ? error : new Error(String(error)), {
+            username: user.username
+          });
         }
       });
       
@@ -400,17 +473,19 @@ export function setupWebSocket(server: Server) {
       });
       
       ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
+        logger.error('WebSocket connection error', error instanceof Error ? error : new Error(String(error)), {
+          username: user?.username
+        });
         connectionManager.removeConnection(ws);
       });
       
     } catch (error) {
-      console.error('WebSocket connection error:', error);
+      logger.error('WebSocket connection setup error', error instanceof Error ? error : new Error(String(error)));
       ws.close(1011, 'Authentication failed');
     }
   });
   
-  console.log('WebSocket server setup complete');
+  logger.info('WebSocket server setup complete');
   return wss;
 }
 

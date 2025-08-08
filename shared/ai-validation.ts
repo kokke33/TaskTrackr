@@ -2,10 +2,12 @@
 
 import {
   AI_PROVIDERS,
+  OPENAI_MODELS,
   GROQ_MODELS,
   GEMINI_MODELS,
   OPENROUTER_MODELS,
   isValidAIProvider,
+  isValidOpenAIModel,
   isValidGroqModel,
   isValidGeminiModel,
   isValidOpenRouterModel,
@@ -23,6 +25,16 @@ export class AIConfigValidator {
         isValid: false,
         error: `無効なAIプロバイダーです。有効な値: ${AI_PROVIDERS.join(", ")}`
       };
+    }
+
+    // OpenAIモデルのバリデーション（カスタムモデル対応）
+    if (config.provider === 'openai' && config.openaiModel) {
+      if (!config.openaiModel.trim()) {
+        return {
+          isValid: false,
+          error: 'OpenAIモデルが空です。有効なモデルIDを入力してください。'
+        };
+      }
     }
 
     // Groqモデルのバリデーション（カスタムモデル対応）
@@ -66,6 +78,16 @@ export class AIConfigValidator {
       return {
         isValid: false,
         error: `無効なAIプロバイダーです。有効な値: ${AI_PROVIDERS.join(", ")}`
+      };
+    }
+    return { isValid: true };
+  }
+
+  static validateOpenAIModel(model: string): AIValidationResult {
+    if (!isValidOpenAIModel(model)) {
+      return {
+        isValid: false,
+        error: `無効なOpenAIモデルです。有効な値: ${OPENAI_MODELS.join(", ")}`
       };
     }
     return { isValid: true };

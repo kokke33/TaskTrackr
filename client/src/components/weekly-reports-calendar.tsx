@@ -64,11 +64,7 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
       return data;
     } catch (error) {
       console.error('Error fetching calendar data:', error);
-      toast({
-        title: 'エラー',
-        description: 'カレンダーデータの取得に失敗しました',
-        variant: 'destructive',
-      });
+      toast({duration: 1000,});
       return {};
     }
   };
@@ -82,11 +78,7 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
       return reports;
     } catch (error) {
       console.error('Error fetching reports by date:', error);
-      toast({
-        title: 'エラー',
-        description: '週次報告の取得に失敗しました',
-        variant: 'destructive',
-      });
+      toast({duration: 1000,});
       return [];
     }
   };
@@ -183,11 +175,7 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
     const reportCount = monthData[dateString] || 0;
     
     if (reportCount === 0) {
-      toast({
-        title: '情報',
-        description: 'この日付には週次報告がありません',
-        variant: 'default',
-      });
+      toast({duration: 1000,});
       return;
     }
 
@@ -195,11 +183,7 @@ export default function WeeklyReportsCalendar({ className }: WeeklyReportsCalend
     const reports = await fetchReportsByDate(dateString);
     
     if (reports.length === 0) {
-      toast({
-        title: '情報',
-        description: 'この日付には週次報告がありません',
-        variant: 'default',
-      });
+      toast({duration: 1000,});
       return;
     }
 

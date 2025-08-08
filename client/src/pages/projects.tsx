@@ -65,11 +65,7 @@ export default function ProjectList() {
       });
     },
     onSuccess: () => {
-      toast({
-        title: "成功",
-        description: "プロジェクトを復活しました",
-        variant: "default",
-      });
+      toast({duration: 1000,});
       // キャッシュを更新
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects?includeDeleted=true"] });
@@ -81,11 +77,7 @@ export default function ProjectList() {
     },
     onError: (error) => {
       console.error("Error restoring project:", error);
-      toast({
-        title: "エラー",
-        description: "プロジェクトの復活に失敗しました",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
     },
   });
 

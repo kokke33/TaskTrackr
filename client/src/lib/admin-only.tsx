@@ -50,11 +50,7 @@ export function AdminRoute({ path, component: Component }: AdminRouteProps) {
 
     // 認証済みだが管理者でない場合はリダイレクト
     if (user && !user.isAdmin) {
-      toast({
-        title: "アクセス権限がありません",
-        description: "この画面は管理者のみアクセスできます",
-        variant: "destructive",
-      });
+      toast({duration: 1000,});
       setLocation("/");
       return null;
     }

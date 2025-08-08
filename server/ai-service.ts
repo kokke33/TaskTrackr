@@ -34,7 +34,7 @@ export async function generateResponseStream(
 function createAIServiceWithConfig(config: typeof aiConfig): IAiProvider {
   switch (config.provider) {
     case 'openai':
-      return new OpenAIService();
+      return new OpenAIService(config.openai.model);
     case 'ollama':
       return new OllamaService();
     case 'gemini':
@@ -62,10 +62,10 @@ export async function getAIService(): Promise<IAiProvider> {
   return aiService;
 }
 
-export function getAIServiceForProvider(provider: AIProvider, groqModel?: string, geminiModel?: string, openrouterModel?: string): IAiProvider {
+export function getAIServiceForProvider(provider: AIProvider, groqModel?: string, geminiModel?: string, openrouterModel?: string, openaiModel?: string): IAiProvider {
   switch (provider) {
     case 'openai':
-      return new OpenAIService();
+      return new OpenAIService(openaiModel);
     case 'ollama':
       return new OllamaService();
     case 'gemini':

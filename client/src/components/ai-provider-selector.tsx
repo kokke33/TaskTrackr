@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, X } from "lucide-react";
 import {
   AI_PROVIDER_OPTIONS,
+  OPENAI_MODEL_OPTIONS,
   GROQ_MODEL_OPTIONS,
   GEMINI_MODEL_OPTIONS,
   OPENROUTER_MODEL_OPTIONS,
@@ -23,6 +24,7 @@ interface AIProviderSelectorProps {
 
 // カスタムモデルのlocalStorage管理
 const STORAGE_KEYS = {
+  openai: 'custom-openai-models',
   groq: 'custom-groq-models',
   gemini: 'custom-gemini-models',
   openrouter: 'custom-openrouter-models',
@@ -57,10 +59,12 @@ export function AIProviderSelector({
   description,
 }: AIProviderSelectorProps) {
   // カスタムモデル管理のステート
+  const [customOpenAIModels, setCustomOpenAIModels] = useState<string[]>([]);
   const [customGroqModels, setCustomGroqModels] = useState<string[]>([]);
   const [customGeminiModels, setCustomGeminiModels] = useState<string[]>([]);
   const [customOpenRouterModels, setCustomOpenRouterModels] = useState<string[]>([]);
   const [newModelInputs, setNewModelInputs] = useState({
+    openai: '',
     groq: '',
     gemini: '',
     openrouter: '',
@@ -68,6 +72,7 @@ export function AIProviderSelector({
 
   // localStorage からカスタムモデルを読み込み
   useEffect(() => {
+    setCustomOpenAIModels(getCustomModels('openai'));
     setCustomGroqModels(getCustomModels('groq'));
     setCustomGeminiModels(getCustomModels('gemini'));
     setCustomOpenRouterModels(getCustomModels('openrouter'));
@@ -77,6 +82,13 @@ export function AIProviderSelector({
     onChange({
       ...value,
       provider: provider as any,
+    });
+  };
+
+  const handleOpenAIModelChange = (openaiModel: string) => {
+    onChange({
+      ...value,
+      openaiModel: openaiModel as any,
     });
   };
 
@@ -102,7 +114,7 @@ export function AIProviderSelector({
   };
 
   // カスタムモデル追加
-  const addCustomModel = (provider: 'groq' | 'gemini' | 'openrouter') => {
+  const addCustomModel = (provider: 'openai' | 'groq' | 'gemini' | 'openrouter') => {
     const input = newModelInputs[provider].trim();
     if (!input) return;
 
@@ -110,6 +122,10 @@ export function AIProviderSelector({
     let setModels: (models: string[]) => void;
     
     switch (provider) {
+      case 'openai':
+        currentModels = customOpenAIModels;
+        setModels = setCustomOpenAIModels;
+        break;
       case 'groq':
         currentModels = customGroqModels;
         setModels = setCustomGroqModels;
@@ -136,11 +152,15 @@ export function AIProviderSelector({
   };
 
   // カスタムモデル削除
-  const removeCustomModel = (provider: 'groq' | 'gemini' | 'openrouter', modelToRemove: string) => {
+  const removeCustomModel = (provider: 'openai' | 'groq' | 'gemini' | 'openrouter', modelToRemove: string) => {
     let currentModels: string[];
     let setModels: (models: string[]) => void;
     
     switch (provider) {
+      case 'openai':
+        currentModels = customOpenAIModels;
+        setModels = setCustomOpenAIModels;
+        break;
       case 'groq':
         currentModels = customGroqModels;
         setModels = setCustomGroqModels;
@@ -183,6 +203,81 @@ export function AIProviderSelector({
           </p>
         )}
       </div>
+
+      {/* OpenAIモデル選択 */}
+      {value.provider === "openai" && (
+        <div className="space-y-3">
+          <Label htmlFor={`${prefix}-openai-model`}>OpenAIモデル</Label>
+          
+          {/* カスタムモデル追加 */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="カスタムモデルID (例: gpt-4-turbo-preview)"
+              value={newModelInputs.openai}
+              onChange={(e) => setNewModelInputs(prev => ({ ...prev, openai: e.target.value }))}
+              disabled={disabled}
+            />
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => addCustomModel('openai')}
+              disabled={disabled || !newModelInputs.openai.trim()}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* 追加済みカスタムモデル表示 */}
+          {customOpenAIModels.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">追加済みカスタムモデル:</div>
+              <div className="flex flex-wrap gap-2">
+                {customOpenAIModels.map((model) => (
+                  <Badge key={model} variant="outline" className="flex items-center gap-1">
+                    {model}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeCustomModel('openai', model)}
+                      disabled={disabled}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* モデル選択 */}
+          <Select
+            value={value.openaiModel || ""}
+            onValueChange={handleOpenAIModelChange}
+            disabled={disabled}
+          >
+            <SelectTrigger id={`${prefix}-openai-model`}>
+              <SelectValue placeholder="モデルを選択" />
+            </SelectTrigger>
+            <SelectContent>
+              {OPENAI_MODEL_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+              {customOpenAIModels.map((model) => (
+                <SelectItem key={model} value={model}>
+                  {model} (カスタム)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">
+            {prefix}で使用するOpenAIモデルを選択してください。
+          </p>
+        </div>
+      )}
 
       {/* Groqモデル選択 */}
       {value.provider === "groq" && (

@@ -1034,15 +1034,15 @@ ${milestone ? `- **マイルストーン**: ${milestone}` : ""}
 
         // 各案件の報告内容をプロンプトに追加
         if (caseInfo.reports.length > 0) {
-          // 日付順にソート
+          // 日付順にソート（reportPeriodStart基準で古い順）
           caseInfo.reports.sort(
             (a: any, b: any) =>
-              new Date(a.reportPeriodEnd).getTime() -
-              new Date(b.reportPeriodEnd).getTime(),
+              new Date(a.reportPeriodStart).getTime() -
+              new Date(b.reportPeriodStart).getTime(),
           );
 
-          // 最大5件までの報告を表示
-          const displayReports = caseInfo.reports.slice(-5);
+          // 最大10件までの報告を表示（期間の最初から時系列順）
+          const displayReports = caseInfo.reports.slice(0, 10);
 
           displayReports.forEach((report: any, index: number) => {
             // レポートの値を日本語変換
@@ -1982,15 +1982,15 @@ ${milestone ? `マイルストーン: ${milestone}` : ""}
 
         // 各案件の報告内容をプロンプトに追加
         if (caseInfo.reports.length > 0) {
-          // 日付順にソート
+          // 日付順にソート（reportPeriodStart基準で古い順）
           caseInfo.reports.sort(
             (a: any, b: any) =>
-              new Date(a.reportPeriodEnd).getTime() -
-              new Date(b.reportPeriodEnd).getTime(),
+              new Date(a.reportPeriodStart).getTime() -
+              new Date(b.reportPeriodStart).getTime(),
           );
 
-          // 最大5件までの報告を表示
-          const displayReports = caseInfo.reports.slice(-5);
+          // 最大10件までの報告を表示（期間の最初から時系列順）
+          const displayReports = caseInfo.reports.slice(0, 10);
 
           displayReports.forEach((report: any) => {
             // レポートの値を日本語変換
@@ -2965,6 +2965,28 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
       } else {
         res.status(400).json({ error: "ユーザの削除中にエラーが発生しました" });
       }
+    }
+  });
+
+  // WebSocketフォールバックエンドポイント（ページ離脱時の排他ロック解除用）
+  app.post("/api/websocket-fallback", async (req, res) => {
+    try {
+      const { type, reportId } = req.body;
+      
+      if (type === 'stop_editing' && reportId) {
+        // getEditingUsersを呼び出して非アクティブセッションをクリーンアップ
+        const editingUsers = getEditingUsers(reportId);
+        logger.info('WebSocket fallback - stop_editing processed', { 
+          reportId, 
+          activeUsers: editingUsers.length 
+        });
+      }
+      
+      // ステータス204（No Content）で応答
+      res.status(204).end();
+    } catch (error) {
+      logger.error('WebSocket fallback error', error instanceof Error ? error : new Error(String(error)));
+      res.status(500).json({ error: "WebSocketフォールバック処理中にエラーが発生しました" });
     }
   });
 

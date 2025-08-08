@@ -64,7 +64,7 @@ export default function Login() {
       toast({
         title: "ログイン成功",
         description: `${responseData.user?.username || ''}さん、ようこそ！`,
-        duration: 5000, // 5秒間表示
+        duration: 1000, // 1秒間表示
       });
       
       // ユーザー情報を含めて認証状態を更新

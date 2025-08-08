@@ -250,6 +250,8 @@ describe("WeeklyReport Page", () => {
     checkVersionConflict: vi.fn(),
     saveFormData: vi.fn(),
     loadFormData: vi.fn(),
+    initializeFormData: vi.fn(), // 追加
+    isInitializing: false, // 追加
   };
 
   beforeEach(() => {
