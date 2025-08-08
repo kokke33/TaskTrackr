@@ -1,21 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { apiRequest, getQueryFn, queryClient } from "@/lib/queryClient";
 
-// パフォーマンスモニターのモック
-vi.mock("@shared/performance-monitor", () => {
-  const mockEnd = vi.fn();
-  return {
-    performanceMonitor: {
-      startTimer: vi.fn().mockReturnValue({
-        end: mockEnd,
-      }),
-    },
-  };
-});
-
 // fetch のモック
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
+
+// パフォーマンスモニターのモック（エラーを防ぐために最小限の実装）
+vi.mock("@shared/performance-monitor", () => ({
+  performanceMonitor: {
+    startTimer: vi.fn(() => ({
+      end: vi.fn(),
+    })),
+  },
+}));
 
 // window.location のモック
 Object.defineProperty(window, 'location', {
@@ -41,9 +38,10 @@ Object.defineProperty(document, 'cookie', {
   writable: true,
 });
 
-// URL オブジェクトのモック
+// URL オブジェクトのモック（無限再帰を避けるため、ネイティブURLを保存）
+const OriginalURL = global.URL;
 const URLMock = vi.fn().mockImplementation((url) => {
-  const urlObj = new URL(url);
+  const urlObj = new OriginalURL(url);
   return {
     ...urlObj,
     href: url,
@@ -207,31 +205,37 @@ describe("queryClient", () => {
     it("セッション期限切れ時にログインページにリダイレクトすること", async () => {
       const headers = new Map();
       
-      // 最初は401エラー
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 401,
-          statusText: "Unauthorized",
-          headers: {
-            get: vi.fn().mockReturnValue(null),
-            entries: vi.fn().mockReturnValue(headers.entries()),
-          },
-          text: () => Promise.resolve("Unauthorized"),
-          clone: vi.fn(),
-        })
-        // セッション確認で期限切れを検出
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          statusText: "OK",
-          headers: {
-            get: vi.fn().mockReturnValue(null),
-            entries: vi.fn().mockReturnValue(headers.entries()),
-          },
-          json: () => Promise.resolve({ authenticated: false }),
-          clone: vi.fn(),
-        });
+      // URLベースでレスポンスを分ける
+      mockFetch.mockImplementation((url) => {
+        if (typeof url === 'string' && url.includes('/api/protected')) {
+          // /api/protectedは401エラー
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            statusText: "Unauthorized",
+            headers: {
+              get: vi.fn().mockReturnValue(null),
+              entries: vi.fn().mockReturnValue(headers.entries()),
+            },
+            text: () => Promise.resolve("Unauthorized"),
+            clone: vi.fn(),
+          });
+        } else if (typeof url === 'string' && url.includes('/api/check-auth')) {
+          // /api/check-authはauthenticated=false
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            headers: {
+              get: vi.fn().mockReturnValue(null),
+              entries: vi.fn().mockReturnValue(headers.entries()),
+            },
+            json: () => Promise.resolve({ authenticated: false }),
+            clone: vi.fn(),
+          });
+        }
+        return Promise.reject(new Error('Unexpected URL'));
+      });
 
       await expect(
         apiRequest("/api/protected", { method: "GET" })

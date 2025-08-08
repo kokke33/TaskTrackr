@@ -83,8 +83,12 @@ export async function apiRequest<T = any>(
         }
       }
     } catch (authError) {
+      // Session expiredエラーの場合は再スローする
+      if (authError instanceof Error && authError.message === "Session expired") {
+        throw authError;
+      }
       console.error("セッション確認中にエラー:", authError);
-      // セッション確認に失敗した場合は元の401エラーを処理
+      // 他のセッション確認エラーは元の401エラーを処理
     }
   }
 
