@@ -13,7 +13,7 @@ interface WebSocketProviderProps {
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, url, onDataUpdate }) => {
   const logger = createLogger('WebSocketProvider');
-  const { user } = useAuth();
+  const { user, isSessionExpired } = useAuth();
   const [status, setStatus] = useState<WebSocketStatus>('closed');
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const [editingUsers, setEditingUsers] = useState<EditingUser[]>([]);
@@ -24,13 +24,29 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
   
   // 🔥 修正: キャッシュを削除（WebSocketのリアルタイムデータを使用するため不要）
 
-  const MAX_RECONNECT_ATTEMPTS = 10;
-  const INITIAL_RECONNECT_DELAY = 1000;
-  const MAX_RECONNECT_DELAY = 30000;
+  const MAX_RECONNECT_ATTEMPTS = 5; // 試行回数を削減
+  const INITIAL_RECONNECT_DELAY = 2000; // 初期遅延を2秒に延長
+  const MAX_RECONNECT_DELAY = 300000; // 最大遅延を5分に延長
 
   const connect = useCallback(() => {
+    // 認証状態を事前確認 - 未認証時やセッション期限切れ時は接続しない
+    if (!user || isSessionExpired) {
+      logger.debug('User not authenticated or session expired, skipping WebSocket connection', {
+        hasUser: !!user,
+        isSessionExpired
+      });
+      setStatus('closed');
+      return;
+    }
+
     if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
       logger.debug('WebSocket already active, skipping connection');
+      return;
+    }
+
+    // ブラウザタブがバックグラウンドの場合は接続を延期
+    if (document.hidden) {
+      logger.debug('Tab is hidden, deferring WebSocket connection');
       return;
     }
 
@@ -46,7 +62,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       return;
     }
 
-    logger.info('Initializing WebSocket connection', { url });
+    logger.info('Initializing WebSocket connection', { url, username: user.username });
     setStatus('connecting');
     
     try {
@@ -121,20 +137,34 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
     wsRef.current.onclose = (event) => {
       logger.info('WebSocket disconnected', { code: event.code, reason: event.reason, wasClean: event.wasClean });
       setStatus('closed');
-      // 意図しない切断の場合、再接続を試みる（認証エラーは除外）
-      if (event.code !== 1000 && event.code !== 1008 && event.code !== 1011) {
-        logger.info('Scheduling reconnect due to unexpected disconnect');
-        scheduleReconnect();
-      } else if (event.code === 1008) {
-        logger.warn('Authentication required - not reconnecting');
+      
+      // 認証エラー（1008, 1011）の場合は再接続を完全停止
+      if (event.code === 1008 || event.code === 1011) {
+        logger.warn('Authentication failed - stopping all reconnection attempts', { code: event.code });
+        reconnectAttemptsRef.current = MAX_RECONNECT_ATTEMPTS; // 再接続試行カウンターをリセット
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
+        return;
       }
+      
+      // 正常切断（1000）の場合も再接続しない
+      if (event.code === 1000) {
+        logger.info('Normal disconnection - not reconnecting');
+        return;
+      }
+      
+      // その他の意図しない切断の場合のみ再接続を試行
+      logger.info('Scheduling reconnect due to unexpected disconnect', { code: event.code });
+      scheduleReconnect();
     };
 
     wsRef.current.onerror = (error) => {
       logger.error('WebSocket error', undefined, { errorEvent: error, readyState: wsRef.current?.readyState });
       // onerrorは通常oncloseもトリガーするため、再接続はoncloseに任せる
     };
-  }, [url]);
+  }, [url, user, isSessionExpired]);
 
   const scheduleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
@@ -154,19 +184,57 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
     }, delay);
   }, [connect]);
 
+  // ページ可視性変更時の処理
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user && status === 'closed') {
+        logger.info('Tab became visible, attempting WebSocket connection');
+        connect();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [connect, user, status]);
+
+  // セッション期限切れ時の即座切断
+  useEffect(() => {
+    if (isSessionExpired && (status === 'open' || status === 'connecting')) {
+      logger.warn('Session expired - immediately closing WebSocket');
+      reconnectAttemptsRef.current = MAX_RECONNECT_ATTEMPTS; // 再接続を停止
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.close(1008, 'Session expired');
+      }
+      setStatus('closed');
+      setCurrentUserId(undefined);
+      setEditingUsers([]);
+    }
+  }, [isSessionExpired, status]);
+
   // 認証状態に基づく接続制御
   useEffect(() => {
-    if (user && status === 'closed') {
+    if (user && status === 'closed' && !document.hidden && !isSessionExpired) {
       logger.info('User authenticated, connecting WebSocket');
       connect();
     } else if (!user && (status === 'open' || status === 'connecting')) {
       logger.info('User not authenticated, closing WebSocket');
+      reconnectAttemptsRef.current = MAX_RECONNECT_ATTEMPTS; // 再接続を停止
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       if (wsRef.current) {
         wsRef.current.close(1000, 'User not authenticated');
       }
       setStatus('closed');
+      setCurrentUserId(undefined);
+      setEditingUsers([]);
     }
-  }, [user, status, connect]);
+  }, [user, status, connect, isSessionExpired]);
 
   // 緊急対処: HTTP認証からcurrentUserIdを設定（WebSocket pongが来ない場合のフォールバック）
   useEffect(() => {
