@@ -215,7 +215,7 @@ export default function WeeklyReport() {
     }
   }, [editBlockedDialog.open, status, reportId, checkEditingPermission, sendMessage, initializeFormData]);
 
-  // 無限ループを防ぐための最終的なガード
+  // コンポーネントアンマウント時の排他ロック解除（確実な実行のため）
   useEffect(() => {
     // コンポーネントがマウントされたことを記録
     console.log('[WeeklyReport] Component mounted with props:', {
@@ -225,12 +225,47 @@ export default function WeeklyReport() {
       permissionChecked
     });
     
-    // クリーンアップ時にログを出力
+    // アンマウント時に確実に排他ロック解除
     return () => {
-      console.log('[WeeklyReport] Component unmounting');
+      console.log('[WeeklyReport] Component unmounting - ensuring editing stop');
+      if (isEditMode && reportId && sendMessage) {
+        try {
+          sendMessage({ type: 'stop_editing', reportId: reportId });
+          console.log('[WeeklyReport] Stop editing message sent on unmount');
+        } catch (error) {
+          console.error('[WeeklyReport] Failed to send stop editing on unmount:', error);
+        }
+      }
     };
-  }, []);
+  }, []); // 空の依存配列でアンマウント時のみ実行
 
+  // ページ離脱時の排他ロック解除（フォールバック対応）
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (isEditMode && reportId && sendMessage) {
+        try {
+          // 同期的にメッセージ送信（beforeunload時の制約対応）
+          sendMessage({ type: 'stop_editing', reportId: reportId });
+          console.log('[WeeklyReport] Stop editing message sent on page unload');
+          
+          // Beacon APIで確実にサーバーに通知（可能であれば）
+          if (navigator.sendBeacon) {
+            const data = JSON.stringify({ type: 'stop_editing', reportId: reportId });
+            navigator.sendBeacon('/api/websocket-fallback', data);
+          }
+        } catch (error) {
+          console.error('[WeeklyReport] Failed to send stop editing on page unload:', error);
+        }
+      }
+    };
+
+    if (isEditMode && reportId) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
+  }, [isEditMode, reportId, sendMessage]);
 
   // lastMessage を監視して編集ユーザー情報を更新
   useEffect(() => {
@@ -310,6 +345,10 @@ export default function WeeklyReport() {
       setIsSavingForNavigation(true);
       try {
         const success = await handleImmediateSave();
+        if (success) {
+          // 保存成功時も編集終了処理を実行
+          handleStopEditing();
+        }
         navigationDialog.resolve(success ? "save" : "cancel");
       } catch (error) {
         console.error("Save failed:", error);
@@ -332,13 +371,13 @@ export default function WeeklyReport() {
   console.log("🔍 Weekly Report - Navigation guard state:", { 
     formChanged, 
     isSubmitting, 
-    shouldBlock: formChanged && !isSubmitting,
+    shouldBlock: (formChanged || (isEditMode && permissionChecked)) && !isSubmitting,
     permissionChecked,
     isEditMode
   });
 
   useNavigationGuard({
-    shouldBlock: formChanged && !isSubmitting,
+    shouldBlock: (formChanged || (isEditMode && permissionChecked)) && !isSubmitting,
     onNavigationAttempt: handleNavigationAttempt,
   });
 

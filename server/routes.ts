@@ -2968,6 +2968,28 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
     }
   });
 
+  // WebSocketフォールバックエンドポイント（ページ離脱時の排他ロック解除用）
+  app.post("/api/websocket-fallback", async (req, res) => {
+    try {
+      const { type, reportId } = req.body;
+      
+      if (type === 'stop_editing' && reportId) {
+        // getEditingUsersを呼び出して非アクティブセッションをクリーンアップ
+        const editingUsers = getEditingUsers(reportId);
+        logger.info('WebSocket fallback - stop_editing processed', { 
+          reportId, 
+          activeUsers: editingUsers.length 
+        });
+      }
+      
+      // ステータス204（No Content）で応答
+      res.status(204).end();
+    } catch (error) {
+      logger.error('WebSocket fallback error', error instanceof Error ? error : new Error(String(error)));
+      res.status(500).json({ error: "WebSocketフォールバック処理中にエラーが発生しました" });
+    }
+  });
+
   // AI APIルートを登録
   app.use(aiRoutes);
 
