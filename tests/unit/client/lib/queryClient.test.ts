@@ -2,13 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { apiRequest, getQueryFn, queryClient } from "@/lib/queryClient";
 
 // パフォーマンスモニターのモック
-vi.mock("@shared/performance-monitor", () => ({
-  performanceMonitor: {
-    startTimer: vi.fn().mockReturnValue({
-      end: vi.fn(),
-    }),
-  },
-}));
+vi.mock("@shared/performance-monitor", () => {
+  const mockEnd = vi.fn();
+  return {
+    performanceMonitor: {
+      startTimer: vi.fn().mockReturnValue({
+        end: mockEnd,
+      }),
+    },
+  };
+});
 
 // fetch のモック
 const mockFetch = vi.fn();
@@ -17,7 +20,17 @@ global.fetch = mockFetch;
 // window.location のモック
 Object.defineProperty(window, 'location', {
   value: {
-    href: '',
+    href: 'http://localhost:3000',
+    origin: 'http://localhost:3000',
+    protocol: 'http:',
+    host: 'localhost:3000',
+    hostname: 'localhost',
+    port: '3000',
+    pathname: '/',
+    search: '',
+    hash: '',
+    assign: vi.fn(),
+    replace: vi.fn(),
   },
   writable: true,
 });
@@ -27,6 +40,20 @@ Object.defineProperty(document, 'cookie', {
   value: 'sessionId=test-session',
   writable: true,
 });
+
+// URL オブジェクトのモック
+const URLMock = vi.fn().mockImplementation((url) => {
+  const urlObj = new URL(url);
+  return {
+    ...urlObj,
+    href: url,
+    origin: 'http://localhost:3000',
+    pathname: urlObj.pathname,
+    search: urlObj.search,
+    hash: urlObj.hash,
+  };
+});
+global.URL = URLMock as any;
 
 describe("queryClient", () => {
   beforeEach(() => {
@@ -42,13 +69,19 @@ describe("queryClient", () => {
   describe("apiRequest", () => {
     it("成功時に正しくレスポンスを返すこと", async () => {
       const mockResponse = { data: "test data" };
+      const headers = new Map([["content-type", "application/json"]]);
       
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
         statusText: "OK",
-        headers: new Map([["content-type", "application/json"]]),
+        headers: {
+          get: vi.fn().mockReturnValue("application/json"),
+          entries: vi.fn().mockReturnValue(headers.entries()),
+        },
         json: () => Promise.resolve(mockResponse),
+        text: () => Promise.resolve(""),
+        clone: vi.fn(),
       });
 
       const result = await apiRequest("/api/test", {
@@ -67,13 +100,19 @@ describe("queryClient", () => {
     it("POSTリクエストでデータを正しく送信すること", async () => {
       const requestData = { name: "test", value: 123 };
       const mockResponse = { success: true };
+      const headers = new Map();
 
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
         statusText: "OK",
-        headers: new Map(),
+        headers: {
+          get: vi.fn().mockReturnValue(null),
+          entries: vi.fn().mockReturnValue(headers.entries()),
+        },
         json: () => Promise.resolve(mockResponse),
+        text: () => Promise.resolve(""),
+        clone: vi.fn(),
       });
 
       const result = await apiRequest("/api/test", {
@@ -91,12 +130,18 @@ describe("queryClient", () => {
     });
 
     it("HTTPエラー時に適切なエラーを投げること", async () => {
+      const headers = new Map();
+
       mockFetch.mockResolvedValue({
         ok: false,
         status: 404,
         statusText: "Not Found",
-        headers: new Map(),
+        headers: {
+          get: vi.fn().mockReturnValue(null),
+          entries: vi.fn().mockReturnValue(headers.entries()),
+        },
         text: () => Promise.resolve("Resource not found"),
+        clone: vi.fn(),
       });
 
       await expect(
@@ -105,29 +150,44 @@ describe("queryClient", () => {
     });
 
     it("401エラー時にセッション確認とリトライを行うこと", async () => {
+      const headers = new Map();
+      
       // 最初は401エラー
       mockFetch
         .mockResolvedValueOnce({
           ok: false,
           status: 401,
           statusText: "Unauthorized",
-          headers: new Map(),
+          headers: {
+            get: vi.fn().mockReturnValue(null),
+            entries: vi.fn().mockReturnValue(headers.entries()),
+          },
           text: () => Promise.resolve("Unauthorized"),
+          clone: vi.fn(),
         })
         // セッション確認は成功
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          headers: new Map(),
+          statusText: "OK",
+          headers: {
+            get: vi.fn().mockReturnValue(null),
+            entries: vi.fn().mockReturnValue(headers.entries()),
+          },
           json: () => Promise.resolve({ authenticated: true }),
+          clone: vi.fn(),
         })
         // リトライは成功
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
           statusText: "OK",
-          headers: new Map(),
+          headers: {
+            get: vi.fn().mockReturnValue(null),
+            entries: vi.fn().mockReturnValue(headers.entries()),
+          },
           json: () => Promise.resolve({ data: "success after retry" }),
+          clone: vi.fn(),
         });
 
       const result = await apiRequest("/api/protected", {
@@ -145,21 +205,32 @@ describe("queryClient", () => {
     });
 
     it("セッション期限切れ時にログインページにリダイレクトすること", async () => {
+      const headers = new Map();
+      
       // 最初は401エラー
       mockFetch
         .mockResolvedValueOnce({
           ok: false,
           status: 401,
           statusText: "Unauthorized",
-          headers: new Map(),
+          headers: {
+            get: vi.fn().mockReturnValue(null),
+            entries: vi.fn().mockReturnValue(headers.entries()),
+          },
           text: () => Promise.resolve("Unauthorized"),
+          clone: vi.fn(),
         })
         // セッション確認で期限切れを検出
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          headers: new Map(),
+          statusText: "OK",
+          headers: {
+            get: vi.fn().mockReturnValue(null),
+            entries: vi.fn().mockReturnValue(headers.entries()),
+          },
           json: () => Promise.resolve({ authenticated: false }),
+          clone: vi.fn(),
         });
 
       await expect(
@@ -170,12 +241,18 @@ describe("queryClient", () => {
     });
 
     it("skipAuthRetryフラグが設定されている場合、認証リトライを行わないこと", async () => {
+      const headers = new Map();
+
       mockFetch.mockResolvedValue({
         ok: false,
         status: 401,
         statusText: "Unauthorized",
-        headers: new Map(),
+        headers: {
+          get: vi.fn().mockReturnValue(null),
+          entries: vi.fn().mockReturnValue(headers.entries()),
+        },
         text: () => Promise.resolve("Unauthorized"),
+        clone: vi.fn(),
       });
 
       await expect(
@@ -190,12 +267,18 @@ describe("queryClient", () => {
     });
 
     it("check-authエンドポイントでは認証リトライを行わないこと", async () => {
+      const headers = new Map();
+
       mockFetch.mockResolvedValue({
         ok: false,
         status: 401,
         statusText: "Unauthorized",
-        headers: new Map(),
+        headers: {
+          get: vi.fn().mockReturnValue(null),
+          entries: vi.fn().mockReturnValue(headers.entries()),
+        },
         text: () => Promise.resolve("Unauthorized"),
+        clone: vi.fn(),
       });
 
       await expect(
@@ -214,12 +297,19 @@ describe("queryClient", () => {
       const { performanceMonitor } = await import("@shared/performance-monitor");
       vi.mocked(performanceMonitor.startTimer).mockReturnValue(mockTimer as any);
 
+      const headers = new Map();
+
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
         statusText: "OK",
-        headers: new Map(),
+        headers: {
+          get: vi.fn().mockReturnValue(null),
+          entries: vi.fn().mockReturnValue(headers.entries()),
+        },
         json: () => Promise.resolve({ data: "test" }),
+        text: () => Promise.resolve(""),
+        clone: vi.fn(),
       });
 
       await apiRequest("/api/test", { method: "GET" });
@@ -269,11 +359,19 @@ describe("queryClient", () => {
   describe("getQueryFn", () => {
     it("成功時に正しくデータを返すこと", async () => {
       const mockData = { items: [1, 2, 3] };
+      const headers = new Map();
       
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
+        statusText: "OK",
+        headers: {
+          get: vi.fn().mockReturnValue(null),
+          entries: vi.fn().mockReturnValue(headers.entries()),
+        },
         json: () => Promise.resolve(mockData),
+        text: () => Promise.resolve(""),
+        clone: vi.fn(),
       });
 
       const queryFn = getQueryFn({ on401: "throw" });
@@ -289,11 +387,18 @@ describe("queryClient", () => {
     });
 
     it("401エラー時にon401='returnNull'でnullを返すこと", async () => {
+      const headers = new Map();
+
       mockFetch.mockResolvedValue({
         ok: false,
         status: 401,
         statusText: "Unauthorized",
+        headers: {
+          get: vi.fn().mockReturnValue(null),
+          entries: vi.fn().mockReturnValue(headers.entries()),
+        },
         text: () => Promise.resolve("Unauthorized"),
+        clone: vi.fn(),
       });
 
       const queryFn = getQueryFn({ on401: "returnNull" });
@@ -306,11 +411,18 @@ describe("queryClient", () => {
     });
 
     it("401エラー時にon401='throw'でエラーを投げること", async () => {
+      const headers = new Map();
+
       mockFetch.mockResolvedValue({
         ok: false,
         status: 401,
         statusText: "Unauthorized",
+        headers: {
+          get: vi.fn().mockReturnValue(null),
+          entries: vi.fn().mockReturnValue(headers.entries()),
+        },
         text: () => Promise.resolve("Unauthorized"),
+        clone: vi.fn(),
       });
 
       const queryFn = getQueryFn({ on401: "throw" });
@@ -324,11 +436,18 @@ describe("queryClient", () => {
     });
 
     it("その他のHTTPエラー時にエラーを投げること", async () => {
+      const headers = new Map();
+
       mockFetch.mockResolvedValue({
         ok: false,
         status: 500,
         statusText: "Internal Server Error",
+        headers: {
+          get: vi.fn().mockReturnValue(null),
+          entries: vi.fn().mockReturnValue(headers.entries()),
+        },
         text: () => Promise.resolve("Server Error"),
+        clone: vi.fn(),
       });
 
       const queryFn = getQueryFn({ on401: "returnNull" });
@@ -384,12 +503,19 @@ describe("queryClient", () => {
 
   describe("ログ出力", () => {
     it("APIリクエスト時に適切なログが出力されること", async () => {
+      const headers = new Map();
+
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
         statusText: "OK",
-        headers: new Map(),
+        headers: {
+          get: vi.fn().mockReturnValue(null),
+          entries: vi.fn().mockReturnValue(headers.entries()),
+        },
         json: () => Promise.resolve({}),
+        text: () => Promise.resolve(""),
+        clone: vi.fn(),
       });
 
       await apiRequest("/api/test", {
@@ -416,12 +542,18 @@ describe("queryClient", () => {
     });
 
     it("401エラー時に詳細なエラーログが出力されること", async () => {
+      const headers = new Map([["www-authenticate", "Bearer"]]);
+
       mockFetch.mockResolvedValue({
         ok: false,
         status: 401,
         statusText: "Unauthorized",
-        headers: new Map([["www-authenticate", "Bearer"]]),
+        headers: {
+          get: vi.fn().mockReturnValue("Bearer"),
+          entries: vi.fn().mockReturnValue(headers.entries()),
+        },
         text: () => Promise.resolve("Unauthorized"),
+        clone: vi.fn(),
       });
 
       await expect(

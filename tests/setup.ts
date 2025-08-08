@@ -10,7 +10,8 @@ afterEach(() => {
 });
 
 // MSW（Mock Service Worker）設定 - 環境変数で制御
-const useMSW = process.env.VITEST_DISABLE_MSW !== 'true';
+// サーバーテストではMSWは必要ないため、デフォルトで無効
+const useMSW = process.env.VITEST_ENABLE_MSW === 'true';
 const server = useMSW ? setupServer(...handlers) : null;
 
 beforeAll(() => {
