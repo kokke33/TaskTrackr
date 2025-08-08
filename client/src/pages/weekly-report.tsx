@@ -86,6 +86,7 @@ export default function WeeklyReport() {
     id,
     currentVersion: existingReport?.version,
     isInitializing,
+    isSubmitting, // メイン送信中フラグを連携
     onVersionConflict: async (message: string) => {
       // 簡素化：簡単なエラーメッセージのみ
       toast({
