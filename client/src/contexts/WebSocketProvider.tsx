@@ -1,6 +1,8 @@
 // client/src/contexts/WebSocketProvider.tsx
 
 import React, { useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
 import { WebSocketContext, WebSocketStatus, WebSocketMessage, EditingUser } from './WebSocketContext';
 import { useAuth } from '@/lib/auth';
 import { createLogger } from '@shared/logger';
@@ -14,6 +16,8 @@ interface WebSocketProviderProps {
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, url, onDataUpdate }) => {
   const logger = createLogger('WebSocketProvider');
   const { user, isSessionExpired } = useAuth();
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
   const [status, setStatus] = useState<WebSocketStatus>('closed');
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const [editingUsers, setEditingUsers] = useState<EditingUser[]>([]);
@@ -52,8 +56,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
 
     // URL validation - より厳密なチェック
     if (!url || url.includes('undefined') || url.includes('null') || !url.startsWith('ws')) {
-      logger.error('Invalid WebSocket URL detected', undefined, { 
-        url, 
+      logger.error('Invalid WebSocket URL detected', undefined, {
+        url,
         validFormat: url ? url.startsWith('ws') : false,
         hasUndefined: url ? url.includes('undefined') : false,
         hasNull: url ? url.includes('null') : false
@@ -212,16 +216,34 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       setStatus('closed');
       setCurrentUserId(undefined);
       setEditingUsers([]);
+      // ユーザーに再ログインを促す
+      try {
+        toast({
+          title: "セッションが期限切れです",
+          description: "再度ログインしてください",
+          variant: "destructive",
+          duration: 3000,
+        });
+      } catch (e) {
+        logger.debug('Toast failed', { error: e });
+      }
+      try {
+        navigate('/login');
+      } catch (e) {
+        logger.debug('Navigate failed', { error: e });
+      }
     }
-  }, [isSessionExpired, status]);
+  }, [isSessionExpired, status, toast, navigate]);
 
   // 認証状態に基づく接続制御
   useEffect(() => {
+    // userオブジェクトが利用可能になった後に接続を試みる
     if (user && status === 'closed' && !document.hidden && !isSessionExpired) {
       logger.info('User authenticated, connecting WebSocket');
       connect();
     } else if (!user && (status === 'open' || status === 'connecting')) {
-      logger.info('User not authenticated, closing WebSocket');
+      // userがnullまたはundefinedの場合、WebSocket接続を閉じる
+      logger.info('User not authenticated or session expired, closing WebSocket');
       reconnectAttemptsRef.current = MAX_RECONNECT_ATTEMPTS; // 再接続を停止
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -233,8 +255,23 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       setStatus('closed');
       setCurrentUserId(undefined);
       setEditingUsers([]);
+      // ユーザーにログインを促す
+      try {
+        toast({
+          title: "ログインが必要です",
+          description: "編集を続行するにはログインしてください",
+          duration: 3000,
+        });
+      } catch (e) {
+        logger.debug('Toast failed', { error: e });
+      }
+      try {
+        navigate('/login');
+      } catch (e) {
+        logger.debug('Navigate failed', { error: e });
+      }
     }
-  }, [user, status, connect, isSessionExpired]);
+  }, [user, status, connect, isSessionExpired, toast, navigate]);
 
   // 緊急対処: HTTP認証からcurrentUserIdを設定（WebSocket pongが来ない場合のフォールバック）
   useEffect(() => {
@@ -253,7 +290,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
   // クリーンアップ用のuseEffect
   useEffect(() => {
     return () => {
-      logger.info('Component unmounting, cleaning up');
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
