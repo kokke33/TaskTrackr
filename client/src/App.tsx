@@ -174,7 +174,7 @@ function App() {
       // 現在の環境情報を収集
       const protocol = window.location.protocol;
       const hostname = window.location.hostname;
-      const port = window.location.port;
+      const port = window.location.port || import.meta.env.VITE_PORT;
       
       debugLogger.info(DebugLogCategory.GENERAL, 'app_init', 'WebSocket URL初期化開始', { protocol, hostname, port });
       
