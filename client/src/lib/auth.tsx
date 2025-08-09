@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "./queryClient";
+import { debugLogger, DebugLogCategory } from "@/utils/debug-logger";
 
 // ユーザー情報の型
 interface User {
@@ -45,12 +46,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastCheckTime = now;
 
       try {
-        const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
-          method: "GET"
+        // 直接fetchを使用して循環依存を回避
+        const response = await fetch("/api/check-auth", {
+          method: "GET",
+          credentials: "include"
         });
         
+        if (!response.ok && response.status !== 401) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
         if (!data.authenticated) {
-          console.log("🔔 セッション期限切れを検出しました");
+          debugLogger.info(DebugLogCategory.AUTH, 'session_check', 'セッション期限切れを検出', {
+            currentUser: user?.username,
+            lastCheckTime
+          });
           setIsSessionExpired(true);
           setIsAuthenticated(false);
           setUser(null);
@@ -62,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
       } catch (error) {
-        console.log("セッション監視エラー:", error);
+        debugLogger.error(DebugLogCategory.AUTH, 'session_check', 'セッション監視エラー', error instanceof Error ? error : new Error(String(error)));
       }
     };
 
@@ -73,7 +85,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (!wasVisible && isPageVisible && isAuthenticated) {
         // フォアグラウンド復帰時に1回のみチェック
-        console.log("📱 フォアグラウンド復帰 - セッション確認");
+        debugLogger.info(DebugLogCategory.AUTH, 'visibility_change', 'フォアグラウンド復帰 - セッション確認', {
+          username: user?.username
+        });
         performSessionCheck();
       }
     };
@@ -121,20 +135,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsSessionExpired(false); // セッション期限切れ状態をリセット
     if (userData) {
       // 管理者フラグが確実にbooleanとして設定されるようにする
-      setUser({
+      const userWithAdminFlag = {
         ...userData,
         isAdmin: !!userData.isAdmin
-      });
-      console.log("認証コンテキスト更新 - 管理者権限:", !!userData.isAdmin);
+      };
+      setUser(userWithAdminFlag);
+      
+      debugLogger.authSuccess('login', String(userData.id), userData.username);
+      debugLogger.setUser(String(userData.id), userData.username);
     }
   };
 
   // セッションリフレッシュ機能（離席後の自動復旧用）
   const refreshSession = async (): Promise<boolean> => {
     try {
-      const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
-        method: "GET"
+      // 直接fetchを使用して循環依存を回避
+      const response = await fetch("/api/check-auth", {
+        method: "GET",
+        credentials: "include"
       });
+      
+      if (!response.ok && response.status !== 401) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
       
       if (data.authenticated && data.user) {
         setIsAuthenticated(true);
@@ -143,14 +168,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...data.user,
           isAdmin: !!data.user.isAdmin
         });
-        console.log("✅ セッションリフレッシュ成功");
+        debugLogger.info(DebugLogCategory.AUTH, 'refresh_session', 'セッションリフレッシュ成功', {
+          username: data.user.username,
+          isAdmin: !!data.user.isAdmin
+        });
         return true;
       } else {
-        console.log("❌ セッションリフレッシュ失敗 - 要再ログイン");
+        debugLogger.warn(DebugLogCategory.AUTH, 'refresh_session', 'セッションリフレッシュ失敗 - 要再ログイン');
         return false;
       }
     } catch (error) {
-      console.error("セッションリフレッシュエラー:", error);
+      debugLogger.error(DebugLogCategory.AUTH, 'refresh_session', 'セッションリフレッシュエラー', error instanceof Error ? error : new Error(String(error)));
       return false;
     }
   };
@@ -162,6 +190,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setIsAuthenticated(false);
       setUser(null);
+      
+      debugLogger.authLogout();
+      debugLogger.clearUser();
+      
       window.location.href = "/login";
       
       toast({
@@ -169,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "正常にログアウトしました。",
       });
     } catch (error) {
-      console.error("Logout failed:", error);
+      debugLogger.error(DebugLogCategory.AUTH, 'logout', 'ログアウト処理に失敗', error instanceof Error ? error : new Error(String(error)));
       toast({
         title: "エラー",
         description: "ログアウトに失敗しました。",
@@ -182,10 +214,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     setIsLoading(true);
     try {
-      // サーバー側が未認証時も200で応答するため、apiRequestを使用可能
-      const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
-        method: "GET"
+      // 直接fetchを使用して循環依存を回避
+      const response = await fetch("/api/check-auth", {
+        method: "GET",
+        credentials: "include"
       });
+      
+      if (!response.ok && response.status !== 401) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
       
       if (data.authenticated && data.user) {
         console.log("Auth check successful, user:", data.user);

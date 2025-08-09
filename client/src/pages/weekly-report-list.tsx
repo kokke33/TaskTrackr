@@ -446,10 +446,19 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
     navigator.clipboard
       .writeText(markdownData)
       .then(() => {
-        toast({duration: 1000,});
+        toast({
+          title: "コピー完了",
+          description: "マークダウンをクリップボードにコピーしました",
+          duration: 2000,
+        });
       })
       .catch(() => {
-        toast({duration: 1000,});
+        toast({
+          title: "コピー失敗",
+          description: "コピーに失敗しました。もう一度お試しください",
+          variant: "destructive",
+          duration: 3000,
+        });
       });
   };
 
@@ -1003,15 +1012,24 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
                                 進捗率: {report.progressRate}%
                               </p>
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2"
-                              onClick={() => copyToClipboard(report)}
-                            >
-                              <Copy className="h-4 w-4" />
-                              マークダウンコピー
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex items-center gap-2"
+                                    onClick={() => copyToClipboard(report)}
+                                  >
+                                    <Copy className="h-4 w-4" />
+                                    マークダウンコピー
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>週次報告をマークダウン形式でクリップボードにコピー</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                         </div>
                       </CardContent>

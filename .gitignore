@@ -8,3 +8,8 @@ vite.config.ts.*
 attached_assets
 pictures
 logs
+.serena
+cookies.txt
+dev.log
+*.log
+

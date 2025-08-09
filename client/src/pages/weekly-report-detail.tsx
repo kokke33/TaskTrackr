@@ -124,9 +124,14 @@ export default function WeeklyReportDetail() {
   });
 
   // AIプロバイダー設定を取得
-  const { data: aiProviderSettings } = useQuery<{key: string, value: string}[]>({
+  const { data: aiProviderSettings, error: aiSettingsError, isError: isAiSettingsError } = useQuery<{key: string, value: string}[]>({
     queryKey: ['/api/system-settings', 'AI_PROVIDER'],
     staleTime: 1000 * 60 * 5, // 5分間キャッシュ
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    onError: (error) => {
+      console.error('システム設定の取得に失敗しました:', error);
+    }
   });
 
   // URLパラメータからスクロール指示を取得してスクロール実行

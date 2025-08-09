@@ -50,13 +50,51 @@ function createAIServiceWithConfig(config: typeof aiConfig): IAiProvider {
 
 let aiService: IAiProvider | null = null;
 let currentProvider: string | null = null;
+let lastModelKey: string | null = null;
+
+// プロバイダとモデル名を組み合わせたキャッシュキーを生成
+function getCurrentModelKey(config: typeof aiConfig): string {
+  switch (config.provider) {
+    case 'openai':
+      return `${config.provider}:${config.openai.model}`;
+    case 'ollama':
+      return `${config.provider}:${config.ollama.model}`;
+    case 'gemini':
+      return `${config.provider}:${config.gemini.model}`;
+    case 'groq':
+      return `${config.provider}:${config.groq.model}`;
+    case 'openrouter':
+      return `${config.provider}:${config.openrouter.model}`;
+    default:
+      return `${config.provider}:unknown`;
+  }
+}
 
 export async function getAIService(): Promise<IAiProvider> {
   const dynamicConfig = await getDynamicAIConfig();
+  const currentModelKey = getCurrentModelKey(dynamicConfig);
   
-  if (!aiService || currentProvider !== dynamicConfig.provider) {
+  console.log('[AI-SERVICE-DEBUG] Cache check:', {
+    provider: dynamicConfig.provider,
+    currentModelKey,
+    lastModelKey,
+    cacheValid: aiService !== null && currentProvider === dynamicConfig.provider && lastModelKey === currentModelKey
+  });
+  
+  if (!aiService || currentProvider !== dynamicConfig.provider || lastModelKey !== currentModelKey) {
+    console.log('[AI-SERVICE-DEBUG] Creating new AI service with config:', {
+      provider: dynamicConfig.provider,
+      model: dynamicConfig.provider === 'openrouter' ? dynamicConfig.openrouter.model :
+             dynamicConfig.provider === 'openai' ? dynamicConfig.openai.model :
+             dynamicConfig.provider === 'groq' ? dynamicConfig.groq.model :
+             dynamicConfig.provider === 'gemini' ? dynamicConfig.gemini.model : 'unknown'
+    });
+    
     aiService = createAIServiceWithConfig(dynamicConfig);
     currentProvider = dynamicConfig.provider;
+    lastModelKey = currentModelKey;
+  } else {
+    console.log('[AI-SERVICE-DEBUG] Using cached AI service');
   }
   
   return aiService;

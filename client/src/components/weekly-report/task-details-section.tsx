@@ -24,7 +24,7 @@ import { useAIAnalysis } from "@/hooks/use-ai-analysis";
 import { ANALYSIS_FIELD_TYPES } from "@shared/ai-constants";
 
 type TaskDetailsSectionProps = {
-  latestReport?: WeeklyReport;
+  latestReport?: WeeklyReport | null;
   existingReport?: WeeklyReport;
   aiAnalysis: ReturnType<typeof useAIAnalysis>;
 };

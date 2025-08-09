@@ -80,9 +80,11 @@ class PerformanceMonitor {
     // 閾値チェック
     this.checkThresholds(fullMetric);
 
-    // 開発環境でのリアルタイムログ
+    // 開発環境でも警告レベル以上のメトリクスのみログ出力
     if (process.env.NODE_ENV === 'development') {
-      this.logMetric(fullMetric);
+      if (!metric.success || metric.duration >= this.thresholds[metric.type].warning) {
+        this.logMetric(fullMetric);
+      }
     }
   }
 
@@ -154,11 +156,15 @@ class PerformanceMonitor {
   }
 
   private logMetric(metric: PerformanceMetric): void {
-    const status = metric.success ? '✅' : '❌';
-    console.log(`${status} [PERF] ${metric.type.toUpperCase()} ${metric.name}: ${metric.duration}ms`, {
-      ...metric.metadata,
-      threshold: this.thresholds[metric.type]
-    });
+    try {
+      const status = metric.success ? '✅' : '❌';
+      console.log(`${status} [PERF] ${metric.type.toUpperCase()} ${metric.name}: ${metric.duration}ms`, {
+        ...metric.metadata,
+        threshold: this.thresholds[metric.type]
+      });
+    } catch (error) {
+      // コンソール出力エラーを無視（EPIPE等）
+    }
   }
 }
 

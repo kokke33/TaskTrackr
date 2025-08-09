@@ -154,11 +154,17 @@ export async function getDynamicAIConfig(): Promise<AIConfig> {
       // OpenRouterの場合はモデルもデータベースから取得
       if (dynamicProvider === 'openrouter') {
         const openrouterModelSetting = await storage.getSystemSetting('AI_OPENROUTER_MODEL');
+        console.log('[AI-CONFIG-DEBUG] OpenRouter model from DB:', openrouterModelSetting?.value);
         if (openrouterModelSetting && openrouterModelSetting.value) {
           dynamicConfig.openrouter.model = openrouterModelSetting.value;
+          console.log('[AI-CONFIG-DEBUG] OpenRouter model updated to:', dynamicConfig.openrouter.model);
         }
       }
       
+      console.log('[AI-CONFIG-DEBUG] Final dynamic config:', {
+        provider: dynamicConfig.provider,
+        openrouterModel: dynamicConfig.openrouter.model
+      });
       return dynamicConfig;
     }
     

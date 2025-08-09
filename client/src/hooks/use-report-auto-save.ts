@@ -168,12 +168,10 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
   useLayoutEffect(() => {
     const subscription = form.watch(() => {
       if (isInitializing) {
-        console.log('[AutoSave] Skipping change detection during initialization (sync)');
         return;
       }
       
       // 初期化が完了している場合のみ変更検知
-      console.log('[AutoSave] Form changed detected (user action - sync)');
       setFormChanged(true);
     });
     return () => subscription.unsubscribe();
@@ -242,7 +240,6 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
 
   const resetFormChanged = useCallback(() => {
     setFormChanged(false);
-    console.log('[AutoSave] Form changed reset to false');
   }, []);
 
   return {

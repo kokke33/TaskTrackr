@@ -9,8 +9,16 @@ afterEach(() => {
   cleanup();
 });
 
-// MSW（Mock Service Worker）設定 - 環境変数で制御
-const useMSW = process.env.VITEST_DISABLE_MSW !== 'true';
+// MSW（Mock Service Worker）設定 - クライアントテストで自動有効化
+const isClientTest = process.cwd().includes('client') || 
+                    process.env.NODE_ENV === 'test' && 
+                    (process.env.VITEST_ENVIRONMENT === 'jsdom' || typeof window !== 'undefined');
+
+// 環境変数による制御: VITEST_DISABLE_MSW=true で強制無効、VITEST_ENABLE_MSW=true で強制有効
+const useMSW = process.env.VITEST_DISABLE_MSW === 'true' ? false :
+               process.env.VITEST_ENABLE_MSW === 'true' ? true :
+               isClientTest; // デフォルトはクライアントテストでのみ有効
+
 const server = useMSW ? setupServer(...handlers) : null;
 
 beforeAll(() => {

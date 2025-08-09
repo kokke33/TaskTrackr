@@ -115,11 +115,6 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
       const currentValue = (current[field] || '').toString().trim();
       const initialValue = (initial[field] || '').toString().trim();
       if (currentValue !== initialValue) {
-        console.log(`[Draft] Form change detected in field '${field}':`, {
-          initial: initialValue.substring(0, 50),
-          current: currentValue.substring(0, 50),
-          isInitializing: isInitializing
-        });
         return true;
       }
     }
@@ -131,24 +126,21 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
   useEffect(() => {
     // 🔥 重要: 初期化中は変更検知を完全にスキップ
     if (isInitializing) {
-      console.log('[Draft] Skipping change detection during initialization - isInitializing:', isInitializing);
       return;
     }
     
     // 初期データが設定されていない場合もスキップ
     if (!initialDataRef.current) {
-      console.log('[Draft] Skipping change detection - no initial data reference');
       return;
     }
     
     const hasChanges = checkFormChanges();
     if (hasChanges !== hasFormChanges) {
       setHasFormChanges(hasChanges);
-      console.log(`[Draft] Form changes state updated: ${hasChanges} (user action)`);
     }
   }, [watchedValues, checkFormChanges, hasFormChanges, isInitializing]);
 
-  const { data: latestReport, isLoading: isLoadingLatest } = useQuery<WeeklyReport>({
+  const { data: latestReport, isLoading: isLoadingLatest } = useQuery<WeeklyReport | null>({
     queryKey: [`/api/weekly-reports/previous/${selectedCaseId}`, reportId, existingReport?.reportPeriodStart],
     queryFn: async () => {
       let reportPeriodStart: string | undefined;
@@ -157,15 +149,23 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
       } else {
         reportPeriodStart = form.getValues("reportPeriodStart");
       }
-      if (!reportPeriodStart) {
-        const excludeParam = reportId ? `?excludeId=${reportId}` : '';
-        return apiRequest(`/api/weekly-reports/latest/${selectedCaseId}${excludeParam}`, { method: "GET" });
+      try {
+        if (!reportPeriodStart) {
+          const excludeParam = reportId ? `?excludeId=${reportId}` : '';
+          return apiRequest(`/api/weekly-reports/latest/${selectedCaseId}${excludeParam}`, { method: "GET" });
+        }
+        const params = new URLSearchParams({ beforeDate: reportPeriodStart });
+        if (reportId) {
+          params.append('excludeId', reportId.toString());
+        }
+        return apiRequest(`/api/weekly-reports/previous/${selectedCaseId}?${params.toString()}`, { method: "GET" });
+      } catch (error) {
+        // 404エラーの場合は null を返す（前回の報告が存在しない正常な状態）
+        if (error instanceof Error && error.message.includes('404')) {
+          return null;
+        }
+        throw error;
       }
-      const params = new URLSearchParams({ beforeDate: reportPeriodStart });
-      if (reportId) {
-        params.append('excludeId', reportId.toString());
-      }
-      return apiRequest(`/api/weekly-reports/previous/${selectedCaseId}?${params.toString()}`, { method: "GET" });
     },
     enabled: !!selectedCaseId && (!isEditMode || (!!existingReport && !!existingReport.reportPeriodStart)),
   });
@@ -218,7 +218,6 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
         timestamp: Date.now(),
         version: existingReport?.version
       }));
-      console.log('[Draft] Saved form data with changes');
     } catch (error) {
       console.error('Failed to save draft:', error);
     }
@@ -269,7 +268,6 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
         duration: 1000,
       });
       
-      console.log('[Draft] Restored form data from:', savedTime);
       return true;
     } catch (error) {
       console.error('Failed to load draft:', error);
@@ -303,8 +301,6 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
   // 初期データの設定（編集権限確認後に外部から呼び出される）
   const initializeFormData = useCallback(() => {
     if (isEditMode && existingReport) {
-      console.log('[Draft] Starting form initialization');
-      
       // 🔥 重要: 最初に初期化フラグを設定して変更検知を無効化
       setIsInitializing(true);
       setHasFormChanges(false); // 変更フラグも事前にリセット
@@ -316,7 +312,6 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
           Object.entries(existingReport).map(([key, value]) => [key, value === null || value === undefined ? "" : value])
         ) as WeeklyReport;
         initialDataRef.current = { ...cleanedExistingReport };
-        console.log('[Draft] Initial data reference set with cleaned data');
         
         // 既存データがロードされた後でドラフトを復元を試行
         const hasRestored = loadFormData();
@@ -326,21 +321,17 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
             form.setValue(key as keyof WeeklyReport, value as any);
           });
           setSelectedCaseId(existingReport.caseId);
-          console.log('[Draft] Form initialized with existing data');
-        } else {
-          console.log('[Draft] Form initialized with draft data');
         }
         
         // 初期化完了後に十分待ってから変更検出を有効化（300msに延長）
         setTimeout(() => {
           setIsInitializing(false);
           setHasFormChanges(false); // 二重確認でリセット
-          console.log('[Draft] Form initialization completed - change detection enabled');
         }, 300);
         
         return true;
       } catch (error) {
-        console.error('[Draft] Error during form initialization:', error);
+        console.error('[Draft] Error during form initialization:', error); // エラーログは残す
         setIsInitializing(false);
         return false;
       }
@@ -366,14 +357,11 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
       let currentVersion = existingReport?.version;
       if (isEditMode && latestVersionFromAutoSave && latestVersionFromAutoSave > (existingReport?.version || 0)) {
         currentVersion = latestVersionFromAutoSave;
-        console.log(`🔥 [use-weekly-report-form] Using updated version from auto-save: ${latestVersionFromAutoSave} (instead of existingReport: ${existingReport?.version})`);
       }
       
-      const requestData = isEditMode && currentVersion 
+      const requestData = isEditMode && currentVersion
         ? { ...data, version: currentVersion }
         : data;
-      
-      console.log(`🔥 [use-weekly-report-form] Final request data version: ${requestData.version || 'undefined'}`);
       
       return apiRequest(url, { method, data: requestData });
     },
@@ -442,7 +430,17 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
   // 簡素化：競合解決機能を削除（排他制御で事前防止）
 
   const copyFromLastReport = () => {
-    if (!selectedCaseId || !latestReport) return;
+    if (!selectedCaseId) return;
+    
+    if (!latestReport) {
+      // 前回の報告が存在しない場合
+      toast({
+        title: "前回の報告なし",
+        description: "このケースでは初回の報告です。",
+        duration: 1000,
+      });
+      return;
+    }
 
     const fieldsToExclude = [
       "id", 

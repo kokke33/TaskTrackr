@@ -1,5 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { performanceMonitor } from "@shared/performance-monitor";
+import { debugLogger, DebugLogCategory } from "@/utils/debug-logger";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -8,7 +9,7 @@ async function throwIfResNotOk(res: Response) {
     
     // 401エラーの詳細ログ
     if (res.status === 401) {
-      console.error(`[AUTH ERROR] 401 Unauthorized for ${res.url}`, {
+      debugLogger.authFailed('session_expired', res.url, {
         status: res.status,
         statusText: res.statusText,
         headers: Object.fromEntries(res.headers.entries()),
@@ -29,12 +30,7 @@ export async function apiRequest<T = any>(
   }
 ): Promise<T> {
   const timer = performanceMonitor.startTimer('api', `${options.method} ${url}`);
-  
-  console.log(`[API REQUEST] ${options.method} ${url}`, {
-    data: options.data,
-    cookies: document.cookie,
-    timestamp: new Date().toISOString()
-  });
+  const requestId = debugLogger.apiStart(`api_request`, options.method, url, options.data);
 
   const performRequest = async (): Promise<Response> => {
     return await fetch(url, {
@@ -46,14 +42,10 @@ export async function apiRequest<T = any>(
   };
 
   let res: Response;
+  const startTime = Date.now();
+  
   try {
     res = await performRequest();
-
-  console.log(`[API RESPONSE] ${options.method} ${url} - Status: ${res.status}`, {
-    status: res.status,
-    statusText: res.statusText,
-    headers: Object.fromEntries(res.headers.entries())
-  });
 
   // 401エラーかつ認証リトライが無効でない場合、セッション確認を1回試行
   if (res.status === 401 && !options.skipAuthRetry && url !== "/api/check-auth") {
@@ -76,6 +68,10 @@ export async function apiRequest<T = any>(
           // セッションが有効なら元のリクエストを再試行
           res = await performRequest();
         } else {
+          debugLogger.authFailed('session_redirect', '/login', {
+            reason: 'セッション期限切れを確認',
+            originalUrl: url
+          });
           console.log("❌ セッション期限切れを確認 - ログインページにリダイレクト");
           // セッション期限切れの場合はログインページへ
           window.location.href = "/login";
@@ -83,8 +79,12 @@ export async function apiRequest<T = any>(
         }
       }
     } catch (authError) {
+      // Session expiredエラーの場合は再スローする
+      if (authError instanceof Error && authError.message === "Session expired") {
+        throw authError;
+      }
       console.error("セッション確認中にエラー:", authError);
-      // セッション確認に失敗した場合は元の401エラーを処理
+      // 他のセッション確認エラーは元の401エラーを処理
     }
   }
 
@@ -92,6 +92,7 @@ export async function apiRequest<T = any>(
     const result = await res.json() as T;
     
     // パフォーマンス計測終了（成功）
+    const finalDuration = Date.now() - startTime;
     timer.end({
       status: res.status,
       method: options.method,
@@ -99,14 +100,19 @@ export async function apiRequest<T = any>(
       hasData: !!options.data
     }, true);
     
+    debugLogger.apiSuccess(`api_request`, requestId, result, finalDuration);
+    
     return result;
   } catch (error) {
     // パフォーマンス計測終了（エラー）
+    const finalDuration = Date.now() - startTime;
     timer.end({
       method: options.method,
       url,
       hasData: !!options.data
     }, false, error instanceof Error ? error.message : String(error));
+    
+    debugLogger.apiError(`api_request`, requestId, error instanceof Error ? error : new Error(String(error)), finalDuration);
     
     throw error;
   }
@@ -133,15 +139,18 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: async ({ queryKey }) => {
+        // apiRequestを使用して認証リトライロジックを有効化
+        return await apiRequest(queryKey[0] as string, { method: "GET" });
+      },
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 2 * 60 * 1000, // デフォルト2分間キャッシュ（従来のInfinityから変更）
       gcTime: 5 * 60 * 1000, // 5分後にガベージコレクション
       retry: (failureCount, error) => {
-        // 認証エラーの場合は1回だけリトライ（一時的なセッション問題の可能性）
+        // 認証エラーの場合は既にapiRequest内でリトライ済みなので、ここではリトライしない
         if (error instanceof Error && error.message.startsWith("401:")) {
-          return failureCount < 1;
+          return false; // apiRequest内で認証リトライ済み
         }
         return failureCount < 3;  // その他のエラーは3回までリトライ
       },

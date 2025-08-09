@@ -9,28 +9,40 @@ import passport from "passport";
 import { createInitialUsers } from "./auth";
 import { migrateExistingProjectsFromCases } from "./migrations";
 import { validateAIConfig } from "./config";
+import { debugLogger, debugMiddleware, DebugLogCategory } from "./debug-logger";
 
 // 環境変数の読み込み
 dotenv.config();
 
+// デバッグロガー初期化
+debugLogger.info(DebugLogCategory.GENERAL, 'server_start', 'TaskTrackr server starting up', {
+  nodeEnv: process.env.NODE_ENV,
+  port: process.env.PORT || 5000
+});
+
 // 本番環境での必須環境変数チェック
 if (process.env.NODE_ENV === 'production') {
-  console.log('🔍 本番環境での環境変数をチェック中...');
+  debugLogger.info(DebugLogCategory.GENERAL, 'env_check', '本番環境での環境変数をチェック中...');
   
   if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL環境変数が設定されていません');
+    debugLogger.error(DebugLogCategory.GENERAL, 'env_check', 'DATABASE_URL環境変数が設定されていません');
     process.exit(1);
   }
   
   if (!process.env.SESSION_SECRET) {
-    console.warn('⚠️ SESSION_SECRET環境変数が設定されていません。デフォルト値を使用します。');
+    debugLogger.warn(DebugLogCategory.GENERAL, 'env_check', 'SESSION_SECRET環境変数が設定されていません。デフォルト値を使用します。');
   }
   
-  console.log('✅ 必須環境変数のチェック完了');
-  console.log(`📍 データベース接続先: ${process.env.DATABASE_URL.split('@')[1] || 'unknown'}`);
+  debugLogger.info(DebugLogCategory.GENERAL, 'env_check', '必須環境変数のチェック完了', {
+    databaseHost: process.env.DATABASE_URL.split('@')[1] || 'unknown'
+  });
 }
 
 const app = express();
+
+// デバッグログミドルウェアを早期に追加
+app.use(debugMiddleware);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -73,35 +85,31 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // セッションストア情報をログ出力
-console.log(`📦 セッションストア: ${sessionManager.getStoreType()}`);
-if (process.env.NODE_ENV !== 'production') {
-  console.log('📊 セッションストア統計:', sessionManager.getStats());
-}
+debugLogger.info(DebugLogCategory.SESSION, 'session_init', 'セッションストア初期化完了', {
+  storeType: sessionManager.getStoreType(),
+  stats: process.env.NODE_ENV !== 'production' ? sessionManager.getStats() : undefined
+});
 
 // 初期ユーザーの作成
 createInitialUsers().catch((error) => {
-  console.error("Failed to create initial users:", error);
+  debugLogger.error(DebugLogCategory.GENERAL, 'init_users', '初期ユーザーの作成に失敗', error);
 });
 
 // 既存の案件からプロジェクトを作成
 migrateExistingProjectsFromCases().catch((error) => {
-  console.error("Failed to migrate projects from cases:", error);
+  debugLogger.error(DebugLogCategory.GENERAL, 'project_migration', 'プロジェクト移行処理に失敗', error);
 });
 
 // AI設定の検証とログ出力
 try {
   validateAIConfig();
+  debugLogger.info(DebugLogCategory.GENERAL, 'ai_config', 'AI設定の検証が完了');
 } catch (error) {
-  console.error("AI configuration validation failed:", error);
+  debugLogger.error(DebugLogCategory.GENERAL, 'ai_config', 'AI設定の検証に失敗', error instanceof Error ? error : new Error(String(error)));
 }
 
-// セッションデバッグミドルウェア（簡略化）
+// セッションデバッグミドルウェア（簡略化）- ログ出力を最適化
 app.use((req, res, next) => {
-  // APIアクセス時のみログ出力
-  if (req.path.startsWith("/api") && req.method !== 'OPTIONS') {
-    console.log(`${req.method} ${req.path} - Auth: ${req.isAuthenticated()}`);
-  }
-
   // パフォーマンス測定
   const start = Date.now();
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -114,7 +122,8 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (req.path.startsWith("/api")) {
+    // /api/check-auth以外のAPIリクエストのみログ出力を制限
+    if (req.path.startsWith("/api") && req.path !== "/api/check-auth" && req.method !== 'OPTIONS') {
       let logLine = `${req.method} ${req.path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;

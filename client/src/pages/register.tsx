@@ -18,17 +18,21 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 
-const loginSchema = z.object({
+const registerSchema = z.object({
   username: z.string().min(1, "ユーザー名を入力してください"),
-  password: z.string().min(1, "パスワードを入力してください"),
+  password: z.string().min(6, "パスワードは6文字以上入力してください"),
+  confirmPassword: z.string().min(1, "確認用パスワードを入力してください"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "パスワードが一致しません",
+  path: ["confirmPassword"],
 });
 
-type LoginForm = z.infer<typeof loginSchema>;
+type RegisterForm = z.infer<typeof registerSchema>;
 
-export default function Login() {
+export default function Register() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const { login, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const usernameInputRef = useRef<HTMLInputElement>(null);
 
   // 既に認証済みの場合はホームページにリダイレクト
@@ -45,64 +49,56 @@ export default function Login() {
     }
   }, [isAuthenticated]);
 
-  const form = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<RegisterForm>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
-  const onSubmit = async (data: LoginForm) => {
+  const onSubmit = async (data: RegisterForm) => {
     try {
-      const responseData = await apiRequest("/api/login", {
+      // confirmPasswordを除いてAPIに送信
+      const { confirmPassword, ...userData } = data;
+      
+      const responseData = await apiRequest("/api/register", {
         method: "POST",
-        data,
+        data: userData,
       });
       
-      // ログイン成功メッセージを表示（成功メッセージには長めの表示時間を設定）
+      // 登録成功メッセージを表示
       toast({
-        title: "ログイン成功",
-        description: `${responseData.user?.username || ''}さん、ようこそ！`,
-        duration: 1000, // 1秒間表示
+        title: "登録成功",
+        description: "ユーザー登録が完了しました。ログイン画面に移動します。",
+        duration: 2000,
       });
       
-      // ユーザー情報を含めて認証状態を更新
-      if (responseData.user) {
-        // ユーザー情報をコンソールに出力してデバッグ
-        console.log("Login response user data:", responseData.user);
-        
-        // 明示的に管理者フラグ情報をログ出力
-        console.log(`ユーザー ${responseData.user.username} の管理者権限: ${responseData.user.isAdmin ? 'あり' : 'なし'}`);
-        
-        // ログイン成功情報をコンソールに出力
-        console.log("ログイン成功 - 管理者権限:", responseData.user.isAdmin);
-        
-        // 認証コンテキストを更新
-        login(responseData.user);
-        
-        // トップページに移動
-        setLocation("/");
-      } else {
-        // ユーザー情報がない場合でも認証状態は更新
-        login();
-        setLocation("/");
-      }
+      // 登録成功後はログイン画面に遷移
+      setTimeout(() => {
+        setLocation("/login");
+      }, 1000);
+      
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Registration error:", error);
       toast({
         title: "エラー",
-        description: error instanceof Error ? error.message : "ログインに失敗しました",
+        description: error instanceof Error ? error.message : "ユーザー登録に失敗しました",
         variant: "destructive",
       });
     }
+  };
+
+  const handleBackToLogin = () => {
+    setLocation("/login");
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <Card className="w-full max-w-md mx-4">
         <CardContent className="pt-6">
-          <h1 className="text-2xl font-bold text-center mb-6">週次報告システム</h1>
+          <h1 className="text-2xl font-bold text-center mb-6">ユーザー登録</h1>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -133,7 +129,25 @@ export default function Login() {
                       <Input
                         type="password"
                         {...field}
-                        autoComplete="current-password"
+                        autoComplete="new-password"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>パスワード（確認）</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        {...field}
+                        autoComplete="new-password"
                       />
                     </FormControl>
                     <FormMessage />
@@ -146,16 +160,16 @@ export default function Login() {
                 className="w-full"
                 disabled={form.formState.isSubmitting}
               >
-                {form.formState.isSubmitting ? "ログイン中..." : "ログイン"}
+                {form.formState.isSubmitting ? "登録中..." : "ユーザー登録"}
               </Button>
               
               <Button
                 type="button"
                 variant="outline"
                 className="w-full"
-                onClick={() => setLocation("/register")}
+                onClick={handleBackToLogin}
               >
-                新規ユーザー登録
+                ログイン画面に戻る
               </Button>
             </form>
           </Form>
