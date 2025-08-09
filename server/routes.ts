@@ -2101,64 +2101,102 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     report: any,
     relatedCase: any,
   ): Promise<string> {
+    const startTime = Date.now();
+    console.log("🔄 2段階AI分析開始");
+    
     try {
-      // 過去の報告を取得
-      const pastReports = await storage.getWeeklyReportsByCase(report.caseId);
-      console.log(`取得した過去の報告数: ${pastReports.length}`);
+      // ========== 第1段階: 詳細分析 ==========
+      console.log("🔄 第1段階: 詳細分析開始");
+      const stage1StartTime = Date.now();
+      
+      const firstStageResult = await performFirstStageWeeklyReportAnalysis(report, relatedCase);
+      
+      const stage1Duration = Date.now() - stage1StartTime;
+      console.log(`✅ 第1段階完了 (${stage1Duration}ms) - 結果長: ${firstStageResult.length}`);
 
-      // 現在の報告より前の期間の報告のみを取得
-      const previousReports = pastReports.filter((pr) => 
-        pr.id !== report.id && 
-        new Date(pr.reportPeriodStart) < new Date(report.reportPeriodStart)
+      // ========== 第2段階: エグゼクティブサマリ生成 ==========
+      console.log("🔄 第2段階: エグゼクティブサマリ生成開始");
+      const stage2StartTime = Date.now();
+      
+      const executiveSummary = await generateWeeklyReportExecutiveSummary(
+        firstStageResult, report, relatedCase
       );
+      
+      const stage2Duration = Date.now() - stage2StartTime;
+      const totalDuration = Date.now() - startTime;
+      console.log(`✅ 第2段階完了 (${stage2Duration}ms) - サマリ長: ${executiveSummary.length}`);
+      console.log(`🎉 2段階AI分析完了 (総時間: ${totalDuration}ms)`);
+
+      return executiveSummary;
+
+    } catch (error) {
+      console.error("❌ 2段階AI分析エラー:", error);
+      return "AI分析中にエラーが発生しました。";
+    }
+  }
+
+  // 第1段階: 詳細分析（従来のロジック）
+  async function performFirstStageWeeklyReportAnalysis(
+    report: any,
+    relatedCase: any,
+  ): Promise<string> {
+    // 過去の報告を取得
+    const pastReports = await storage.getWeeklyReportsByCase(report.caseId);
+    console.log(`取得した過去の報告数: ${pastReports.length}`);
+
+    // 現在の報告より前の期間の報告のみを取得
+    const previousReports = pastReports.filter((pr) => 
+      pr.id !== report.id && 
+      new Date(pr.reportPeriodStart) < new Date(report.reportPeriodStart)
+    );
+    console.log(
+      `現在の報告ID: ${report.id}, 報告期間: ${report.reportPeriodStart}, 比較対象となる前回報告数: ${previousReports.length}`,
+    );
+
+    // 直近の前回報告（現在の報告期間より前で最新の報告）
+    const previousReport =
+      previousReports.length > 0 ? previousReports[0] : null;
+    console.log(`直近の過去の報告ID: ${previousReport?.id || "なし"}`);
+
+    if (previousReport) {
       console.log(
-        `現在の報告ID: ${report.id}, 報告期間: ${report.reportPeriodStart}, 比較対象となる前回報告数: ${previousReports.length}`,
+        `直近の報告期間: ${previousReport.reportPeriodStart} 〜 ${previousReport.reportPeriodEnd}`,
       );
+    }
 
-      // 直近の前回報告（現在の報告期間より前で最新の報告）
-      const previousReport =
-        previousReports.length > 0 ? previousReports[0] : null;
-      console.log(`直近の過去の報告ID: ${previousReport?.id || "なし"}`);
+    const projectInfo = relatedCase
+      ? `プロジェクト名: ${relatedCase.projectName}\n案件名: ${relatedCase.caseName}`
+      : "プロジェクト情報が取得できませんでした";
 
-      if (previousReport) {
-        console.log(
-          `直近の報告期間: ${previousReport.reportPeriodStart} 〜 ${previousReport.reportPeriodEnd}`,
-        );
-      }
-
-      const projectInfo = relatedCase
-        ? `プロジェクト名: ${relatedCase.projectName}\n案件名: ${relatedCase.caseName}`
-        : "プロジェクト情報が取得できませんでした";
-
-      // 過去の報告がある場合、比較情報を追加
-      let previousReportInfo = "";
-      if (previousReport) {
-        previousReportInfo = `
+    // 過去の報告がある場合、比較情報を追加
+    let previousReportInfo = "";
+    if (previousReport) {
+      previousReportInfo = `
 【前回の報告内容】
 報告期間: ${previousReport.reportPeriodStart} 〜 ${previousReport.reportPeriodEnd}`;
-        
-        // 進捗率分析フラグがtrueの場合のみ進捗率を含める
-        if (relatedCase?.includeProgressAnalysis !== false) {
-          previousReportInfo += `
-進捗率: ${previousReport.progressRate}%`;
-        }
-        
-        // 前回レポートの値を日本語変換
-        const previousConvertedValues = convertWeeklyReportValues(previousReport);
-        
+      
+      // 進捗率分析フラグがtrueの場合のみ進捗率を含める
+      if (relatedCase?.includeProgressAnalysis !== false) {
         previousReportInfo += `
+進捗率: ${previousReport.progressRate}%`;
+      }
+      
+      // 前回レポートの値を日本語変換
+      const previousConvertedValues = convertWeeklyReportValues(previousReport);
+      
+      previousReportInfo += `
 進捗状況: ${previousConvertedValues.progressStatus}
 作業内容: ${previousReport.weeklyTasks}
 課題・問題点: ${previousReport.issues}
 新たなリスク: ${previousReport.newRisks === "yes" ? previousReport.riskSummary : "なし"}
 来週の予定（前回）: ${previousReport.nextWeekPlan}
 `;
-      }
+    }
 
-      // 現在レポートの値を日本語変換
-      const currentConvertedValues = convertWeeklyReportValues(report);
-      
-      const prompt = `
+    // 現在レポートの値を日本語変換
+    const currentConvertedValues = convertWeeklyReportValues(report);
+    
+    const prompt = `
 あなたはプロジェクトマネージャーのアシスタントです。
 現場リーダーが記載した以下の週次報告の内容を分析し、改善点や注意点を指摘してください。
 プロジェクトマネージャが確認する前の事前確認として非常に重要なチェックです。
@@ -2196,32 +2234,125 @@ ${previousReportInfo}
 簡潔に重要なポイントのみ指摘してください。特に前回からの変化や、前回予定していた作業との差異がある場合は具体的に言及してください。
 `;
 
-      // AIサービスを使用して分析を実行
-      const aiService = await getAIService();
+    // AIサービスを使用して分析を実行
+    const aiService = await getAIService();
 
-      const response = await aiService.generateResponse(
-        [
-          {
-            role: "system",
-            content:
-              "あなたはプロジェクトマネージャーのアシスタントです。週次報告を詳細に分析し、改善点や注意点を明確に指摘できます。前回の報告と今回の報告を比較し、変化や傾向を把握します。",
-          },
-          { role: "user", content: prompt },
-        ],
-        undefined,
+    const response = await aiService.generateResponse(
+      [
         {
-          operation: "analyzeWeeklyReport",
-          reportId: report.id,
-          caseId: report.caseId,
-          projectName: relatedCase?.projectName,
+          role: "system",
+          content:
+            "あなたはプロジェクトマネージャーのアシスタントです。週次報告を詳細に分析し、改善点や注意点を明確に指摘できます。前回の報告と今回の報告を比較し、変化や傾向を把握します。",
         },
-      );
+        { role: "user", content: prompt },
+      ],
+      undefined,
+      {
+        operation: "analyzeWeeklyReport-stage1",
+        reportId: report.id,
+        caseId: report.caseId,
+        projectName: relatedCase?.projectName,
+      },
+    );
 
-      return response.content;
-    } catch (error) {
-      console.error("OpenAI API error:", error);
-      return "AI分析中にエラーが発生しました。";
-    }
+    return response.content;
+  }
+
+  // 第2段階: エグゼクティブサマリ生成
+  async function generateWeeklyReportExecutiveSummary(
+    firstStageResult: string,
+    report: any,
+    relatedCase: any,
+  ): Promise<string> {
+    const projectInfo = relatedCase
+      ? `プロジェクト名: ${relatedCase.projectName}\n案件名: ${relatedCase.caseName}`
+      : "プロジェクト情報が取得できませんでした";
+
+    // 現在レポートの値を日本語変換
+    const currentConvertedValues = convertWeeklyReportValues(report);
+
+    const executiveSummaryPrompt = `あなたはシステムエンジニア兼プロジェクトマネジャーです。
+以下の週次報告分析結果を基に、A4一枚に凝縮したエグゼクティブサマリを作成してください。
+
+【要件】
+- 冗長な言い回しを排し、多彩な語彙で構成
+- マークダウン形式で章立てを明確に
+- 箇条書きリストを随所に配置
+- 末尾に5問のFAQを設け
+- 全体を洗練された日本語でまとめる
+
+${projectInfo}
+
+【第1段階分析結果】:
+${firstStageResult}
+
+【週次報告原文データ】:
+報告期間: ${report.reportPeriodStart} 〜 ${report.reportPeriodEnd}${relatedCase?.includeProgressAnalysis !== false ? `
+進捗率: ${report.progressRate}%` : ""}
+進捗状況: ${currentConvertedValues.progressStatus}
+作業内容: ${report.weeklyTasks}
+課題・問題点: ${report.issues}
+新たなリスク: ${report.newRisks === "yes" ? report.riskSummary : "なし"}
+来週の予定: ${report.nextWeekPlan}
+支援要請: ${report.supportRequests || "なし"}
+
+上記の情報を基に、経営層・管理層向けの戦略的なエグゼクティブサマリを作成してください。`;
+
+    const aiService = await getAIService();
+
+    const response = await aiService.generateResponse(
+      [
+        {
+          role: "system",
+          content: `あなたはシステムエンジニア兼プロジェクトマネジャーの視点で、週次報告を経営層向けのエグゼクティブサマリに変換する専門家です。
+
+出力形式の例:
+# 週次報告エグゼクティブサマリ
+
+## プロジェクト状況概要
+- 基本情報のハイライト
+
+## 重要な進捗・成果  
+- 今週の主要成果
+- 進捗率・状況
+
+## 課題・リスク分析
+- 重要な課題
+- リスクレベルと対策
+
+## アクションプラン
+- 来週の重要予定
+- 支援要請事項
+
+## FAQ（よくある質問）
+**Q1: プロジェクトの全体的な健全性は？**
+A1: [分析結果に基づく回答]
+
+**Q2: 最も重要な課題は何？**
+A2: [分析結果に基づく回答]
+
+**Q3: スケジュール遵守は可能？**
+A3: [分析結果に基づく回答]
+
+**Q4: 追加リソースは必要？**
+A4: [分析結果に基づく回答]
+
+**Q5: 次のマイルストーンへの影響は？**
+A5: [分析結果に基づく回答]`
+        },
+        { role: "user", content: executiveSummaryPrompt }
+      ],
+      undefined,
+      {
+        operation: "analyzeWeeklyReport-stage2-executiveSummary",
+        reportId: report.id,
+        caseId: report.caseId,
+        projectName: relatedCase?.projectName,
+        firstStageLength: firstStageResult.length,
+      },
+    );
+
+    return response.content;
   }
 
   // AI議事録生成機能
