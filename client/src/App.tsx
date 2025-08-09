@@ -169,35 +169,49 @@ function Router() {
 function App() {
   // WebSocket URLの確実な構築をメモ化して不要な再計算を防止
   const wsUrl = useMemo(() => {
-    console.log("App: wsUrl calculation - start"); // デバッグ用ログ
     try {
+      // 環境変数からポートを取得
+      const envPort = import.meta.env.VITE_PORT || import.meta.env.PORT || '5000';
+      
       // 現在の環境情報を収集
       const protocol = window.location.protocol;
       const hostname = window.location.hostname;
-      const port = window.location.port || import.meta.env.VITE_PORT;
+      const port = window.location.port;
       
-      debugLogger.info(DebugLogCategory.GENERAL, 'app_init', 'WebSocket URL初期化開始', { protocol, hostname, port });
+      console.log('WebSocket URL構築', { protocol, hostname, port, envPort });
       
-      // 本番環境の判定
-      const isProduction = protocol === 'https:';
-      const wsProtocol = isProduction ? 'wss:' : 'ws:';
+      // 開発環境判定を強化
+      const isDev = hostname === 'localhost' || hostname === '127.0.0.1';
       
-      let url: string;
-      // 開発環境の場合は固定設定を使用
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        url = `ws://localhost:5000/ws`;
-        debugLogger.info(DebugLogCategory.WEBSOCKET, 'url_init', 'Development mode - Using fixed WebSocket URL', { url });
+      let baseUrl: string;
+      if (isDev) {
+        // 開発環境では環境変数からポートを使用
+        baseUrl = `ws://localhost:${envPort}`;
       } else {
         // 本番環境
-        url = `${wsProtocol}//${hostname}${port ? ':' + port : ''}/ws`;
-        debugLogger.info(DebugLogCategory.WEBSOCKET, 'url_init', 'Production mode - Using dynamic WebSocket URL', { url });
+        const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
+        const portStr = port ? `:${port}` : '';
+        baseUrl = `${wsProtocol}//${hostname}${portStr}`;
       }
+      
+      const url = `${baseUrl}/ws`;
+      
+      console.log('WebSocket URL生成完了:', url);
+      debugLogger.info(DebugLogCategory.WEBSOCKET, 'url_init', 'WebSocket URL構築完了', {
+        url,
+        isDev,
+        protocol,
+        hostname,
+        port,
+        envPort
+      });
       
       return url;
     } catch (error) {
       // 最終フォールバック
-      const fallbackUrl = `ws://localhost:5000/ws`;
-      debugLogger.error(DebugLogCategory.WEBSOCKET, 'url_init', 'WebSocket URL構築で重大なエラー、緊急フォールバックを使用', error instanceof Error ? error : new Error(String(error)), { fallbackUrl });
+      const fallbackUrl = 'ws://localhost:5000/ws';
+      console.error('WebSocket URL構築エラー - フォールバック使用:', fallbackUrl, error);
+      debugLogger.error(DebugLogCategory.WEBSOCKET, 'url_init', 'WebSocket URL構築エラー - フォールバック使用', error instanceof Error ? error : new Error(String(error)), { fallbackUrl });
       return fallbackUrl;
     }
   }, []); // 依存配列を空にして一度だけ実行
@@ -206,12 +220,12 @@ console.log("App: wsUrl value:", wsUrl); // デバッグ用ログ
 return (
   <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <WebSocketProvider url={wsUrl}>
           <SiteLayout>
-            <Router />
+            <WebSocketProvider url={wsUrl}>
+              <Router />
+            </WebSocketProvider>
           </SiteLayout>
-        </WebSocketProvider>
-        <Toaster />
+          <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   );

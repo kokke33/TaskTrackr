@@ -74,7 +74,11 @@ export default function MeetingList() {
 
   // すべての案件を取得
   const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
-    queryKey: ["/api/cases"],
+    queryKey: ["/api/cases", "list"],
+    queryFn: async () => {
+      const url = `/api/cases?format=list&limit=100`;
+      return await apiRequest<Case[]>(url, { method: "GET" });
+    },
     staleTime: 10 * 60 * 1000, // 10分間キャッシュ
   });
 

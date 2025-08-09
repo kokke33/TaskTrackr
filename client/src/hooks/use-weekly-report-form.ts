@@ -32,8 +32,12 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
   });
 
   const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
-    queryKey: ["/api/cases"],
-    staleTime: 0,
+    queryKey: ["/api/cases", "list"],
+    queryFn: async () => {
+      const url = `/api/cases?format=list&limit=100`;
+      return await apiRequest<Case[]>(url, { method: "GET" });
+    },
+    staleTime: 5 * 60 * 1000, // 5分間キャッシュ（セレクトボックス用途では変更頻度が低い）
   });
 
   const { toast } = useToast();

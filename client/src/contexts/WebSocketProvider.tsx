@@ -13,7 +13,8 @@ interface WebSocketProviderProps {
   onDataUpdate?: (reportId: number, updatedBy: string, newVersion: number) => void;
 }
 
-export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, url, onDataUpdate }) => {
+// WebSocketProvider内部コンポーネント
+const WebSocketProviderInner: React.FC<WebSocketProviderProps> = ({ children, url, onDataUpdate }) => {
   const logger = createLogger('WebSocketProvider');
   const { user, isSessionExpired } = useAuth();
   const [, navigate] = useLocation();
@@ -55,16 +56,21 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
     }
 
     // URL validation - より厳密なチェック
-    if (!url || url.includes('undefined') || url.includes('null') || !url.startsWith('ws')) {
+    if (!url || url.includes('undefined') || url.includes('null') || !url.startsWith('ws') || url.length < 10) {
       logger.error('Invalid WebSocket URL detected', undefined, {
         url,
+        urlLength: url ? url.length : 0,
         validFormat: url ? url.startsWith('ws') : false,
         hasUndefined: url ? url.includes('undefined') : false,
-        hasNull: url ? url.includes('null') : false
+        hasNull: url ? url.includes('null') : false,
+        isValidLength: url ? url.length >= 10 : false
       });
       setStatus('closed');
       return;
     }
+
+    // デバッグ: WebSocket接続試行のログ出力
+    console.log('WebSocket接続試行:', { url, protocol: window.location.protocol, hostname: window.location.hostname });
 
     logger.info('Initializing WebSocket connection', { url, username: user.username });
     setStatus('connecting');
@@ -418,4 +424,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       {children}
     </WebSocketContext.Provider>
   );
+};
+
+// AuthProviderが初期化されるまで待つ外部WebSocketProvider
+export const WebSocketProvider: React.FC<WebSocketProviderProps> = (props) => {
+  return <WebSocketProviderInner {...props} />;
 };

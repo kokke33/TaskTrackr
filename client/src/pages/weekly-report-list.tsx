@@ -274,7 +274,11 @@ export default function WeeklyReportList() {
 
   // すべての案件を取得
   const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
-    queryKey: ["/api/cases"],
+    queryKey: ["/api/cases", "list"],
+    queryFn: async () => {
+      const url = `/api/cases?format=list&limit=100`;
+      return await apiRequest<Case[]>(url, { method: "GET" });
+    },
     staleTime: 10 * 60 * 1000, // 10分間キャッシュ（案件情報は変更頻度が低い）
   });
 
