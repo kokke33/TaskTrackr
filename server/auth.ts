@@ -6,12 +6,15 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { hybridAuthManager } from "./hybrid-auth-manager";
 import { createLogger } from "@shared/logger";
+import { debugLogger, DebugLogCategory } from "./debug-logger";
 
 const logger = createLogger('Auth');
 
 // ユーザー認証の設定
 passport.use(
   new LocalStrategy(async (username, password, done) => {
+    debugLogger.info(DebugLogCategory.AUTH, 'local_strategy', 'ログイン認証開始', { username });
+    
     try {
       // パスワード検証のためのユーザー情報取得
       const [userAuth] = await db
@@ -24,11 +27,13 @@ passport.use(
         .where(eq(users.username, username));
 
       if (!userAuth) {
+        debugLogger.authFailure('local_strategy', 'ユーザーが見つかりません', { username });
         return done(null, false, { message: "ユーザーが見つかりません" });
       }
 
       const isValid = await compare(password, userAuth.password);
       if (!isValid) {
+        debugLogger.authFailure('local_strategy', 'パスワードが正しくありません', { username, userId: userAuth.id });
         return done(null, false, { message: "パスワードが正しくありません" });
       }
 
@@ -41,6 +46,10 @@ passport.use(
         })
         .from(users)
         .where(eq(users.id, userAuth.id));
+
+      debugLogger.authSuccess('local_strategy', String(completeUser.id), completeUser.username, {
+        isAdmin: completeUser.isAdmin
+      });
 
       // 本番環境では機密情報をログに出力しない
       if (process.env.NODE_ENV === 'production') {
@@ -55,6 +64,7 @@ passport.use(
 
       return done(null, completeUser);
     } catch (error) {
+      debugLogger.error(DebugLogCategory.AUTH, 'local_strategy', '認証中にエラーが発生', error instanceof Error ? error : new Error(String(error)), { username });
       logger.error('認証エラー', error instanceof Error ? error : new Error(String(error)));
       return done(error);
     }

@@ -1,5 +1,5 @@
-import { Switch, Route } from "wouter";
-import { lazy, Suspense, useMemo } from "react";
+import { Switch, Route, useLocation } from "wouter";
+import { lazy, Suspense, useMemo, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,6 +11,7 @@ import { AdminRoute } from "./lib/admin-only";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Home from "@/pages/Home";
+import { debugLogger, DebugLogCategory } from "@/utils/debug-logger";
 // 動的インポートによるコード分割とパフォーマンス最適化
 const WeeklyReport = lazy(() => import("@/pages/weekly-report"));
 const WeeklyReportList = lazy(() => import("@/pages/weekly-report-list"));
@@ -40,6 +41,13 @@ const LoadingSpinner = () => (
 );
 
 function Router() {
+  const [location, navigate] = useLocation();
+  
+  // ナビゲーションログ
+  useEffect(() => {
+    debugLogger.navigationComplete(location);
+  }, [location]);
+  
   return (
     <Switch>
       <Route path="/login" component={Login} />
@@ -167,7 +175,7 @@ function App() {
       const hostname = window.location.hostname;
       const port = window.location.port;
       
-      console.log('[App] Initializing WebSocket URL - Environment:', { protocol, hostname, port });
+      debugLogger.info(DebugLogCategory.GENERAL, 'app_init', 'WebSocket URL初期化開始', { protocol, hostname, port });
       
       // 本番環境の判定
       const isProduction = protocol === 'https:';
@@ -177,18 +185,18 @@ function App() {
       // 開発環境の場合は固定設定を使用
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
         url = `ws://localhost:5000/ws`;
-        console.log('[App] Development mode - Using fixed WebSocket URL:', url);
+        debugLogger.info(DebugLogCategory.WEBSOCKET, 'url_init', 'Development mode - Using fixed WebSocket URL', { url });
       } else {
         // 本番環境
         url = `${wsProtocol}//${hostname}${port ? ':' + port : ''}/ws`;
-        console.log('[App] Production mode - Using dynamic WebSocket URL:', url);
+        debugLogger.info(DebugLogCategory.WEBSOCKET, 'url_init', 'Production mode - Using dynamic WebSocket URL', { url });
       }
       
       return url;
     } catch (error) {
       // 最終フォールバック
       const fallbackUrl = `ws://localhost:5000/ws`;
-      console.error('[App] Critical error in WebSocket URL construction, using emergency fallback:', error);
+      debugLogger.error(DebugLogCategory.WEBSOCKET, 'url_init', 'WebSocket URL構築で重大なエラー、緊急フォールバックを使用', error instanceof Error ? error : new Error(String(error)), { fallbackUrl });
       return fallbackUrl;
     }
   }, []); // 依存配列を空にして一度だけ実行

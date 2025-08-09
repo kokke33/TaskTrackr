@@ -156,11 +156,15 @@ class PerformanceMonitor {
   }
 
   private logMetric(metric: PerformanceMetric): void {
-    const status = metric.success ? '✅' : '❌';
-    console.log(`${status} [PERF] ${metric.type.toUpperCase()} ${metric.name}: ${metric.duration}ms`, {
-      ...metric.metadata,
-      threshold: this.thresholds[metric.type]
-    });
+    try {
+      const status = metric.success ? '✅' : '❌';
+      console.log(`${status} [PERF] ${metric.type.toUpperCase()} ${metric.name}: ${metric.duration}ms`, {
+        ...metric.metadata,
+        threshold: this.thresholds[metric.type]
+      });
+    } catch (error) {
+      // コンソール出力エラーを無視（EPIPE等）
+    }
   }
 }
 

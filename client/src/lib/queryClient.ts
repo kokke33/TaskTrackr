@@ -1,5 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { performanceMonitor } from "@shared/performance-monitor";
+import { debugLogger, DebugLogCategory } from "@/utils/debug-logger";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -29,12 +30,7 @@ export async function apiRequest<T = any>(
   }
 ): Promise<T> {
   const timer = performanceMonitor.startTimer('api', `${options.method} ${url}`);
-  
-  console.log(`[API REQUEST] ${options.method} ${url}`, {
-    data: options.data,
-    cookies: document.cookie,
-    timestamp: new Date().toISOString()
-  });
+  const requestId = debugLogger.apiStart(`api_request`, options.method, url, options.data);
 
   const performRequest = async (): Promise<Response> => {
     return await fetch(url, {
@@ -46,14 +42,10 @@ export async function apiRequest<T = any>(
   };
 
   let res: Response;
+  const startTime = Date.now();
+  
   try {
     res = await performRequest();
-
-  console.log(`[API RESPONSE] ${options.method} ${url} - Status: ${res.status}`, {
-    status: res.status,
-    statusText: res.statusText,
-    headers: Object.fromEntries(res.headers.entries())
-  });
 
   // 401エラーかつ認証リトライが無効でない場合、セッション確認を1回試行
   if (res.status === 401 && !options.skipAuthRetry && url !== "/api/check-auth") {
@@ -96,6 +88,7 @@ export async function apiRequest<T = any>(
     const result = await res.json() as T;
     
     // パフォーマンス計測終了（成功）
+    const finalDuration = Date.now() - startTime;
     timer.end({
       status: res.status,
       method: options.method,
@@ -103,14 +96,19 @@ export async function apiRequest<T = any>(
       hasData: !!options.data
     }, true);
     
+    debugLogger.apiSuccess(`api_request`, requestId, result, finalDuration);
+    
     return result;
   } catch (error) {
     // パフォーマンス計測終了（エラー）
+    const finalDuration = Date.now() - startTime;
     timer.end({
       method: options.method,
       url,
       hasData: !!options.data
     }, false, error instanceof Error ? error.message : String(error));
+    
+    debugLogger.apiError(`api_request`, requestId, error instanceof Error ? error : new Error(String(error)), finalDuration);
     
     throw error;
   }
