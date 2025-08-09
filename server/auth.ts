@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { hybridAuthManager } from "./hybrid-auth-manager";
 import { createLogger } from "@shared/logger";
 import { debugLogger, DebugLogCategory } from "./debug-logger";
+import { measureAsync } from "@shared/performance-monitor";
 
 const logger = createLogger('Auth');
 
@@ -16,36 +17,39 @@ passport.use(
     debugLogger.info(DebugLogCategory.AUTH, 'local_strategy', 'ログイン認証開始', { username });
     
     try {
-      // パスワード検証のためのユーザー情報取得
-      const [userAuth] = await db
-        .select({
-          id: users.id,
-          username: users.username,
-          password: users.password,
-        })
-        .from(users)
-        .where(eq(users.username, username));
+      // 認証に必要な全ての情報を1回のクエリで取得（パフォーマンス最適化）
+      const [userAuth] = await measureAsync('database', 'getUserForAuth', async () => {
+        return await db
+          .select({
+            id: users.id,
+            username: users.username,
+            password: users.password,
+            isAdmin: users.isAdmin,
+          })
+          .from(users)
+          .where(eq(users.username, username));
+      }, { username });
 
       if (!userAuth) {
         debugLogger.authFailure('local_strategy', 'ユーザーが見つかりません', { username });
         return done(null, false, { message: "ユーザーが見つかりません" });
       }
 
-      const isValid = await compare(password, userAuth.password);
+      const isValid = await measureAsync('api', 'bcrypt-compare', async () => {
+        return await compare(password, userAuth.password);
+      }, { username, userId: userAuth.id });
+      
       if (!isValid) {
         debugLogger.authFailure('local_strategy', 'パスワードが正しくありません', { username, userId: userAuth.id });
         return done(null, false, { message: "パスワードが正しくありません" });
       }
 
-      // 認証成功後、isAdminフラグを含む完全なユーザー情報を取得
-      const [completeUser] = await db
-        .select({
-          id: users.id,
-          username: users.username,
-          isAdmin: users.isAdmin,
-        })
-        .from(users)
-        .where(eq(users.id, userAuth.id));
+      // パスワードを除いた認証ユーザー情報を作成（DB再アクセス不要）
+      const completeUser = {
+        id: userAuth.id,
+        username: userAuth.username,
+        isAdmin: userAuth.isAdmin,
+      };
 
       debugLogger.authSuccess('local_strategy', String(completeUser.id), completeUser.username, {
         isAdmin: completeUser.isAdmin
