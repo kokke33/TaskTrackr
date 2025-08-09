@@ -9,7 +9,7 @@ async function throwIfResNotOk(res: Response) {
     
     // 401エラーの詳細ログ
     if (res.status === 401) {
-      console.error(`[AUTH ERROR] 401 Unauthorized for ${res.url}`, {
+      debugLogger.authFailed('session_expired', res.url, {
         status: res.status,
         statusText: res.statusText,
         headers: Object.fromEntries(res.headers.entries()),
@@ -68,6 +68,10 @@ export async function apiRequest<T = any>(
           // セッションが有効なら元のリクエストを再試行
           res = await performRequest();
         } else {
+          debugLogger.authFailed('session_redirect', '/login', {
+            reason: 'セッション期限切れを確認',
+            originalUrl: url
+          });
           console.log("❌ セッション期限切れを確認 - ログインページにリダイレクト");
           // セッション期限切れの場合はログインページへ
           window.location.href = "/login";

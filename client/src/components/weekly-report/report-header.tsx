@@ -12,6 +12,8 @@ type ReportHeaderProps = {
   formChanged: boolean;
   lastSavedTime: string | null;
   selectedCaseId: number | null;
+  latestReport: any | null; // 前回の報告データ (nullの場合は前回報告なし)
+  isLoadingLatest: boolean; // 前回報告データのロード状態
   editingUsers: EditingUser[];
   currentUserId?: string;
   onManualAutoSave: () => void;
@@ -29,6 +31,8 @@ export function ReportHeader({
   formChanged,
   lastSavedTime,
   selectedCaseId,
+  latestReport,
+  isLoadingLatest,
   editingUsers,
   currentUserId,
   onManualAutoSave,
@@ -198,10 +202,25 @@ export function ReportHeader({
                   variant="outline"
                   size="sm"
                   onClick={onCopyFromLastReport}
+                  disabled={isLoadingLatest}
                   className="flex items-center gap-2 w-full sm:w-auto"
                 >
-                  <span className="hidden sm:inline">前回の報告をコピー</span>
-                  <span className="sm:hidden">前回コピー</span>
+                  {isLoadingLatest ? (
+                    <>
+                      <span className="hidden sm:inline">前回の報告を確認中...</span>
+                      <span className="sm:hidden">確認中...</span>
+                    </>
+                  ) : latestReport ? (
+                    <>
+                      <span className="hidden sm:inline">前回の報告をコピー</span>
+                      <span className="sm:hidden">前回コピー</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">初回の報告です</span>
+                      <span className="sm:hidden">初回報告</span>
+                    </>
+                  )}
                 </Button>
               )}
             </div>

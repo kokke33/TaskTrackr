@@ -140,7 +140,7 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
     }
   }, [watchedValues, checkFormChanges, hasFormChanges, isInitializing]);
 
-  const { data: latestReport, isLoading: isLoadingLatest } = useQuery<WeeklyReport>({
+  const { data: latestReport, isLoading: isLoadingLatest } = useQuery<WeeklyReport | null>({
     queryKey: [`/api/weekly-reports/previous/${selectedCaseId}`, reportId, existingReport?.reportPeriodStart],
     queryFn: async () => {
       let reportPeriodStart: string | undefined;
@@ -149,15 +149,23 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
       } else {
         reportPeriodStart = form.getValues("reportPeriodStart");
       }
-      if (!reportPeriodStart) {
-        const excludeParam = reportId ? `?excludeId=${reportId}` : '';
-        return apiRequest(`/api/weekly-reports/latest/${selectedCaseId}${excludeParam}`, { method: "GET" });
+      try {
+        if (!reportPeriodStart) {
+          const excludeParam = reportId ? `?excludeId=${reportId}` : '';
+          return apiRequest(`/api/weekly-reports/latest/${selectedCaseId}${excludeParam}`, { method: "GET" });
+        }
+        const params = new URLSearchParams({ beforeDate: reportPeriodStart });
+        if (reportId) {
+          params.append('excludeId', reportId.toString());
+        }
+        return apiRequest(`/api/weekly-reports/previous/${selectedCaseId}?${params.toString()}`, { method: "GET" });
+      } catch (error) {
+        // 404エラーの場合は null を返す（前回の報告が存在しない正常な状態）
+        if (error instanceof Error && error.message.includes('404')) {
+          return null;
+        }
+        throw error;
       }
-      const params = new URLSearchParams({ beforeDate: reportPeriodStart });
-      if (reportId) {
-        params.append('excludeId', reportId.toString());
-      }
-      return apiRequest(`/api/weekly-reports/previous/${selectedCaseId}?${params.toString()}`, { method: "GET" });
     },
     enabled: !!selectedCaseId && (!isEditMode || (!!existingReport && !!existingReport.reportPeriodStart)),
   });
@@ -422,7 +430,17 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
   // 簡素化：競合解決機能を削除（排他制御で事前防止）
 
   const copyFromLastReport = () => {
-    if (!selectedCaseId || !latestReport) return;
+    if (!selectedCaseId) return;
+    
+    if (!latestReport) {
+      // 前回の報告が存在しない場合
+      toast({
+        title: "前回の報告なし",
+        description: "このケースでは初回の報告です。",
+        duration: 1000,
+      });
+      return;
+    }
 
     const fieldsToExclude = [
       "id", 

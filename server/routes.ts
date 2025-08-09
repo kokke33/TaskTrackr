@@ -623,13 +623,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reportPeriod: report ? `${report.reportPeriodStart} - ${report.reportPeriodEnd}` : null
       });
       
+      // 前回の報告が存在しない場合も正常系として扱い、nullを返す
       if (!report) {
-        console.log("前回報告が見つかりませんでした");
-        res.status(404).json({ message: "No previous reports found for this case" });
-        return;
+        console.log("前回報告が見つかりませんでした（初回の報告です）");
       }
       
-      res.json(report);
+      res.json(report || null);
     } catch (error) {
       console.error("Error fetching previous report:", error);
       res.status(500).json({ message: "Failed to fetch previous report" });

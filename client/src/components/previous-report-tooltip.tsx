@@ -21,7 +21,7 @@ export function PreviousReportTooltip({ previousContent, fieldName }: PreviousRe
             <Info className="h-4 w-4 text-gray-400 cursor-help ml-1" />
           </TooltipTrigger>
           <TooltipContent>
-            <p className="text-sm">前回報告なし</p>
+            <p className="text-sm">初回の報告です</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

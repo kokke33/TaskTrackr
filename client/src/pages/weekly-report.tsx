@@ -69,6 +69,7 @@ export default function WeeklyReport() {
     cases,
     isLoadingCases,
     latestReport,
+    isLoadingLatest,
     selectedCaseId,
     setSelectedCaseId,
     isSubmitting,
@@ -366,6 +367,8 @@ export default function WeeklyReport() {
           formChanged={formChanged}
           lastSavedTime={lastSavedTime}
           selectedCaseId={selectedCaseId}
+          latestReport={latestReport}
+          isLoadingLatest={isLoadingLatest}
           editingUsers={editingUsers}
           currentUserId={currentUserId || undefined}
           onManualAutoSave={handleManualAutoSave}
