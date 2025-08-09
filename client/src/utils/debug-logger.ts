@@ -54,11 +54,11 @@ class DebugLogger {
   private username?: string;
 
   constructor() {
-    // 本番環境ではINFO、開発環境ではDEBUG
-    this.logLevel = import.meta.env.PROD ? DebugLogLevel.INFO : DebugLogLevel.DEBUG;
+    // 本番環境ではINFO、開発環境でもINFOに制限してログを削減
+    this.logLevel = DebugLogLevel.INFO;
     
     // 本番環境ではコンソール出力を制限
-    this.enableConsole = !import.meta.env.PROD || 
+    this.enableConsole = !import.meta.env.PROD ||
       (import.meta.env.VITE_DEBUG_LOG_CONSOLE === 'true');
     
     // LocalStorageへの保存（デバッグ用）

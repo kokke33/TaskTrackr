@@ -169,6 +169,7 @@ function Router() {
 function App() {
   // WebSocket URLの確実な構築をメモ化して不要な再計算を防止
   const wsUrl = useMemo(() => {
+    console.log("App: wsUrl calculation - start"); // デバッグ用ログ
     try {
       // 現在の環境情報を収集
       const protocol = window.location.protocol;
@@ -201,8 +202,9 @@ function App() {
     }
   }, []); // 依存配列を空にして一度だけ実行
 
-  return (
-    <QueryClientProvider client={queryClient}>
+console.log("App: wsUrl value:", wsUrl); // デバッグ用ログ
+return (
+  <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <WebSocketProvider url={wsUrl}>
           <SiteLayout>

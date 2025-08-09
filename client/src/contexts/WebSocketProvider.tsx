@@ -52,8 +52,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
 
     // URL validation - より厳密なチェック
     if (!url || url.includes('undefined') || url.includes('null') || !url.startsWith('ws')) {
-      logger.error('Invalid WebSocket URL detected', undefined, { 
-        url, 
+      logger.error('Invalid WebSocket URL detected', undefined, {
+        url,
         validFormat: url ? url.startsWith('ws') : false,
         hasUndefined: url ? url.includes('undefined') : false,
         hasNull: url ? url.includes('null') : false
@@ -217,11 +217,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
 
   // 認証状態に基づく接続制御
   useEffect(() => {
+    // userオブジェクトが利用可能になった後に接続を試みる
     if (user && status === 'closed' && !document.hidden && !isSessionExpired) {
       logger.info('User authenticated, connecting WebSocket');
       connect();
     } else if (!user && (status === 'open' || status === 'connecting')) {
-      logger.info('User not authenticated, closing WebSocket');
+      // userがnullまたはundefinedの場合、WebSocket接続を閉じる
+      logger.info('User not authenticated or session expired, closing WebSocket');
       reconnectAttemptsRef.current = MAX_RECONNECT_ATTEMPTS; // 再接続を停止
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -253,7 +255,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
   // クリーンアップ用のuseEffect
   useEffect(() => {
     return () => {
-      logger.info('Component unmounting, cleaning up');
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }

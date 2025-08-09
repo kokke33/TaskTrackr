@@ -108,13 +108,8 @@ try {
   debugLogger.error(DebugLogCategory.GENERAL, 'ai_config', 'AI設定の検証に失敗', error instanceof Error ? error : new Error(String(error)));
 }
 
-// セッションデバッグミドルウェア（簡略化）
+// セッションデバッグミドルウェア（簡略化）- ログ出力を最適化
 app.use((req, res, next) => {
-  // APIアクセス時のみログ出力
-  if (req.path.startsWith("/api") && req.method !== 'OPTIONS') {
-    console.log(`${req.method} ${req.path} - Auth: ${req.isAuthenticated()}`);
-  }
-
   // パフォーマンス測定
   const start = Date.now();
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -127,7 +122,8 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (req.path.startsWith("/api")) {
+    // /api/check-auth以外のAPIリクエストのみログ出力を制限
+    if (req.path.startsWith("/api") && req.path !== "/api/check-auth" && req.method !== 'OPTIONS') {
       let logLine = `${req.method} ${req.path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
