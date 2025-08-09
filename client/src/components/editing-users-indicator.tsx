@@ -13,65 +13,15 @@ export function EditingUsersIndicator({
   currentUserId,
   className = ""
 }: EditingUsersIndicatorProps) {
-  console.log('[EditingUsersIndicator] === DEBUGGING SELF-DISPLAY ISSUE ===');
-  console.log('[EditingUsersIndicator] Input data:', {
-    editingUsers,
-    currentUserId,
-    editingUsersLength: editingUsers?.length,
-    currentUserIdType: typeof currentUserId,
-    currentUserIdValue: currentUserId
-  });
-
   // editingUsersがundefinedまたはnullの場合のエラーハンドリング
   if (!editingUsers || !Array.isArray(editingUsers)) {
-    console.log('[EditingUsersIndicator] editingUsers is not valid array, returning null');
     return null;
   }
 
-  // 詳細なユーザー情報のデバッグログ
-  console.log('[EditingUsersIndicator] === DETAILED USER ANALYSIS ===');
-  editingUsers.forEach((user, index) => {
-    const strictEqual = user.userId === currentUserId;
-    const stringEqual = String(user.userId) === String(currentUserId);
-    console.log(`[EditingUsersIndicator] User[${index}] - ${user.username}:`, {
-      userId: user.userId,
-      userIdType: typeof user.userId,
-      userIdRaw: JSON.stringify(user.userId),
-      currentUserId: currentUserId,
-      currentUserIdType: typeof currentUserId,
-      currentUserIdRaw: JSON.stringify(currentUserId),
-      strictEqual: strictEqual,
-      stringEqual: stringEqual,
-      willBeFiltered: !stringEqual ? 'KEPT (PROBLEM!)' : 'REMOVED (CORRECT)'
-    });
-  });
-
-  // 現在のユーザーを除いた編集中ユーザー（より厳密な比較）
+  // 現在のユーザーを除いた編集中ユーザー
   const otherEditingUsers = editingUsers.filter(user => {
-    const isCurrentUser = String(user.userId) === String(currentUserId);
-    console.log(`[EditingUsersIndicator] Filtering user ${user.username}:`, {
-      userId: user.userId,
-      currentUserId,
-      isCurrentUser,
-      willExclude: isCurrentUser
-    });
-    return !isCurrentUser;
+    return String(user.userId) !== String(currentUserId);
   });
-  
-  console.log('[EditingUsersIndicator] === FILTERING RESULTS ===');
-  console.log('[EditingUsersIndicator] Filtering summary:', {
-    originalCount: editingUsers.length,
-    filteredCount: otherEditingUsers.length,
-    shouldShowIndicator: otherEditingUsers.length > 0,
-    otherEditingUsers: otherEditingUsers.map(u => ({ userId: u.userId, username: u.username }))
-  });
-  
-  if (otherEditingUsers.length > 0) {
-    console.log('[EditingUsersIndicator] ⚠️  PROBLEM: Self-display detected!');
-    console.log('[EditingUsersIndicator] Users that will be shown:', otherEditingUsers.map(u => u.username));
-  } else {
-    console.log('[EditingUsersIndicator] ✅ Correct: No other users, indicator hidden');
-  }
   
   if (otherEditingUsers.length === 0) {
     return null;

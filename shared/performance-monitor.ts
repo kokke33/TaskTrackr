@@ -80,9 +80,11 @@ class PerformanceMonitor {
     // 閾値チェック
     this.checkThresholds(fullMetric);
 
-    // 開発環境でのリアルタイムログ
+    // 開発環境でも警告レベル以上のメトリクスのみログ出力
     if (process.env.NODE_ENV === 'development') {
-      this.logMetric(fullMetric);
+      if (!metric.success || metric.duration >= this.thresholds[metric.type].warning) {
+        this.logMetric(fullMetric);
+      }
     }
   }
 

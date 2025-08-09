@@ -155,7 +155,9 @@ export default function WeeklyReport() {
             }, 350); // initializeFormData の300ms完了を確実に待機
           }
         } catch (error) {
-          console.error('[WeeklyReport] Failed to check editing permission:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[WeeklyReport] Failed to check editing permission:', error);
+          }
           setPermissionChecked(false); // エラー時のみリセットしてリトライを許可
           setEditBlockedDialog({
             open: true,
@@ -197,7 +199,9 @@ export default function WeeklyReport() {
             }
           }
         } catch (error) {
-          console.error('[WeeklyReport] Failed to re-check editing permission:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[WeeklyReport] Failed to re-check editing permission:', error);
+          }
         }
       }, 3000); // 3秒ごとに再チェック
 
@@ -213,7 +217,9 @@ export default function WeeklyReport() {
         try {
           sendMessage({ type: 'stop_editing', reportId: reportId });
         } catch (error) {
-          console.error('[WeeklyReport] Failed to send stop editing on unmount:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[WeeklyReport] Failed to send stop editing on unmount:', error);
+          }
         }
       }
     };
@@ -233,7 +239,9 @@ export default function WeeklyReport() {
             navigator.sendBeacon('/api/websocket-fallback', data);
           }
         } catch (error) {
-          console.error('[WeeklyReport] Failed to send stop editing on page unload:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[WeeklyReport] Failed to send stop editing on page unload:', error);
+          }
         }
       }
     };
@@ -280,7 +288,9 @@ export default function WeeklyReport() {
   // 編集終了処理
   const handleStopEditing = useCallback(() => {
     if (isEditMode && reportId && sendMessage) {
-      console.log('[WeeklyReport] Stopping editing due to navigation...', { reportId });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[WeeklyReport] Stopping editing due to navigation...', { reportId });
+      }
       sendMessage({ type: 'stop_editing', reportId: reportId });
     }
   }, [isEditMode, reportId, sendMessage]);
@@ -318,13 +328,16 @@ export default function WeeklyReport() {
 
   // 簡素化：詳細な競合解決ハンドラーを削除
 
-  console.log("🔍 Weekly Report - Navigation guard state:", { 
-    formChanged, 
-    isSubmitting, 
-    shouldBlock: (formChanged || (isEditMode && permissionChecked)) && !isSubmitting,
-    permissionChecked,
-    isEditMode
-  });
+  // 開発環境でフォーム変更がある場合のみNavigation guard状態を出力
+  if (process.env.NODE_ENV === 'development' && formChanged) {
+    console.log("🔍 Weekly Report - Navigation guard state:", {
+      formChanged,
+      isSubmitting,
+      shouldBlock: (formChanged || (isEditMode && permissionChecked)) && !isSubmitting,
+      permissionChecked,
+      isEditMode
+    });
+  }
 
   useNavigationGuard({
     shouldBlock: (formChanged || (isEditMode && permissionChecked)) && !isSubmitting,

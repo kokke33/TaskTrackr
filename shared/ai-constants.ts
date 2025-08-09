@@ -37,7 +37,8 @@ export const OPENROUTER_MODELS = [
   "anthropic/claude-sonnet-4",
   "google/gemini-2.0-flash-001",
   "google/gemini-2.5-flash",
-  "google/gemini-2.5-pro"
+  "google/gemini-2.5-pro",
+  "google/gemini-2.5-flash-lite"
 ] as const;
 export type OpenRouterModel = typeof OPENROUTER_MODELS[number];
 
@@ -94,6 +95,7 @@ export const OPENROUTER_MODEL_OPTIONS = [
   { value: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
   { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
   { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
 ] as const;
 
 // 分析フィールドのキー
