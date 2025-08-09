@@ -13,7 +13,57 @@ export async function analyzeText(
   const requestId = generateRequestId();
   const providerName = aiProvider.provider;
 
-  aiLogger.logDebug(providerName, 'analyzeText', requestId, 'Starting text analysis', { textLength: content.length, fieldType, provider: providerName }, userId);
+  aiLogger.logDebug(providerName, 'analyzeText', requestId, 'Starting two-stage text analysis', { textLength: content.length, fieldType, provider: providerName }, userId);
+
+  try {
+    // ========== 第1段階: 詳細分析 ==========
+    aiLogger.logDebug(providerName, 'analyzeText', requestId, 'Starting stage 1: Detailed analysis', { stage: 1 }, userId);
+    
+    const firstStageResult = await performFirstStageAnalysis(
+      aiProvider, content, fieldType, originalContent, previousReportContent, userId, requestId
+    );
+
+    aiLogger.logDebug(providerName, 'analyzeText', requestId, 'Stage 1 completed', { 
+      stage: 1, 
+      resultLength: firstStageResult.length,
+      firstStagePreview: firstStageResult.substring(0, 100) + '...'
+    }, userId);
+
+    // ========== 第2段階: エグゼクティブサマリ生成 ==========
+    aiLogger.logDebug(providerName, 'analyzeText', requestId, 'Starting stage 2: Executive summary generation', { stage: 2 }, userId);
+
+    const executiveSummary = await generateExecutiveSummary(
+      aiProvider, firstStageResult, content, fieldType, userId, requestId
+    );
+
+    aiLogger.logDebug(providerName, 'analyzeText', requestId, 'Two-stage analysis completed successfully', { 
+      stage: 2,
+      finalResultLength: executiveSummary.length 
+    }, userId);
+
+    return executiveSummary;
+
+  } catch (error) {
+    aiLogger.logError(providerName, 'analyzeText', requestId, error as Error, userId, { text: content });
+    
+    const fallback = "申し訳ございませんが、現在AI分析サービスに接続できません。しばらく後に再度お試しください。";
+    
+    aiLogger.logDebug(providerName, 'analyzeText', requestId, 'Using fallback analysis result', { fallback }, userId);
+    return fallback;
+  }
+}
+
+// 第1段階: 詳細分析（従来のロジック）
+async function performFirstStageAnalysis(
+  aiProvider: IAiProvider,
+  content: string,
+  fieldType: string,
+  originalContent?: string,
+  previousReportContent?: string,
+  userId?: string,
+  requestId?: string
+): Promise<string> {
+  const providerName = aiProvider.provider;
 
   // 変更点や前回報告との比較を構築
   let changeAnalysis = "";
@@ -42,7 +92,6 @@ export async function analyzeText(
     .replace('{{layoutRequirements}}', layoutRequirements ? `\n${layoutRequirements}`: '')
     .replace('{{isContentUnchanged}}', isContentUnchangedMessage);
 
-
   const messages: AIMessage[] = [
     {
       role: 'system',
@@ -64,18 +113,90 @@ export async function analyzeText(
     },
   ];
 
-  try {
-    const response = await aiProvider.generateResponse(messages, userId, { operation: 'analyzeText', text: content });
-    
-    const cleanedContent = response.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-    aiLogger.logDebug(providerName, 'analyzeText', requestId, 'Text analysis completed', { analysisLength: cleanedContent.length }, userId);
-    return cleanedContent;
-  } catch (error) {
-    aiLogger.logError(providerName, 'analyzeText', requestId, error as Error, userId, { text: content });
-    
-    const fallback = "申し訳ございませんが、現在AI分析サービスに接続できません。しばらく後に再度お試しください。";
-    
-    aiLogger.logDebug(providerName, 'analyzeText', requestId, 'Using fallback analysis result', { fallback }, userId);
-    return fallback;
-  }
+  const response = await aiProvider.generateResponse(messages, userId, { operation: 'analyzeText-stage1', text: content });
+  return response.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+}
+
+// 第2段階: エグゼクティブサマリ生成
+async function generateExecutiveSummary(
+  aiProvider: IAiProvider,
+  firstStageResult: string,
+  originalContent: string,
+  fieldType: string,
+  userId?: string,
+  requestId?: string
+): Promise<string> {
+  const executiveSummaryPrompt = `あなたはシステムエンジニア兼プロジェクトマネジャーです。
+以下の週次報告分析結果を基に、A4一枚に凝縮したエグゼクティブサマリを作成してください。
+
+【要件】
+- 冗長な言い回しを排し、多彩な語彙で構成
+- マークダウン形式で章立てを明確に
+- 箇条書きリストを随所に配置
+- 末尾に5問のFAQを設け
+- 全体を洗練された日本語でまとめる
+
+【分析対象フィールド】: ${fieldType}
+
+【第1段階分析結果】:
+${firstStageResult}
+
+【週次報告原文】:
+${originalContent}
+
+上記の情報を基に、経営層・管理層向けの戦略的なエグゼクティブサマリを作成してください。`;
+
+  const messages: AIMessage[] = [
+    {
+      role: 'system',
+      content: `あなたはシステムエンジニア兼プロジェクトマネージャーの視点で、週次報告を経営層向けのエグゼクティブサマリに変換する専門家です。
+
+出力形式の例:
+# 週次報告エグゼクティブサマリ
+
+## プロジェクト状況概要
+- 基本情報のハイライト
+
+## 重要な進捗・成果  
+- 今週の主要成果
+- 進捗率・状況
+
+## 課題・リスク分析
+- 重要な課題
+- リスクレベルと対策
+
+## アクションプラン
+- 来週の重要予定
+- 支援要請事項
+
+## FAQ（よくある質問）
+**Q1: プロジェクトの全体的な健全性は？**
+A1: [分析結果に基づく回答]
+
+**Q2: 最も重要な課題は何？**
+A2: [分析結果に基づく回答]
+
+**Q3: スケジュール遵守は可能？**
+A3: [分析結果に基づく回答]
+
+**Q4: 追加リソースは必要？**
+A4: [分析結果に基づく回答]
+
+**Q5: 次のマイルストーンへの影響は？**
+A5: [分析結果に基づく回答]`
+    },
+    {
+      role: 'user',
+      content: executiveSummaryPrompt
+    }
+  ];
+
+  const response = await aiProvider.generateResponse(messages, userId, { 
+    operation: 'analyzeText-stage2-executiveSummary', 
+    fieldType,
+    originalTextLength: originalContent.length,
+    firstStageLength: firstStageResult.length
+  });
+
+  return response.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 }
