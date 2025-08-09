@@ -18,12 +18,14 @@ export type OpenAIModel = typeof OPENAI_MODELS[number];
 
 // Groqモデル
 export const GROQ_MODELS = [
-  "qwen/qwen3-32b", 
+  "qwen/qwen3-32b",
   "meta-llama/llama-4-scout-17b-16e-instruct",
   "meta-llama/llama-4-maverick-17b-128e-instruct",
   "llama-3.3-70b-versatile",
   "moonshotai/kimi-k2-instruct",
-  "deepseek-r1-distill-llama-70b"
+  "deepseek-r1-distill-llama-70b",
+  "openai/gpt-oss-120b",
+  "openai/gpt-oss-20b"
 ] as const;
 export type GroqModel = typeof GROQ_MODELS[number];
 
@@ -79,6 +81,8 @@ export const GROQ_MODEL_OPTIONS = [
   { value: "qwen/qwen3-32b", label: "Qwen3 32B" },
   { value: "moonshotai/kimi-k2-instruct", label: "Moonshot Kimi K2 Instruct" },
   { value: "meta-llama/llama-4-scout-17b-16e-instruct", label: "Llama 4 Scout 17B" },
+  { value: "openai/gpt-oss-120b", label: "OpenAI GPT-OSS 120B" },
+  { value: "openai/gpt-oss-20b", label: "OpenAI GPT-OSS 20B" },
 ] as const;
 
 // UI表示用のGeminiモデル選択肢（ラベル付き）
