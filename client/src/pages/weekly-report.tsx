@@ -101,7 +101,6 @@ export default function WeeklyReport() {
   // 自動保存フックからのバージョン更新を監視
   useEffect(() => {
     if (autoSaveHook.version !== latestAutoSaveVersion) {
-      console.log(`🔄 [weekly-report] Updating latest auto-save version: ${autoSaveHook.version}`);
       setLatestAutoSaveVersion(autoSaveHook.version);
     }
   }, [autoSaveHook.version, latestAutoSaveVersion]);
@@ -126,8 +125,6 @@ export default function WeeklyReport() {
   // 編集開始前の編集権チェック（無限ループ防止版）
   useEffect(() => {
     if (status === 'open' && isEditMode && reportId && checkEditingPermission && !permissionChecked) {
-      console.log('[WeeklyReport] Checking editing permission (once only)...', { reportId });
-      
       const checkAndStartEditing = async () => {
         try {
           setPermissionChecked(true); // フラグを即座に立てて重複実行を防止
@@ -136,7 +133,6 @@ export default function WeeklyReport() {
           
           if (!result.allowed) {
             // 編集が許可されない場合、エラーダイアログを表示
-            console.log('[WeeklyReport] Editing not allowed:', result.message);
             setEditBlockedDialog({
               open: true,
               message: result.message || '他のユーザーが編集中です。',
@@ -147,18 +143,15 @@ export default function WeeklyReport() {
           }
           
           // 編集権限が得られた場合、編集開始を通知
-          console.log('[WeeklyReport] Editing permission granted, starting editing...', { reportId });
           sendMessage({ type: 'start_editing', reportId: reportId });
           
           // 編集権限確認後にフォームデータを初期化（ドラフト復元を含む）
           if (initializeFormData) {
-            console.log('[WeeklyReport] Initializing form data after permission granted');
             initializeFormData();
             
             // 初期化完了後にauto-saveのformChangedもリセット（initializeFormData完了を確実に待機）
             setTimeout(() => {
               resetFormChanged();
-              console.log('[WeeklyReport] Auto-save formChanged reset completed');
             }, 350); // initializeFormData の300ms完了を確実に待機
           }
         } catch (error) {
@@ -177,7 +170,6 @@ export default function WeeklyReport() {
       // コンポーネントがアンマウントされる時に編集終了
       return () => {
         if (isEditMode && reportId && sendMessage && permissionChecked) {
-          console.log('[WeeklyReport] Cleanup effect, stopping editing...', { reportId });
           sendMessage({ type: 'stop_editing', reportId: reportId });
         }
       };
@@ -188,13 +180,11 @@ export default function WeeklyReport() {
   useEffect(() => {
     if (editBlockedDialog.open && status === 'open' && reportId && checkEditingPermission) {
       const interval = setInterval(async () => {
-        console.log('[WeeklyReport] Re-checking editing permission while dialog is open...');
         try {
           const result = await checkEditingPermission(reportId);
           
           // 他のユーザーが編集を終了した場合
           if (result.allowed) {
-            console.log('[WeeklyReport] Editing now allowed, closing dialog and starting editing...');
             setEditBlockedDialog({ open: false, message: '', editingUsers: [] });
             
             // 編集開始処理を実行
@@ -217,21 +207,11 @@ export default function WeeklyReport() {
 
   // コンポーネントアンマウント時の排他ロック解除（確実な実行のため）
   useEffect(() => {
-    // コンポーネントがマウントされたことを記録
-    console.log('[WeeklyReport] Component mounted with props:', {
-      isEditMode,
-      reportId,
-      status,
-      permissionChecked
-    });
-    
     // アンマウント時に確実に排他ロック解除
     return () => {
-      console.log('[WeeklyReport] Component unmounting - ensuring editing stop');
       if (isEditMode && reportId && sendMessage) {
         try {
           sendMessage({ type: 'stop_editing', reportId: reportId });
-          console.log('[WeeklyReport] Stop editing message sent on unmount');
         } catch (error) {
           console.error('[WeeklyReport] Failed to send stop editing on unmount:', error);
         }
@@ -246,7 +226,6 @@ export default function WeeklyReport() {
         try {
           // 同期的にメッセージ送信（beforeunload時の制約対応）
           sendMessage({ type: 'stop_editing', reportId: reportId });
-          console.log('[WeeklyReport] Stop editing message sent on page unload');
           
           // Beacon APIで確実にサーバーに通知（可能であれば）
           if (navigator.sendBeacon) {
@@ -270,47 +249,18 @@ export default function WeeklyReport() {
   // lastMessage を監視して編集ユーザー情報を更新
   useEffect(() => {
     if (lastMessage) {
-      console.log('[DEBUG] weekly-report.tsx: lastMessage received:', lastMessage);
-      
       // editing_users メッセージを受信した場合、状態を更新
       if (lastMessage.type === 'editing_users') {
-        console.log('[DEBUG] weekly-report.tsx: editing_users message received, updating state');
       }
     }
   }, [lastMessage]);
 
   // editingUsers の変更を監視して編集ブロックダイアログを制御
   useEffect(() => {
-    console.log('[DEBUG] weekly-report.tsx: editingUsers state updated:', {
-      editingUsers,
-      currentUserId,
-      currentUserIdType: typeof currentUserId,
-      editingUsersLength: editingUsers.length
-    });
-    
     if (editingUsers.length > 0) {
-      editingUsers.forEach((user, index) => {
-        console.log(`[DEBUG] editingUser[${index}]:`, {
-          userId: user.userId,
-          userIdType: typeof user.userId,
-          username: user.username,
-          isCurrentUser: user.userId === currentUserId,
-          startTime: user.startTime,
-          lastActivity: user.lastActivity
-        });
-      });
-      
-      // フィルタリング結果の確認
-      const otherUsers = editingUsers.filter(user => String(user.userId) !== String(currentUserId));
-      console.log('[DEBUG] weekly-report.tsx: filtered other users:', {
-        totalUsers: editingUsers.length,
-        otherUsersCount: otherUsers.length,
-        otherUsers: otherUsers.map(u => ({ userId: u.userId, username: u.username }))
-      });
-      
       // 編集ブロックダイアログが表示されている場合、他のユーザーが編集を終了したかチェック
+      const otherUsers = editingUsers.filter(user => String(user.userId) !== String(currentUserId));
       if (editBlockedDialog.open && otherUsers.length === 0) {
-        console.log('[DEBUG] weekly-report.tsx: No other users editing, closing edit blocked dialog');
         setEditBlockedDialog({ open: false, message: '', editingUsers: [] });
       }
     }

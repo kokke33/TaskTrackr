@@ -207,7 +207,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
         reconnectTimeoutRef.current = null;
       }
       if (wsRef.current) {
-        wsRef.current.close(1008, 'Session expired');
+        wsRef.current.close(4000, 'Session expired'); // 許可されたカスタムコードに変更
       }
       setStatus('closed');
       setCurrentUserId(undefined);
