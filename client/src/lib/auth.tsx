@@ -46,9 +46,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastCheckTime = now;
 
       try {
-        const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
-          method: "GET"
+        // 直接fetchを使用して循環依存を回避
+        const response = await fetch("/api/check-auth", {
+          method: "GET",
+          credentials: "include"
         });
+        
+        if (!response.ok && response.status !== 401) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
         
         if (!data.authenticated) {
           debugLogger.info(DebugLogCategory.AUTH, 'session_check', 'セッション期限切れを検出', {
@@ -141,9 +149,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // セッションリフレッシュ機能（離席後の自動復旧用）
   const refreshSession = async (): Promise<boolean> => {
     try {
-      const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
-        method: "GET"
+      // 直接fetchを使用して循環依存を回避
+      const response = await fetch("/api/check-auth", {
+        method: "GET",
+        credentials: "include"
       });
+      
+      if (!response.ok && response.status !== 401) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
       
       if (data.authenticated && data.user) {
         setIsAuthenticated(true);
@@ -198,10 +214,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     setIsLoading(true);
     try {
-      // サーバー側が未認証時も200で応答するため、apiRequestを使用可能
-      const data = await apiRequest<{ authenticated: boolean; user?: any }>("/api/check-auth", {
-        method: "GET"
+      // 直接fetchを使用して循環依存を回避
+      const response = await fetch("/api/check-auth", {
+        method: "GET",
+        credentials: "include"
       });
+      
+      if (!response.ok && response.status !== 401) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
       
       if (data.authenticated && data.user) {
         console.log("Auth check successful, user:", data.user);

@@ -139,15 +139,18 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: async ({ queryKey }) => {
+        // apiRequestを使用して認証リトライロジックを有効化
+        return await apiRequest(queryKey[0] as string, { method: "GET" });
+      },
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 2 * 60 * 1000, // デフォルト2分間キャッシュ（従来のInfinityから変更）
       gcTime: 5 * 60 * 1000, // 5分後にガベージコレクション
       retry: (failureCount, error) => {
-        // 認証エラーの場合は1回だけリトライ（一時的なセッション問題の可能性）
+        // 認証エラーの場合は既にapiRequest内でリトライ済みなので、ここではリトライしない
         if (error instanceof Error && error.message.startsWith("401:")) {
-          return failureCount < 1;
+          return false; // apiRequest内で認証リトライ済み
         }
         return failureCount < 3;  // その他のエラーは3回までリトライ
       },

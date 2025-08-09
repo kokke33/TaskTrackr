@@ -303,19 +303,27 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
     }
 
     try {
-      // 🔥 元のAPI方式に戻す: 特定のreportIdの編集ユーザーを取得
-      const { apiRequest } = await import('@/lib/queryClient');
-      const response = await apiRequest(`/api/reports/${reportId}/editing-users`, { method: 'GET' });
+      // 直接fetchを使用して動的インポートの問題を回避
+      const response = await fetch(`/api/reports/${reportId}/editing-users`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
       
       logger.debug('🔍 [RESTORE] API response for editing users', { 
         reportId,
-        response,
-        editingUsersCount: response.editingUsers?.length || 0
+        response: data,
+        editingUsersCount: data.editingUsers?.length || 0
       });
       
-      if (response.editingUsers && response.editingUsers.length > 0) {
+      if (data.editingUsers && data.editingUsers.length > 0) {
         // 他のユーザーが編集中の場合、自分を除外して確認
-        const otherEditingUsers = response.editingUsers.filter((user: EditingUser) => 
+        const otherEditingUsers = data.editingUsers.filter((user: EditingUser) => 
           String(user.userId) !== String(currentUserId)
         );
         

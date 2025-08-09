@@ -3054,6 +3054,33 @@ AI議事録生成中にエラーが発生したため、簡易版議事録を作
     }
   });
 
+  // フロントエンド互換のシステム設定エンドポイント
+  // 全システム設定の取得（一般ユーザーも可能 - AI設定のため）
+  app.get("/api/system-settings", isAuthenticated, async (_req, res) => {
+    try {
+      const settings = await storage.getAllSystemSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("System settings fetch error:", error);
+      res.status(500).json({ error: "システム設定の取得中にエラーが発生しました" });
+    }
+  });
+
+  // 特定のシステム設定の取得（一般ユーザーも可能 - AI設定のため）
+  app.get("/api/system-settings/:key", isAuthenticated, async (req, res) => {
+    try {
+      const key = req.params.key;
+      const setting = await storage.getSystemSetting(key);
+      if (!setting) {
+        return res.status(404).json({ error: "設定が見つかりません" });
+      }
+      res.json(setting);
+    } catch (error) {
+      console.error("System setting fetch error:", error);
+      res.status(500).json({ error: "システム設定の取得中にエラーが発生しました" });
+    }
+  });
+
   // ユーザ管理API（管理者のみ）
   
   // ユーザ一覧取得
