@@ -1,6 +1,8 @@
 // client/src/contexts/WebSocketProvider.tsx
 
 import React, { useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
 import { WebSocketContext, WebSocketStatus, WebSocketMessage, EditingUser } from './WebSocketContext';
 import { useAuth } from '@/lib/auth';
 import { createLogger } from '@shared/logger';
@@ -14,6 +16,8 @@ interface WebSocketProviderProps {
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, url, onDataUpdate }) => {
   const logger = createLogger('WebSocketProvider');
   const { user, isSessionExpired } = useAuth();
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
   const [status, setStatus] = useState<WebSocketStatus>('closed');
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const [editingUsers, setEditingUsers] = useState<EditingUser[]>([]);
@@ -212,8 +216,24 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       setStatus('closed');
       setCurrentUserId(undefined);
       setEditingUsers([]);
+      // ユーザーに再ログインを促す
+      try {
+        toast({
+          title: "セッションが期限切れです",
+          description: "再度ログインしてください",
+          variant: "destructive",
+          duration: 3000,
+        });
+      } catch (e) {
+        logger.debug('Toast failed', { error: e });
+      }
+      try {
+        navigate('/login');
+      } catch (e) {
+        logger.debug('Navigate failed', { error: e });
+      }
     }
-  }, [isSessionExpired, status]);
+  }, [isSessionExpired, status, toast, navigate]);
 
   // 認証状態に基づく接続制御
   useEffect(() => {
@@ -235,8 +255,23 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
       setStatus('closed');
       setCurrentUserId(undefined);
       setEditingUsers([]);
+      // ユーザーにログインを促す
+      try {
+        toast({
+          title: "ログインが必要です",
+          description: "編集を続行するにはログインしてください",
+          duration: 3000,
+        });
+      } catch (e) {
+        logger.debug('Toast failed', { error: e });
+      }
+      try {
+        navigate('/login');
+      } catch (e) {
+        logger.debug('Navigate failed', { error: e });
+      }
     }
-  }, [user, status, connect, isSessionExpired]);
+  }, [user, status, connect, isSessionExpired, toast, navigate]);
 
   // 緊急対処: HTTP認証からcurrentUserIdを設定（WebSocket pongが来ない場合のフォールバック）
   useEffect(() => {

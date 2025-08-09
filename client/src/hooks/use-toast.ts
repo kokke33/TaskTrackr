@@ -6,7 +6,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 2000
+const TOAST_REMOVE_DELAY = 4000
 
 type ToasterToast = ToastProps & {
   id: string
@@ -144,6 +144,26 @@ type Toast = Omit<ToasterToast, "id">
 
 function toast({ duration, ...props }: Toast) {
   const id = genId()
+
+  // デバッグ出力: toast 呼び出しを追跡する
+  try {
+    // props を浅くコピーしてコンソール出力（循環参照回避のため）
+    const safeProps = {
+      title: (props as any).title,
+      description: (props as any).description,
+      variant: (props as any).variant,
+      duration,
+      action: !!(props as any).action,
+    }
+    // フレームだけ表示される事象の調査用ログ
+    console.debug('[use-toast] create', { id, props: safeProps })
+    if (!safeProps.title && !safeProps.description) {
+      console.warn('[use-toast] toast created without title/description', { id, props: safeProps })
+    }
+  } catch (e) {
+    // ログ失敗は無視
+    // eslint-disable-next-line no-empty
+  }
 
   const update = (props: ToasterToast) =>
     dispatch({
