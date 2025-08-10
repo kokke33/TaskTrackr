@@ -399,6 +399,8 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
         });
         // 管理者編集完了時は result.report.id を使用
         setLocation(`/reports/${result.report?.id || id}`);
+        // AI分析結果が更新されるため、レポート詳細クエリを無効化して再フェッチをトリガー
+        queryClient.invalidateQueries({ queryKey: [`/api/weekly-reports/${id}`] });
       } else {
         toast({
           title: isEditMode ? "報告が更新されました" : "報告が送信されました",
@@ -409,6 +411,8 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
         });
         // 通常の編集・作成時は result.id を使用
         setLocation(`/reports/${result.id}`);
+        // AI分析結果が更新される可能性があるため、レポート詳細クエリを無効化して再フェッチをトリガー
+        queryClient.invalidateQueries({ queryKey: [`/api/weekly-reports/${id}`] });
       }
     },
     onError: async (error: any) => {
