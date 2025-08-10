@@ -421,6 +421,19 @@ class DebugLogger {
     );
   }
 
+  authFailed(operation: string, url: string, data?: any): void {
+    this.error(
+      DebugLogCategory.AUTH,
+      operation,
+      `Authentication failed for ${operation}`,
+      undefined,
+      {
+        url,
+        ...data
+      }
+    );
+  }
+
   authLogout(): void {
     this.info(
       DebugLogCategory.AUTH,

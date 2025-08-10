@@ -32,8 +32,12 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
   });
 
   const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
-    queryKey: ["/api/cases"],
-    staleTime: 0,
+    queryKey: ["/api/cases", "list"],
+    queryFn: async () => {
+      const url = `/api/cases?format=list&limit=100`;
+      return await apiRequest<Case[]>(url, { method: "GET" });
+    },
+    staleTime: 5 * 60 * 1000, // 5分間キャッシュ（セレクトボックス用途では変更頻度が低い）
   });
 
   const { toast } = useToast();
@@ -100,10 +104,17 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
     const current = form.getValues();
     const initial = initialDataRef.current;
     
+    // より厳密な正規化関数
+    const normalizeValue = (value: any): string => {
+      if (value === null || value === undefined || value === '') return '';
+      if (typeof value === 'string') return value.trim();
+      return String(value).trim();
+    };
+    
     // 重要なフィールドの変更をチェック
     const importantFields: (keyof WeeklyReport)[] = [
-      'weeklyTasks', 'progressStatus', 'issues', 'nextWeekPlan', 
-      'supportRequests', 'delayDetails', 'riskSummary', 
+      'weeklyTasks', 'progressStatus', 'issues', 'nextWeekPlan',
+      'supportRequests', 'delayDetails', 'riskSummary',
       'riskCountermeasures', 'qualityDetails', 'testProgress',
       'changeDetails', 'resourceDetails', 'customerDetails',
       'environmentDetails', 'costDetails', 'knowledgeDetails',
@@ -112,8 +123,8 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
     ];
     
     for (const field of importantFields) {
-      const currentValue = (current[field] || '').toString().trim();
-      const initialValue = (initial[field] || '').toString().trim();
+      const currentValue = normalizeValue(current[field]);
+      const initialValue = normalizeValue(initial[field]);
       if (currentValue !== initialValue) {
         return true;
       }
@@ -301,15 +312,20 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
   // 初期データの設定（編集権限確認後に外部から呼び出される）
   const initializeFormData = useCallback(() => {
     if (isEditMode && existingReport) {
-      // 🔥 重要: 最初に初期化フラグを設定して変更検知を無効化
+      // 🔥 重要: 最初に初期化フラグを設定して変更検知を完全に無効化
       setIsInitializing(true);
       setHasFormChanges(false); // 変更フラグも事前にリセット
       
       try {
+        // より厳密な初期データの正規化
+        const normalizeValue = (value: any) => {
+          if (value === null || value === undefined) return "";
+          return value;
+        };
+        
         // 初期データを先に保存（変更検出のため）
-        // existingReport の null/undefined を空文字列に変換して初期データとして設定
         const cleanedExistingReport = Object.fromEntries(
-          Object.entries(existingReport).map(([key, value]) => [key, value === null || value === undefined ? "" : value])
+          Object.entries(existingReport).map(([key, value]) => [key, normalizeValue(value)])
         ) as WeeklyReport;
         initialDataRef.current = { ...cleanedExistingReport };
         
@@ -318,26 +334,31 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
         if (!hasRestored) {
           // ドラフトがない場合は既存データでフォームを初期化
           Object.entries(cleanedExistingReport).forEach(([key, value]) => {
-            form.setValue(key as keyof WeeklyReport, value as any);
+            form.setValue(key as keyof WeeklyReport, value as any, {
+              shouldDirty: false, // 初期化時はdirtyフラグを立てない
+              shouldTouch: false
+            });
           });
           setSelectedCaseId(existingReport.caseId);
         }
         
-        // 初期化完了後に十分待ってから変更検出を有効化（300msに延長）
+        // 初期化完了後に変更をチェックしてからフラグを解除
         setTimeout(() => {
+          const actualChanges = checkFormChanges();
+          setHasFormChanges(actualChanges);
           setIsInitializing(false);
-          setHasFormChanges(false); // 二重確認でリセット
         }, 300);
         
         return true;
       } catch (error) {
-        console.error('[Draft] Error during form initialization:', error); // エラーログは残す
+        console.error('[Draft] Error during form initialization:', error);
         setIsInitializing(false);
+        setHasFormChanges(false); // エラー時もリセット
         return false;
       }
     }
     return false;
-  }, [isEditMode, existingReport, loadFormData, form]);
+  }, [isEditMode, existingReport, loadFormData, form, checkFormChanges]);
 
   // 簡素化：WebSocket通知処理を削除（排他制御で事前防止するため不要）
 

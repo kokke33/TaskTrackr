@@ -499,8 +499,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cases", async (req, res) => {
     try {
       const includeDeleted = req.query.includeDeleted === "true";
-      const cases = await storage.getAllCases(includeDeleted);
-      res.json(cases);
+      const format = req.query.format as string;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      
+      if (format === "list") {
+        // パフォーマンス最適化版: 軽量データを返す
+        const cases = await storage.getAllCasesForList(includeDeleted, limit || 50);
+        console.log(`[DEBUG] Returning ${cases.length} lightweight cases`);
+        res.json(cases);
+      } else {
+        // 従来版: 全データを返す
+        const cases = await storage.getAllCases(includeDeleted);
+        console.log(`[DEBUG] Returning ${cases.length} full cases`);
+        res.json(cases);
+      }
     } catch (error) {
       console.error("Error fetching cases:", error);
       res.status(500).json({ message: "Failed to fetch cases" });

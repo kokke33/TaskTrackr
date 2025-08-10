@@ -168,18 +168,28 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
   useLayoutEffect(() => {
     const subscription = form.watch(() => {
       if (isInitializing) {
+        devLog("⏸️ Skipping form change detection during initialization");
         return;
       }
       
-      // 初期化が完了している場合のみ変更検知
-      setFormChanged(true);
+      // 実質的な変更チェック
+      const currentData = form.getValues();
+      const currentDataString = JSON.stringify(currentData);
+      
+      // 初期値と比較して実際の変更があるか確認
+      if (currentDataString !== lastSavedDataRef.current) {
+        setFormChanged(true);
+      } else {
+        // 変更がない場合はformChangedをfalseにリセット
+        setFormChanged(false);
+      }
     });
     return () => subscription.unsubscribe();
   }, [form, isInitializing]);
 
   // デバウンス機能付きの自動保存タイマー
   useEffect(() => {
-    if (!formChanged || !isEditMode || isSubmitting) return;
+    if (!formChanged || !isEditMode || isSubmitting || isInitializing) return;
 
     // デバウンス期間を10秒に延長（頻繁な保存を防止）
     const debounceTimeout = setTimeout(() => {
@@ -189,7 +199,7 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
     return () => {
       clearTimeout(debounceTimeout);
     };
-  }, [formChanged, autoSave, isEditMode, isSubmitting]);
+  }, [formChanged, autoSave, isEditMode, isSubmitting, isInitializing]);
 
   // 5分間隔のバックアップ保存（変更がある場合のみ）
   useEffect(() => {

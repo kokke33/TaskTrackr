@@ -341,7 +341,7 @@ export default function WeeklyReport() {
   }
 
   useNavigationGuard({
-    shouldBlock: (formChanged || (isEditMode && permissionChecked)) && !isSubmitting,
+    shouldBlock: formChanged && !isSubmitting,
     onNavigationAttempt: handleNavigationAttempt,
   });
 

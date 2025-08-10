@@ -1,8 +1,8 @@
-import React, { ReactElement } from "react";
+import React, { ReactElement, createContext, useContext } from "react";
 import { render, RenderOptions } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Router } from "wouter";
-import { AuthProvider } from "@/lib/auth";
+import { vi } from "vitest";
 
 // テスト用のQueryClient設定
 const createTestQueryClient = () =>
@@ -18,6 +18,45 @@ const createTestQueryClient = () =>
     },
   });
 
+// テスト用AuthContext（ネットワークリクエストを回避）
+interface User {
+  id: number;
+  username: string;
+  isAdmin: boolean;
+}
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  isLoading: boolean;
+  login: (userData?: User) => void;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
+  isSessionExpired: boolean;
+  refreshSession: () => Promise<boolean>;
+}
+
+const MockAuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const MockAuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const mockAuthValue: AuthContextType = {
+    isAuthenticated: false,
+    user: null,
+    isLoading: false,
+    login: vi.fn(),
+    logout: vi.fn().mockResolvedValue(undefined),
+    checkAuth: vi.fn().mockResolvedValue(undefined),
+    isSessionExpired: false,
+    refreshSession: vi.fn().mockResolvedValue(false),
+  };
+
+  return (
+    <MockAuthContext.Provider value={mockAuthValue}>
+      {children}
+    </MockAuthContext.Provider>
+  );
+};
+
 // テスト用のプロバイダーコンポーネント
 interface AllTheProvidersProps {
   children: React.ReactNode;
@@ -30,9 +69,9 @@ const AllTheProviders = ({ children, initialPath = "/" }: AllTheProvidersProps) 
   return (
     <QueryClientProvider client={queryClient}>
       <Router base={initialPath}>
-        <AuthProvider>
+        <MockAuthProvider>
           {children}
-        </AuthProvider>
+        </MockAuthProvider>
       </Router>
     </QueryClientProvider>
   );

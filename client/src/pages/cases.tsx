@@ -254,9 +254,9 @@ export default function CaseList() {
   };
   
   const { data: cases, isLoading, refetch } = useQuery<Case[]>({
-    queryKey: ["/api/cases"],
+    queryKey: ["/api/cases", showDeleted],
     queryFn: async () => {
-      const url = `/api/cases?includeDeleted=${showDeleted}`;
+      const url = `/api/cases?format=list&includeDeleted=${showDeleted}&limit=100`;
       return await apiRequest<Case[]>(url, { method: "GET" });
     },
     staleTime: 0,

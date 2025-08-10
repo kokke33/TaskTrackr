@@ -125,6 +125,16 @@ type WeeklyReportMeetingSummary = {
   projectName: string;
 };
 
+// 案件一覧用の軽量型定義（パフォーマンス最適化）
+type CaseSummary = {
+  id: number;
+  projectName: string;
+  caseName: string;
+  milestone: string | null;
+  isDeleted: boolean;
+  createdAt: Date;
+};
+
 export interface IStorage {
   // ユーザー関連
   getUser(id: number): Promise<User | undefined>;
@@ -149,6 +159,7 @@ export interface IStorage {
   createCase(caseData: InsertCase): Promise<Case>;
   getCase(id: number): Promise<Case | undefined>;
   getAllCases(includeDeleted?: boolean): Promise<Case[]>;
+  getAllCasesForList(includeDeleted?: boolean, limit?: number): Promise<CaseSummary[]>; // パフォーマンス最適化
   getCasesByProject(projectName: string): Promise<Case[]>;
   getRecentlyUpdatedCases(limit?: number): Promise<Case[]>;
   updateCase(id: number, caseData: InsertCase): Promise<Case>;
@@ -1041,6 +1052,34 @@ export class DatabaseStorage implements IStorage {
         return await query.orderBy(desc(cases.createdAt));
       });
     }, { includeDeleted });
+  }
+
+  // 【新規追加】案件一覧用の軽量メソッド（パフォーマンス最適化版）
+  async getAllCasesForList(includeDeleted: boolean = false, limit: number = 50): Promise<CaseSummary[]> {
+    return measureAsync('database', 'getAllCasesForList', async () => {
+      console.log(`[DEBUG] Using optimized getAllCasesForList method with limit: ${limit}, includeDeleted: ${includeDeleted}`);
+      
+      return withRetry(async () => {
+        const query = db
+          .select({
+            id: cases.id,
+            projectName: cases.projectName,
+            caseName: cases.caseName,
+            milestone: cases.milestone,
+            isDeleted: cases.isDeleted,
+            createdAt: cases.createdAt,
+          })
+          .from(cases);
+
+        if (!includeDeleted) {
+          query.where(eq(cases.isDeleted, false));
+        }
+
+        return await query
+          .orderBy(desc(cases.createdAt))
+          .limit(limit);
+      });
+    }, { includeDeleted, limit });
   }
 
   async getCasesByProject(projectName: string): Promise<Case[]> {

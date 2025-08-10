@@ -158,7 +158,7 @@ export function ReportHeader({
                 }}
               >
                 <Button variant="ghost" size="sm" className="px-2 sm:px-3">
-                  <span className="hidden sm:inline">戻る</span>
+                  <span className="hidden sm:inline">参照へ戻る</span>
                   <span className="sm:hidden">×</span>
                 </Button>
               </Link>

@@ -51,8 +51,8 @@ export async function apiRequest<T = any>(
   if (res.status === 401 && !options.skipAuthRetry && url !== "/api/check-auth") {
     console.log("🔄 401エラー検出 - セッション確認を試行します");
     
-    // セッション同期のため待機時間を延長
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 500ms → 1000ms
+    // セッション同期のため最小限の待機時間
+    await new Promise(resolve => setTimeout(resolve, 300)); // 1000ms → 300ms 効率化
     
     try {
       // セッション確認を実行（無限ループ防止のためskipAuthRetryを設定）
@@ -77,6 +77,15 @@ export async function apiRequest<T = any>(
           window.location.href = "/login";
           throw new Error("Session expired");
         }
+      } else {
+        // セッション確認APIが401を返した場合、直接セッション期限切れと判断
+        debugLogger.authFailed('session_expired_direct', url, {
+          reason: 'セッション確認API認証失敗',
+          status: authCheckRes.status
+        });
+        console.log("❌ セッション期限切れ（直接判定） - ログインページにリダイレクト");
+        window.location.href = "/login";
+        throw new Error("Session expired");
       }
     } catch (authError) {
       // Session expiredエラーの場合は再スローする
@@ -149,14 +158,15 @@ export const queryClient = new QueryClient({
       gcTime: 5 * 60 * 1000, // 5分後にガベージコレクション
       retry: (failureCount, error) => {
         // 認証エラーの場合は既にapiRequest内でリトライ済みなので、ここではリトライしない
-        if (error instanceof Error && error.message.startsWith("401:")) {
-          return false; // apiRequest内で認証リトライ済み
+        if (error instanceof Error && 
+            (error.message.startsWith("401:") || error.message === "Session expired")) {
+          return false; // apiRequest内で認証リトライ済み、またはセッション期限切れ
         }
-        return failureCount < 3;  // その他のエラーは3回までリトライ
+        return failureCount < 2;  // 3回→2回に削減して効率化
       },
       retryDelay: (attemptIndex) => {
-        // 指数バックオフ: 1秒、2秒、4秒...
-        return Math.min(1000 * 2 ** attemptIndex, 30000);
+        // より短いリトライ間隔: 500ms, 1s
+        return Math.min(500 * (attemptIndex + 1), 5000);
       },
     },
     mutations: {

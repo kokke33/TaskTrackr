@@ -113,6 +113,8 @@ export class GroqService extends BaseProvider {
     const modelLimits: Record<string, number> = {
       'meta-llama/llama-4-scout-17b-16e-instruct': 8192,
       'qwen/qwen3-32b': 32768,
+      'openai/gpt-oss-120b': 8192,
+      'openai/gpt-oss-20b': 8192,
       'default': Math.min(aiConfig.groq.maxTokens, 8192)
     };
     
