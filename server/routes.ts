@@ -1764,10 +1764,12 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
           // 修正会議議事録を保存
           storage.upsertWeeklyReportMeeting(meetingData),
           // 管理者確認メール文章を保存（生成に成功した場合のみ）
-          adminConfirmationEmail 
+          adminConfirmationEmail
             ? (() => {
-                const currentData = { ...updatedReport, adminConfirmationEmail };
-                const { id: reportId, createdAt, ...updateData } = currentData;
+                // updatedReport には aiAnalysis が含まれていないため、
+                // analysis (エグゼクティブサマリ) を明示的に含める
+                const reportToUpdate = { ...updatedReport, aiAnalysis: analysis, adminConfirmationEmail };
+                const { id: reportId, createdAt, ...updateData } = reportToUpdate;
                 return storage.updateWeeklyReport(id, updateData);
               })()
             : Promise.resolve(),
@@ -2136,8 +2138,11 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       const stage2Duration = Date.now() - stage2StartTime;
       const totalDuration = Date.now() - startTime;
       console.log(`✅ 第2段階完了 (${stage2Duration}ms) - サマリ長: ${executiveSummary.length}`);
+      console.log(`[DEBUG] analyzeWeeklyReport - executiveSummary content preview: ${executiveSummary.substring(0, 200)}...`);
       console.log(`🎉 2段階AI分析完了 (総時間: ${totalDuration}ms)`);
 
+      console.log(`[DEBUG] analyzeWeeklyReport - Final executiveSummary length: ${executiveSummary.length}`);
+      console.log(`[DEBUG] analyzeWeeklyReport - Final executiveSummary preview: ${executiveSummary.substring(0, 200)}...`);
       return executiveSummary;
 
     } catch (error) {
@@ -2363,6 +2368,8 @@ A5: [分析結果に基づく回答]`
       },
     );
 
+    console.log(`[DEBUG] generateWeeklyReportExecutiveSummary - AI response content length: ${response.content.length}`);
+    console.log(`[DEBUG] generateWeeklyReportExecutiveSummary - AI response content preview: ${response.content.substring(0, 200)}...`);
     return response.content;
   }
 

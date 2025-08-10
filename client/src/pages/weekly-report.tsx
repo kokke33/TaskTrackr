@@ -79,6 +79,19 @@ export default function WeeklyReport() {
     isInitializing,
   } = formHook;
 
+  // デバッグログの追加
+  useEffect(() => {
+    if (existingReport) {
+      console.log('[DEBUG] WeeklyReport Component - existingReport loaded:', {
+        reportId: existingReport.id,
+        aiAnalysisLength: existingReport.aiAnalysis?.length,
+        aiAnalysisPreview: existingReport.aiAnalysis ? existingReport.aiAnalysis.substring(0, 200) : 'N/A',
+        isEditMode,
+        isAdminEditMode,
+      });
+    }
+  }, [existingReport, isEditMode, isAdminEditMode]);
+
   // 簡素化：版数コンフリクト状態の監視を削除
 
   const autoSaveHook = useReportAutoSave({ 
