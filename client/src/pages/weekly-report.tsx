@@ -361,7 +361,7 @@ export default function WeeklyReport() {
 
   if (isLoadingReport || isLoadingCases) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
           <p className="text-center">読み込み中...</p>
         </div>
@@ -370,7 +370,7 @@ export default function WeeklyReport() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <FormProvider {...form}>
         <ReportHeader
           isEditMode={isEditMode}

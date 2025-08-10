@@ -695,7 +695,7 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
   // ローディング中の表示
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8 max-w-5xl">
           <p className="text-center">読み込み中...</p>
         </div>
@@ -704,7 +704,7 @@ ${report.businessDetails ? `- **営業チャンス・顧客ニーズの詳細**:
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <ThemeToggle />
 
       <div className="container mx-auto px-4 py-8 max-w-5xl">

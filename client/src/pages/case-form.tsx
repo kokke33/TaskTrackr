@@ -125,7 +125,7 @@ export default function CaseForm() {
 
   if ((isEditMode && isLoadingCase) || isLoadingProjects) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8">
           <p className="text-center">読み込み中...</p>
         </div>
@@ -134,7 +134,7 @@ export default function CaseForm() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <header className="mb-8">
           <div className="flex justify-between items-center">

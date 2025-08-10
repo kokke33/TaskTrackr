@@ -191,7 +191,7 @@ export default function ProjectForm() {
   // エラー発生時の表示
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <ShieldAlert className="mx-auto h-12 w-12 text-destructive mb-4" />
@@ -209,7 +209,7 @@ export default function ProjectForm() {
   // 読み込み中の表示
   if (isEditing && isLoadingProject) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8">
           <p className="text-center">読み込み中...</p>
         </div>
@@ -220,7 +220,7 @@ export default function ProjectForm() {
   const isPending = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="flex justify-between items-center mb-6">
           <Breadcrumb>
