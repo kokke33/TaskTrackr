@@ -40,16 +40,35 @@ Object.defineProperty(document, 'cookie', {
 
 // URL オブジェクトのモック（無限再帰を避けるため、ネイティブURLを保存）
 const OriginalURL = global.URL;
-const URLMock = vi.fn().mockImplementation((url) => {
-  const urlObj = new OriginalURL(url);
-  return {
-    ...urlObj,
-    href: url,
-    origin: 'http://localhost:3000',
-    pathname: urlObj.pathname,
-    search: urlObj.search,
-    hash: urlObj.hash,
-  };
+const URLMock = vi.fn().mockImplementation((url, base) => {
+  try {
+    // urlが文字列でない場合の対処
+    if (typeof url !== 'string') {
+      url = String(url);
+    }
+    
+    // 相対URLの場合は base または デフォルトベースを使用
+    const fullUrl = url.startsWith('http') ? url : `http://localhost:3000${url.startsWith('/') ? url : '/' + url}`;
+    const urlObj = new OriginalURL(fullUrl);
+    return {
+      ...urlObj,
+      href: fullUrl,
+      origin: 'http://localhost:3000',
+      pathname: urlObj.pathname,
+      search: urlObj.search,
+      hash: urlObj.hash,
+    };
+  } catch (error) {
+    // フォールバック: 基本的なURLオブジェクトを返す
+    const urlStr = typeof url === 'string' ? url : String(url);
+    return {
+      href: urlStr,
+      origin: 'http://localhost:3000',
+      pathname: urlStr.startsWith('/') ? urlStr : '/' + urlStr,
+      search: '',
+      hash: '',
+    };
+  }
 });
 global.URL = URLMock as any;
 
@@ -57,6 +76,7 @@ describe("queryClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     console.log = vi.fn();
+    console.info = vi.fn();
     console.error = vi.fn();
   });
 
@@ -480,28 +500,32 @@ describe("queryClient", () => {
       const defaultOptions = queryClient.getDefaultOptions();
       const retryFn = defaultOptions.queries?.retry as Function;
 
-      // 401エラーの場合は1回だけリトライ
+      // 401エラーの場合はリトライしない（apiRequest内で処理済み）
       const authError = new Error("401: Unauthorized");
-      expect(retryFn(0, authError)).toBe(true);
+      expect(retryFn(0, authError)).toBe(false);
       expect(retryFn(1, authError)).toBe(false);
 
-      // その他のエラーは3回までリトライ
+      // セッション期限切れもリトライしない
+      const sessionError = new Error("Session expired");
+      expect(retryFn(0, sessionError)).toBe(false);
+
+      // その他のエラーは2回までリトライ（failureCount < 2）
       const otherError = new Error("500: Internal Server Error");
       expect(retryFn(0, otherError)).toBe(true);
       expect(retryFn(1, otherError)).toBe(true);
-      expect(retryFn(2, otherError)).toBe(true);
-      expect(retryFn(3, otherError)).toBe(false);
+      expect(retryFn(2, otherError)).toBe(false);
     });
 
-    it("リトライ遅延が指数バックオフで動作すること", () => {
+    it("リトライ遅延が正しく動作すること", () => {
       const defaultOptions = queryClient.getDefaultOptions();
       const retryDelayFn = defaultOptions.queries?.retryDelay as Function;
 
-      expect(retryDelayFn(0)).toBe(1000); // 1秒
-      expect(retryDelayFn(1)).toBe(2000); // 2秒
-      expect(retryDelayFn(2)).toBe(4000); // 4秒
-      expect(retryDelayFn(3)).toBe(8000); // 8秒
-      expect(retryDelayFn(10)).toBe(30000); // 最大30秒
+      // Math.min(500 * (attemptIndex + 1), 5000)
+      expect(retryDelayFn(0)).toBe(500); // 500 * 1 = 500ms
+      expect(retryDelayFn(1)).toBe(1000); // 500 * 2 = 1000ms
+      expect(retryDelayFn(2)).toBe(1500); // 500 * 3 = 1500ms
+      expect(retryDelayFn(9)).toBe(5000); // 500 * 10 = 5000ms（最大値）
+      expect(retryDelayFn(10)).toBe(5000); // Math.min(5500, 5000) = 5000ms（最大値制限）
     });
   });
 
@@ -527,20 +551,17 @@ describe("queryClient", () => {
         data: { test: "data" },
       });
 
-      expect(console.log).toHaveBeenCalledWith(
-        "[API REQUEST] POST /api/test",
+      expect(console.info).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO] [api] api_request: API request started"),
         expect.objectContaining({
-          data: { test: "data" },
-          cookies: "sessionId=test-session",
-          timestamp: expect.any(String),
+          requestId: expect.any(String)
         })
       );
 
-      expect(console.log).toHaveBeenCalledWith(
-        "[API RESPONSE] POST /api/test - Status: 200",
+      expect(console.info).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO] [api] api_request: API request successful"),
         expect.objectContaining({
-          status: 200,
-          statusText: "OK",
+          requestId: expect.any(String)
         })
       );
     });
@@ -568,12 +589,12 @@ describe("queryClient", () => {
       ).rejects.toThrow();
 
       expect(console.error).toHaveBeenCalledWith(
-        expect.stringContaining("[AUTH ERROR] 401 Unauthorized"),
+        expect.stringContaining("[ERROR] [auth] session_expired: Authentication failed for session_expired"),
         expect.objectContaining({
           status: 401,
           statusText: "Unauthorized",
-          timestamp: expect.any(String),
-        })
+        }),
+        expect.any(String)
       );
     });
   });

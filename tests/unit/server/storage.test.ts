@@ -35,16 +35,20 @@ describe("DatabaseStorage", () => {
     storage = new DatabaseStorage();
     
     // データベースモックの完全な初期化
+    const mockChain = {
+      where: vi.fn().mockReturnValue([]),
+      orderBy: vi.fn().mockResolvedValue([]),
+      limit: vi.fn().mockReturnValue([]),
+    };
+    
     mockDb.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
-          orderBy: vi.fn().mockResolvedValue([]),
-        }),
-        orderBy: vi.fn().mockResolvedValue([]),
-        limit: vi.fn().mockResolvedValue([]),
-      }),
+      from: vi.fn().mockReturnValue(mockChain),
     });
+    
+    // 特定のテスト用に個別設定
+    mockChain.where.mockReturnValue(mockChain);
+    mockChain.orderBy.mockReturnValue(mockChain);
+    mockChain.limit.mockReturnValue(mockChain);
     
     mockDb.insert.mockReturnValue({
       values: vi.fn().mockReturnValue({
@@ -476,6 +480,9 @@ describe("DatabaseStorage", () => {
     it("データベース操作にリトライ機能が組み込まれていることを確認", async () => {
       // シンプルにリトライ機能が存在することを確認
       // 実装詳細のテストは複雑になりすぎるため、基本的な動作確認のみ
+      
+      // getUserテスト用のモック設定
+      mockDb.select().from().where.mockResolvedValue([]);
       
       // 正常な動作でエラーが出ないことを確認
       expect(async () => {

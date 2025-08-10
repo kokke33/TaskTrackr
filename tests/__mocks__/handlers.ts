@@ -13,9 +13,6 @@ export const handlers = [
     });
   }),
 
-  http.post("/api/auth/logout", () => {
-    return HttpResponse.json({ success: true });
-  }),
 
   http.get("/api/auth/me", () => {
     return HttpResponse.json({
