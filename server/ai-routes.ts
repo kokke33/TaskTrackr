@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAIService, getAIServiceForProvider, AIMessage, analyzeTask, analyzeText, analyzeTextStream, generateSummary } from './ai-service.js';
+import { getAIService, getAIServiceForProvider, AIMessage, analyzeTask, analyzeText, analyzeTextFull, analyzeTextStream, generateSummary } from './ai-service.js';
 import { isAuthenticated } from './auth';
 import { chatWithAdminEmail } from './use-cases/chat-with-admin-email.usecase.js'; // 新しいユースケースをインポート
 import { db } from './db.js'; // データベース操作のためにインポート
@@ -201,6 +201,49 @@ router.post('/api/ai/analyze-text-trial', isAuthenticated, async (req, res) => {
     });
   } catch (error) {
     console.error('AI text analysis (trial) error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Text analysis endpoint with full two-stage analysis (for update button)
+router.post('/api/ai/analyze-text-full', isAuthenticated, async (req, res) => {
+  try {
+    const { content, fieldType, originalContent, previousReportContent } = req.body;
+    const userId = getUserId(req);
+
+    if (!content || typeof content !== 'string' || content.length < 5 || !fieldType || typeof fieldType !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Request must include content (string, min 5 chars) and fieldType (string).'
+      });
+    }
+
+    // リアルタイム分析設定を取得
+    const { storage } = await import('./storage');
+    const realtimeConfig = await storage.getRealtimeAnalysisConfig();
+    
+    // リアルタイム分析専用のAIサービスを取得
+    const aiService = getAIServiceForProvider(
+      realtimeConfig.provider as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter',
+      realtimeConfig.provider === 'groq' ? realtimeConfig.groqModel : undefined,
+      realtimeConfig.provider === 'gemini' ? realtimeConfig.geminiModel : undefined,
+      realtimeConfig.provider === 'openrouter' ? realtimeConfig.openrouterModel : undefined,
+      realtimeConfig.provider === 'openai' ? realtimeConfig.openaiModel : undefined
+    );
+    
+    const analysis = await analyzeTextFull(aiService, content, fieldType, originalContent, previousReportContent, userId);
+    
+    res.json({
+      success: true,
+      data: analysis,
+      usingFullAnalysis: true,
+      realtimeProvider: realtimeConfig.provider,
+    });
+  } catch (error) {
+    console.error('AI text analysis (full) error:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

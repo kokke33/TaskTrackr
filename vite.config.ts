@@ -8,6 +8,12 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const port = (() => {
+  const portStr = process.env.PORT || '5000';
+  const portNum = parseInt(portStr, 10);
+  return isNaN(portNum) ? 5000 : portNum;
+})();
+
 export default defineConfig({
   plugins: [
     react(),
@@ -111,8 +117,8 @@ export default defineConfig({
   },
   server: {
     hmr: {
-      port: parseInt(process.env.PORT || '5000', 10),
+      port: port,
     },
-    port: parseInt(process.env.PORT || '5000', 10),
+    port: port,
   },
 });
