@@ -129,9 +129,6 @@ export default function WeeklyReportDetail() {
     staleTime: 1000 * 60 * 5, // 5分間キャッシュ
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onError: (error) => {
-      console.error('システム設定の取得に失敗しました:', error);
-    }
   });
 
   // URLパラメータからスクロール指示を取得してスクロール実行
@@ -364,8 +361,8 @@ export default function WeeklyReportDetail() {
   const getCurrentAIModel = (): string | undefined => {
     if (!aiProviderSettings) return undefined;
     
-    const aiProviderSetting = aiProviderSettings.find(setting => setting.key === 'AI_PROVIDER');
-    const realtimeProviderSetting = aiProviderSettings.find(setting => setting.key === 'REALTIME_PROVIDER');
+    const aiProviderSetting = aiProviderSettings.find((setting: { key: string; value: string }) => setting.key === 'AI_PROVIDER');
+    const realtimeProviderSetting = aiProviderSettings.find((setting: { key: string; value: string }) => setting.key === 'REALTIME_PROVIDER');
     
     // リアルタイム分析用のプロバイダーが設定されていればそれを使用、なければ通常のAIプロバイダー
     const provider = realtimeProviderSetting?.value || aiProviderSetting?.value || 'unknown';

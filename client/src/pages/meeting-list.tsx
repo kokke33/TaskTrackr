@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, FileText, Home, Briefcase, Calendar, Users, FileEdit } from "lucide-react";
-import { 
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -20,6 +20,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
+import { apiRequest } from "@/lib/queryClient";
 
 // 統合された議事録の型定義
 type MeetingRecord = {
