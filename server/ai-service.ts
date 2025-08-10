@@ -11,6 +11,7 @@ import { OpenRouterService } from './ai-providers/openrouter-provider.js';
 export { generateSummary } from './use-cases/generate-summary.usecase.js';
 export { analyzeTask } from './use-cases/analyze-task.usecase.js';
 export { analyzeText } from './use-cases/analyze-text.usecase.js';
+export { analyzeTextFull } from './use-cases/analyze-text-full.usecase.js';
 export { analyzeTextStream } from './use-cases/analyze-text-stream.usecase.js';
 export { generateAdminConfirmationEmail } from './use-cases/generate-admin-confirmation-email.usecase.js';
 export type { AIMessage, AIResponse, IAiProvider };
