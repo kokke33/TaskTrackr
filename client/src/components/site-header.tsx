@@ -64,54 +64,46 @@ export function SiteHeader({ isLoading = false }: SiteHeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center px-4">
-        <div className="hidden md:flex ml-6">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="hidden font-bold sm:inline-block">TOP</span>
+      <div className="container flex h-14 items-center px-4 mx-auto">
+        {/* 左側の要素 */}
+        <div className="hidden md:flex items-center space-x-6 text-sm font-medium flex-1">
+          <Link href="/" className="flex items-center">
+            <span className="font-bold">TOP</span>
           </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
-            {isAuthenticated && (
-              <>
-                <AdminOnly>
-                  <Link href="/projects">
-                    <span className="transition-colors hover:text-foreground/80 cursor-pointer">プロジェクト</span>
-                  </Link>
-                </AdminOnly>
-                <AdminOnly>
-                  <Link href="/cases">
-                    <span className="transition-colors hover:text-foreground/80 cursor-pointer">案件一覧</span>
-                  </Link>
-                </AdminOnly>
-                <a href="#" onClick={handleReportsClick}>
-                  <span className="transition-colors hover:text-foreground/80 cursor-pointer">週次報告</span>
-                </a>
-                <Link href="/meetings">
-                  <span className="transition-colors hover:text-foreground/80 cursor-pointer">議事録</span>
+          {isAuthenticated && (
+            <>
+              <AdminOnly>
+                <Link href="/projects">
+                  <span className="transition-colors hover:text-foreground/80 cursor-pointer">プロジェクト</span>
                 </Link>
-                <AdminOnly>
-                  <Link href="/admin/settings">
-                    <span className="transition-colors hover:text-foreground/80 cursor-pointer">設定</span>
-                  </Link>
-                </AdminOnly>
-                <AdminOnly>
-                  <Link href="/admin/users">
-                    <span className="transition-colors hover:text-foreground/80 cursor-pointer">ユーザ管理</span>
-                  </Link>
-                </AdminOnly>
-
-              </>
-            )}
-          </nav>
+              </AdminOnly>
+              <AdminOnly>
+                <Link href="/cases">
+                  <span className="transition-colors hover:text-foreground/80 cursor-pointer">案件一覧</span>
+                </Link>
+              </AdminOnly>
+              <a href="#" onClick={handleReportsClick}>
+                <span className="transition-colors hover:text-foreground/80 cursor-pointer">週次報告</span>
+              </a>
+              <Link href="/meetings">
+                <span className="transition-colors hover:text-foreground/80 cursor-pointer">議事録</span>
+              </Link>
+              <AdminOnly>
+                <Link href="/admin/settings">
+                  <span className="transition-colors hover:text-foreground/80 cursor-pointer">設定</span>
+                </Link>
+              </AdminOnly>
+              <AdminOnly>
+                <Link href="/admin/users">
+                  <span className="transition-colors hover:text-foreground/80 cursor-pointer">ユーザ管理</span>
+                </Link>
+              </AdminOnly>
+            </>
+          )}
         </div>
         
-        {/* モバイル用のロゴ */}
-        <div className="md:hidden ml-4">
-          <Link href="/">
-            <span className="flex items-center font-bold cursor-pointer">PMS</span>
-          </Link>
-        </div>
-        
-        <div className="flex flex-1 items-center justify-end space-x-2">
+        {/* 右側の要素 */}
+        <div className="flex items-center space-x-2 flex-1 justify-end">
           {isAuthenticated && <SearchBar />}
           
           <nav className="flex items-center">
