@@ -101,6 +101,56 @@ export default function WeeklyReportDetail() {
       toast({duration: 1000,});
     },
   });
+
+  // AI分析結果の再生成
+  const regenerateAIAnalysisMutation = useMutation({
+    mutationFn: async () => {
+      if (!report || !id) throw new Error('レポートデータが不足しています');
+      
+      logger.info('AI分析結果再生成を開始', { reportId: id });
+      
+      try {
+        // apiRequestは既にJSONデータを返すので、直接データを取得
+        const data = await apiRequest(`/api/weekly-reports/${id}/regenerate-ai-analysis`, {
+          method: 'POST'
+        });
+        
+        logger.info('AI分析結果再生成が成功', { reportId: id, hasData: !!data });
+        return data;
+      } catch (error) {
+        logger.error('AI分析結果再生成エラー', error instanceof Error ? error : new Error(String(error)));
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      logger.info('AI分析結果再生成のミューテーション成功', { reportId: id, hasReport: !!data?.report });
+      queryClient.invalidateQueries({ queryKey: [`/api/weekly-reports/${id}`] });
+      toast({
+        title: "AI分析結果を更新しました",
+        duration: 3000,
+      });
+    },
+    onError: (error) => {
+      logger.error('AI分析結果再生成のミューテーションエラー', error instanceof Error ? error : new Error(String(error)));
+      
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      let description = "しばらく時間をおいて再度お試しください。";
+      
+      if (errorMessage.includes('401') || errorMessage.includes('認証') || errorMessage.includes('ログイン')) {
+        description = "認証が切れています。ページを再読み込みしてください。";
+      } else if (errorMessage.includes('404')) {
+        description = "週次報告が見つかりません。";
+      } else if (errorMessage.includes('500')) {
+        description = "サーバーエラーが発生しました。管理者にお問い合わせください。";
+      }
+      
+      toast({
+        title: "AI分析結果の更新に失敗しました",
+        description: description,
+        duration: 5000,
+      });
+    },
+  });
   
   const { data: report, isLoading } = useQuery<WeeklyReport>({
     queryKey: [`/api/weekly-reports/${id}`],
@@ -664,8 +714,19 @@ export default function WeeklyReportDetail() {
           {report.aiAnalysis && (
             <Card>
               <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3 sm:mb-4 pb-2 border-b">
-                  <h2 className="text-lg sm:text-xl font-semibold">■ AI分析結果</h2>
+                <div className="flex flex-col gap-2 mb-3 sm:mb-4 pb-2 border-b">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+                    <h2 className="text-lg sm:text-xl font-semibold">■ AI分析結果</h2>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => regenerateAIAnalysisMutation.mutate()}
+                      disabled={regenerateAIAnalysisMutation.isPending}
+                      className="w-full sm:w-auto"
+                    >
+                      {regenerateAIAnalysisMutation.isPending ? '更新中...' : '更新'}
+                    </Button>
+                  </div>
                   <AIMetadataDisplay
                     aiModel={getCurrentAIModel()}
                     createdAt={report.createdAt}
