@@ -1879,6 +1879,77 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
     },
   );
 
+  // AI分析再生成エンドポイント
+  app.post(
+    "/api/weekly-reports/:id/regenerate-ai-analysis",
+    isAuthenticated,
+    async (req, res) => {
+      const reportId = req.params.id;
+      const userId = (req.user as any)?.id || 'unknown';
+      const username = (req.user as any)?.username || 'unknown';
+      
+      try {
+        console.log(`[AI-REGENERATION] Starting AI analysis regeneration for report ${reportId} by user ${username} (ID: ${userId})`);
+        
+        const id = parseInt(reportId);
+        if (isNaN(id)) {
+          console.error(`[AI-REGENERATION] Invalid report ID: ${reportId}`);
+          res.status(400).json({ message: "無効なレポートIDです" });
+          return;
+        }
+        
+        const existingReport = await storage.getWeeklyReport(id);
+        
+        if (!existingReport) {
+          console.error(`[AI-REGENERATION] Report not found: ${id}`);
+          res.status(404).json({ message: "週次報告が見つかりません" });
+          return;
+        }
+
+        console.log(`[AI-REGENERATION] Found report ${id} for case ${existingReport.caseId}`);
+
+        // 関連案件情報を取得
+        const relatedCase = await storage.getCase(existingReport.caseId);
+        if (!relatedCase) {
+          console.error(`[AI-REGENERATION] Related case not found: ${existingReport.caseId}`);
+          res.status(404).json({ message: "関連案件が見つかりません" });
+          return;
+        }
+
+        console.log(`[AI-REGENERATION] Found related case ${relatedCase.id}: ${relatedCase.projectName} - ${relatedCase.caseName}`);
+
+        // AI分析を再生成
+        console.log(`[AI-REGENERATION] Starting AI analysis generation...`);
+        const analysis = await analyzeWeeklyReport(existingReport, relatedCase);
+        
+        if (!analysis) {
+          console.error(`[AI-REGENERATION] AI analysis generation returned empty result`);
+          res.status(500).json({ message: "AI分析の生成に失敗しました" });
+          return;
+        }
+
+        console.log(`[AI-REGENERATION] AI analysis generated successfully. Length: ${analysis.length}`);
+
+        // データベースを更新
+        await storage.updateAIAnalysis(id, analysis);
+        console.log(`[AI-REGENERATION] Database updated successfully`);
+        
+        // 更新されたレポートを取得
+        const updatedReport = await storage.getWeeklyReport(id);
+
+        console.log(`[AI-REGENERATION] AI analysis regeneration completed successfully for report ${id}`);
+
+        res.json({
+          report: updatedReport,
+          message: "AI分析結果が再生成されました",
+        });
+      } catch (error) {
+        console.error(`[AI-REGENERATION] Error regenerating AI analysis for report ${reportId}:`, error);
+        res.status(500).json({ message: "AI分析の再生成に失敗しました" });
+      }
+    },
+  );
+
   // 議事録更新エンドポイント
   app.put(
     "/api/weekly-reports/meetings/:meetingId",
