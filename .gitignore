@@ -1,15 +1,67 @@
-node_modules
-dist
-.DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+server/public/
+
+# Environment files
 .env
-attached_assets
-pictures
-logs
-.serena
-cookies.txt
-dev.log
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Development assets
+attached_assets/
+pictures/
+
+# Test coverage
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# Build cache and temporary files
+.vite/
+*.tsbuildinfo
+.turbo/
+vite.config.ts.*
+
+# Logs
+logs/
 *.log
+dev.log
+
+# Editor directories and files
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Database files
+*.db
+*.sqlite*
+
+# Security files
+*.pem
+*.key
+auth_keys/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Archive files
+*.tar.gz
+
+# Project specific
+.serena/
+cookies.txt
+session.txt
+
+# Platform specific
+.replit
 
