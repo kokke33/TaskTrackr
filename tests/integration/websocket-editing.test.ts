@@ -8,7 +8,7 @@ describe("WebSocket編集機能統合テスト", () => {
   let server: Server;
   let wss: WebSocketServer;
   let wsClients: WebSocket[] = [];
-  const TEST_PORT = 8080;
+  const TEST_PORT = 8081; // ポート重複回避
 
   beforeEach(async () => {
     // テスト用HTTPサーバーの起動
@@ -145,30 +145,59 @@ describe("WebSocket編集機能統合テスト", () => {
 
   afterEach(async () => {
     // すべてのWebSocket接続を閉じる
-    wsClients.forEach(ws => {
+    const closePromises = wsClients.map(ws => {
       if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
+        return new Promise<void>((resolve) => {
+          ws.close();
+          ws.on('close', () => resolve());
+        });
       }
+      return Promise.resolve();
     });
+    await Promise.all(closePromises);
     wsClients = [];
 
-    // サーバーを閉じる
-    wss.close();
-    return new Promise<void>((resolve) => {
-      server.close(() => resolve());
-    });
-  });
+    // WebSocketサーバーを閉じる
+    if (wss) {
+      await new Promise<void>((resolve) => {
+        wss.close((err) => {
+          if (err) console.warn('WebSocket server close error:', err);
+          resolve();
+        });
+      });
+    }
+
+    // HTTPサーバーを閉じる
+    if (server) {
+      await new Promise<void>((resolve) => {
+        server.close((err) => {
+          if (err) console.warn('HTTP server close error:', err);
+          resolve();
+        });
+      });
+    }
+  }, 10000); // 10秒のタイムアウト
 
   const createWebSocketClient = (): Promise<WebSocket> => {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`ws://localhost:${TEST_PORT}`);
       
+      // タイムアウト設定（5秒）
+      const timeout = setTimeout(() => {
+        ws.close();
+        reject(new Error(`WebSocket connection timeout after 5 seconds`));
+      }, 5000);
+      
       ws.on("open", () => {
+        clearTimeout(timeout);
         wsClients.push(ws);
         resolve(ws);
       });
       
-      ws.on("error", reject);
+      ws.on("error", (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
     });
   };
 
@@ -203,7 +232,7 @@ describe("WebSocket編集機能統合テスト", () => {
       ])
     });
     expect(messages[0].users).toHaveLength(1);
-  });
+  }, 10000); // テストタイムアウト10秒
 
   it("複数ユーザーが同じレポートを編集する場合", async () => {
     const ws1 = await createWebSocketClient();
@@ -244,7 +273,7 @@ describe("WebSocket編集機能統合テスト", () => {
     expect(latestMessage2.users).toHaveLength(2);
     expect(latestMessage1.reportId).toBe(123);
     expect(latestMessage2.reportId).toBe(123);
-  });
+  }, 10000); // テストタイムアウト10秒
 
   it("ユーザーが編集を停止すると正しく除外される", async () => {
     const ws1 = await createWebSocketClient();
@@ -288,7 +317,7 @@ describe("WebSocket編集機能統合テスト", () => {
 
     expect(latestMessage1.users).toHaveLength(1);
     expect(latestMessage2.users).toHaveLength(1);
-  });
+  }, 10000); // テストタイムアウト10秒
 
   it("接続が切断されると編集セッションがクリーンアップされる", async () => {
     const ws1 = await createWebSocketClient();
@@ -324,7 +353,7 @@ describe("WebSocket編集機能統合テスト", () => {
     if (latestMessage && latestMessage.type === "editing_users") {
       expect(latestMessage.users.length).toBeLessThanOrEqual(1);
     }
-  });
+  }, 10000); // テストタイムアウト10秒
 
   it("異なるレポートの編集は独立して管理される", async () => {
     const ws1 = await createWebSocketClient();
@@ -362,7 +391,7 @@ describe("WebSocket編集機能統合テスト", () => {
     expect(message2).toBeDefined();
     expect(message1.users).toHaveLength(1);
     expect(message2.users).toHaveLength(1);
-  });
+  }, 10000); // テストタイムアウト10秒
 
   it("無効なメッセージ形式でもクラッシュしない", async () => {
     const ws = await createWebSocketClient();
@@ -391,5 +420,5 @@ describe("WebSocket編集機能統合テスト", () => {
 
     // WebSocket接続がまだ開いていることを確認
     expect(ws.readyState).toBe(WebSocket.OPEN);
-  });
+  }, 10000); // テストタイムアウト10秒
 });
