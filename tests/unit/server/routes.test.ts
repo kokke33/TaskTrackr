@@ -86,6 +86,20 @@ vi.mock("@shared/logger", () => ({
   }),
 }));
 
+vi.mock("../../../server/db", () => ({
+  db: {
+    select: vi.fn(),
+    insert: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
+
+vi.mock("../../../server/websocket", () => ({
+  notifyDataUpdate: vi.fn(),
+  getEditingUsers: vi.fn().mockReturnValue([]),
+}));
+
 describe("Routes", () => {
   let app: express.Application;
   let mockStorage: any;
