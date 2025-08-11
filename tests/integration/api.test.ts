@@ -71,20 +71,20 @@ describe("API Integration Tests", () => {
     app.use(express.json());
     
     // セッション設定のモック
-    app.use((req, res, next) => {
+    app.use((req: any, res, next) => {
       req.user = mockUser;
       req.isAuthenticated = () => true;
-      req.logout = (callback) => {
+      req.logout = (callback: (err: Error | null) => void) => {
         req.user = undefined;
         if (typeof callback === 'function') {
           callback(null);
         }
       };
       req.session = {
-        destroy: (callback) => {
+        destroy: (callback: (err: Error | null) => void) => {
           if (callback) callback(null);
         },
-        save: (callback) => {
+        save: (callback: (err: Error | null) => void) => {
           if (callback) callback(null);
         },
       };
@@ -140,7 +140,7 @@ describe("API Integration Tests", () => {
         .get("/api/projects")
         .expect(200);
       
-      expect(response.body).toEqual([mockProject]);
+      expect(response.body).toEqual([JSON.parse(JSON.stringify(mockProject))]);
       expect(mockGetProjects).toHaveBeenCalledWith(false);
     }, 10000);
 
@@ -154,7 +154,7 @@ describe("API Integration Tests", () => {
         .get("/api/projects/1")
         .expect(200);
       
-      expect(response.body).toEqual(mockProject);
+      expect(response.body).toEqual(JSON.parse(JSON.stringify(mockProject)));
       expect(mockGetProject).toHaveBeenCalledWith(1);
     }, 10000);
   });
@@ -170,7 +170,7 @@ describe("API Integration Tests", () => {
         .get("/api/cases")
         .expect(200);
       
-      expect(response.body).toEqual([mockCase]);
+      expect(response.body).toEqual([JSON.parse(JSON.stringify(mockCase))]);
       expect(mockGetCases).toHaveBeenCalledWith(false);
     }, 10000);
   });
@@ -211,7 +211,7 @@ describe("API Integration Tests", () => {
       const adminApp = express();
       adminApp.use(express.json());
       
-      adminApp.use((req, res, next) => {
+      adminApp.use((req: any, res, next) => {
         req.user = { ...mockUser, isAdmin: true, username: "admin" };
         req.isAuthenticated = () => true;
         next();
