@@ -5,8 +5,8 @@ export const mockUser = {
   username: "testuser",
   password: "hashedpassword",
   isAdmin: false,
-  createdAt: new Date("2024-01-01"),
-  updatedAt: new Date("2024-01-01"),
+  createdAt: "2024-01-01T00:00:00.000Z",
+  updatedAt: "2024-01-01T00:00:00.000Z",
 };
 
 export const mockAdminUser = {
@@ -14,8 +14,8 @@ export const mockAdminUser = {
   username: "admin",
   password: "hashedpassword", 
   isAdmin: true,
-  createdAt: new Date("2024-01-01"),
-  updatedAt: new Date("2024-01-01"),
+  createdAt: "2024-01-01T00:00:00.000Z",
+  updatedAt: "2024-01-01T00:00:00.000Z",
 };
 
 export const mockProject = {
@@ -31,8 +31,8 @@ export const mockProject = {
   handoverNotes: "テスト引き継ぎ事項",
   remarks: "テスト特記事項",
   isDeleted: false,
-  createdAt: new Date("2024-01-01"),
-  updatedAt: new Date("2024-01-01"),
+  createdAt: "2024-01-01T00:00:00.000Z",
+  updatedAt: "2024-01-01T00:00:00.000Z",
 };
 
 export const mockCase = {
@@ -44,13 +44,13 @@ export const mockCase = {
   includeProgressAnalysis: true,
   weeklyMeetingDay: "火曜日",
   isDeleted: false,
-  createdAt: new Date("2024-01-01"),
+  createdAt: "2024-01-01T00:00:00.000Z",
 };
 
 export const mockWeeklyReport = {
   id: 1,
   caseId: 1,
-  weekStartDate: new Date("2024-01-01"),
+  weekStartDate: "2024-01-01T00:00:00.000Z",
   progressSummary: "テスト用の進捗概要",
   tasksCompleted: "完了したタスク",
   tasksInProgress: "進行中のタスク", 
@@ -65,21 +65,21 @@ export const mockWeeklyReport = {
   stakeholderFeedback: "ステークホルダーフィードバック",
   lessonsLearned: "学んだこと",
   improvementActions: "改善アクション",
-  createdAt: new Date("2024-01-01"),
-  updatedAt: new Date("2024-01-01"),
+  createdAt: "2024-01-01T00:00:00.000Z",
+  updatedAt: "2024-01-01T00:00:00.000Z",
   createdBy: 1,
 };
 
 export const mockManagerMeeting = {
   id: 1,
   projectId: 1,
-  meetingDate: new Date("2024-01-01"),
+  meetingDate: "2024-01-01T00:00:00.000Z",
   agenda: "テスト用の議題",
   decisions: "決定事項",
   actionItems: "アクションアイテム",
   attendees: "参加者",
-  nextMeetingDate: new Date("2024-01-08"),
-  createdAt: new Date("2024-01-01"),
-  updatedAt: new Date("2024-01-01"),
+  nextMeetingDate: "2024-01-08T00:00:00.000Z",
+  createdAt: "2024-01-01T00:00:00.000Z",
+  updatedAt: "2024-01-01T00:00:00.000Z",
   createdBy: 1,
 };
