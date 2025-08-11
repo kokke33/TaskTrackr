@@ -258,7 +258,7 @@ export default function CaseView() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8">
           <p className="text-center">読み込み中...</p>
         </div>
@@ -268,7 +268,7 @@ export default function CaseView() {
 
   if (!caseData) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8">
           <p className="text-center">案件が見つかりません</p>
           <div className="flex justify-center mt-4">
@@ -282,7 +282,7 @@ export default function CaseView() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex justify-between items-center mb-6">
           <Breadcrumb>

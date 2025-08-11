@@ -62,7 +62,7 @@ export default function ProjectDetail() {
 
   if (isLoadingProject || isLoadingAllProjects || (!projectId && !project)) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8">
           <p className="text-center">読み込み中...</p>
         </div>
@@ -72,7 +72,7 @@ export default function ProjectDetail() {
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8">
           <p className="text-center">プロジェクトが見つかりません</p>
           <div className="flex justify-center mt-4">
@@ -86,7 +86,7 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex justify-between items-center mb-6">
           <Breadcrumb>

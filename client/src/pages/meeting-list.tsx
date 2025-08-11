@@ -312,7 +312,7 @@ export default function MeetingList() {
   // エラー状態の表示
   if (managerMeetingsError || weeklyMeetingsError || caseWeeklyMeetingsError) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8 max-w-5xl">
           <div className="text-center">
             <p className="text-red-600 mb-4">議事録の読み込み中にエラーが発生しました</p>
@@ -334,7 +334,7 @@ export default function MeetingList() {
   // ローディング中の表示
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8 max-w-5xl">
           <p className="text-center">読み込み中...</p>
         </div>
@@ -343,7 +343,7 @@ export default function MeetingList() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <ThemeToggle />
 
       <div className="container mx-auto px-4 py-8 max-w-5xl">

@@ -83,7 +83,7 @@ export default function ProjectList() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8">
           <p className="text-center">読み込み中...</p>
         </div>
@@ -92,7 +92,7 @@ export default function ProjectList() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="flex justify-between items-center mb-6">
           <Breadcrumb>

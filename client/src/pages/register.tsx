@@ -95,7 +95,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="bg-background flex items-center justify-center py-12">
       <Card className="w-full max-w-md mx-4">
         <CardContent className="pt-6">
           <h1 className="text-2xl font-bold text-center mb-6">ユーザー登録</h1>

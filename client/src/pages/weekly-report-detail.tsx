@@ -380,7 +380,7 @@ export default function WeeklyReportDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8">
           <p className="text-center">読み込み中...</p>
         </div>
@@ -390,7 +390,7 @@ export default function WeeklyReportDetail() {
 
   if (!report) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="bg-background">
         <div className="container mx-auto px-4 py-8">
           <p className="text-center">報告が見つかりません</p>
           <div className="text-center mt-4">
@@ -446,7 +446,7 @@ export default function WeeklyReportDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <ThemeToggle />
 
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-4xl">
