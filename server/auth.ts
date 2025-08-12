@@ -162,11 +162,11 @@ passport.deserializeUser(async (id: number, done) => {
         return false; // 認証失敗
       }
       
-      // 本番環境では機密情報を含むデバッグログを削減
+      // 本番環境では機密情報を含むデバッグログを削減し、INFOレベルに格下げ
       if (process.env.NODE_ENV !== 'production') {
         console.log(`✅ セッション復元成功 - ${user.username} (ID: ${user.id})`);
       } else {
-        console.log(`✅ セッション復元成功`);
+        console.info(`✅ セッション復元成功`);
       }
       
       return user;

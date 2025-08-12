@@ -48,7 +48,8 @@ export const pool = new Pool(poolConfig);
 
 // プールレベルでのエラーハンドリングを追加（離席後エラー対策強化）
 pool.on('error', (err) => {
-  console.error('PostgreSQL Pool Error:', err.message);
+  // 本番環境では接続切断メッセージをINFOレベルに格下げ
+  const isProduction = process.env.NODE_ENV === 'production';
   
   // 認証エラーの特別処理
   if (err.message.includes('role') && err.message.includes('does not exist')) {
@@ -58,25 +59,56 @@ pool.on('error', (err) => {
   } else if (err.message.includes('Connection terminated unexpectedly') || 
       err.message.includes('ECONNRESET') ||
       err.message.includes('ETIMEDOUT') ||
-      err.message.includes('ENOTFOUND')) {
-    console.log('🔄 データベース接続が切断されました。次回のクエリ時に自動再接続されます。');
-    // 離席後によくある接続エラーのログ出力
-    if (isNeon) {
-      console.log('💡 Neon環境: 15分のアイドルタイムアウト後の再接続です');
+      err.message.includes('ENOTFOUND') ||
+      err.message.includes('terminating connection due to administrator command')) {
+    
+    // 本番環境では警告レベルに格下げ、開発環境では従来通り
+    if (isProduction) {
+      console.warn('PostgreSQL Pool Error:', err.message);
+      console.info('🔄 データベース接続が切断されました。次回のクエリ時に自動再接続されます。');
+      if (isNeon) {
+        console.info('💡 Neon環境: アイドルタイムアウト後の自動再接続です');
+      }
+    } else {
+      console.error('PostgreSQL Pool Error:', err.message);
+      console.log('🔄 データベース接続が切断されました。次回のクエリ時に自動再接続されます。');
+      if (isNeon) {
+        console.log('💡 Neon環境: 15分のアイドルタイムアウト後の再接続です');
+      }
     }
+  } else {
+    // その他のエラーは従来通りエラーレベル
+    console.error('PostgreSQL Pool Error:', err.message);
   }
 });
 
 // プールの接続イベントも監視
 pool.on('connect', (client) => {
-  console.log('🔗 新しいデータベース接続が確立されました');
+  // 本番環境では接続確立メッセージをINFOレベルに格下げ
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  if (isProduction) {
+    console.info('🔗 新しいデータベース接続が確立されました');
+  } else {
+    console.log('🔗 新しいデータベース接続が確立されました');
+  }
   
   // クライアントレベルでのエラーハンドリング
   client.on('error', (err) => {
-    console.error('PostgreSQL Client Error:', err.message);
-    // セッション中に発生するクライアントエラーの詳細ログ
-    if (err.message.includes('server closed the connection unexpectedly')) {
-      console.log('⚠️ サーバーが予期せず接続を閉じました（離席によるタイムアウトの可能性）');
+    // 接続切断関連のエラーは本番環境で格下げ
+    if (err.message.includes('server closed the connection unexpectedly') ||
+        err.message.includes('terminating connection due to administrator command')) {
+      
+      if (isProduction) {
+        console.warn('PostgreSQL Client Error:', err.message);
+        console.info('⚠️ サーバーが接続を閉じました（アイドルタイムアウトによる自動切断）');
+      } else {
+        console.error('PostgreSQL Client Error:', err.message);
+        console.log('⚠️ サーバーが予期せず接続を閉じました（離席によるタイムアウトの可能性）');
+      }
+    } else {
+      // その他のクライアントエラーは従来通りエラーレベル
+      console.error('PostgreSQL Client Error:', err.message);
     }
   });
 
@@ -93,24 +125,47 @@ export const db = drizzle({ client: pool, schema });
 // Neonデータベースの接続テスト（初回アクセス時のウォームアップ）
 if (isNeon) {
   const warmupDatabase = async () => {
+    const isProduction = process.env.NODE_ENV === 'production';
     let retries = 3;
+    
     while (retries > 0) {
       try {
-        console.log('Neonデータベースへの接続をテスト中...');
+        if (isProduction) {
+          console.info('Neonデータベースへの接続をテスト中...');
+        } else {
+          console.log('Neonデータベースへの接続をテスト中...');
+        }
+        
         const client = await pool.connect();
         await client.query('SELECT 1');
         client.release();
-        console.log('✅ Neonデータベース接続成功');
+        
+        if (isProduction) {
+          console.info('✅ Neonデータベース接続成功');
+        } else {
+          console.log('✅ Neonデータベース接続成功');
+        }
         break;
       } catch (error) {
         retries--;
-        console.log(`⚠️ Neonデータベース接続失敗 (残り${retries}回)`);
+        const message = `⚠️ Neonデータベース接続失敗 (残り${retries}回)`;
+        
+        if (isProduction) {
+          console.warn(message);
+        } else {
+          console.log(message);
+        }
+        
         if (retries > 0) {
-          console.log('10秒後にリトライします...');
+          if (isProduction) {
+            console.info('10秒後にリトライします...');
+          } else {
+            console.log('10秒後にリトライします...');
+          }
           await new Promise(resolve => setTimeout(resolve, 10000));
         } else {
-          console.log('❌ Neonデータベースの接続に失敗しました');
-          console.log('Neonコンソールでデータベースが起動しているか確認してください');
+          console.error('❌ Neonデータベースの接続に失敗しました');
+          console.error('Neonコンソールでデータベースが起動しているか確認してください');
         }
       }
     }
