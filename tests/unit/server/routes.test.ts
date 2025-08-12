@@ -109,7 +109,7 @@ describe("Routes", () => {
       limit: '50mb',
       verify: (req, res, buf, encoding) => {
         try {
-          JSON.parse(buf.toString(encoding || 'utf8'));
+          JSON.parse(buf.toString((encoding as BufferEncoding) || 'utf8'));
         } catch (err) {
           const error = new Error('Invalid JSON') as any;
           error.status = 400;
@@ -127,7 +127,7 @@ describe("Routes", () => {
     });
     
     // セッション設定を追加
-    app.use((req, res, next) => {
+    app.use((req: any, res: any, next: any) => {
       req.sessionID = "test-session-id";
       // 常に管理者として設定
       req.user = { 

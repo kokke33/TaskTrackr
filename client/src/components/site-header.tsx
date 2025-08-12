@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { ThemeToggle } from './theme-toggle';
 import { SearchBar } from './search-bar';
 import { AdminOnly } from '@/lib/admin-only';
-import { User, LogOut, Settings, Users, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { User, LogOut, Settings, Users, Loader2, Wifi, WifiOff, Home } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 type SiteHeaderProps = {
@@ -65,7 +65,16 @@ export function SiteHeader({ isLoading = false }: SiteHeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center px-4 mx-auto">
-        {/* 左側の要素 */}
+        {/* モバイル表示用TOPボタン */}
+        <div className="md:hidden flex items-center mr-2">
+          <Link href="/">
+            <Button variant="ghost" size="icon" title="ホーム">
+              <Home className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+        
+        {/* 左側の要素（デスクトップ） */}
         <div className="hidden md:flex items-center space-x-6 text-sm font-medium flex-1">
           <Link href="/" className="flex items-center">
             <span className="font-bold">TOP</span>

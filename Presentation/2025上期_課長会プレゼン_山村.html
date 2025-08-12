@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TSS 役員向け — 自己進化型DX × TaskTrackr（PowerPoint風・単一HTML）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#0f172a;
+--fg:#e5e7eb;
+--muted:#94a3b8;
+--accent:#22d3ee;
+--panel:rgba(17,24,39,.9);
+--card:rgba(30,41,59,.86);
+--border:rgba(148,163,184,.22);
+--shadow:0 30px 80px rgba(0,0,0,.45);
+--slide-w:1280px;
+--slide-h:720px;
+--pad:56px; /* 16:9 パワポ風 */
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+margin:0;
+background:var(--bg);
+color:var(--fg);
+font-family:"Noto Sans JP",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+overflow:hidden; /* 1枚キャンバス表示 */
+}
+
+/* 薄いグリッド背景 */
+.bg-grid::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(to right, rgba(255,255,255,.05) 1px, transparent 1px),
+linear-gradient(to bottom, rgba(255,255,255,.05) 1px, transparent 1px);
+background-size:28px 28px;
+pointer-events:none;
+z-index:0;
+}
+
+/* ステージとキャンバス（16:9固定/中央配置） */
+.stage{position:relative; z-index:1; width:100vw; height:100vh; display:grid; place-items:center; padding:24px;}
+.canvas{
+position:relative;
+overflow:hidden;
+width:min(var(--slide-w), calc(100vw - 48px));
+height:min(var(--slide-h), calc(100vh - 112px));
+aspect-ratio:16 / 9;
+background:var(--card);
+border:1px solid var(--border);
+border-radius:20px;
+box-shadow:var(--shadow);
+}
+
+/* タイトルバー */
+.titlebar{
+position:absolute;
+inset:0 0 auto 0;
+height:56px;
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 18px;
+background:linear-gradient(to bottom, rgba(2,6,23,.65), rgba(2,6,23,0));
+border-bottom:1px solid rgba(148,163,184,.1);
+}
+.brand{
+font-weight:800;
+letter-spacing:.2px;
+color:#cbd5e1
+}
+.dots{
+display:flex;
+gap:6px
+}
+.dot{
+width:10px;
+height:10px;
+border-radius:50%
+}
+.b1{background:#0A2463}.b2{background:#1E56A0}.b3{background:#3D84B8}.b4{background:#78A6C8}
+
+/* スライド本体（入退場アニメ） */
+.slide{
+position:absolute;
+inset:56px 0 64px 0; /* タイトルバー+フッターを除外 */
+padding:var(--pad);
+opacity:0; transform:translateX(30px) scale(.98);
+display:grid; grid-template-rows:auto 1fr; gap:18px;
+}
+.slide.active{ opacity:1; transform:translateX(0) scale(1); transition:opacity .35s ease, transform .45s cubic-bezier(.2,.7,.2,1); }
+.slide.exit-left { animation:exitLeft .35s ease both }
+.slide.exit-right{ animation:exitRight .35s ease both }
+@keyframes exitLeft{ from{opacity:1; transform:translateX(0)} to{opacity:0; transform:translateX(-40px)} }
+@keyframes exitRight{ from{opacity:1; transform:translateX(0)} to{opacity:0; transform:translateX(40px)} }
+
+/* タイポ（後方からも視認） */
+h1{ font-size:64px; line-height:1.05; margin:0; color:var(--accent); font-weight:900; letter-spacing:.3px }
+h2{ font-size:44px; line-height:1.12; margin:0; font-weight:900 }
+h3{ font-size:30px; line-height:1.2; margin:0; font-weight:800 }
+p.lead{ font-size:28px; margin:6px 0 0 }
+p.body{ font-size:26px; margin:6px 0 0 }
+.muted{ color:var(--muted) }
+.accent{ color:var(--accent) }
+
+/* レイアウト（1トピック1スライド） */
+.vbox{ display:grid; align-content:start; gap:22px }
+.grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:22px }
+.grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:22px }
+.card{ background:rgba(15,23,42,.66); border:1px solid var(--border); border-radius:16px; padding:18px 20px }
+.point{ font-size:26px }
+.bullet{ list-style:none; padding:0; margin:0; display:grid; gap:10px }
+.bullet li{ font-size:26px }
+.bullet li::before{
+content:""; display:inline-block; width:12px; height:12px; border-radius:50%;
+background:var(--accent); margin-right:12px; transform:translateY(-2px);
+}
+
+/* 比較（明確な2カラム） */
+.compare{ display:grid; grid-template-columns:1fr 1fr; gap:22px }
+.side{ background:rgba(2,6,23,.5); border:1px solid var(--border); border-radius:16px; padding:18px 20px }
+.side h3{ margin-bottom:8px }
+.side ul{ list-style:none; padding:0; margin:0; display:grid; gap:10px }
+.side li{ font-size:26px }
+.side li::before{ content:"- "; color:var(--accent); font-weight:900; margin-right:6px }
+
+/* チャート（単体スライド） */
+.chart{
+width:100%; height:100%;
+background:rgba(2,6,23,.6); border:1px solid var(--border); border-radius:16px;
+display:grid; place-items:center;
+}
+svg text{ font-family:inherit }
+
+/* フッター（ページ番号・進行ドット・ヒント） */
+.footer{
+position:absolute; inset:auto 0 0 0; height:64px;
+display:flex; align-items:center; justify-content:space-between;
+padding:0 18px;
+background:linear-gradient(to top, rgba(2,6,23,.65), rgba(2,6,23,0));
+border-top:1px solid rgba(148,163,184,.1);
+}
+.pager{ font-weight:800; color:#cbd5e1 }
+.steps{ display:flex; align-items:center; gap:8px }
+.step{
+width:10px; height:10px; border-radius:50%;
+background:rgba(148,163,184,.25); border:1px solid rgba(148,163,184,.35);
+}
+.step.active{ background:var(--accent); border-color:#06b6d4 }
+.hint{ font-size:14px; color:var(--muted) }
+.kbd{ display:inline-block; min-width:1.6em; text-align:center; border:1px solid var(--border); border-radius:6px; padding:.15em .4em; background:rgba(30,41,59,.7) }
+
+/* クリックで次へ（スライド領域全体をホットスポットに） */
+.hotspot{ position:absolute; inset:56px 0 64px 0; cursor:pointer }
+
+/* レスポンシブ */
+@media (max-width: 900px){
+h1{ font-size:44px } h2{ font-size:34px }
+.point, .bullet li, .side li, p.body, p.lead{ font-size:22px }
+}
+</style>
+</head>
+<body class="bg-grid">
+<div class="stage">
+<div class="canvas" id="deck">
+<!-- タイトルバー -->
+<div class="titlebar">
+<div class="brand">自己進化型DX × TaskTrackr</div>
+<div class="dots"><span class="dot b1"></span><span class="dot b2"></span><span class="dot b3"></span><span class="dot b4"></span></div>
+</div>
+
+<!-- スライド1 タイトル -->
+<section class="slide active" data-title="タイトル">
+<div class="vbox">
+<h1>AIがAIを創り、業務を進化させる</h1>
+<p class="lead">— 自己進化型DXモデル × 第一弾「TaskTrackr」—</p>
+<p class="muted">対象: 社長・役員／シロウトにも伝わる平易な言葉で</p>
+</div>
+</section>
+
+<!-- スライド2 課題 -->
+<section class="slide" data-title="課題">
+<div class="vbox">
+<h2>「報告という名の停滞」が、組織の学習速度を鈍らせる</h2>
+<ul class="bullet">
+<li>形式がバラバラで横断比較できない</li>
+<li>前回とのつながりが弱く議論が深まらない</li>
+<li>読む作業で時間が消え、判断が遅れる</li>
+</ul>
+</div>
+</section>
+
+<!-- スライド3 ブレークスルー -->
+<section class="slide" data-title="ブレークスルー">
+<div class="vbox">
+<h2>解決策: バイブコーディング × デュアルAI</h2>
+<ul class="bullet">
+<li><b>創るAI</b>: 仕様は人、実装はAIで高速化。ノウハウは自動で資産化</li>
+<li><b>使うAI</b>: 役割が異なる2つのAIを常駐。品質向上と分析の自動化</li>
+</ul>
+</div>
+</section>
+
+<!-- スライド4 TaskTrackr -->
+<section class="slide" data-title="TaskTrackr">
+<div class="vbox">
+<h2>第一弾の実証: 週次報告を変える「TaskTrackr」</h2>
+<div class="grid-3">
+<div class="card"><h3 class="accent">標準化</h3><p class="point">フォーマットを自動統一</p></div>
+<div class="card"><h3 class="accent">連続性</h3><p class="point">前回との差分・矛盾を自動指摘</p></div>
+<div class="card"><h3 class="accent">自動化</h3><p class="point">議事録や指示ドラフトまで生成</p></div>
+</div>
+</div>
+</section>
+
+<!-- スライド5 比較（Before/After） -->
+<section class="slide" data-title="比較">
+<div class="vbox">
+<h2>従来との違い（Before → After）</h2>
+<div class="compare">
+<div class="side">
+<h3>Before</h3>
+<ul>
+<li>読むだけで数時間</li>
+<li>体裁修正や経緯確認に追われる</li>
+</ul>
+</div>
+<div class="side">
+<h3 class="accent">After</h3>
+<ul>
+<li>AIが論点を抽出、要点だけ確認</li>
+<li>「進捗は？」「好転要因は？」を即提示</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+
+<!-- スライド6 管理層への価値 -->
+<section class="slide" data-title="管理層の価値">
+<div class="vbox">
+<h2>経営・管理層の時間を「判断と対話」に戻す</h2>
+<ul class="bullet">
+<li>AIが「注目ポイント」を要約表示</li>
+<li>意思決定の速度と質を同時に引き上げる</li>
+</ul>
+</div>
+</section>
+
+<!-- スライド7 現場への価値 -->
+<section class="slide" data-title="現場の価値">
+<div class="vbox">
+<h2>現場リーダーの「自己完結PDCA」を加速</h2>
+<ul class="bullet">
+<li>Plan: 未対応リスクから次週計画が明確に</li>
+<li>Do: 入力時に数値目標と具体性を促す</li>
+<li>Check: 提出前に客観的な進捗分析</li>
+<li>Act: 指示ドラフトで合意を迅速化</li>
+</ul>
+</div>
+</section>
+
+<!-- スライド8 グラフ（単体スライド） -->
+<section class="slide" data-title="グラフ">
+<div class="vbox">
+<h2>効果（例）: コストと工数の削減</h2>
+<div class="chart" role="img" aria-label="開発コスト1/5、関連工数70%削減の例示グラフ">
+<svg viewBox="0 0 1100 560" width="100%" height="100%">
+<line x1="140" y1="480" x2="980" y2="480" stroke="#64748b" stroke-width="2"></line>
+<line x1="140" y1="80"  x2="140" y2="480" stroke="#64748b" stroke-width="2"></line>
+<g fill="#94a3b8" font-size="20">
+<text x="110" y="480">0</text>
+<text x="100" y="380">25</text>
+<text x="100" y="280">50</text>
+<text x="100" y="180">75</text>
+<text x="90"  y="100">100</text>
+</g>
+<g>
+<rect x="260" y="120" width="120" height="360" fill="#3b82f6" rx="10"></rect>
+<rect x="410" y="408" width="120" height="72"  fill="#22d3ee" rx="10"></rect>
+<text x="320" y="520" fill="#cbd5e1" text-anchor="middle" font-size="20">従来</text>
+<text x="470" y="520" fill="#cbd5e1" text-anchor="middle" font-size="20">新</text>
+<text x="315" y="110" fill="#cbd5e1" font-size="24">100</text>
+<text x="465" y="398" fill="#0e7490" font-size="24">20</text>
+<text x="320" y="90"  fill="#cbd5e1" font-size="22">開発コスト</text>
+</g>
+<g>
+<rect x="660" y="120" width="120" height="360" fill="#3b82f6" rx="10"></rect>
+<rect x="810" y="264" width="120" height="216" fill="#22d3ee" rx="10"></rect>
+<text x="720" y="520" fill="#cbd5e1" text-anchor="middle" font-size="20">従来</text>
+<text x="870" y="520" fill="#cbd5e1" text-anchor="middle" font-size="20">新</text>
+<text x="715" y="110" fill="#cbd5e1" font-size="24">100</text>
+<text x="865" y="254" fill="#0e7490" font-size="24">30</text>
+<text x="720" y="90"  fill="#cbd5e1" font-size="22">関連工数</text>
+</g>
+</svg>
+</div>
+<p class="muted">数値は例。実績に合わせて編集してください。</p>
+</div>
+</section>
+
+<!-- スライド9 全社展開 -->
+<section class="slide" data-title="全社展開">
+<div class="vbox">
+<h2>次の一手: 成功モデルを全社に横展開</h2>
+<ul class="bullet">
+<li>テンプレート化で高速導入（目安 2週間/業務）</li>
+<li>適用: 日報／稟議／経費精算／問い合わせ管理</li>
+<li>「バイブコーディング × デュアルAI」で再現性を担保</li>
+</ul>
+</div>
+</section>
+
+<!-- スライド10 まとめ -->
+<section class="slide" data-title="まとめ">
+<div class="vbox">
+<h2>AIがAIを創り、業務を進化させる。</h2>
+<p class="lead"><span class="accent">自己進化サイクル</span>がTSSの競争力の源泉</p>
+<p class="muted">ご清聴ありがとうございました。</p>
+</div>
+</section>
+
+<!-- フッター -->
+<div class="footer">
+<div class="pager" id="pager">1 / 10</div>
+<div class="steps" id="steps" aria-hidden="true"></div>
+<div class="hint"><span class="kbd">←</span>/<span class="kbd">→</span> で移動・クリックで次へ</div>
+</div>
+
+<!-- スライド全体クリックで次へ -->
+<div class="hotspot" id="hotspot" aria-label="次のスライドへ"></div>
+</div>
+</div>
+
+<script>
+// セミコロン明示・安全化したスライド制御
+const slides = Array.from(document.querySelectorAll('.slide'));
+const pager = document.getElementById('pager');
+const steps = document.getElementById('steps');
+const hotspot = document.getElementById('hotspot');
+
+// 進行ドット生成
+slides.forEach((_, i) => {
+const d = document.createElement('div');
+d.className = 'step' + (i === 0 ? ' active' : '');
+steps.appendChild(d);
+});
+
+let idx = 0;
+
+function updateUI() {
+pager.textContent = (idx + 1) + ' / ' + slides.length;
+document.title = (idx + 1) + '/' + slides.length + ' — ' + slides[idx].dataset.title + ' | TSS Deck';
+Array.from(steps.children).forEach((el, i) => el.classList.toggle('active', i === idx));
+history.replaceState(null, '', '#' + (idx + 1));
+}
+
+function setActive(newIndex, dir) {
+if (newIndex === idx) return;
+const cur = slides[idx];
+const nxt = slides[newIndex];
+if (!nxt || !cur) return;
+
+// 退場方向アニメ
+cur.classList.remove('active');
+cur.classList.add(dir === 'prev' ? 'exit-right' : 'exit-left');
+setTimeout(() => {
+cur.classList.remove('exit-left', 'exit-right');
+}, 360);
+
+// 入場
+nxt.classList.add('active');
+idx = newIndex;
+updateUI();
+}
+
+function next() {
+setActive(Math.min(idx + 1, slides.length - 1), 'next');
+}
+
+function prev() {
+setActive(Math.max(idx - 1, 0), 'prev');
+}
+
+// 初期表示（ハッシュ指定対応）
+(function init() {
+const n = parseInt(location.hash.replace('#', ''), 10);
+slides.forEach(s => s.classList.remove('active'));
+if (!isNaN(n) && n >= 1 && n <= slides.length) {
+slides[n - 1].classList.add('active');
+idx = n - 1;
+} else {
+slides[0].classList.add('active');  // ← 修正箇所
+idx = 0;
+}
+updateUI();
+})();
+
+// 操作
+document.addEventListener('keydown', (e) => {
+if (e.key === 'ArrowRight' || e.key === 'PageDown') next();
+if (e.key === 'ArrowLeft' || e.key === 'PageUp') prev();
+if (e.key === 'Home') setActive(0, 'prev');
+if (e.key === 'End') setActive(slides.length - 1, 'next');
+});
+
+hotspot.addEventListener('click', (e) => {
+const deck = document.getElementById('deck');
+const titlebar = deck.querySelector('.titlebar');
+const footer = deck.querySelector('.footer');
+const inTitle = titlebar && (e.target === titlebar || titlebar.contains(e.target));
+const inFooter = footer && (e.target === footer || footer.contains(e.target));
+if (!inTitle && !inFooter) next();
+});
+</script>
+</body>
+</html>

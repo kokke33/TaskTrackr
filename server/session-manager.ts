@@ -38,10 +38,15 @@ export class UnifiedSessionManager {
    */
   private createOptimalStore(): Store {
     const databaseUrl = process.env.DATABASE_URL || '';
+    const isProduction = process.env.NODE_ENV === 'production';
     
     // 将来的な拡張: Redis対応
     if (process.env.REDIS_URL) {
-      console.log('📦 セッションストア: Redis (未実装)');
+      if (isProduction) {
+        console.info('📦 セッションストア: Redis (未実装)');
+      } else {
+        console.log('📦 セッションストア: Redis (未実装)');
+      }
       // TODO: Redis実装
       // this.storeType = 'redis';
       // return new RedisStore({ url: process.env.REDIS_URL });
@@ -50,7 +55,11 @@ export class UnifiedSessionManager {
     // PostgreSQL対応（Neon.techでない場合）
     if (databaseUrl && !this.isDatabaseLimited(databaseUrl)) {
       try {
-        console.log('📦 セッションストア: PostgreSQL');
+        if (isProduction) {
+          console.info('📦 セッションストア: PostgreSQL');
+        } else {
+          console.log('📦 セッションストア: PostgreSQL');
+        }
         this.storeType = 'postgresql';
         return new PostgresStore({
           conObject: {
@@ -67,7 +76,11 @@ export class UnifiedSessionManager {
     }
 
     // MemoryStore（フォールバック）
-    console.log('📦 セッションストア: MemoryStore (Neon.tech対応)');
+    if (isProduction) {
+      console.info('📦 セッションストア: MemoryStore (Neon.tech対応)');
+    } else {
+      console.log('📦 セッションストア: MemoryStore (Neon.tech対応)');
+    }
     this.storeType = 'memory';
     return new MemStore({
       checkPeriod: 10 * 60 * 1000, // 10分ごとにクリーンアップ
@@ -75,7 +88,10 @@ export class UnifiedSessionManager {
       ttl: 4 * 60 * 60 * 1000, // 4時間でセッション期限切れ
       stale: false, // 期限切れセッションは保持しない
       dispose: (key: string) => {
-        if (process.env.NODE_ENV !== 'production') {
+        // 本番環境ではセッション削除ログをINFOレベルに格下げ
+        if (isProduction) {
+          console.info(`🗑️ セッション削除: ${key.substring(0, 8)}...`);
+        } else {
           console.log(`🗑️ セッション削除: ${key.substring(0, 8)}...`);
         }
       }

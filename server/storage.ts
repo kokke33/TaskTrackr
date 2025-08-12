@@ -130,6 +130,7 @@ type CaseSummary = {
   id: number;
   projectName: string;
   caseName: string;
+  description: string | null;
   milestone: string | null;
   isDeleted: boolean;
   createdAt: Date;
@@ -1065,6 +1066,7 @@ export class DatabaseStorage implements IStorage {
             id: cases.id,
             projectName: cases.projectName,
             caseName: cases.caseName,
+            description: cases.description,
             milestone: cases.milestone,
             isDeleted: cases.isDeleted,
             createdAt: cases.createdAt,
