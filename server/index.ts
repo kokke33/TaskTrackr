@@ -70,7 +70,7 @@ app.use(
     cookie: {
       secure: false, // 開発環境では常にfalse（HTTPSでなくても動作）
       sameSite: 'lax', // 開発環境用に緩和（strictから変更）
-      maxAge: 4 * 60 * 60 * 1000, // 4時間（MemoryStore TTLと統一）
+      maxAge: 30 * 60 * 1000, // 30分（DB接続プールと統一）
       httpOnly: true, // XSS対策は維持
       domain: undefined // 開発環境ではdomainを指定しない
     },
