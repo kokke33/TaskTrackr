@@ -27,16 +27,16 @@ if (isLocal) {
   console.log('リモートPostgreSQL環境に接続します');
 }
 
-// Neonの場合は接続プールの設定を調整（30分統一タイムアウト対応）
+// Neonの場合は接続プールの設定を調整（5分制限対応）
 const poolConfig = isNeon ? {
   connectionString: databaseUrl,
-  connectionTimeoutMillis: 120000,  // 2分
-  idleTimeoutMillis: 1800000,      // 30分（セッション管理と統一）
-  max: 3,                          // 接続数を適度に設定
-  min: 1,                          // 最低1つの接続を維持
-  acquireTimeoutMillis: 60000,     // 取得タイムアウト1分
+  connectionTimeoutMillis: 60000,   // 1分
+  idleTimeoutMillis: 240000,       // 4分（Neon無料プランの5分制限より前に切断）
+  max: 2,                          // 接続数を最小限に抑制
+  min: 0,                          // 最小接続数を0に（完全なアイドル時切断）
+  acquireTimeoutMillis: 30000,     // 取得タイムアウト30秒
   keepAlive: true,                 // TCP Keep-Aliveを有効化
-  keepAliveInitialDelayMillis: 0,  // Keep-Alive開始遅延なし
+  keepAliveInitialDelayMillis: 10000, // 10秒後にKeep-Alive開始
   ssl: { rejectUnauthorized: false }
 } : {
   connectionString: databaseUrl,
@@ -67,13 +67,13 @@ pool.on('error', (err) => {
       console.warn('PostgreSQL Pool Error:', err.message);
       console.info('🔄 データベース接続が切断されました。次回のクエリ時に自動再接続されます。');
       if (isNeon) {
-        console.info('💡 Neon環境: 30分アイドルタイムアウト後の自動再接続です');
+        console.info('💡 Neon環境: 4分アイドルタイムアウト後の自動再接続です（5分制限対応）');
       }
     } else {
       console.error('PostgreSQL Pool Error:', err.message);
       console.log('🔄 データベース接続が切断されました。次回のクエリ時に自動再接続されます。');
       if (isNeon) {
-        console.log('💡 Neon環境: 30分アイドルタイムアウト後の再接続です');
+        console.log('💡 Neon環境: 4分アイドルタイムアウト後の再接続です（5分制限対応）');
       }
     }
   } else {
@@ -101,10 +101,10 @@ pool.on('connect', (client) => {
       
       if (isProduction) {
         console.warn('PostgreSQL Client Error:', err.message);
-        console.info('⚠️ サーバーが接続を閉じました（アイドルタイムアウトによる自動切断）');
+        console.info('⚠️ サーバーが接続を閉じました（Neon 5分制限による自動切断）');
       } else {
         console.error('PostgreSQL Client Error:', err.message);
-        console.log('⚠️ サーバーが予期せず接続を閉じました（離席によるタイムアウトの可能性）');
+        console.log('⚠️ サーバーが予期せず接続を閉じました（Neon 5分制限の可能性）');
       }
     } else {
       // その他のクライアントエラーは従来通りエラーレベル
