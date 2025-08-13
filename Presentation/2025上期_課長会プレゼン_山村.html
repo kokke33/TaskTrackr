@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TSS 役員向け — 自己進化型DX × TaskTrackr（PowerPoint風・単一HTML）</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <style>
 :root{
 --bg:#0f172a;
@@ -91,8 +92,9 @@ inset:56px 0 64px 0; /* タイトルバー+フッターを除外 */
 padding:var(--pad);
 opacity:0; transform:translateX(30px) scale(.98);
 display:grid; grid-template-rows:auto 1fr; gap:18px;
+pointer-events:none; /* 非アクティブスライドのクリックを無効化 */
 }
-.slide.active{ opacity:1; transform:translateX(0) scale(1); transition:opacity .35s ease, transform .45s cubic-bezier(.2,.7,.2,1); }
+.slide.active{ opacity:1; transform:translateX(0) scale(1); transition:opacity .35s ease, transform .45s cubic-bezier(.2,.7,.2,1); pointer-events:auto; }
 .slide.exit-left { animation:exitLeft .35s ease both }
 .slide.exit-right{ animation:exitRight .35s ease both }
 @keyframes exitLeft{ from{opacity:1; transform:translateX(0)} to{opacity:0; transform:translateX(-40px)} }
@@ -154,13 +156,38 @@ background:rgba(148,163,184,.25); border:1px solid rgba(148,163,184,.35);
 .hint{ font-size:14px; color:var(--muted) }
 .kbd{ display:inline-block; min-width:1.6em; text-align:center; border:1px solid var(--border); border-radius:6px; padding:.15em .4em; background:rgba(30,41,59,.7) }
 
-/* クリックで次へ（スライド領域全体をホットスポットに） */
-.hotspot{ position:absolute; inset:56px 0 64px 0; cursor:pointer }
+
+/* スライドアイコン */
+.slide-icon {
+position: absolute;
+top: 100px;
+right: 60px;
+font-size: 120px;
+color: rgba(34, 211, 238, 0.1);
+pointer-events: none;
+z-index: -1;
+transform: rotate(-10deg);
+}
+
+.slide-icon.bottom-left {
+top: auto;
+bottom: 120px;
+right: auto;
+left: 60px;
+transform: rotate(10deg);
+}
+
+.slide-icon.center-right {
+top: 50%;
+right: 80px;
+transform: translateY(-50%) rotate(-5deg);
+}
 
 /* レスポンシブ */
 @media (max-width: 900px){
 h1{ font-size:44px } h2{ font-size:34px }
 .point, .bullet li, .side li, p.body, p.lead{ font-size:22px }
+.slide-icon { font-size: 80px; }
 }
 </style>
 </head>
@@ -175,15 +202,16 @@ h1{ font-size:44px } h2{ font-size:34px }
 
 <!-- スライド1 タイトル -->
 <section class="slide active" data-title="タイトル">
+<i class="fas fa-robot slide-icon"></i>
 <div class="vbox">
 <h1>AIがAIを創り、業務を進化させる</h1>
 <p class="lead">— 自己進化型DXモデル × 第一弾「TaskTrackr」—</p>
-<p class="muted">対象: 社長・役員／シロウトにも伝わる平易な言葉で</p>
 </div>
 </section>
 
 <!-- スライド2 課題 -->
 <section class="slide" data-title="課題">
+<i class="fas fa-exclamation-triangle slide-icon"></i>
 <div class="vbox">
 <h2>「報告という名の停滞」が、組織の学習速度を鈍らせる</h2>
 <ul class="bullet">
@@ -196,6 +224,7 @@ h1{ font-size:44px } h2{ font-size:34px }
 
 <!-- スライド3 ブレークスルー -->
 <section class="slide" data-title="ブレークスルー">
+<i class="fas fa-lightbulb slide-icon"></i>
 <div class="vbox">
 <h2>解決策: バイブコーディング × デュアルAI</h2>
 <ul class="bullet">
@@ -210,8 +239,8 @@ h1{ font-size:44px } h2{ font-size:34px }
 <div class="vbox">
 <h2>第一弾の実証: 週次報告を変える「TaskTrackr」</h2>
 <div class="grid-3">
-<div class="card"><h3 class="accent">標準化</h3><p class="point">フォーマットを自動統一</p></div>
-<div class="card"><h3 class="accent">連続性</h3><p class="point">前回との差分・矛盾を自動指摘</p></div>
+<div class="card"><h3 class="accent">標準化</h3><p class="point"><a href="https://github.com/kokke33/TaskTrackr/blob/main/Presentation/AI%E5%88%86%E6%9E%90%E7%B5%90%E6%9E%9C_%E4%BB%8A%E9%80%B1%E3%81%AE%E4%BD%9C%E6%A5%AD%E5%86%85%E5%AE%B9.gif" target="_blank" style="color: inherit; text-decoration: none; transition: all 0.3s ease; padding: 2px 4px; border-radius: 4px;" onmouseover="this.style.color='var(--accent)'; this.style.textDecoration='underline'; this.style.backgroundColor='rgba(34, 211, 238, 0.1)'" onmouseout="this.style.color='inherit'; this.style.textDecoration='none'; this.style.backgroundColor='transparent'">フォーマットを自動統一</a></p></div>
+<div class="card"><h3 class="accent">連続性</h3><p class="point"><a href="https://github.com/kokke33/TaskTrackr/blob/main/Presentation/%E5%89%8D%E5%9B%9E%E3%81%A8%E3%81%AE%E5%B7%AE%E5%88%86_%E7%9F%9B%E7%9B%BE%E3%82%92%E8%87%AA%E5%8B%95%E6%8C%87%E6%91%98.png" target="_blank" style="color: inherit; text-decoration: none; transition: all 0.3s ease; padding: 2px 4px; border-radius: 4px;" onmouseover="this.style.color='var(--accent)'; this.style.textDecoration='underline'; this.style.backgroundColor='rgba(34, 211, 238, 0.1)'" onmouseout="this.style.color='inherit'; this.style.textDecoration='none'; this.style.backgroundColor='transparent'">前回との差分・矛盾を自動指摘</a></p></div>
 <div class="card"><h3 class="accent">自動化</h3><p class="point">議事録や指示ドラフトまで生成</p></div>
 </div>
 </div>
@@ -242,6 +271,7 @@ h1{ font-size:44px } h2{ font-size:34px }
 
 <!-- スライド6 管理層への価値 -->
 <section class="slide" data-title="管理層の価値">
+<i class="fas fa-crown slide-icon"></i>
 <div class="vbox">
 <h2>経営・管理層の時間を「判断と対話」に戻す</h2>
 <ul class="bullet">
@@ -253,6 +283,7 @@ h1{ font-size:44px } h2{ font-size:34px }
 
 <!-- スライド7 現場への価値 -->
 <section class="slide" data-title="現場の価値">
+<i class="fas fa-cogs slide-icon"></i>
 <div class="vbox">
 <h2>現場リーダーの「自己完結PDCA」を加速</h2>
 <ul class="bullet">
@@ -264,47 +295,10 @@ h1{ font-size:44px } h2{ font-size:34px }
 </div>
 </section>
 
-<!-- スライド8 グラフ（単体スライド） -->
-<section class="slide" data-title="グラフ">
-<div class="vbox">
-<h2>効果（例）: コストと工数の削減</h2>
-<div class="chart" role="img" aria-label="開発コスト1/5、関連工数70%削減の例示グラフ">
-<svg viewBox="0 0 1100 560" width="100%" height="100%">
-<line x1="140" y1="480" x2="980" y2="480" stroke="#64748b" stroke-width="2"></line>
-<line x1="140" y1="80"  x2="140" y2="480" stroke="#64748b" stroke-width="2"></line>
-<g fill="#94a3b8" font-size="20">
-<text x="110" y="480">0</text>
-<text x="100" y="380">25</text>
-<text x="100" y="280">50</text>
-<text x="100" y="180">75</text>
-<text x="90"  y="100">100</text>
-</g>
-<g>
-<rect x="260" y="120" width="120" height="360" fill="#3b82f6" rx="10"></rect>
-<rect x="410" y="408" width="120" height="72"  fill="#22d3ee" rx="10"></rect>
-<text x="320" y="520" fill="#cbd5e1" text-anchor="middle" font-size="20">従来</text>
-<text x="470" y="520" fill="#cbd5e1" text-anchor="middle" font-size="20">新</text>
-<text x="315" y="110" fill="#cbd5e1" font-size="24">100</text>
-<text x="465" y="398" fill="#0e7490" font-size="24">20</text>
-<text x="320" y="90"  fill="#cbd5e1" font-size="22">開発コスト</text>
-</g>
-<g>
-<rect x="660" y="120" width="120" height="360" fill="#3b82f6" rx="10"></rect>
-<rect x="810" y="264" width="120" height="216" fill="#22d3ee" rx="10"></rect>
-<text x="720" y="520" fill="#cbd5e1" text-anchor="middle" font-size="20">従来</text>
-<text x="870" y="520" fill="#cbd5e1" text-anchor="middle" font-size="20">新</text>
-<text x="715" y="110" fill="#cbd5e1" font-size="24">100</text>
-<text x="865" y="254" fill="#0e7490" font-size="24">30</text>
-<text x="720" y="90"  fill="#cbd5e1" font-size="22">関連工数</text>
-</g>
-</svg>
-</div>
-<p class="muted">数値は例。実績に合わせて編集してください。</p>
-</div>
-</section>
 
 <!-- スライド9 全社展開 -->
 <section class="slide" data-title="全社展開">
+<i class="fas fa-network-wired slide-icon bottom-left"></i>
 <div class="vbox">
 <h2>次の一手: 成功モデルを全社に横展開</h2>
 <ul class="bullet">
@@ -317,6 +311,7 @@ h1{ font-size:44px } h2{ font-size:34px }
 
 <!-- スライド10 まとめ -->
 <section class="slide" data-title="まとめ">
+<i class="fas fa-rocket slide-icon center-right"></i>
 <div class="vbox">
 <h2>AIがAIを創り、業務を進化させる。</h2>
 <p class="lead"><span class="accent">自己進化サイクル</span>がTSSの競争力の源泉</p>
@@ -326,13 +321,11 @@ h1{ font-size:44px } h2{ font-size:34px }
 
 <!-- フッター -->
 <div class="footer">
-<div class="pager" id="pager">1 / 10</div>
+<div class="pager" id="pager">1 / 9</div>
 <div class="steps" id="steps" aria-hidden="true"></div>
-<div class="hint"><span class="kbd">←</span>/<span class="kbd">→</span> で移動・クリックで次へ</div>
+<div class="hint"><span class="kbd">←</span>/<span class="kbd">→</span> で移動</div>
 </div>
 
-<!-- スライド全体クリックで次へ -->
-<div class="hotspot" id="hotspot" aria-label="次のスライドへ"></div>
 </div>
 </div>
 
@@ -341,7 +334,6 @@ h1{ font-size:44px } h2{ font-size:34px }
 const slides = Array.from(document.querySelectorAll('.slide'));
 const pager = document.getElementById('pager');
 const steps = document.getElementById('steps');
-const hotspot = document.getElementById('hotspot');
 
 // 進行ドット生成
 slides.forEach((_, i) => {
@@ -408,14 +400,6 @@ if (e.key === 'Home') setActive(0, 'prev');
 if (e.key === 'End') setActive(slides.length - 1, 'next');
 });
 
-hotspot.addEventListener('click', (e) => {
-const deck = document.getElementById('deck');
-const titlebar = deck.querySelector('.titlebar');
-const footer = deck.querySelector('.footer');
-const inTitle = titlebar && (e.target === titlebar || titlebar.contains(e.target));
-const inFooter = footer && (e.target === footer || footer.contains(e.target));
-if (!inTitle && !inFooter) next();
-});
 </script>
 </body>
 </html>
