@@ -201,14 +201,14 @@ export function useReportAutoSave({ form, isEditMode, id, currentVersion, onVers
     };
   }, [formChanged, autoSave, isEditMode, isSubmitting, isInitializing]);
 
-  // 5分間隔のバックアップ保存（変更がある場合のみ）
+  // 3分間隔のバックアップ保存（変更がある場合のみ、セッション30分に対して適切な頻度）
   useEffect(() => {
     autoSaveTimerRef.current = setInterval(() => {
       if (formChanged && !isSubmitting) {
         devLog("⏰ Periodic auto-save triggered");
         autoSave();
       }
-    }, 5 * 60 * 1000);
+    }, 3 * 60 * 1000);
 
     return () => {
       if (autoSaveTimerRef.current) {

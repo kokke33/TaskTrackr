@@ -27,14 +27,14 @@ if (isLocal) {
   console.log('リモートPostgreSQL環境に接続します');
 }
 
-// Neonの場合は接続プールの設定を調整（離席後のエラー対策を強化）
+// Neonの場合は接続プールの設定を調整（30分統一タイムアウト対応）
 const poolConfig = isNeon ? {
   connectionString: databaseUrl,
-  connectionTimeoutMillis: 120000,  // 2分に延長（離席後の再接続時間を考慮）
-  idleTimeoutMillis: 900000,       // 15分に延長（Neonのアイドルタイムアウトに合わせる）
-  max: 3,                          // 接続数をさらに削減してリソース効率化
+  connectionTimeoutMillis: 120000,  // 2分
+  idleTimeoutMillis: 1800000,      // 30分（セッション管理と統一）
+  max: 3,                          // 接続数を適度に設定
   min: 1,                          // 最低1つの接続を維持
-  acquireTimeoutMillis: 120000,    // 取得タイムアウトも2分に延長
+  acquireTimeoutMillis: 60000,     // 取得タイムアウト1分
   keepAlive: true,                 // TCP Keep-Aliveを有効化
   keepAliveInitialDelayMillis: 0,  // Keep-Alive開始遅延なし
   ssl: { rejectUnauthorized: false }
@@ -67,13 +67,13 @@ pool.on('error', (err) => {
       console.warn('PostgreSQL Pool Error:', err.message);
       console.info('🔄 データベース接続が切断されました。次回のクエリ時に自動再接続されます。');
       if (isNeon) {
-        console.info('💡 Neon環境: アイドルタイムアウト後の自動再接続です');
+        console.info('💡 Neon環境: 30分アイドルタイムアウト後の自動再接続です');
       }
     } else {
       console.error('PostgreSQL Pool Error:', err.message);
       console.log('🔄 データベース接続が切断されました。次回のクエリ時に自動再接続されます。');
       if (isNeon) {
-        console.log('💡 Neon環境: 15分のアイドルタイムアウト後の再接続です');
+        console.log('💡 Neon環境: 30分アイドルタイムアウト後の再接続です');
       }
     }
   } else {
