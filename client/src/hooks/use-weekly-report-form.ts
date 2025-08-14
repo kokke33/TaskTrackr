@@ -526,15 +526,6 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
       console.log('失敗:', failedFields.length);
     }
 
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - dayOfWeek + 1);
-    const friday = new Date(monday);
-    friday.setDate(monday.getDate() + 4);
-
-    form.setValue("reportPeriodStart", monday.toISOString().split("T")[0]);
-    form.setValue("reportPeriodEnd", friday.toISOString().split("T")[0]);
 
     toast({
       title: "前回の報告をコピーしました",
