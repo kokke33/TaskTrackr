@@ -1,187 +1,187 @@
-# よく使うコマンドパターン
+# Common Command Patterns
 
-## 開発環境の起動・管理
+## Development Environment Startup & Management
 
-### 開発サーバーの起動
+### Development Server Startup
 ```bash
-# フロントエンド・バックエンド同時起動
+# Start frontend and backend simultaneously
 npm run dev
 
-# 本番環境での起動
+# Production startup
 npm run build && npm start
 
-# TypeScript型チェック
+# TypeScript type check
 npm run check
 ```
 
-### データベース操作
+### Database Operations
 ```bash
-# スキーマ変更の適用
+# Apply schema changes
 npm run db:push
 
-# データベース接続確認
+# Verify database connection
 psql $DATABASE_URL -c "\dt"
 ```
 
-## よく使うファイル検索パターン
+## Common File Search Patterns
 
-### コンポーネント関連の検索
+### Component-Related Searches
 ```bash
-# 特定のコンポーネントファイルを探す
+# Find specific component files
 find client/src/components -name "*.tsx" | grep -i "button"
 
-# UIコンポーネントの一覧
+# List UI components
 ls client/src/components/ui/
 
-# ページコンポーネントの確認
+# Check page components
 ls client/src/pages/
 ```
 
-### API・サーバー関連の検索
+### API & Server-Related Searches
 ```bash
-# API ルートの確認
+# Check API routes
 grep -r "app\." server/routes.ts
 
-# データベーススキーマの確認
+# Check database schema
 cat shared/schema.ts | grep -A 5 "export const"
 
-# 環境変数の確認
+# Check environment variables
 grep -r "process.env" server/
 ```
 
-## デバッグ・ログ確認パターン
+## Debug & Log Verification Patterns
 
-### ログファイルの確認
+### Log File Verification
 ```bash
-# 開発サーバーのログ確認
+# Check development server logs
 tail -f logs/development.log
 
-# AIサービスのログ確認
+# Check AI service logs
 grep "AI_" logs/*.log
 
-# エラーログの抽出
+# Extract error logs
 grep -i "error" logs/*.log | tail -20
 ```
 
-### プロセス・ポート確認
+### Process & Port Verification
 ```bash
-# 開発サーバーのポート使用確認
+# Check development server port usage
 lsof -i :3000
 
-# Node.jsプロセスの確認
+# Check Node.js processes
 ps aux | grep node
 ```
 
-## Git操作パターン
+## Git Operation Patterns
 
-### 開発フロー
+### Development Flow
 ```bash
-# 新機能ブランチの作成
-git checkout -b feature/新機能名
+# Create new feature branch
+git checkout -b feature/new-feature-name
 
-# 変更の確認
+# Check changes
 git status
 git diff
 
-# コミット
+# Commit
 git add .
-git commit -m "feat: 新機能の説明"
+git commit -m "feat: description of new feature"
 
-# メインブランチへのマージ
+# Merge to main branch
 git checkout main
-git merge feature/新機能名
+git merge feature/new-feature-name
 ```
 
-### トラブルシューティング
+### Troubleshooting
 ```bash
-# 変更の取り消し
-git checkout -- ファイル名
+# Undo changes
+git checkout -- filename
 
-# 最新コミットの修正
+# Amend last commit
 git commit --amend
 
-# 特定のコミットの確認
-git show コミットハッシュ
+# Check specific commit
+git show commit-hash
 ```
 
-## テスト・品質チェックパターン
+## Testing & Quality Check Patterns
 
-### TypeScript チェック
+### TypeScript Check
 ```bash
-# 型エラーの確認
+# Check type errors
 npm run check 2>&1 | grep "error TS"
 
-# 特定ファイルの型チェック
+# Type check specific file
 npx tsc --noEmit client/src/pages/project-form.tsx
 ```
 
-### コード品質
+### Code Quality
 ```bash
-# ESLint実行（設定されている場合）
+# Run ESLint (if configured)
 npx eslint client/src/**/*.{ts,tsx}
 
-# Prettier実行（設定されている場合）
+# Run Prettier (if configured)
 npx prettier --check client/src/**/*.{ts,tsx}
 ```
 
-## AI機能のテストパターン
+## AI Feature Testing Patterns
 
-### AI サービスの動作確認
+### AI Service Operation Verification
 ```bash
-# OpenAI APIキーの確認
+# Check OpenAI API key
 echo $OPENAI_API_KEY | cut -c1-10
 
-# Ollama サービスの確認
+# Check Ollama service
 curl http://localhost:11434/api/tags
 
-# AI ログの確認
+# Check AI logs
 tail -f logs/ai-service.log
 ```
 
-### API エンドポイントのテスト
+### API Endpoint Testing
 ```bash
-# 要約機能のテスト
+# Test summarization feature
 curl -X POST http://localhost:3000/ai/summarize \
   -H "Content-Type: application/json" \
-  -d '{"text":"テスト用のテキスト"}'
+  -d '{"text":"Test text content"}'
 
-# チャット機能のテスト
+# Test chat feature
 curl -X POST http://localhost:3000/ai/chat \
   -H "Content-Type: application/json" \
   -d '{"message":"Hello"}'
 ```
 
-## データベース管理パターン
+## Database Management Patterns
 
-### スキーマ確認
+### Schema Verification
 ```bash
-# テーブル一覧の確認
+# Check table list
 psql $DATABASE_URL -c "\dt"
 
-# 特定テーブルの構造確認
+# Check specific table structure
 psql $DATABASE_URL -c "\d projects"
 
-# データ件数の確認
+# Check data count
 psql $DATABASE_URL -c "SELECT COUNT(*) FROM projects;"
 ```
 
-### バックアップ・復元
+### Backup & Restore
 ```bash
-# データベースバックアップ
+# Database backup
 pg_dump $DATABASE_URL > backup_$(date +%Y%m%d).sql
 
-# バックアップから復元
+# Restore from backup
 psql $DATABASE_URL < backup_20240101.sql
 ```
 
-## 環境設定パターン
+## Environment Configuration Patterns
 
-### 環境変数の設定確認
+### Environment Variable Configuration Check
 ```bash
-# 必要な環境変数の確認
+# Check required environment variables
 env | grep -E "(DATABASE_URL|SESSION_SECRET|AI_|OPENAI_|OLLAMA_)"
 
-# .env ファイルの例
+# .env file example
 cat << EOF > .env.example
 DATABASE_URL=postgres://user:pass@localhost:5432/tasktrackr
 SESSION_SECRET=your-session-secret
@@ -190,66 +190,66 @@ OPENAI_API_KEY=sk-your-key
 EOF
 ```
 
-### 依存関係の管理
+### Dependency Management
 ```bash
-# パッケージ更新の確認
+# Check package updates
 npm outdated
 
-# セキュリティ脆弱性の確認
+# Check security vulnerabilities
 npm audit
 
-# 依存関係のインストール
+# Install dependencies
 npm install
 
-# 開発依存関係の追加
-npm install --save-dev @types/新しいライブラリ
+# Add development dependencies
+npm install --save-dev @types/new-library
 ```
 
-## パフォーマンス監視パターン
+## Performance Monitoring Patterns
 
-### ビルドサイズの確認
+### Build Size Verification
 ```bash
-# ビルド結果の確認
+# Check build results
 npm run build
 du -sh dist/
 
-# バンドルサイズの分析（設定されている場合）
+# Bundle size analysis (if configured)
 npx vite-bundle-analyzer
 ```
 
-### メモリ・CPU使用量の監視
+### Memory & CPU Usage Monitoring
 ```bash
-# Node.jsプロセスのリソース使用量
+# Node.js process resource usage
 top -p $(pgrep -f "node.*server")
 
-# ディスク使用量の確認
+# Check disk usage
 df -h
 du -sh node_modules/
 ```
 
-## トラブルシューティング用コマンド集
+## Troubleshooting Command Collection
 
-### よくある問題の解決
+### Common Problem Resolution
 ```bash
-# node_modules の再インストール
+# Reinstall node_modules
 rm -rf node_modules package-lock.json
 npm install
 
-# ポート競合の解決
+# Resolve port conflicts
 killall node
 lsof -ti:3000 | xargs kill -9
 
-# TypeScript キャッシュのクリア
+# Clear TypeScript cache
 rm -rf node_modules/.cache
 ```
 
-### ログ収集
+### Log Collection
 ```bash
-# システム情報の収集
+# Collect system information
 uname -a > system_info.txt
 node --version >> system_info.txt
 npm --version >> system_info.txt
 
-# 現在の設定状況の確認
+# Check current configuration status
 env | grep -v "SECRET\|KEY\|PASSWORD" > current_env.txt
 ```

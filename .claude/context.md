@@ -1,105 +1,105 @@
-# TaskTrackr プロジェクトコンテキスト
+# TaskTrackr Project Context
 
-## プロジェクト概要
-TaskTrackerは、プロジェクト・案件・週次報告を一元管理し、AIによる分析・議事録生成・性能最適化を備えたフルスタック TypeScript アプリケーションです。
+## Project Overview
+TaskTracker is a full-stack TypeScript application that provides unified management of projects, cases, and weekly reports, featuring AI analysis, meeting minute generation, and performance optimization capabilities.
 
-## 技術スタック (2025年1月最新)
-- **フロントエンド**: React 18 + TypeScript + Vite + TailwindCSS + Wouter（ルーティング）
-- **バックエンド**: Express + TypeScript + Drizzle ORM + PostgreSQL
-- **認証**: Passport.js（セッションベース認証）+ 自動フォールバック
-- **UI**: Shadcn/ui（48+コンポーネント利用可能）+ Radix UIプリミティブ
-- **状態管理**: TanStack Query（React Query v5.60.5）
-- **AI統合**: 5つのプロバイダー対応（OpenAI, Ollama, Gemini, Groq, OpenRouter）
-- **WebSocket**: リアルタイム機能（ws v8.18.0）
-- **テスト**: Vitest 3.2.4 + React Testing Library + MSW + Supertest
+## Tech Stack (Latest as of January 2025)
+- **Frontend**: React 18 + TypeScript + Vite + TailwindCSS + Wouter (routing)
+- **Backend**: Express + TypeScript + Drizzle ORM + PostgreSQL
+- **Authentication**: Passport.js (session-based) + automatic fallback
+- **UI**: Shadcn/ui (48+ components available) + Radix UI primitives
+- **State Management**: TanStack Query (React Query v5.60.5)
+- **AI Integration**: 5 providers supported (OpenAI, Ollama, Gemini, Groq, OpenRouter)
+- **WebSocket**: Real-time features (ws v8.18.0)
+- **Testing**: Vitest 3.2.4 + React Testing Library + MSW + Supertest
 
-## プロジェクトの目標
-- 包括的なタスクとプロジェクト管理システムの構築
-- AI統合による文書要約と分析機能の提供
-- 役割ベースのアクセス制御（管理者/一般ユーザー）
-- 全文検索機能によるプロジェクト、ケース、レポートの検索
-- 詳細な週次レポート機能と進捗追跡
+## Project Goals
+- Build comprehensive task and project management system
+- Provide AI-powered document summarization and analysis
+- Implement role-based access control (admin/general users)
+- Enable full-text search across projects, cases, and reports
+- Deliver detailed weekly reporting with progress tracking
 
-## 主要な制約
+## Key Constraints
 
-### アーキテクチャ制約
-- **統合サーバー設計**: フロント・バックエンドを個別起動するコマンドは存在しない
-- **セッションベース認証**: JWTではなく、PostgreSQL→MemoryStoreの自動フォールバック
-- **PostgreSQL依存**: Neon.tech互換性 + 接続リトライロジック実装済み
+### Architecture Constraints
+- **Integrated Server Design**: No separate frontend/backend startup commands exist
+- **Session-Based Auth**: Uses PostgreSQL → MemoryStore automatic fallback, not JWT
+- **PostgreSQL Dependency**: Neon.tech compatible + connection retry logic implemented
 
-### 技術的制約
-- **TypeScript型エラー**: フォームのnull値ハンドリング（既知の問題）
-  - `client/src/pages/weekly-report.tsx`のTextarea対応
-  - `server/routes.ts`のユーザーオブジェクトアクセス
-- **Drizzle ORM**: スキーマ管理とマイグレーション必須
-- **RESTful API**: Express.js + 軽量版API実装
+### Technical Constraints
+- **TypeScript Type Errors**: Form null value handling (known issues)
+  - `client/src/pages/weekly-report.tsx` Textarea handling
+  - `server/routes.ts` user object access
+- **Drizzle ORM**: Schema management and migrations required
+- **RESTful API**: Express.js + lightweight API implementation
 
-### 運用制約
-- **開発環境**: `npm run dev`で統合サーバー起動（ポート5000）
-- **本番環境**: Vite（フロント→dist/public/）+ ESBuild（バック→dist/index.js）
-- **データベース**: `npm run db:push`でDrizzle Kitマイグレーション
-- **テスト**: 51件のテスト（現在カバレッジ1.06%、基盤構築完了）
+### Operational Constraints
+- **Development**: `npm run dev` starts integrated server (port 5000)
+- **Production**: Vite (frontend → dist/public/) + ESBuild (backend → dist/index.js)
+- **Database**: `npm run db:push` for Drizzle Kit migrations
+- **Testing**: 51 tests (currently 1.06% coverage, foundation complete)
 
-## 技術選択の理由
+## Technology Choice Rationale
 
 ### React + Wouter
-- 軽量なルーティングライブラリとしてWouterを選択
-- React Router の代替として、より軽量でシンプルな実装を重視
+- Chose Wouter as lightweight routing library alternative
+- Prioritized lightweight, simple implementation over React Router
 
 ### Drizzle ORM
-- 型安全性を重視したORM選択
-- PostgreSQLとの親和性
-- マイグレーション管理の簡素化
+- Selected for type safety emphasis
+- Strong PostgreSQL compatibility
+- Simplified migration management
 
 ### TanStack Query
-- サーバー状態管理の最適化
-- キャッシュ戦略の改善
-- APIデータ取得の効率化
+- Server state management optimization
+- Improved caching strategies
+- Efficient API data fetching
 
 ### Shadcn/ui
-- 一貫したデザインシステム
-- Radix UIベースの高品質コンポーネント
-- カスタマイズ性とメンテナンス性のバランス
+- Consistent design system
+- High-quality Radix UI-based components
+- Balance of customization and maintainability
 
-## 現在の主要機能（2025年1月時点）
+## Current Key Features (January 2025)
 
-### コア機能
-- **プロジェクト・案件・週次報告の統合管理**
-- **フルテキスト検索**（20件制限で高速化）
-- **ロールベースアクセス制御**（管理者/一般ユーザー）
-- **リアルタイム自動保存** + WebSocket通信
+### Core Features
+- **Integrated project/case/weekly report management**
+- **Full-text search** (20 item limit for performance)
+- **Role-based access control** (admin/general users)
+- **Real-time auto-save** + WebSocket communication
 
-### AI機能（5プロバイダー対応）
-- **週次報告のAI分析**（フィールド別分析、リアルタイム設定）
-- **議事録自動生成**（管理者確認メール含む）
-- **管理者編集時の並列AI処理**（30-50%高速化）
-- **ストリーミング対応**（Gemini、OpenAI）
+### AI Features (5 providers supported)
+- **Weekly report AI analysis** (field-by-field analysis, real-time config)
+- **Automatic meeting minute generation** (including admin confirmation emails)
+- **Parallel AI processing for admin edits** (30-50% speed improvement)
+- **Streaming support** (Gemini, OpenAI)
 
-### UI/UX改善
-- **モーダル式案件選択**（プロジェクト別・最近使用・全案件タブ）
-- **前回レポート比較ツールチップ**
-- **レスポンシブデザイン**（TailwindCSS + Shadcn/ui）
+### UI/UX Improvements
+- **Modal case selection** (project-specific/recent/all cases tabs)
+- **Previous report comparison tooltips**
+- **Responsive design** (TailwindCSS + Shadcn/ui)
 
-### パフォーマンス最適化
-- **軽量版API**（必要最小限フィールドのみ転送）
-- **React Query最適化**（2-5分間キャッシュ）
-- **N+1問題解決**（一括データ取得）
-- **データベースインデックス最適化**
+### Performance Optimizations
+- **Lightweight API** (minimal required fields only)
+- **React Query optimization** (2-5 minute caching)
+- **N+1 problem resolution** (batch data fetching)
+- **Database index optimization**
 
-## 環境設定要件
-- **Node.js**: v20.x以降（TypeScript 5.6.3）
-- **データベース**: PostgreSQL 15以降またはNeon.tech
-- **AI プロバイダー**: 以下から1つ以上
-  - OpenAI（GPT-4o-mini推奨）
-  - Google Gemini（2.5-Flash推奨）
-  - Groq（Llama-3.3-70B）
-  - Ollama（ローカル実行）
-  - OpenRouter（Claude-3.5-Sonnet）
-- **セッション用シークレットキー**
-- **ログ設定**: AI_LOG_LEVEL（debug/info/warn/error）
+## Environment Requirements
+- **Node.js**: v20.x+ (TypeScript 5.6.3)
+- **Database**: PostgreSQL 15+ or Neon.tech
+- **AI Providers**: One or more of:
+  - OpenAI (GPT-4o-mini recommended)
+  - Google Gemini (2.5-Flash recommended)
+  - Groq (Llama-3.3-70B)
+  - Ollama (local execution)
+  - OpenRouter (Claude-3.5-Sonnet)
+- **Session Secret Key**
+- **Log Configuration**: AI_LOG_LEVEL (debug/info/warn/error)
 
-## 開発チーム構成
-- **個人開発プロジェクト**
-- **Claude Code による開発支援**
-- **日本語でのコミュニケーション必須**
-- **継続的知識管理**（`.claude/`ディレクトリシステム）
+## Development Team Structure
+- **Personal development project**
+- **Claude Code development assistance**
+- **Japanese communication required**
+- **Continuous knowledge management** (`.claude/` directory system)

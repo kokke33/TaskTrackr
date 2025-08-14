@@ -1,49 +1,49 @@
-# 重要なデバッグ記録
+# Important Debug Records
 
-## TypeScript 型エラー関連
+## TypeScript Type Error Related
 
-### 2024年12月現在の既知の問題
+### Known Issues as of December 2024
 
-#### project-form.tsx の Textarea コンポーネント型エラー
-**エラー内容**: TextArea コンポーネントが `null` 値を受信時の型エラー
-**影響箇所**: `client/src/pages/project-form.tsx`
-**エラーメッセージ**: `Type 'null' is not assignable to type 'string'`
-**暫定対処**: `defaultValue=""` または `value={value || ""}` での null チェック実装
-**根本原因**: データベーススキーマの nullable フィールドとコンポーネントの non-null 期待値の不一致
+#### project-form.tsx Textarea Component Type Error
+**Error Content**: Type error when TextArea component receives `null` value
+**Affected Location**: `client/src/pages/project-form.tsx`
+**Error Message**: `Type 'null' is not assignable to type 'string'`
+**Temporary Fix**: Implement null check with `defaultValue=""` or `value={value || ""}`
+**Root Cause**: Mismatch between nullable database schema fields and component non-null expected values
 
-#### weekly-report.tsx の類似問題
-**エラー内容**: 同様の textarea null 値型エラー
-**影響箇所**: `client/src/pages/weekly-report.tsx`
-**関連問題**: React Hook Form との統合時の型安全性
+#### weekly-report.tsx Similar Issue
+**Error Content**: Similar textarea null value type error
+**Affected Location**: `client/src/pages/weekly-report.tsx`
+**Related Issue**: Type safety when integrating with React Hook Form
 
-#### server/routes.ts のユーザーオブジェクトアクセス
-**エラー内容**: User オブジェクトプロパティアクセス時の型エラー
-**影響箇所**: `server/routes.ts`
-**詳細**: セッション管理での user オブジェクトの型定義不整合
+#### server/routes.ts User Object Access
+**Error Content**: Type error when accessing User object properties
+**Affected Location**: `server/routes.ts`
+**Details**: Type definition mismatch in user object from session management
 
-### 解決済みの型エラー
+### Resolved Type Errors
 
-#### Drizzle ORM スキーマ統合 (2024年11月解決)
-**問題**: shared/schema.ts での型定義の不整合
-**解決策**: 統一的な型定義とエクスポート方式の採用
-**学習内容**: スキーマファーストアプローチの重要性
+#### Drizzle ORM Schema Integration (Resolved November 2024)
+**Problem**: Type definition inconsistency in shared/schema.ts
+**Solution**: Adopted unified type definition and export approach
+**Lesson Learned**: Importance of schema-first approach
 
-## パフォーマンス関連のデバッグ
+## Performance-Related Debugging
 
-### 2024年12月のパフォーマンス問題
+### December 2024 Performance Issues
 
-#### 大量データ読み込み時の遅延
-**症状**: 50件以上のプロジェクト表示時に3秒以上の遅延
-**調査結果**: N+1クエリ問題の発生
-**対処方法**: Drizzle ORM の with() を使用した JOIN クエリへの変更
-**改善効果**: 平均レスポンス時間を80%短縮
+#### Large Data Loading Delays
+**Symptoms**: 3+ second delays when displaying 50+ projects
+**Investigation Results**: N+1 query problem occurrence
+**Solution**: Changed to JOIN queries using Drizzle ORM's with()
+**Improvement Effect**: 80% reduction in average response time
 
-#### AI サービスレスポンス遅延
-**症状**: OpenAI API 呼び出し時の間欠的タイムアウト
-**調査結果**: ネットワーク不安定性とリトライ機能の欠如
-**対処方法**: 
+#### AI Service Response Delays
+**Symptoms**: Intermittent timeouts during OpenAI API calls
+**Investigation Results**: Network instability and lack of retry functionality
+**Solution**: 
 ```javascript
-// リトライ機能付きAPI呼び出し実装
+// API call implementation with retry functionality
 const retryApiCall = async (apiCall, maxRetries = 3) => {
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -56,19 +56,19 @@ const retryApiCall = async (apiCall, maxRetries = 3) => {
 };
 ```
 
-## データベース接続問題
+## Database Connection Issues
 
-### PostgreSQL 接続エラー (2024年10月解決)
-**問題**: Neon.tech での間欠的接続失敗
-**エラーログ**: `ECONNRESET` および `Connection terminated`
-**解決策**: 
-1. 接続プールの設定最適化
-2. MemoryStore へのセッション管理フォールバック実装
-3. ヘルスチェック機能の追加
+### PostgreSQL Connection Error (Resolved October 2024)
+**Problem**: Intermittent connection failures with Neon.tech
+**Error Log**: `ECONNRESET` and `Connection terminated`
+**Solution**: 
+1. Connection pool setting optimization
+2. Session management fallback to MemoryStore implementation
+3. Health check functionality addition
 
-**実装コード**:
+**Implementation Code**:
 ```javascript
-// server/storage.ts での接続リトライ実装
+// Connection retry implementation in server/storage.ts
 const connectWithRetry = async (retries = 3) => {
   try {
     return await db.select().from(users).limit(1);
@@ -83,18 +83,18 @@ const connectWithRetry = async (retries = 3) => {
 };
 ```
 
-## AI 統合デバッグ
+## AI Integration Debugging
 
-### OpenAI API 統合の問題解決履歴
+### OpenAI API Integration Problem Resolution History
 
-#### API キーの環境変数問題 (2024年11月解決)
-**問題**: 環境変数が読み込まれない
-**原因**: `.env` ファイルの場所とdotenv設定の問題
-**解決策**: `server/config.ts` での設定検証機能実装
+#### API Key Environment Variable Issue (Resolved November 2024)
+**Problem**: Environment variables not being loaded
+**Cause**: .env file location and dotenv configuration issue
+**Solution**: Implemented configuration verification functionality in `server/config.ts`
 
-#### トークン制限超過 (2024年12月対応中)
-**問題**: 長いテキスト処理時のトークン制限エラー
-**対処方法**: チャンク分割処理の実装
+#### Token Limit Exceeded (December 2024 - In Progress)
+**Problem**: Token limit error during long text processing
+**Solution**: Implemented chunk splitting processing
 ```javascript
 const splitTextIntoChunks = (text, maxTokens = 3000) => {
   const words = text.split(' ');
@@ -118,50 +118,50 @@ const splitTextIntoChunks = (text, maxTokens = 3000) => {
 };
 ```
 
-## フロントエンド関連のデバッグ
+## Frontend-Related Debugging
 
-### React Hook Form バリデーション (2024年11月)
-**問題**: Zod スキーマとフォーム値の型不一致
-**調査結果**: optional フィールドでの undefined vs null の扱い
-**解決策**: スキーマ定義での `.nullish()` 使用
+### React Hook Form Validation (November 2024)
+**Problem**: Type mismatch between Zod schema and form values
+**Investigation Results**: Handling of undefined vs null in optional fields
+**Solution**: Use `.nullish()` in schema definition
 
-### TanStack Query キャッシュ問題 (2024年10月解決)
-**問題**: データ更新後のキャッシュ無効化失敗
-**原因**: 適切なクエリキーの設定不備
-**解決策**: 階層的なクエリキー構造の採用
+### TanStack Query Cache Issue (Resolved October 2024)
+**Problem**: Cache invalidation failure after data updates
+**Cause**: Improper query key configuration
+**Solution**: Adopted hierarchical query key structure
 
-## ビルド・デプロイ関連
+## Build & Deployment Related
 
-### Vite ビルドエラー (2024年10月解決)
-**問題**: 本番ビルド時のパス解決エラー
-**原因**: 絶対パスと相対パスの混在
-**解決策**: `vite.config.ts` での alias 設定統一
+### Vite Build Error (Resolved October 2024)
+**Problem**: Path resolution error during production build
+**Cause**: Mixed absolute and relative paths
+**Solution**: Unified alias configuration in `vite.config.ts`
 
-### ESBuild バックエンドビルド問題 (2024年11月解決)
-**問題**: 外部依存関係のバンドル失敗
-**解決策**: external 設定の最適化
+### ESBuild Backend Build Issue (Resolved November 2024)
+**Problem**: External dependency bundling failure
+**Solution**: External configuration optimization
 
-## セキュリティ関連のデバッグ
+## Security-Related Debugging
 
-### セッション管理 (2024年12月対応中)
-**潜在的問題**: CSRF 攻撃への脆弱性
-**調査状況**: express-session での CSRF トークン実装検討中
-**優先度**: 中程度（本番環境では必須）
+### Session Management (December 2024 - In Progress)
+**Potential Issue**: CSRF attack vulnerability
+**Investigation Status**: Considering CSRF token implementation with express-session
+**Priority**: Medium (essential for production)
 
-### 環境変数露出リスク
-**問題**: フロントエンドビルドでの環境変数露出
-**対処**: `VITE_` プレフィックスによる明示的な環境変数管理
+### Environment Variable Exposure Risk
+**Problem**: Environment variable exposure in frontend build
+**Solution**: Explicit environment variable management with `VITE_` prefix
 
-## 今後のデバッグ計画
+## Future Debugging Plans
 
-### 自動化すべき項目
-- [ ] TypeScript 型エラーの継続的監視
-- [ ] パフォーマンステストの自動実行
-- [ ] セキュリティスキャンの定期実行
-- [ ] データベース接続の自動ヘルスチェック
+### Items to Automate
+- [ ] Continuous monitoring of TypeScript type errors
+- [ ] Automatic performance test execution
+- [ ] Regular security scan execution
+- [ ] Automatic database connection health checks
 
-### 監視強化項目
-- [ ] AI API の使用量とコスト監視
-- [ ] メモリリーク検出
-- [ ] ログローテーション機能
-- [ ] エラー率とレスポンス時間の追跡
+### Items to Strengthen Monitoring
+- [ ] AI API usage and cost monitoring
+- [ ] Memory leak detection
+- [ ] Log rotation functionality
+- [ ] Error rate and response time tracking

@@ -1,114 +1,115 @@
-# プロジェクト技術知識
+# Project Technical Knowledge
 
-## アーキテクチャ上の意思決定
+## Architectural Decisions
 
-### データベース設計
-- **Drizzle ORM + PostgreSQL**: 型安全性を重視した設計
-- **セッションストレージ**: PostgreSQL失敗時のMemoryStore自動フォールバック機能
-- **接続リトライロジック**: storage操作での接続失敗を優雅に処理
-- **マイグレーションシステム**: `server/migrations/`でのSQLファイルによるスキーマ管理
+### Database Design
+- **Drizzle ORM + PostgreSQL**: Type-safety focused design
+- **Session Storage**: Automatic MemoryStore fallback when PostgreSQL fails
+- **Connection Retry Logic**: Graceful handling of connection failures in storage operations
+- **Migration System**: Schema management via SQL files in `server/migrations/`
 
-### 認証システム
-- **Passport.js + セッションベース認証**: JWTではなくセッション管理を採用
-- **初期ユーザー作成**: 初回実行時の自動管理者ユーザー設定
-- **役割ベースミドルウェア**: `isAuthenticated`と`isAdmin`ガードによるAPI保護
+### Authentication System
+- **Passport.js + Session-Based Auth**: Session management instead of JWT
+- **Initial User Creation**: Automatic admin user setup on first run
+- **Role-Based Middleware**: API protection via `isAuthenticated` and `isAdmin` guards
 
-### フロントエンド構成
-- **React 18 + TypeScript**: 型安全性を重視したコンポーネント開発
-- **Wouter**: React Routerの軽量代替としてルーティング実装
-- **TanStack Query**: サーバー状態管理とキャッシュ戦略の最適化
-- **Shadcn/ui**: 30以上のコンポーネントを含む一貫したデザインシステム
+### Frontend Architecture
+- **React 18 + TypeScript**: Type-safety focused component development
+- **Wouter**: Lightweight routing alternative to React Router
+- **TanStack Query**: Server state management and cache strategy optimization
+- **Shadcn/ui**: Consistent design system with 30+ components
 
-## 実装パターン
+## Implementation Patterns
 
-### フォーム処理パターン
+### Form Handling Pattern
 ```typescript
-// React Hook Form + Zod バリデーション
-- shared/schema.ts での共有スキーマ定義
-- nullable データベースフィールドとnon-null コンポーネント値の差異に注意
-- 既知の課題: TextAreaコンポーネントでの null 値受信エラー
+// React Hook Form + Zod Validation
+- Shared schema definition in shared/schema.ts
+- Note: Nullable database fields vs non-null component values mismatch
+- Known issue: TextArea component null value reception error
 ```
 
-### API ルート設計
+### API Route Design
 ```typescript
-// server/routes.ts での RESTful API 構造
-- 保護ルートでの isAuthenticated, isAdmin ミドルウェア使用
-- server/storage.ts でのデータベース操作抽象化
-- エラーハンドリングと適切なHTTPステータス返却
+// RESTful API structure in server/routes.ts
+- Protected routes using isAuthenticated, isAdmin middleware
+- Database operation abstraction in server/storage.ts
+- Error handling with proper HTTP status returns
 ```
 
-### AI サービス統合
+### AI Service Integration
 ```typescript
-// server/ai-service.ts での設定可能なプロバイダー
-- OpenAI/Ollama の動的切り替え対応
-- server/ai-logger.ts での包括的なログシステム
-- トークン使用量監視とコスト追跡機能
-- コンテンツクリーニングと後処理機能
+// Configurable provider in server/ai-service.ts
+- Dynamic OpenAI/Ollama switching support
+- Comprehensive logging system in server/ai-logger.ts
+- Token usage monitoring and cost tracking
+- Content cleaning and post-processing
 ```
 
-## ライブラリとツール
+## Libraries and Tools
 
-### 主要依存関係
-- `@tanstack/react-query`: サーバー状態管理
-- `react-hook-form`: フォーム状態管理
-- `zod`: スキーマバリデーション
-- `drizzle-orm`: データベースORM
-- `tailwindcss`: ユーティリティファーストCSS
-- `radix-ui`: アクセシブルUIプリミティブ
+### Main Dependencies
+- `@tanstack/react-query`: Server state management
+- `react-hook-form`: Form state management
+- `zod`: Schema validation
+- `drizzle-orm`: Database ORM
+- `tailwindcss`: Utility-first CSS
+- `radix-ui`: Accessible UI primitives
 
-### 開発ツール
-- `vite`: フロントエンドビルドツール
-- `esbuild`: バックエンドビルドツール
-- `typescript`: 型システム
-- `drizzle-kit`: データベースマイグレーション
+### Development Tools
+- `vite`: Frontend build tool
+- `esbuild`: Backend build tool
+- `typescript`: Type system
+- `drizzle-kit`: Database migrations
 
-## 避けるべきパターン
+## Patterns to Avoid
 
-### データベース操作
-- 直接SQL操作の回避（Drizzle ORMを使用）
-- マイグレーション手動実行の回避（`npm run db:push`使用）
-- セッションストレージ設定の手動管理回避
+### Database Operations
+- Avoid direct SQL operations (use Drizzle ORM)
+- Avoid manual migration execution (use `npm run db:push`)
+- Avoid manual session storage configuration
 
-### フロントエンド
-- グローバル状態の過度な使用（TanStack Queryで最適化）
-- 直接的なDOM操作（Reactパターンに従う）
-- インラインスタイリング（TailwindCSSクラス使用）
+### Frontend
+- Avoid excessive global state usage (optimize with TanStack Query)
+- Avoid direct DOM manipulation (follow React patterns)
+- Avoid inline styling (use TailwindCSS classes)
 
-### API設計
-- ネストしたルート構造の過度な使用
-- 認証なしでの機密データアクセス
-- エラーレスポンスでの詳細情報露出
+### API Design
+- Avoid excessive nested route structures
+- Avoid sensitive data access without authentication
+- Avoid exposing detailed information in error responses
 
-## パフォーマンス最適化
+## Performance Optimization
 
-### ビルド最適化
-- **ハイブリッドビルドシステム**: Vite（フロントエンド）+ ESBuild（バックエンド）
-- **パスエイリアス**: `@/`（クライアントコード）、`@shared/`（共有型）
-- **開発サーバー**: 単一`npm run dev`コマンドでフロントエンド・バックエンド同時起動
+### Build Optimization
+- **Hybrid Build System**: Vite (frontend) + ESBuild (backend)
+- **Path Aliases**: `@/` (client code), `@shared/` (shared types)
+- **Development Server**: Single `npm run dev` command for frontend + backend
+- **Output**: Frontend to `dist/public/`, backend to `dist/index.js`
 
-### データベース最適化
-- **接続プール**: PostgreSQL接続の効率的管理
-- **クエリ最適化**: Drizzle ORMによる型安全なクエリ構築
-- **全文検索**: 高速な検索機能実装
+### Database Optimization
+- **Connection Pooling**: Efficient PostgreSQL connection management
+- **Query Optimization**: Type-safe query construction with Drizzle ORM
+- **Full-Text Search**: High-performance search functionality
 
-### フロントエンド最適化
-- **遅延読み込み**: コンポーネントとルートの動的インポート
-- **メモ化**: React.memoとuseMemoの適切な使用
-- **クエリキャッシュ**: TanStack Queryによる効率的なデータ管理
+### Frontend Optimization
+- **Lazy Loading**: Dynamic imports for components and routes
+- **Memoization**: Proper use of React.memo and useMemo
+- **Query Cache**: Efficient data management with TanStack Query
 
-## セキュリティ考慮事項
+## Security Considerations
 
-### 認証・認可
-- セッション管理による状態維持
-- CSRFトークン実装の検討事項
-- パスワードハッシュ化（実装詳細要確認）
+### Authentication & Authorization
+- Session-based state management
+- CSRF token implementation considerations
+- Password hashing (implementation details need verification)
 
-### データ保護
-- 環境変数による機密情報管理
-- APIキーやシークレットのコード内ハードコーディング禁止
-- ログ出力での機密情報露出防止
+### Data Protection
+- Environment variable-based sensitive information management
+- Prohibition of hardcoding API keys or secrets in code
+- Prevention of sensitive information exposure in logs
 
-### AI統合セキュリティ
-- AIプロバイダーAPIキーの安全な管理
-- ユーザー入力のサニタイゼーション
-- AI応答のコンテンツフィルタリング
+### AI Integration Security
+- Safe management of AI provider API keys
+- User input sanitization
+- AI response content filtering
