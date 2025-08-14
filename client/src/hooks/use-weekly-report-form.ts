@@ -475,13 +475,56 @@ export function useWeeklyReportForm({ id, latestVersionFromAutoSave }: UseWeekly
       "reportPeriodEnd",
       "adminConfirmationEmail",  // 管理者確認メール（各報告で独立すべき）
       "aiAnalysis",              // AI分析結果（新しい報告内容に基づくべき）
-      "version"                  // 楽観的ロック用バージョン（各報告で独立すべき）
+      "version",                 // 楽観的ロック用バージョン（各報告で独立すべき）
+      "projectName",             // JOINで追加される項目（フォームフィールドではない）
+      "caseName"                 // JOINで追加される項目（フォームフィールドではない）
     ];
+    
+    const copiedFields: string[] = [];
+    const skippedFields: string[] = [];
+    const failedFields: string[] = [];
+    
     Object.entries(latestReport).forEach(([key, value]) => {
       if (!fieldsToExclude.includes(key)) {
-        form.setValue(key as keyof WeeklyReport, value || "");
+        try {
+          // より安全な値の処理
+          let processedValue;
+          if (value === null || value === undefined) {
+            processedValue = "";
+          } else if (typeof value === 'string') {
+            processedValue = value;
+          } else if (typeof value === 'number') {
+            processedValue = value;
+          } else {
+            processedValue = String(value);
+          }
+          
+          form.setValue(key as keyof WeeklyReport, processedValue);
+          copiedFields.push(key);
+        } catch (error) {
+          console.error(`[copyFromLastReport] フィールド '${key}' の設定に失敗:`, error);
+          failedFields.push(key);
+        }
+      } else {
+        skippedFields.push(key);
       }
     });
+
+    // デバッグ用ログ（開発環境のみ）
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[copyFromLastReport] コピーされたフィールド:', copiedFields);
+      console.log('[copyFromLastReport] 除外されたフィールド:', skippedFields);
+      if (failedFields.length > 0) {
+        console.warn('[copyFromLastReport] 設定に失敗したフィールド:', failedFields);
+      }
+      console.log('[copyFromLastReport] 前回の報告データ:', latestReport);
+      
+      console.log('[copyFromLastReport] === 詳細ログ ===');
+      console.log('総フィールド数:', Object.keys(latestReport).length);
+      console.log('コピー成功:', copiedFields.length);
+      console.log('除外:', skippedFields.length);
+      console.log('失敗:', failedFields.length);
+    }
 
     const today = new Date();
     const dayOfWeek = today.getDay();
