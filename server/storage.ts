@@ -1092,7 +1092,7 @@ export class DatabaseStorage implements IStorage {
         }
 
         return await query
-          .orderBy(desc(cases.createdAt))
+          .orderBy(asc(cases.id))
           .limit(limit);
       });
     }, { includeDeleted, limit });
