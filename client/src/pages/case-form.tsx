@@ -63,8 +63,8 @@ export default function CaseForm() {
   const form = useForm<InsertCase>({
     resolver: zodResolver(insertCaseSchema),
     defaultValues: {
-      projectName: "",
-      caseName: "",
+      projectName: undefined,
+      caseName: undefined,
       description: "",
       milestone: "",
       includeProgressAnalysis: true,
@@ -162,7 +162,7 @@ export default function CaseForm() {
                       <FormLabel className="required">プロジェクト名</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        value={field.value}
+                        value={field.value || ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -192,7 +192,7 @@ export default function CaseForm() {
                     <FormItem>
                       <FormLabel className="required">案件名</FormLabel>
                       <FormControl>
-                        <Input placeholder="例: 事案メール対応" {...field} />
+                        <Input placeholder="例: 事案メール対応" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

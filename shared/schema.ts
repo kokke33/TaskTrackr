@@ -217,7 +217,19 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
 export const insertCaseSchema = createInsertSchema(cases).omit({
   id: true,
   createdAt: true,
-});
+}).refine(
+  (data) => data.projectName && data.projectName.trim() !== "",
+  {
+    message: "プロジェクトを選択してください",
+    path: ["projectName"],
+  }
+).refine(
+  (data) => data.caseName && data.caseName.trim() !== "",
+  {
+    message: "案件名を入力してください",
+    path: ["caseName"],
+  }
+);
 
 export const insertWeeklyReportSchema = createInsertSchema(weeklyReports).omit({
   id: true,
