@@ -1,6 +1,19 @@
 import jwt from 'jsonwebtoken';
 import type { Request, Response, NextFunction } from 'express';
 
+// セキュリティ: ログ出力用のサニタイズ関数
+function sanitizePath(path: string): string {
+  if (!path) return '[empty]';
+  
+  // 危険な文字（改行、制御文字等）を除去
+  const sanitized = path
+    .replace(/[\r\n\t]/g, '') // 改行、タブを除去
+    .replace(/[\x00-\x1f\x7f-\x9f]/g, '') // 制御文字を除去
+    .slice(0, 200); // 最大200文字に制限
+  
+  return sanitized || '[sanitized]';
+}
+
 // JWT用の型定義
 interface JWTPayload {
   userId: number;
@@ -156,7 +169,7 @@ export class HybridAuthManager {
           
           // デバッグログ（開発環境のみ）
           if (process.env.NODE_ENV !== 'production') {
-            console.log(`✅ Hybrid Auth OK: ${authResult.user.username} via ${authResult.method} - ${req.method} ${req.path}`);
+            console.log(`✅ Hybrid Auth OK: ${authResult.user.username} via ${authResult.method} - ${req.method} ${sanitizePath(req.path)}`);
           }
           
           return next();
