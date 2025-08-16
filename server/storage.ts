@@ -5,6 +5,18 @@ import { eq, desc, asc, and, isNull, inArray, or, ne, sql, gte, lte, lt } from "
 import { hash } from "bcryptjs";
 import { performanceMonitor, measureAsync } from "@shared/performance-monitor";
 
+// ログ出力用セキュリティサニタイゼーション関数
+function sanitizeForLogging(value: any): string {
+  if (value === null || value === undefined) {
+    return 'null';
+  }
+  
+  // 文字列に変換し、英数字、ハイフン、ドット、アンダースコアのみを許可
+  return String(value)
+    .replace(/[^\w\-\.]/g, '_')
+    .substring(0, 50); // 最大50文字に制限
+}
+
 // 楽観的ロック競合エラー
 export class OptimisticLockError extends Error {
   constructor(message: string) {
@@ -1246,7 +1258,7 @@ export class DatabaseStorage implements IStorage {
   // 楽観的ロック対応の週次報告更新
   async updateWeeklyReportWithVersion(id: number, report: InsertWeeklyReport, expectedVersion: number): Promise<WeeklyReport> {
     return await withRetry(async () => {
-      console.log(`📊 [VERSION_LOG] 楽観的ロック更新開始: reportId=${id}, expectedVersion=${expectedVersion}`);
+      console.log(`📊 [VERSION_LOG] 楽観的ロック更新開始: reportId=${sanitizeForLogging(id)}, expectedVersion=${sanitizeForLogging(expectedVersion)}`);
       
       // まず現在のバージョンを確認
       const current = await this.getWeeklyReport(id);
@@ -1254,10 +1266,10 @@ export class DatabaseStorage implements IStorage {
         throw new Error("週次報告が見つかりません");
       }
 
-      console.log(`📊 [VERSION_LOG] 現在のサーバー版数確認: reportId=${id}, serverVersion=${current.version}, expectedVersion=${expectedVersion}`);
+      console.log(`📊 [VERSION_LOG] 現在のサーバー版数確認: reportId=${sanitizeForLogging(id)}, serverVersion=${sanitizeForLogging(current.version)}, expectedVersion=${sanitizeForLogging(expectedVersion)}`);
 
       if (current.version !== expectedVersion) {
-        console.log(`🚨 [VERSION_LOG] 版数競合検出: reportId=${id}, serverVersion=${current.version}, expectedVersion=${expectedVersion}`);
+        console.log(`🚨 [VERSION_LOG] 版数競合検出: reportId=${sanitizeForLogging(id)}, serverVersion=${sanitizeForLogging(current.version)}, expectedVersion=${sanitizeForLogging(expectedVersion)}`);
         throw new OptimisticLockError(`データが他のユーザーによって更新されています。現在のバージョン: ${current.version}, 期待されたバージョン: ${expectedVersion}`);
       }
 
@@ -1265,7 +1277,7 @@ export class DatabaseStorage implements IStorage {
       const newVersion = expectedVersion + 1;
       const updatedReport = { ...report, version: newVersion, updatedAt: new Date() };
       
-      console.log(`📊 [VERSION_LOG] 版数を増加して更新実行: reportId=${id}, ${expectedVersion} → ${newVersion}`);
+      console.log(`📊 [VERSION_LOG] 版数を増加して更新実行: reportId=${sanitizeForLogging(id)}, ${sanitizeForLogging(expectedVersion)} → ${sanitizeForLogging(newVersion)}`);
       
       const [updated] = await db
         .update(weeklyReports)
