@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Save, ShieldCheck, Target, FileText } from "lucide-react";
 import { EditingUsersIndicator } from "@/components/editing-users-indicator";
 import { EditingUser } from "@/contexts/WebSocketContext";
+import { CopyReportConfirmDialog } from "@/components/copy-report-confirm-dialog";
+import { useState } from "react";
 
 type ReportHeaderProps = {
   isEditMode: boolean;
@@ -41,6 +43,15 @@ export function ReportHeader({
   onShowSampleDialog,
   onStopEditing,
 }: ReportHeaderProps) {
+  const [showCopyConfirmDialog, setShowCopyConfirmDialog] = useState(false);
+
+  const handleCopyButtonClick = () => {
+    setShowCopyConfirmDialog(true);
+  };
+
+  const handleConfirmCopy = () => {
+    onCopyFromLastReport();
+  };
   return (
     <>
       {/* Sticky Header */}
@@ -201,8 +212,8 @@ export function ReportHeader({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={onCopyFromLastReport}
-                  disabled={isLoadingLatest}
+                  onClick={handleCopyButtonClick}
+                  disabled={isLoadingLatest || !latestReport}
                   className="flex items-center gap-2 w-full sm:w-auto"
                 >
                   {isLoadingLatest ? (
@@ -227,6 +238,14 @@ export function ReportHeader({
           </div>
         </header>
       </div>
+
+      {/* Copy Report Confirmation Dialog */}
+      <CopyReportConfirmDialog
+        open={showCopyConfirmDialog}
+        onOpenChange={setShowCopyConfirmDialog}
+        onConfirm={handleConfirmCopy}
+        isLoading={isLoadingLatest}
+      />
     </>
   );
 }
