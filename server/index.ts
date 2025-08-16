@@ -218,7 +218,7 @@ class UnifiedErrorHandler {
     // エラータイプ別の処理
     switch (err.type) {
       case 'SESSION_EXPIRED':
-        console.log(`[${timestamp}] セッション期限切れ: ${sanitizePath(req.path)}`, requestInfo);
+        console.log(`[${timestamp}] セッション期限切れ:`, { requestPath: sanitizePath(req.path), ...requestInfo });
         return res.status(401).json({
           error: 'SESSION_EXPIRED',
           message: 'セッションが期限切れです。再度ログインしてください。',
@@ -227,7 +227,7 @@ class UnifiedErrorHandler {
         });
 
       case 'AUTH_FAILED':
-        console.log(`[${timestamp}] 認証失敗: ${sanitizePath(req.path)}`, requestInfo);
+        console.log(`[${timestamp}] 認証失敗:`, { requestPath: sanitizePath(req.path), ...requestInfo });
         return res.status(401).json({
           error: 'AUTH_FAILED',
           message: '認証が必要です。',
@@ -236,7 +236,7 @@ class UnifiedErrorHandler {
         });
 
       case 'VALIDATION_ERROR':
-        console.log(`[${timestamp}] バリデーションエラー: ${sanitizePath(req.path)}`, { ...requestInfo, error: err.message });
+        console.log(`[${timestamp}] バリデーションエラー:`, { requestPath: sanitizePath(req.path), ...requestInfo, error: err.message });
         return res.status(400).json({
           error: 'VALIDATION_ERROR',
           message: err.message || 'リクエストデータが無効です。',
@@ -244,7 +244,7 @@ class UnifiedErrorHandler {
         });
 
       case 'DATABASE_ERROR':
-        console.error(`[${timestamp}] データベースエラー: ${req.path}`, { ...requestInfo, error: err.message });
+        console.error(`[${timestamp}] データベースエラー:`, { requestPath: sanitizePath(req.path), ...requestInfo, error: err.message });
         return res.status(503).json({
           error: 'DATABASE_ERROR',
           message: 'データベース接続に問題があります。しばらく後にお試しください。',
