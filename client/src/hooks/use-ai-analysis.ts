@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { devLog, devError } from "@shared/logger";
+import { getCSRFToken } from "@/lib/queryClient";
 
 interface ConversationMessage {
   id: string;
@@ -77,11 +78,21 @@ export function useAIAnalysis() {
           // エラーの場合は通常のエンドポイントを使用
         }
 
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        
+        // CSRFトークンを取得してヘッダーに追加
+        try {
+          const csrfToken = await getCSRFToken();
+          headers['X-CSRF-Token'] = csrfToken;
+        } catch (error) {
+          console.error('CSRFトークン取得エラー:', error);
+        }
+        
         const response = await fetch(endpoint, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers,
           body: JSON.stringify({
             content,
             fieldType: fieldName,
@@ -232,11 +243,21 @@ export function useAIAnalysis() {
 
         if (useStreaming) {
           // ストリーミング処理
+          const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+          };
+          
+          // CSRFトークンを取得してヘッダーに追加
+          try {
+            const csrfToken = await getCSRFToken();
+            headers['X-CSRF-Token'] = csrfToken;
+          } catch (error) {
+            console.error('CSRFトークン取得エラー:', error);
+          }
+          
           const response = await fetch(endpoint, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify({
               content,
               fieldType: fieldName,
@@ -304,11 +325,21 @@ export function useAIAnalysis() {
           }));
         } else {
           // 非ストリーミング処理（フォールバック）
+          const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+          };
+          
+          // CSRFトークンを取得してヘッダーに追加
+          try {
+            const csrfToken = await getCSRFToken();
+            headers['X-CSRF-Token'] = csrfToken;
+          } catch (error) {
+            console.error('CSRFトークン取得エラー:', error);
+          }
+          
           const response = await fetch(endpoint, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify({
               content,
               fieldType: fieldName,
@@ -468,11 +499,21 @@ export function useAIAnalysis() {
       }));
 
       // AI会話APIを呼び出し
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      
+      // CSRFトークンを取得してヘッダーに追加
+      try {
+        const csrfToken = await getCSRFToken();
+        headers['X-CSRF-Token'] = csrfToken;
+      } catch (error) {
+        console.error('CSRFトークン取得エラー:', error);
+      }
+      
       const response = await fetch("/api/ai/conversation", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           fieldName,
           message,

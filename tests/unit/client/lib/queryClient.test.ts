@@ -123,8 +123,23 @@ describe("queryClient", () => {
     it("POSTリクエストでデータを正しく送信すること", async () => {
       const requestData = { name: "test", value: 123 };
       const mockResponse = { success: true };
+      const mockCsrfResponse = { csrfToken: "test-csrf-token" };
 
-      mockFetch.mockResolvedValue({
+      // CSRFトークン取得用のレスポンス（1回目）
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: {
+          get: vi.fn().mockReturnValue("application/json"),
+        },
+        json: () => Promise.resolve(mockCsrfResponse),
+        text: () => Promise.resolve(""),
+        clone: vi.fn(),
+      });
+
+      // 実際のPOSTリクエスト用のレスポンス（2回目）
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
         statusText: "OK",
@@ -142,7 +157,7 @@ describe("queryClient", () => {
       });
 
       expect(result).toEqual(mockResponse);
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledTimes(2); // CSRFトークン取得 + POSTリクエスト
     });
 
     it("HTTPエラー時に適切なエラーを投げること", async () => {

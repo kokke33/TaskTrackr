@@ -28,8 +28,10 @@ import { hybridAuthManager } from "./hybrid-auth-manager";
 import { createLogger } from "@shared/logger";
 import { getEditingUsers } from "./editing-manager";
 import { notifyDataUpdate } from "./websocket";
+import csrf from "csrf";
 
 const logger = createLogger('Routes');
+const csrfTokens = new csrf();
 
 // 入力値サニタイゼーション関数
 function sanitizeSearchQuery(query: string): string {
@@ -84,6 +86,31 @@ declare global {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // CSRFトークン取得API（認証不要）
+  app.get("/api/csrf-token", (req, res) => {
+    try {
+      // セッションにCSRFシークレットがない場合は作成
+      if (!req.session.csrfSecret) {
+        req.session.csrfSecret = csrfTokens.secretSync();
+      }
+      
+      // CSRFトークンを生成
+      const token = csrfTokens.create(req.session.csrfSecret);
+      
+      res.json({ 
+        csrfToken: token,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('CSRFトークン生成エラー:', error instanceof Error ? error : new Error(String(error)));
+      res.status(500).json({
+        error: 'CSRF_TOKEN_GENERATION_ERROR',
+        message: 'CSRFトークンの生成に失敗しました。',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // 検索API
   app.get("/api/search", isAuthenticated, async (req, res) => {
     try {

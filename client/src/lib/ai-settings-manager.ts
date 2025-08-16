@@ -3,6 +3,7 @@
 import { type AIProviderConfig, type AISettingType } from "@shared/ai-types";
 import { DEFAULT_VALUES } from "@shared/ai-constants";
 import { AIConfigValidator } from "@shared/ai-validation";
+import { getCSRFToken } from './queryClient';
 
 export class AISettingsManager {
   /**
@@ -168,11 +169,21 @@ export class AISettingsManager {
       body.claudeModel = config.claudeModel;
     }
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // CSRFトークンを取得してヘッダーに追加
+    try {
+      const csrfToken = await getCSRFToken();
+      headers['X-CSRF-Token'] = csrfToken;
+    } catch (error) {
+      console.error('CSRFトークン取得エラー:', error);
+    }
+    
     const response = await fetch('/api/session-ai-settings', {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
       body: JSON.stringify(body),
     });
@@ -193,8 +204,19 @@ export class AISettingsManager {
    * 設定をクリア（お試し設定用）
    */
   static async clearSessionSettings(): Promise<void> {
+    const headers: Record<string, string> = {};
+    
+    // CSRFトークンを取得してヘッダーに追加
+    try {
+      const csrfToken = await getCSRFToken();
+      headers['X-CSRF-Token'] = csrfToken;
+    } catch (error) {
+      console.error('CSRFトークン取得エラー:', error);
+    }
+    
     const response = await fetch('/api/session-ai-settings', {
       method: 'DELETE',
+      headers,
       credentials: 'include',
     });
 
@@ -218,11 +240,21 @@ export class AISettingsManager {
     value: string,
     description?: string
   ): Promise<void> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // CSRFトークンを取得してヘッダーに追加
+    try {
+      const csrfToken = await getCSRFToken();
+      headers['X-CSRF-Token'] = csrfToken;
+    } catch (error) {
+      console.error('CSRFトークン取得エラー:', error);
+    }
+    
     const response = await fetch(`/api/settings/${key}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
       body: JSON.stringify({ value, description }),
     });
