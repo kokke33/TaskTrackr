@@ -42,18 +42,20 @@ export class AISettingsManager {
   static getDescription(type: AISettingType, key: string): string {
     const descriptions = {
       basic: {
-        provider: '基本AIサービスプロバイダー (openai, ollama, gemini, groq, openrouter)',
+        provider: '基本AIサービスプロバイダー (openai, ollama, gemini, groq, openrouter, claude)',
         openaiModel: '基本AI設定用OpenAIモデル',
         groqModel: '基本AI設定用Groqモデル',
         geminiModel: '基本AI設定用Geminiモデル',
         openrouterModel: '基本AI設定用OpenRouterモデル',
+        claudeModel: '基本AI設定用Claudeモデル',
       },
       realtime: {
-        provider: 'リアルタイム分析用AIプロバイダー (openai, ollama, gemini, groq, openrouter)',
+        provider: 'リアルタイム分析用AIプロバイダー (openai, ollama, gemini, groq, openrouter, claude)',
         openaiModel: 'リアルタイム分析用OpenAIモデル',
         groqModel: 'リアルタイム分析用Groqモデル',
         geminiModel: 'リアルタイム分析用Geminiモデル',
         openrouterModel: 'リアルタイム分析用OpenRouterモデル',
+        claudeModel: 'リアルタイム分析用Claudeモデル',
       },
       trial: {
         provider: 'お試し用AIプロバイダー',
@@ -61,6 +63,7 @@ export class AISettingsManager {
         groqModel: 'お試し用Groqモデル',
         geminiModel: 'お試し用Geminiモデル',
         openrouterModel: 'お試し用OpenRouterモデル',
+        claudeModel: 'お試し用Claudeモデル',
       },
     };
 
@@ -77,6 +80,7 @@ export class AISettingsManager {
       groqModel: DEFAULT_VALUES.GROQ_MODEL,
       geminiModel: DEFAULT_VALUES.GEMINI_MODEL,
       openrouterModel: DEFAULT_VALUES.OPENROUTER_MODEL,
+      claudeModel: DEFAULT_VALUES.CLAUDE_MODEL,
     };
   }
 
@@ -131,6 +135,15 @@ export class AISettingsManager {
         this.getDescription(type, 'openrouterModel')
       );
     }
+
+    // Claudeモデルを更新
+    if (config.provider === 'claude' && config.claudeModel) {
+      await this.updateSystemSetting(
+        `${prefix}CLAUDE_MODEL`,
+        config.claudeModel,
+        this.getDescription(type, 'claudeModel')
+      );
+    }
   }
 
   /**
@@ -150,6 +163,9 @@ export class AISettingsManager {
     }
     if (config.provider === 'openrouter' && config.openrouterModel) {
       body.openrouterModel = config.openrouterModel;
+    }
+    if (config.provider === 'claude' && config.claudeModel) {
+      body.claudeModel = config.claudeModel;
     }
 
     const response = await fetch('/api/session-ai-settings', {
@@ -231,7 +247,8 @@ export class AISettingsManager {
     groqModel?: string,
     geminiModel?: string,
     openrouterModel?: string,
-    openaiModel?: string
+    openaiModel?: string,
+    claudeModel?: string
   ): AIProviderConfig {
     const defaults = this.getDefaultConfig();
     
@@ -241,6 +258,7 @@ export class AISettingsManager {
       groqModel: (groqModel && groqModel.trim()) ? groqModel as any : defaults.groqModel,
       geminiModel: (geminiModel && geminiModel.trim()) ? geminiModel as any : defaults.geminiModel,
       openrouterModel: (openrouterModel && openrouterModel.trim()) ? openrouterModel as any : defaults.openrouterModel,
+      claudeModel: (claudeModel && claudeModel.trim()) ? claudeModel as any : defaults.claudeModel,
     };
   }
 
@@ -254,6 +272,7 @@ export class AISettingsManager {
       groqModel: config.groqModel,
       geminiModel: config.geminiModel,
       openrouterModel: config.openrouterModel,
+      claudeModel: config.claudeModel,
     };
   }
 }

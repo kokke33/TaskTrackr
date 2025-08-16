@@ -5,7 +5,7 @@ import { storage } from './storage';
 dotenv.config();
 
 export interface AIConfig {
-  provider: 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter';
+  provider: 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter' | 'claude';
   openai: {
     apiKey: string;
     model: string;
@@ -37,10 +37,16 @@ export interface AIConfig {
     maxTokens: number;
     temperature: number;
   };
+  claude: {
+    apiKey: string;
+    model: string;
+    maxTokens: number;
+    temperature: number;
+  };
 }
 
 export const aiConfig: AIConfig = {
-  provider: (process.env.AI_PROVIDER as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter') || 'openai',
+  provider: (process.env.AI_PROVIDER as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter' | 'claude') || 'openai',
   openai: {
     apiKey: process.env.OPENAI_API_KEY || '',
     model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
@@ -74,6 +80,12 @@ export const aiConfig: AIConfig = {
     maxTokens: parseInt(process.env.OPENROUTER_MAX_TOKENS || '4000'),
     temperature: parseFloat(process.env.OPENROUTER_TEMPERATURE || '0.7'),
   },
+  claude: {
+    apiKey: process.env.CLAUDE_API_KEY || '',
+    model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-0',
+    maxTokens: parseInt(process.env.CLAUDE_MAX_TOKENS || '4000'),
+    temperature: parseFloat(process.env.CLAUDE_TEMPERATURE || '0.7'),
+  },
 };
 
 // Validation function
@@ -98,6 +110,10 @@ export function validateAIConfig(): void {
     throw new Error('OPENROUTER_API_KEY is required when using OpenRouter provider');
   }
   
+  if (aiConfig.provider === 'claude' && !aiConfig.claude.apiKey) {
+    throw new Error('CLAUDE_API_KEY is required when using Claude provider');
+  }
+  
   console.log(`AI Provider: ${aiConfig.provider}`);
   if (aiConfig.provider === 'openai') {
     console.log(`OpenAI Model: ${aiConfig.openai.model}`);
@@ -109,6 +125,8 @@ export function validateAIConfig(): void {
     console.log(`Groq Model: ${aiConfig.groq.model}`);
   } else if (aiConfig.provider === 'openrouter') {
     console.log(`OpenRouter Model: ${aiConfig.openrouter.model}`);
+  } else if (aiConfig.provider === 'claude') {
+    console.log(`Claude Model: ${aiConfig.claude.model}`);
   }
 }
 
@@ -119,7 +137,7 @@ export async function getDynamicAIConfig(): Promise<AIConfig> {
     const providerSetting = await storage.getSystemSetting('AI_PROVIDER');
     
     if (providerSetting && providerSetting.value) {
-      const dynamicProvider = providerSetting.value as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter';
+      const dynamicProvider = providerSetting.value as 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter' | 'claude';
       
       // 設定をコピーしてプロバイダーを更新
       const dynamicConfig: AIConfig = {
@@ -161,9 +179,20 @@ export async function getDynamicAIConfig(): Promise<AIConfig> {
         }
       }
       
+      // Claudeの場合はモデルもデータベースから取得
+      if (dynamicProvider === 'claude') {
+        const claudeModelSetting = await storage.getSystemSetting('AI_CLAUDE_MODEL');
+        console.log('[AI-CONFIG-DEBUG] Claude model from DB:', claudeModelSetting?.value);
+        if (claudeModelSetting && claudeModelSetting.value) {
+          dynamicConfig.claude.model = claudeModelSetting.value;
+          console.log('[AI-CONFIG-DEBUG] Claude model updated to:', dynamicConfig.claude.model);
+        }
+      }
+      
       console.log('[AI-CONFIG-DEBUG] Final dynamic config:', {
         provider: dynamicConfig.provider,
-        openrouterModel: dynamicConfig.openrouter.model
+        openrouterModel: dynamicConfig.openrouter.model,
+        claudeModel: dynamicConfig.claude.model
       });
       return dynamicConfig;
     }
@@ -178,7 +207,7 @@ export async function getDynamicAIConfig(): Promise<AIConfig> {
 }
 
 // AI設定を更新する関数
-export async function updateAIProvider(provider: 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter'): Promise<void> {
+export async function updateAIProvider(provider: 'openai' | 'ollama' | 'gemini' | 'groq' | 'openrouter' | 'claude'): Promise<void> {
   try {
     await storage.setSystemSetting('AI_PROVIDER', provider, 'AIサービスプロバイダー');
     console.log(`AI Provider updated to: ${provider}`);
