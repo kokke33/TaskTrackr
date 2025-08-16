@@ -8,8 +8,47 @@ const __dirname = dirname(__filename);
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+import rateLimit from "express-rate-limit";
 
 const viteLogger = createLogger();
+
+// HTMLテンプレートキャッシュ
+interface TemplateCache {
+  content: string;
+  lastModified: number;
+  templatePath: string;
+}
+
+let templateCache: TemplateCache | null = null;
+
+// ファイルアクセス専用レートリミット
+const fileAccessRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1分
+  max: 300, // 300リクエスト/分（10倍緩和）
+  message: {
+    error: 'FILE_ACCESS_RATE_LIMIT_EXCEEDED',
+    message: 'ファイルアクセスのリクエストが多すぎます。しばらく後にお試しください。',
+    retryAfter: 60
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // 静的ファイルの場合はスキップ（Viteミドルウェアが処理）
+    return req.originalUrl.startsWith('/assets/') || 
+           req.originalUrl.includes('.js') || 
+           req.originalUrl.includes('.css') || 
+           req.originalUrl.includes('.json');
+  },
+  handler: (req, res) => {
+    log(`ファイルアクセスレートリミット違反: ${req.ip} -> ${req.originalUrl}`, "rate-limit");
+    res.status(429).json({
+      error: 'FILE_ACCESS_RATE_LIMIT_EXCEEDED',
+      message: 'ファイルアクセスのリクエストが多すぎます。しばらく後にお試しください。',
+      retryAfter: 60,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -20,6 +59,35 @@ export function log(message: string, source = "express") {
   });
 
   console.log(`${formattedTime} [${source}] ${message}`);
+}
+
+// キャッシュされたHTMLテンプレートを取得する関数
+async function getCachedTemplate(clientTemplate: string): Promise<string> {
+  try {
+    const stats = await fs.promises.stat(clientTemplate);
+    const lastModified = stats.mtime.getTime();
+
+    // キャッシュが存在し、ファイルが変更されていない場合はキャッシュを返す
+    if (templateCache && 
+        templateCache.templatePath === clientTemplate && 
+        templateCache.lastModified === lastModified) {
+      return templateCache.content;
+    }
+
+    // ファイルを読み込み、キャッシュを更新
+    const content = await fs.promises.readFile(clientTemplate, "utf-8");
+    templateCache = {
+      content,
+      lastModified,
+      templatePath: clientTemplate
+    };
+
+    log(`HTMLテンプレートをキャッシュに更新: ${clientTemplate}`, "cache");
+    return content;
+  } catch (error) {
+    log(`HTMLテンプレート読み込みエラー: ${error}`, "cache-error");
+    throw error;
+  }
 }
 
 export async function setupVite(app: Express, server: Server) {
@@ -44,6 +112,10 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
+  
+  // ファイルアクセス専用レートリミットを適用
+  app.use("*", fileAccessRateLimit);
+  
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
@@ -60,8 +132,8 @@ export async function setupVite(app: Express, server: Server) {
         "index.html",
       );
 
-      // always reload the index.html file from disk incase it changes
-      let template = await fs.promises.readFile(clientTemplate, "utf-8");
+      // キャッシュからHTMLテンプレートを取得（ファイル変更時は自動更新）
+      let template = await getCachedTemplate(clientTemplate);
       template = template.replace(
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
