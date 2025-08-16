@@ -74,15 +74,14 @@ export class ConnectionManager {
     const sessions = this.editSessions.get(reportId) || [];
     const filteredSessions = sessions.filter(s => s.userId !== userId);
     
-    console.log(`🔥 [ConnectionManager] stopEditing called for user ${userId} on report ${reportId}`);
-    console.log(`🔥 [ConnectionManager] Sessions before: ${sessions.length}, after: ${filteredSessions.length}`);
+    logger.debug('stopEditing called', { userId, reportId, sessionsBefore: sessions.length, sessionsAfter: filteredSessions.length });
     
     if (filteredSessions.length !== sessions.length) {
       this.editSessions.set(reportId, filteredSessions);
       this.broadcastEditingUsers(reportId);
-      console.log(`🔥 [ConnectionManager] Successfully removed editing session for user ${userId} from report ${reportId}`);
+      logger.debug('Successfully removed editing session', { userId, reportId });
     } else {
-      console.log(`🔥 [ConnectionManager] No editing session found to remove for user ${userId} on report ${reportId}`);
+      logger.debug('No editing session found to remove', { userId, reportId });
     }
   }
   
@@ -105,7 +104,8 @@ export class ConnectionManager {
       lastActivity: s.lastActivity
     }));
     
-    console.log(`[ConnectionManager] Broadcasting editing users for report ${reportId}:`, {
+    logger.debug('Broadcasting editing users', {
+      reportId,
       sessionCount: sessions.length,
       users: activeUsers.map(u => ({ userId: u.userId, username: u.username, userIdType: typeof u.userId }))
     });
@@ -162,7 +162,7 @@ export class ConnectionManager {
       const activeSessions = sessions.filter(s => s.lastActivity > threeMinutesAgo);
       
       if (activeSessions.length !== sessions.length) {
-        console.log(`🔥 [cleanupInactiveSessions] Cleaned up inactive sessions for report ${reportId}: ${sessions.length} -> ${activeSessions.length}`);
+        logger.debug('Cleaned up inactive sessions', { reportId, before: sessions.length, after: activeSessions.length });
         this.editSessions.set(reportId, activeSessions);
         this.broadcastEditingUsers(reportId);
       }
@@ -181,19 +181,30 @@ export class ConnectionManager {
       // 3分以上非アクティブなセッションは除外
       const isActive = session.lastActivity > threeMinutesAgo;
       if (!isActive) {
-        console.log(`🔥 [getEditingUsers] Excluding inactive session: user ${session.username} (${session.userId}), last activity: ${session.lastActivity}`);
+        logger.debug('Excluding inactive session', { 
+          username: session.username, 
+          userId: session.userId, 
+          lastActivity: session.lastActivity 
+        });
       }
       return isActive;
     });
     
     // 非アクティブセッションがあった場合は即座にクリーンアップ
     if (activeSessions.length !== sessions.length) {
-      console.log(`🔥 [getEditingUsers] Cleaning up inactive sessions for report ${reportId}: ${sessions.length} -> ${activeSessions.length}`);
+      logger.debug('Cleaning up inactive sessions', { reportId, before: sessions.length, after: activeSessions.length });
       this.editSessions.set(reportId, activeSessions);
       this.broadcastEditingUsers(reportId);
     }
     
-    console.log(`🔥 [getEditingUsers] Report ${reportId} active editing users:`, activeSessions.map(s => `${s.username} (${s.userId})`));
+    logger.debug(`Report ${reportId} active editing users`, {
+      reportId,
+      activeUserCount: activeSessions.length,
+      users: activeSessions.map(s => ({ 
+        username: s.username, 
+        userId: s.userId 
+      }))
+    });
     return activeSessions;
   }
 }

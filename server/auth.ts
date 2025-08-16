@@ -93,7 +93,7 @@ setInterval(() => {
   const now = Date.now();
   for (const [userId, entry] of Array.from(activeDeserializations.entries())) {
     if (now - entry.timestamp > DESERIALIZATION_TIMEOUT) {
-      console.log(`🧹 セッション復元タイムアウトクリーンアップ - User ID: ${userId}`);
+      logger.debug('セッション復元タイムアウトクリーンアップ', { userId });
       if (entry.timeout) {
         clearTimeout(entry.timeout);
       }
@@ -106,13 +106,13 @@ passport.deserializeUser(async (id: number, done) => {
   try {
     // 同じユーザーIDで並行実行されている場合は結果を待つ
     if (activeDeserializations.has(id)) {
-      console.log(`🔄 セッション復元待機中 - User ID: ${id}`);
+      logger.debug('セッション復元待機中', { userId: id });
       const entry = activeDeserializations.get(id)!;
       try {
         const result = await entry.promise;
         return done(null, result);
       } catch (error) {
-        console.log(`❌ 並行セッション復元エラー - User ID: ${id}`, error);
+        logger.error('並行セッション復元エラー', error instanceof Error ? error : new Error(String(error)), { userId: id });
         // エラー時は新しい復元処理を開始
         activeDeserializations.delete(id);
       }
@@ -146,27 +146,27 @@ passport.deserializeUser(async (id: number, done) => {
           
           if (isConnectionError && retries > 1) {
             retries--;
-            console.log(`🔄 セッション復元でDB接続エラー (残り${retries}回), User ID: ${id} - ${dbError.message}`);
+            logger.warn('セッション復元でDB接続エラー', { retriesLeft: retries, userId: id, errorMessage: dbError.message });
             await new Promise(resolve => setTimeout(resolve, 2000));
             continue;
           }
           
           // リトライしても失敗した場合、またはDB接続エラー以外の場合
-          console.error(`❌ セッション復元失敗 - User ID: ${id}`, dbError.message);
+          logger.error('セッション復元失敗', dbError instanceof Error ? dbError : new Error(String(dbError)), { userId: id });
           return false; // 認証失敗
         }
       }
       
       if (!user) {
-        console.log(`⚠️ ユーザーが見つかりません - User ID: ${id} (削除済みまたは無効なセッション)`);
+        logger.warn('ユーザーが見つかりません（削除済みまたは無効なセッション）', { userId: id });
         return false; // 認証失敗
       }
       
       // 本番環境では機密情報を含むデバッグログを削減し、INFOレベルに格下げ
       if (process.env.NODE_ENV !== 'production') {
-        console.log(`✅ セッション復元成功 - ${user.username} (ID: ${user.id})`);
+        logger.info('セッション復元成功', { username: user.username, userId: user.id });
       } else {
-        console.info(`✅ セッション復元成功`);
+        logger.info('セッション復元成功');
       }
       
       return user;
@@ -177,7 +177,7 @@ passport.deserializeUser(async (id: number, done) => {
       promise: deserializationPromise,
       timestamp: Date.now(),
       timeout: setTimeout(() => {
-        console.log(`⏰ セッション復元タイムアウト - User ID: ${id}`);
+        logger.warn('セッション復元タイムアウト', { userId: id });
         activeDeserializations.delete(id);
       }, DESERIALIZATION_TIMEOUT)
     };
@@ -194,7 +194,7 @@ passport.deserializeUser(async (id: number, done) => {
     
     done(null, result);
   } catch (error) {
-    console.error(`❌ セッション復元で予期しないエラー - User ID: ${id}`, error);
+    logger.error('セッション復元で予期しないエラー', error instanceof Error ? error : new Error(String(error)), { userId: id });
     // エラー時もMapから削除とタイムアウトクリア
     const entryToClean = activeDeserializations.get(id);
     if (entryToClean?.timeout) {
@@ -227,7 +227,7 @@ export async function createInitialUsers() {
           password: hashedPassword,
           isAdmin: user.isAdmin,
         });
-        console.log(`Created initial user: ${user.username}, isAdmin: ${user.isAdmin}`);
+        logger.info('Created initial user', { username: user.username, isAdmin: user.isAdmin });
       }
     }
   };
@@ -238,7 +238,7 @@ export async function createInitialUsers() {
     while (retries > 0) {
       try {
         await createUsersWithRetry();
-        console.log('✅ 初期ユーザーの作成が完了しました');
+        logger.info('初期ユーザーの作成が完了しました');
         break;
       } catch (error: any) {
         const isConnectionError = 
@@ -250,7 +250,7 @@ export async function createInitialUsers() {
         
         if (isConnectionError && retries > 1) {
           retries--;
-          console.log(`🔄 初期ユーザー作成でデータベース接続エラー (残り${retries}回)`);
+          logger.warn('初期ユーザー作成でデータベース接続エラー', { retriesLeft: retries });
           console.log('5秒後にリトライします...');
           await new Promise(resolve => setTimeout(resolve, 5000));
           continue;
@@ -260,7 +260,7 @@ export async function createInitialUsers() {
       }
     }
   } catch (error) {
-    console.error("Error creating initial users:", error);
+    logger.error("Error creating initial users", error instanceof Error ? error : new Error(String(error)));
   }
 }
 
@@ -271,7 +271,7 @@ export function isAuthenticated(req: any, res: any, next: any) {
   if (req.isAuthenticated()) {
     // 認証成功時は本番環境ではログを簡素化
     if (!isProduction) {
-      console.log(`✅ Auth OK: ${req.user?.username} - ${req.method} ${req.path}`);
+      logger.info('Auth OK', { username: req.user?.username, method: req.method, path: req.path });
     }
     return next();
   }
@@ -291,7 +291,7 @@ export function isAuthenticated(req: any, res: any, next: any) {
     userAgentShort: req.headers['user-agent']?.substring(0, 50) + '...'
   };
   
-  console.log(`❌ Auth Failed: ${sessionInfo.method} ${sessionInfo.path}`);
+  logger.warn('Auth Failed', { method: sessionInfo.method, path: sessionInfo.path });
   
   // 開発環境でのみ詳細ログを出力（機密情報を含む）
   if (!isProduction) {
@@ -312,7 +312,7 @@ export function isAuthenticated(req: any, res: any, next: any) {
   // セッション期限切れかどうかを判定
   const isSessionExpired = !req.session?.passport?.user;
   if (isSessionExpired) {
-    console.log(`💡 セッション期限切れの可能性 - 再ログインが必要です`);
+    logger.info('セッション期限切れの可能性 - 再ログインが必要です');
   }
   
   // 統一エラーハンドラー用のエラーオブジェクトを作成
@@ -327,7 +327,9 @@ export function isAuthenticated(req: any, res: any, next: any) {
 
 // 統一エラーハンドラー対応の管理者権限チェックミドルウェア
 export function isAdmin(req: any, res: any, next: any) {
-  console.log(`[ADMIN CHECK] ${req.method} ${req.path}`, {
+  logger.debug('ADMIN CHECK', {
+    method: req.method,
+    path: req.path,
     isAuthenticated: req.isAuthenticated(),
     user: req.user ? { id: req.user.id, username: req.user.username, isAdmin: req.user.isAdmin } : null,
     sessionID: req.sessionID,
@@ -335,7 +337,7 @@ export function isAdmin(req: any, res: any, next: any) {
   });
   
   if (req.isAuthenticated() && req.user && req.user.isAdmin) {
-    console.log(`[ADMIN CHECK] ✅ Admin access granted for user ${req.user.username}`);
+    logger.info('ADMIN CHECK - Admin access granted', { username: req.user.username });
     return next();
   }
   
@@ -358,13 +360,15 @@ export const isAuthenticatedHybrid = hybridAuthManager.createAuthMiddleware();
 
 // ハイブリッド管理者権限チェックミドルウェア
 export function isAdminHybrid(req: any, res: any, next: any) {
-  console.log(`[HYBRID ADMIN CHECK] ${req.method} ${req.path}`, {
+  logger.debug('HYBRID ADMIN CHECK', {
+    method: req.method,
+    path: req.path,
     user: req.user ? { id: req.user.id, username: req.user.username, isAdmin: req.user.isAdmin } : null,
     timestamp: new Date().toISOString()
   });
   
   if (req.user && req.user.isAdmin) {
-    console.log(`[HYBRID ADMIN CHECK] ✅ Admin access granted for user ${req.user.username}`);
+    logger.info('HYBRID ADMIN CHECK - Admin access granted', { username: req.user.username });
     return next();
   }
   

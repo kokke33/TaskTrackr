@@ -25,13 +25,15 @@ vi.mock("../../../server/hybrid-auth-manager", () => ({
   },
 }));
 
+const mockLogger = vi.hoisted(() => ({
+  info: vi.fn(),
+  debug: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
+}));
+
 vi.mock("@shared/logger", () => ({
-  createLogger: vi.fn().mockReturnValue({
-    info: vi.fn(),
-    debug: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-  }),
+  createLogger: vi.fn().mockReturnValue(mockLogger),
 }));
 
 vi.mock("passport", () => ({
@@ -60,6 +62,11 @@ describe("Auth", () => {
     // データベースモックのリセット
     vi.clearAllMocks();
     mockDb = vi.mocked(db);
+    // ログモックのリセット
+    mockLogger.info.mockClear();
+    mockLogger.debug.mockClear();
+    mockLogger.error.mockClear();
+    mockLogger.warn.mockClear();
 
     // リクエスト・レスポンスモックの設定
     mockReq = {
@@ -146,18 +153,20 @@ describe("Auth", () => {
 
     it("開発環境では詳細ログを出力すること", () => {
       process.env.NODE_ENV = "development";
-      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
       mockReq.isAuthenticated.mockReturnValue(true);
       mockReq.user = { id: 1, username: "testuser", isAdmin: false };
 
       isAuthenticated(mockReq, mockRes, mockNext);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Auth OK")
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Auth OK",
+        expect.objectContaining({
+          username: "testuser",
+          method: "GET",
+          path: "/api/test"
+        })
       );
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -217,18 +226,20 @@ describe("Auth", () => {
     });
 
     it("管理者チェックの詳細ログを出力すること", () => {
-      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
       mockReq.isAuthenticated.mockReturnValue(true);
       mockReq.user = { id: 1, username: "admin", isAdmin: true };
 
       isAdmin(mockReq, mockRes, mockNext);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[ADMIN CHECK]")
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        "ADMIN CHECK",
+        expect.objectContaining({
+          method: "GET",
+          path: "/api/test",
+          isAuthenticated: true,
+          user: { id: 1, username: "admin", isAdmin: true }
+        })
       );
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -290,15 +301,14 @@ describe("Auth", () => {
         }),
       });
 
-      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
       await createInitialUsers();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("初期ユーザー作成でデータベース接続エラー")
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        "初期ユーザー作成でデータベース接続エラー",
+        expect.objectContaining({
+          retriesLeft: expect.any(Number)
+        })
       );
-
-      consoleSpy.mockRestore();
     }, 10000); // 10秒のタイムアウトを設定
 
     it("非接続エラーの場合、リトライしないこと", async () => {
@@ -310,16 +320,12 @@ describe("Auth", () => {
         }),
       });
 
-      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
       await createInitialUsers();
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Error creating initial users:",
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "Error creating initial users",
         nonConnectionError
       );
-
-      consoleErrorSpy.mockRestore();
     });
 
     it("パスワードが正しくハッシュ化されること", async () => {
