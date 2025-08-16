@@ -184,6 +184,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// セキュリティ: ログ出力用のサニタイズ関数
+function sanitizePath(path: string): string {
+  if (!path) return '[empty]';
+  
+  // 危険な文字（改行、制御文字等）を除去
+  const sanitized = path
+    .replace(/[\r\n\t]/g, '') // 改行、タブを除去
+    .replace(/[\x00-\x1f\x7f-\x9f]/g, '') // 制御文字を除去
+    .slice(0, 200); // 最大200文字に制限
+  
+  return sanitized || '[sanitized]';
+}
+
 // 統一エラーハンドリングシステム
 interface AppError extends Error {
   status?: number;
@@ -205,7 +218,7 @@ class UnifiedErrorHandler {
     // エラータイプ別の処理
     switch (err.type) {
       case 'SESSION_EXPIRED':
-        console.log(`[${timestamp}] セッション期限切れ: ${req.path}`, requestInfo);
+        console.log(`[${timestamp}] セッション期限切れ: ${sanitizePath(req.path)}`, requestInfo);
         return res.status(401).json({
           error: 'SESSION_EXPIRED',
           message: 'セッションが期限切れです。再度ログインしてください。',
@@ -214,7 +227,7 @@ class UnifiedErrorHandler {
         });
 
       case 'AUTH_FAILED':
-        console.log(`[${timestamp}] 認証失敗: ${req.path}`, requestInfo);
+        console.log(`[${timestamp}] 認証失敗: ${sanitizePath(req.path)}`, requestInfo);
         return res.status(401).json({
           error: 'AUTH_FAILED',
           message: '認証が必要です。',
@@ -223,7 +236,7 @@ class UnifiedErrorHandler {
         });
 
       case 'VALIDATION_ERROR':
-        console.log(`[${timestamp}] バリデーションエラー: ${req.path}`, { ...requestInfo, error: err.message });
+        console.log(`[${timestamp}] バリデーションエラー: ${sanitizePath(req.path)}`, { ...requestInfo, error: err.message });
         return res.status(400).json({
           error: 'VALIDATION_ERROR',
           message: err.message || 'リクエストデータが無効です。',
