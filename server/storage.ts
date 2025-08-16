@@ -1957,7 +1957,7 @@ export class DatabaseStorage implements IStorage {
           createdAt: users.createdAt,
         })
         .from(users)
-        .orderBy(desc(users.createdAt));
+        .orderBy(users.id);
       return userList;
     });
   }
