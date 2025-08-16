@@ -170,8 +170,8 @@ function App() {
   // WebSocket URLの確実な構築をメモ化して不要な再計算を防止
   const wsUrl = useMemo(() => {
     try {
-      // 環境変数からポートを取得
-      const envPort = import.meta.env.VITE_PORT || import.meta.env.PORT || '5000';
+      // 環境変数からポートを取得（VITE_PORTを優先）
+      const envPort = import.meta.env.VITE_PORT || '5000';
       
       // 現在の環境情報を収集
       const protocol = window.location.protocol;
@@ -220,11 +220,11 @@ console.log("App: wsUrl value:", wsUrl); // デバッグ用ログ
 return (
   <QueryClientProvider client={queryClient}>
       <AuthProvider>
-          <SiteLayout>
-            <WebSocketProvider url={wsUrl}>
+          <WebSocketProvider url={wsUrl}>
+            <SiteLayout>
               <Router />
-            </WebSocketProvider>
-          </SiteLayout>
+            </SiteLayout>
+          </WebSocketProvider>
           <Toaster />
       </AuthProvider>
     </QueryClientProvider>

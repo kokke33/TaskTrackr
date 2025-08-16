@@ -32,6 +32,8 @@ export default defineConfig({
     // 環境変数をクライアントサイドで利用可能にする
     'import.meta.env.VITE_LOG_LEVEL': JSON.stringify(process.env.LOG_LEVEL || 'info'),
     'import.meta.env.VITE_PORT': JSON.stringify(process.env.PORT || '5000'),
+    // HMRクライアント用にもポートを定義
+    '__VITE_HMR_PORT__': port
   },
   resolve: {
     alias: {
@@ -118,7 +120,9 @@ export default defineConfig({
   server: {
     hmr: {
       port: port,
+      host: 'localhost'
     },
     port: port,
+    host: 'localhost',
   },
 });
