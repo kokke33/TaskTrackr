@@ -54,6 +54,18 @@ function sanitizeSearchQuery(query: string): string {
     .replace(/[\x00-\x1F\x7F]/g, '');
 }
 
+// ログ出力用セキュリティサニタイゼーション関数
+function sanitizeForLogging(value: any): string {
+  if (value === null || value === undefined) {
+    return 'null';
+  }
+  
+  // 文字列に変換し、英数字、ハイフン、ドット、アンダースコアのみを許可
+  return String(value)
+    .replace(/[^\w\-\.]/g, '_')
+    .substring(0, 50); // 最大50文字に制限
+}
+
 // ユーザー型定義の拡張
 interface AuthenticatedUser {
   id: number;
@@ -1354,7 +1366,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       console.log(`[DEBUG] Fetching weekly reports for case ID: ${caseId}`);
       
       if (isNaN(caseId)) {
-        console.error(`[ERROR] Invalid case ID: ${req.params.caseId}`);
+        console.error(`[ERROR] Invalid case ID: ${sanitizeForLogging(req.params.caseId)}`);
         return res.status(400).json({ message: "無効な案件IDです" });
       }
       
@@ -1362,7 +1374,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
       console.log(`[DEBUG] Found ${reports.length} reports for case ${caseId}`);
       res.json(reports);
     } catch (error: unknown) {
-      console.error(`[ERROR] Failed to fetch weekly reports for case ${req.params.caseId}:`, error);
+      console.error(`[ERROR] Failed to fetch weekly reports for case ${sanitizeForLogging(req.params.caseId)}:`, error);
       res.status(500).json({ 
         message: "週次報告の取得に失敗しました",
         error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
@@ -1620,7 +1632,7 @@ Markdown形式で作成し、適切な見出しを使って整理してくださ
 
       try {
         if (isNaN(id)) {
-          console.error(`[ADMIN EDIT START] 無効なレポートID: ${req.params.id}`);
+          console.error(`[ADMIN EDIT START] 無効なレポートID: ${sanitizeForLogging(req.params.id)}`);
           res.status(400).json({ message: "無効なレポートIDです" });
           return;
         }
