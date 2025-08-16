@@ -36,9 +36,9 @@ describe("DatabaseStorage", () => {
     
     // データベースモックの完全な初期化
     const mockChain = {
-      where: vi.fn().mockReturnValue([]),
+      where: vi.fn().mockResolvedValue([]),
       orderBy: vi.fn().mockResolvedValue([]),
-      limit: vi.fn().mockReturnValue([]),
+      limit: vi.fn().mockResolvedValue([]),
     };
     
     mockDb.select.mockReturnValue({
@@ -172,6 +172,20 @@ describe("DatabaseStorage", () => {
         issues: "特になし",
       };
 
+      const existingProject = {
+        id: 1,
+        name: "元のプロジェクト",
+        overview: "元の概要",
+        organization: "テスト会社",
+        personnel: "テスト太郎",
+        progress: "開始準備中",
+        businessDetails: "詳細情報",
+        issues: "特になし",
+        isDeleted: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
       const expectedProject = {
         id: 1,
         ...updateData,
@@ -180,6 +194,10 @@ describe("DatabaseStorage", () => {
         updatedAt: new Date(),
       };
 
+      // getProject用のモック設定
+      mockDb.select().from().where.mockResolvedValue([existingProject]);
+      
+      // update用のモック設定
       mockDb.update().set().where().returning.mockResolvedValue([expectedProject]);
 
       const result = await storage.updateProject(1, updateData);

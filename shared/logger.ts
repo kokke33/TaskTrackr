@@ -96,29 +96,47 @@ class Logger {
     return sanitized;
   }
 
+  // ログインジェクション対策のためのサニタイズ関数
+  private sanitizeLogMessage(message: string): string {
+    if (typeof message !== 'string') {
+      return String(message);
+    }
+    
+    // 改行文字、タブ、制御文字、コロンを安全な文字に置換
+    return message
+      .replace(/[\r\n]/g, ' ')  // 改行文字を空白に置換
+      .replace(/\t/g, ' ')      // タブを空白に置換
+      .replace(/[\x00-\x1F\x7F]/g, '?')  // 制御文字を?に置換
+      .replace(/:/g, '.');      // コロンをピリオドに置換（ログフォーマットの混乱を防ぐ）
+  }
+
   public debug(message: string, context?: LogContext): void {
     if (!this.shouldLog(LogLevel.DEBUG)) return;
+    const sanitizedMessage = this.sanitizeLogMessage(message);
     const sanitizedContext = this.sanitizeContext(context);
-    console.log(this.formatMessage('DEBUG', message, sanitizedContext));
+    console.log(this.formatMessage('DEBUG', sanitizedMessage, sanitizedContext));
   }
 
   public info(message: string, context?: LogContext): void {
     if (!this.shouldLog(LogLevel.INFO)) return;
+    const sanitizedMessage = this.sanitizeLogMessage(message);
     const sanitizedContext = this.sanitizeContext(context);
-    console.info(this.formatMessage('INFO', message, sanitizedContext));
+    console.info(this.formatMessage('INFO', sanitizedMessage, sanitizedContext));
   }
 
   public warn(message: string, context?: LogContext): void {
     if (!this.shouldLog(LogLevel.WARN)) return;
+    const sanitizedMessage = this.sanitizeLogMessage(message);
     const sanitizedContext = this.sanitizeContext(context);
-    console.warn(this.formatMessage('WARN', message, sanitizedContext));
+    console.warn(this.formatMessage('WARN', sanitizedMessage, sanitizedContext));
   }
 
   public error(message: string, error?: Error, context?: LogContext): void {
     if (!this.shouldLog(LogLevel.ERROR)) return;
+    const sanitizedMessage = this.sanitizeLogMessage(message);
     const sanitizedContext = this.sanitizeContext(context);
-    const errorInfo = error ? ` | Error: ${error.message} | Stack: ${error.stack}` : '';
-    console.error(this.formatMessage('ERROR', message, sanitizedContext) + errorInfo);
+    const errorInfo = error ? ` | Error: ${this.sanitizeLogMessage(error.message)} | Stack: ${error.stack}` : '';
+    console.error(this.formatMessage('ERROR', sanitizedMessage, sanitizedContext) + errorInfo);
   }
 
   // 特定コンポーネント用のロガーを作成
@@ -163,6 +181,20 @@ export const logger = Logger.getInstance();
 // よく使用されるコンポーネントロガー
 export const createLogger = (componentName: string) => 
   logger.createComponentLogger(componentName);
+
+// ログインジェクション対策用のサニタイズ関数をエクスポート
+export const sanitizeForLog = (input: any): string => {
+  if (typeof input !== 'string') {
+    input = String(input);
+  }
+  
+  // 改行文字、タブ、制御文字、コロンを安全な文字に置換
+  return input
+    .replace(/[\r\n]/g, ' ')  // 改行文字を空白に置換
+    .replace(/\t/g, ' ')      // タブを空白に置換
+    .replace(/[\x00-\x1F\x7F]/g, '?')  // 制御文字を?に置換
+    .replace(/:/g, '.');      // コロンをピリオドに置換（ログフォーマットの混乱を防ぐ）
+};
 
 // 旧式のconsole.logとの互換性のためのヘルパー
 export const devLog = (message: string, ...args: any[]) => {

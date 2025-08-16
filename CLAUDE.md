@@ -290,6 +290,20 @@ const form = useForm<z.infer<typeof insertProjectSchema>>({
 - **Session Debugging**: Development middleware for session troubleshooting
 - **Role-Based Middleware**: `isAuthenticated` and `isAdmin` guards for API routes
 
+### Security Features
+
+#### Rate Limiting
+- **Basic Rate Limit**: 開発環境100req/min、本番環境60req/min（IP単位）
+- **File Access Rate Limit**: 開発環境専用 30req/min（HTMLテンプレートアクセス専用）
+- **スキップ対象**: 静的ファイル（/assets/, .js, .css, .json）、WebSocket接続
+- **レスポンス**: 429ステータスコード、詳細なエラーメッセージ、Retry-Afterヘッダー
+- **ログ**: レートリミット違反の詳細記録（IP、パス、User-Agent）
+
+#### HTMLテンプレートキャッシュ機構
+- **ファイル変更監視**: タイムスタンプベースの自動キャッシュ更新
+- **パフォーマンス向上**: ファイルアクセス回数の削減
+- **開発時最適化**: ホットリロード対応
+
 ## Important Implementation Notes
 
 ### Form Null Value Handling

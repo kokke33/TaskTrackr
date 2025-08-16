@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupWebSocket } from "./websocket";
@@ -56,6 +57,50 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
+// 基本レートリミット設定
+const basicRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1分
+  max: process.env.NODE_ENV === 'production' ? 60 : 1000, // 本番: 60req/min, 開発: 1000req/min
+  message: {
+    error: 'RATE_LIMIT_EXCEEDED',
+    message: 'リクエストが多すぎます。しばらく後にお試しください。',
+    retryAfter: 60
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skip: (req) => {
+    // WebSocket関連のリクエストを確実にスキップ
+    if (req.path === '/ws' || req.url?.includes('/ws')) {
+      return true;
+    }
+    // WebSocketアップグレードヘッダーのチェック
+    if (req.headers.upgrade === 'websocket') {
+      return true;
+    }
+    // 静的ファイルのスキップ
+    return req.path.startsWith('/assets/') || 
+           req.path.includes('.js') || 
+           req.path.includes('.css') || 
+           req.path.includes('.json');
+  },
+  handler: (req, res) => {
+    debugLogger.warn(DebugLogCategory.GENERAL, 'rate_limit', 'レートリミット違反', {
+      ip: req.ip,
+      path: req.path,
+      userAgent: req.get('User-Agent')
+    });
+    res.status(429).json({
+      error: 'RATE_LIMIT_EXCEEDED',
+      message: 'リクエストが多すぎます。しばらく後にお試しください。',
+      retryAfter: 60,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 基本レートリミットを適用（APIルートとページ表示に対して）
+app.use(basicRateLimit);
 
 // 統一セッション管理システム
 import { sessionManager } from './session-manager';
