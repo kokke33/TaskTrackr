@@ -2,6 +2,54 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { performanceMonitor } from "@shared/performance-monitor";
 import { debugLogger, DebugLogCategory } from "@/utils/debug-logger";
 
+// CSRFトークン管理
+class CSRFTokenManager {
+  private token: string | null = null;
+  private lastFetch: number = 0;
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5分キャッシュ
+
+  async getToken(): Promise<string> {
+    const now = Date.now();
+    
+    // キャッシュされたトークンが有効な場合はそれを返す
+    if (this.token && (now - this.lastFetch) < this.CACHE_DURATION) {
+      return this.token;
+    }
+
+    try {
+      const response = await fetch("/api/csrf-token", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`CSRFトークン取得失敗: ${response.status}`);
+      }
+
+      const data = await response.json();
+      this.token = data.csrfToken;
+      this.lastFetch = now;
+
+      debugLogger.info(DebugLogCategory.GENERAL, 'csrf_token_obtained', 'CSRFトークンを取得しました');
+      
+      return this.token!;
+    } catch (error) {
+      debugLogger.error(DebugLogCategory.GENERAL, 'csrf_token_error', 'CSRFトークン取得エラー', error instanceof Error ? error : new Error(String(error)));
+      throw error;
+    }
+  }
+
+  invalidateToken(): void {
+    this.token = null;
+    this.lastFetch = 0;
+  }
+}
+
+const csrfTokenManager = new CSRFTokenManager();
+
+// CSRFTokenManagerをエクスポート
+export const getCSRFToken = () => csrfTokenManager.getToken();
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -33,9 +81,22 @@ export async function apiRequest<T = any>(
   const requestId = debugLogger.apiStart(`api_request`, options.method, url, options.data);
 
   const performRequest = async (): Promise<Response> => {
+    const headers: Record<string, string> = options.data ? { "Content-Type": "application/json" } : {};
+    
+    // POST、PUT、DELETEリクエストの場合はCSRFトークンを追加
+    if (options.method !== 'GET' && options.method !== 'HEAD' && options.method !== 'OPTIONS') {
+      try {
+        const csrfToken = await csrfTokenManager.getToken();
+        headers['X-CSRF-Token'] = csrfToken;
+      } catch (error) {
+        debugLogger.error(DebugLogCategory.GENERAL, 'csrf_token_fetch_error', 'CSRFトークン取得に失敗', error instanceof Error ? error : new Error(String(error)));
+        // CSRFトークン取得に失敗してもリクエストは継続（サーバーでエラーハンドリング）
+      }
+    }
+    
     return await fetch(url, {
       method: options.method,
-      headers: options.data ? { "Content-Type": "application/json" } : {},
+      headers,
       body: options.data ? JSON.stringify(options.data) : undefined,
       credentials: "include",  // 常にクレデンシャルを送信
     });
@@ -113,6 +174,13 @@ export async function apiRequest<T = any>(
     
     return result;
   } catch (error) {
+    // CSRF関連エラーの場合、トークンキャッシュを無効化
+    if (error instanceof Error && 
+        (error.message.includes('CSRF_TOKEN') || error.message.includes('403'))) {
+      debugLogger.warn(DebugLogCategory.GENERAL, 'csrf_token_invalidated', 'CSRFトークンを無効化しました');
+      csrfTokenManager.invalidateToken();
+    }
+    
     // パフォーマンス計測終了（エラー）
     const finalDuration = Date.now() - startTime;
     timer.end({

@@ -292,6 +292,16 @@ const form = useForm<z.infer<typeof insertProjectSchema>>({
 
 ### Security Features
 
+#### CSRF対策（2025年1月16日追加）
+- **ライブラリ**: `csrf` v3.1.0（現代的なCSRF対策ライブラリ）
+- **対象メソッド**: POST、PUT、DELETEリクエストでCSRFトークン検証を実施
+- **トークン取得**: `/api/csrf-token` エンドポイントで認証済みユーザーがトークンを取得
+- **送信方法**: `X-CSRF-Token` ヘッダーまたはリクエストボディの `_csrf` フィールド
+- **クライアント統合**: `queryClient.ts`でCSRFトークンの自動取得・送信（5分キャッシュ）
+- **エラーハンドリング**: 403ステータスでCSRF関連エラーを返し、クライアント側でトークン無効化
+- **テスト**: 12のテストケースでCSRFミドルウェアの動作を検証
+- **実装ファイル**: `server/index.ts`（ミドルウェア）、`server/routes.ts`（API）、`client/src/lib/queryClient.ts`（クライアント）
+
 #### Rate Limiting
 - **Basic Rate Limit**: 開発環境100req/min、本番環境60req/min（IP単位）
 - **File Access Rate Limit**: 開発環境専用 30req/min（HTMLテンプレートアクセス専用）

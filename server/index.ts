@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
+import csrf from "csrf";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupWebSocket } from "./websocket";
@@ -11,6 +12,7 @@ import { createInitialUsers } from "./auth";
 import { validateAIConfig } from "./config";
 import { debugLogger, debugMiddleware, DebugLogCategory } from "./debug-logger";
 import { ensureDatabaseExists } from "./database-setup";
+import "./types"; // Session type extensions
 
 // 環境変数の読み込み
 dotenv.config();
@@ -133,6 +135,63 @@ app.use(passport.session());
 debugLogger.info(DebugLogCategory.SESSION, 'session_init', 'セッションストア初期化完了', {
   storeType: sessionManager.getStoreType(),
   stats: process.env.NODE_ENV !== 'production' ? sessionManager.getStats() : undefined
+});
+
+// CSRF対策の実装
+const csrfTokens = new csrf();
+
+// CSRFミドルウェア - POST、PUT、DELETEリクエストのみに適用
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // セッションが存在しない場合は、CSRFチェックをスキップ
+  if (!req.session) {
+    return next();
+  }
+
+  // GETリクエストやAPIチェック等はCSRFチェックをスキップ
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+    return next();
+  }
+
+  // 静的ファイルやWebSocket、ログインAPIはスキップ
+  if (req.path.startsWith('/assets/') || req.path === '/ws' || req.url?.includes('/ws') || req.path === '/api/login') {
+    return next();
+  }
+
+  // セッションにCSRFシークレットがない場合は作成
+  if (!req.session.csrfSecret) {
+    req.session.csrfSecret = csrfTokens.secretSync();
+  }
+
+  // CSRFトークンの検証
+  const token = req.headers['x-csrf-token'] as string || req.body._csrf;
+  
+  if (!token) {
+    debugLogger.warn(DebugLogCategory.GENERAL, 'csrf_error', 'CSRFトークンが提供されていません', {
+      method: req.method,
+      path: sanitizePath(req.path),
+      ip: req.ip
+    });
+    return res.status(403).json({
+      error: 'CSRF_TOKEN_MISSING',
+      message: 'CSRFトークンが必要です。',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  if (!csrfTokens.verify(req.session.csrfSecret, token)) {
+    debugLogger.warn(DebugLogCategory.GENERAL, 'csrf_error', 'CSRFトークンが無効です', {
+      method: req.method,
+      path: sanitizePath(req.path),
+      ip: req.ip
+    });
+    return res.status(403).json({
+      error: 'CSRF_TOKEN_INVALID',
+      message: 'CSRFトークンが無効です。',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  next();
 });
 
 // データベースの自動作成（初期ユーザー作成前に実行）
