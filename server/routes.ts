@@ -26,7 +26,8 @@ import passport from "passport";
 import { isAuthenticated, isAdmin, isAuthenticatedHybrid, isAdminHybrid } from "./auth";
 import { hybridAuthManager } from "./hybrid-auth-manager";
 import { createLogger } from "@shared/logger";
-import { notifyDataUpdate, getEditingUsers } from "./websocket";
+import { getEditingUsers } from "./editing-manager";
+import { notifyDataUpdate } from "./websocket";
 
 const logger = createLogger('Routes');
 

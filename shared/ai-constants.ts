@@ -2,7 +2,7 @@
 // この定数を変更することで、サーバー・クライアント両方の設定が更新されます
 
 // AIプロバイダー
-export const AI_PROVIDERS = ["openai", "ollama", "gemini", "groq", "openrouter"] as const;
+export const AI_PROVIDERS = ["openai", "ollama", "gemini", "groq", "openrouter", "claude"] as const;
 export type AIProvider = typeof AI_PROVIDERS[number];
 
 // OpenAIモデル
@@ -44,6 +44,15 @@ export const OPENROUTER_MODELS = [
 ] as const;
 export type OpenRouterModel = typeof OPENROUTER_MODELS[number];
 
+// Claudeモデル
+export const CLAUDE_MODELS = [
+  "claude-sonnet-4-0",
+  "claude-3-5-haiku-latest",
+  "claude-opus-4-0",
+  "claude-opus-4-1"
+] as const;
+export type ClaudeModel = typeof CLAUDE_MODELS[number];
+
 // デフォルト値
 export const DEFAULT_VALUES = {
   AI_PROVIDER: "gemini" as AIProvider,
@@ -52,6 +61,7 @@ export const DEFAULT_VALUES = {
   GROQ_MODEL: "llama-3.3-70b-versatile" as GroqModel,
   GEMINI_MODEL: "gemini-2.5-flash" as GeminiModel,
   OPENROUTER_MODEL: "anthropic/claude-3.5-sonnet" as OpenRouterModel,
+  CLAUDE_MODEL: "claude-sonnet-4-0" as ClaudeModel,
 } as const;
 
 // UI表示用のプロバイダー選択肢（ラベル付き）
@@ -61,6 +71,7 @@ export const AI_PROVIDER_OPTIONS = [
   { value: "gemini", label: "Google Gemini" },
   { value: "groq", label: "Groq" },
   { value: "openrouter", label: "OpenRouter" },
+  { value: "claude", label: "Anthropic Claude" },
 ] as const;
 
 // UI表示用のOpenAIモデル選択肢（ラベル付き）
@@ -100,6 +111,14 @@ export const OPENROUTER_MODEL_OPTIONS = [
   { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
   { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
   { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
+] as const;
+
+// UI表示用のClaudeモデル選択肢（ラベル付き）
+export const CLAUDE_MODEL_OPTIONS = [
+  { value: "claude-sonnet-4-0", label: "claude-sonnet-4-0 (推奨)" },
+  { value: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku" },
+  { value: "claude-opus-4-0", label: "Claude Opus 4.0" },
+  { value: "claude-opus-4-1", label: "Claude Opus 4.1" },
 ] as const;
 
 // 分析フィールドのキー
@@ -145,4 +164,8 @@ export const isValidOpenAIModel = (value: string): value is OpenAIModel => {
 
 export const isValidOpenRouterModel = (value: string): value is OpenRouterModel => {
   return OPENROUTER_MODELS.includes(value as OpenRouterModel);
+};
+
+export const isValidClaudeModel = (value: string): value is ClaudeModel => {
+  return CLAUDE_MODELS.includes(value as ClaudeModel);
 };

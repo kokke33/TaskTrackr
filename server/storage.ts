@@ -976,6 +976,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProject(id: number, projectData: InsertProject): Promise<Project> {
+    // 変更前のプロジェクト情報を取得
+    const currentProject = await this.getProject(id);
+    
     const [updated] = await db
       .update(projects)
       .set({
@@ -984,6 +987,17 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(projects.id, id))
       .returning();
+    
+    // プロジェクト名が変更された場合、関連する案件のprojectNameも更新
+    if (currentProject && currentProject.name !== projectData.name) {
+      await db
+        .update(cases)
+        .set({ projectName: projectData.name })
+        .where(eq(cases.projectName, currentProject.name));
+      
+      console.log(`プロジェクト名を更新しました: "${currentProject.name}" → "${projectData.name}"`);
+    }
+    
     return updated;
   }
 
@@ -1078,7 +1092,7 @@ export class DatabaseStorage implements IStorage {
         }
 
         return await query
-          .orderBy(desc(cases.createdAt))
+          .orderBy(asc(cases.id))
           .limit(limit);
       });
     }, { includeDeleted, limit });

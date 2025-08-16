@@ -47,6 +47,11 @@ export async function setupVite(app: Express, server: Server) {
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
+    // 静的ファイルのリクエストはスキップ（Viteミドルウェアに処理を委ねる）
+    if (url.startsWith('/assets/') || url.includes('.js') || url.includes('.css') || url.includes('.json')) {
+      return next();
+    }
+
     try {
       const clientTemplate = path.resolve(
         __dirname,

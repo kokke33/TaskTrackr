@@ -11,6 +11,7 @@ import {
   GROQ_MODEL_OPTIONS,
   GEMINI_MODEL_OPTIONS,
   OPENROUTER_MODEL_OPTIONS,
+  CLAUDE_MODEL_OPTIONS,
 } from "@shared/ai-constants";
 import { type AIProviderConfig } from "@shared/ai-types";
 
@@ -28,6 +29,7 @@ const STORAGE_KEYS = {
   groq: 'custom-groq-models',
   gemini: 'custom-gemini-models',
   openrouter: 'custom-openrouter-models',
+  claude: 'custom-claude-models',
 };
 
 const getCustomModels = (provider: string): string[] => {
@@ -63,11 +65,13 @@ export function AIProviderSelector({
   const [customGroqModels, setCustomGroqModels] = useState<string[]>([]);
   const [customGeminiModels, setCustomGeminiModels] = useState<string[]>([]);
   const [customOpenRouterModels, setCustomOpenRouterModels] = useState<string[]>([]);
+  const [customClaudeModels, setCustomClaudeModels] = useState<string[]>([]);
   const [newModelInputs, setNewModelInputs] = useState({
     openai: '',
     groq: '',
     gemini: '',
     openrouter: '',
+    claude: '',
   });
 
   // localStorage からカスタムモデルを読み込み
@@ -76,6 +80,7 @@ export function AIProviderSelector({
     setCustomGroqModels(getCustomModels('groq'));
     setCustomGeminiModels(getCustomModels('gemini'));
     setCustomOpenRouterModels(getCustomModels('openrouter'));
+    setCustomClaudeModels(getCustomModels('claude'));
   }, []);
 
   const handleProviderChange = (provider: string) => {
@@ -113,8 +118,15 @@ export function AIProviderSelector({
     });
   };
 
+  const handleClaudeModelChange = (claudeModel: string) => {
+    onChange({
+      ...value,
+      claudeModel: claudeModel as any,
+    });
+  };
+
   // カスタムモデル追加
-  const addCustomModel = (provider: 'openai' | 'groq' | 'gemini' | 'openrouter') => {
+  const addCustomModel = (provider: 'openai' | 'groq' | 'gemini' | 'openrouter' | 'claude') => {
     const input = newModelInputs[provider].trim();
     if (!input) return;
 
@@ -138,6 +150,10 @@ export function AIProviderSelector({
         currentModels = customOpenRouterModels;
         setModels = setCustomOpenRouterModels;
         break;
+      case 'claude':
+        currentModels = customClaudeModels;
+        setModels = setCustomClaudeModels;
+        break;
     }
 
     // 重複チェック
@@ -152,7 +168,7 @@ export function AIProviderSelector({
   };
 
   // カスタムモデル削除
-  const removeCustomModel = (provider: 'openai' | 'groq' | 'gemini' | 'openrouter', modelToRemove: string) => {
+  const removeCustomModel = (provider: 'openai' | 'groq' | 'gemini' | 'openrouter' | 'claude', modelToRemove: string) => {
     let currentModels: string[];
     let setModels: (models: string[]) => void;
     
@@ -172,6 +188,10 @@ export function AIProviderSelector({
       case 'openrouter':
         currentModels = customOpenRouterModels;
         setModels = setCustomOpenRouterModels;
+        break;
+      case 'claude':
+        currentModels = customClaudeModels;
+        setModels = setCustomClaudeModels;
         break;
     }
 
@@ -500,6 +520,81 @@ export function AIProviderSelector({
           </Select>
           <p className="text-sm text-muted-foreground">
             {prefix}で使用するOpenRouterモデルを選択してください。
+          </p>
+        </div>
+      )}
+
+      {/* Claudeモデル選択 */}
+      {value.provider === "claude" && (
+        <div className="space-y-3">
+          <Label htmlFor={`${prefix}-claude-model`}>Claudeモデル</Label>
+          
+          {/* カスタムモデル追加 */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="カスタムモデルID (例: claude-3-opus-20240229)"
+              value={newModelInputs.claude}
+              onChange={(e) => setNewModelInputs(prev => ({ ...prev, claude: e.target.value }))}
+              disabled={disabled}
+            />
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => addCustomModel('claude')}
+              disabled={disabled || !newModelInputs.claude.trim()}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* 追加済みカスタムモデル表示 */}
+          {customClaudeModels.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">追加済みカスタムモデル:</div>
+              <div className="flex flex-wrap gap-2">
+                {customClaudeModels.map((model) => (
+                  <Badge key={model} variant="outline" className="flex items-center gap-1">
+                    {model}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeCustomModel('claude', model)}
+                      disabled={disabled}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* モデル選択 */}
+          <Select
+            value={value.claudeModel || ""}
+            onValueChange={handleClaudeModelChange}
+            disabled={disabled}
+          >
+            <SelectTrigger id={`${prefix}-claude-model`}>
+              <SelectValue placeholder="モデルを選択" />
+            </SelectTrigger>
+            <SelectContent>
+              {CLAUDE_MODEL_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+              {customClaudeModels.map((model) => (
+                <SelectItem key={model} value={model}>
+                  {model} (カスタム)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">
+            {prefix}で使用するClaudeモデルを選択してください。
           </p>
         </div>
       )}

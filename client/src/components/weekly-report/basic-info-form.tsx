@@ -35,6 +35,46 @@ export function BasicInfoForm({ cases, selectedCaseId, onSelectCase }: BasicInfo
       <div className="space-y-3 sm:space-y-4">
         <FormField
           control={form.control}
+          name="caseId"
+          render={({ field }) => {
+            const selectedCase = cases?.find(c => c.id === field.value);
+            
+            return (
+              <FormItem>
+                <FormLabel className="required text-sm sm:text-base">案件</FormLabel>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <FormControl className="flex-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal h-auto py-3 px-3"
+                      onClick={() => setIsCaseSelectorOpen(true)}
+                      aria-label="案件を選択" // Add aria-label
+                    >
+                      {selectedCase ? (
+                        <div className="flex flex-col items-start w-full">
+                          <span className="font-medium text-sm">{selectedCase.caseName}</span>
+                          <span className="text-xs text-muted-foreground">{selectedCase.projectName}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">案件を選択してください</span>
+                      )}
+                    </Button>
+                  </FormControl>
+                  <Link href="/case/new">
+                    <Button variant="outline" size="icon" type="button" className="h-12 w-12 sm:h-10 sm:w-10 flex-shrink-0" aria-label="新規案件作成"> {/* Add aria-label */}
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
+        />
+
+        <FormField
+          control={form.control}
           name="reportPeriodStart"
           render={({ field }) => (
             <FormItem>
@@ -72,46 +112,6 @@ export function BasicInfoForm({ cases, selectedCaseId, onSelectCase }: BasicInfo
               <FormMessage />
             </FormItem>
           )}
-        />
-
-        <FormField
-          control={form.control}
-          name="caseId"
-          render={({ field }) => {
-            const selectedCase = cases?.find(c => c.id === field.value);
-            
-            return (
-              <FormItem>
-                <FormLabel className="required text-sm sm:text-base">案件</FormLabel>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                  <FormControl className="flex-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal h-auto py-3 px-3"
-                      onClick={() => setIsCaseSelectorOpen(true)}
-                      aria-label="案件を選択" // Add aria-label
-                    >
-                      {selectedCase ? (
-                        <div className="flex flex-col items-start w-full">
-                          <span className="font-medium text-sm">{selectedCase.caseName}</span>
-                          <span className="text-xs text-muted-foreground">{selectedCase.projectName}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">案件を選択してください</span>
-                      )}
-                    </Button>
-                  </FormControl>
-                  <Link href="/case/new">
-                    <Button variant="outline" size="icon" type="button" className="h-12 w-12 sm:h-10 sm:w-10 flex-shrink-0" aria-label="新規案件作成"> {/* Add aria-label */}
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-                <FormMessage />
-              </FormItem>
-            );
-          }}
         />
 
         <FormField

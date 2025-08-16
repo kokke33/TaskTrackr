@@ -6,6 +6,7 @@ import { OllamaService } from './ai-providers/ollama-provider.js';
 import { GeminiService } from './ai-providers/gemini-provider.js';
 import { GroqService } from './ai-providers/groq-provider.js';
 import { OpenRouterService } from './ai-providers/openrouter-provider.js';
+import { ClaudeService } from './ai-providers/claude-provider.js';
 
 // Re-export use cases
 export { generateSummary } from './use-cases/generate-summary.usecase.js';
@@ -44,6 +45,8 @@ function createAIServiceWithConfig(config: typeof aiConfig): IAiProvider {
       return new GroqService(config.groq.model);
     case 'openrouter':
       return new OpenRouterService(config.openrouter.model);
+    case 'claude':
+      return new ClaudeService(config.claude.model);
     default:
       throw new Error(`Unsupported AI provider: ${config.provider}`);
   }
@@ -66,6 +69,8 @@ function getCurrentModelKey(config: typeof aiConfig): string {
       return `${config.provider}:${config.groq.model}`;
     case 'openrouter':
       return `${config.provider}:${config.openrouter.model}`;
+    case 'claude':
+      return `${config.provider}:${config.claude.model}`;
     default:
       return `${config.provider}:unknown`;
   }
@@ -88,7 +93,8 @@ export async function getAIService(): Promise<IAiProvider> {
       model: dynamicConfig.provider === 'openrouter' ? dynamicConfig.openrouter.model :
              dynamicConfig.provider === 'openai' ? dynamicConfig.openai.model :
              dynamicConfig.provider === 'groq' ? dynamicConfig.groq.model :
-             dynamicConfig.provider === 'gemini' ? dynamicConfig.gemini.model : 'unknown'
+             dynamicConfig.provider === 'gemini' ? dynamicConfig.gemini.model :
+             dynamicConfig.provider === 'claude' ? dynamicConfig.claude.model : 'unknown'
     });
     
     aiService = createAIServiceWithConfig(dynamicConfig);
@@ -101,7 +107,7 @@ export async function getAIService(): Promise<IAiProvider> {
   return aiService;
 }
 
-export function getAIServiceForProvider(provider: AIProvider, groqModel?: string, geminiModel?: string, openrouterModel?: string, openaiModel?: string): IAiProvider {
+export function getAIServiceForProvider(provider: AIProvider, groqModel?: string, geminiModel?: string, openrouterModel?: string, openaiModel?: string, claudeModel?: string): IAiProvider {
   switch (provider) {
     case 'openai':
       return new OpenAIService(openaiModel);
@@ -113,6 +119,8 @@ export function getAIServiceForProvider(provider: AIProvider, groqModel?: string
       return new GroqService(groqModel);
     case 'openrouter':
       return new OpenRouterService(openrouterModel);
+    case 'claude':
+      return new ClaudeService(claudeModel);
     default:
       throw new Error(`Unsupported AI provider: ${provider}`);
   }

@@ -7,9 +7,9 @@ import { setupWebSocket } from "./websocket";
 import session from "express-session";
 import passport from "passport";
 import { createInitialUsers } from "./auth";
-import { migrateExistingProjectsFromCases } from "./migrations";
 import { validateAIConfig } from "./config";
 import { debugLogger, debugMiddleware, DebugLogCategory } from "./debug-logger";
+import { ensureDatabaseExists } from "./database-setup";
 
 // 環境変数の読み込み
 dotenv.config();
@@ -90,15 +90,16 @@ debugLogger.info(DebugLogCategory.SESSION, 'session_init', 'セッションス�
   stats: process.env.NODE_ENV !== 'production' ? sessionManager.getStats() : undefined
 });
 
-// 初期ユーザーの作成
-createInitialUsers().catch((error) => {
-  debugLogger.error(DebugLogCategory.GENERAL, 'init_users', '初期ユーザーの作成に失敗', error);
-});
+// データベースの自動作成（初期ユーザー作成前に実行）
+ensureDatabaseExists()
+  .then(() => {
+    // データベース作成成功後に初期ユーザーを作成
+    return createInitialUsers();
+  })
+  .catch((error) => {
+    debugLogger.error(DebugLogCategory.GENERAL, 'database_setup', 'データベースセットアップに失敗', error);
+  });
 
-// 既存の案件からプロジェクトを作成
-migrateExistingProjectsFromCases().catch((error) => {
-  debugLogger.error(DebugLogCategory.GENERAL, 'project_migration', 'プロジェクト移行処理に失敗', error);
-});
 
 // AI設定の検証とログ出力
 try {

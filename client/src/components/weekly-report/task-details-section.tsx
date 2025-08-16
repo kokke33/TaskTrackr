@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import {
   FormControl,
@@ -22,6 +22,16 @@ import { AIAnalysisResult } from "@/components/ai-analysis-result";
 import type { WeeklyReport } from "@shared/schema";
 import { useAIAnalysis } from "@/hooks/use-ai-analysis";
 import { ANALYSIS_FIELD_TYPES } from "@shared/ai-constants";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type TaskDetailsSectionProps = {
   latestReport?: WeeklyReport | null;
@@ -32,6 +42,16 @@ type TaskDetailsSectionProps = {
 export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }: TaskDetailsSectionProps) {
   const form = useFormContext<WeeklyReport>();
   const { getAnalysisState, clearAnalysis, analyzeField, analyzeFieldStreaming, regenerateAnalysis, sendMessage, clearConversations } = aiAnalysis;
+  
+  // 削除確認ダイアログの状態管理
+  const [showRiskClearDialog, setShowRiskClearDialog] = useState(false);
+  const [pendingRiskValue, setPendingRiskValue] = useState<string | null>(null);
+  
+  const [showDelayClearDialog, setShowDelayClearDialog] = useState(false);
+  const [pendingDelayValue, setPendingDelayValue] = useState<string | null>(null);
+  
+  const [showChangeClearDialog, setShowChangeClearDialog] = useState(false);
+  const [pendingChangeValue, setPendingChangeValue] = useState<string | null>(null);
 
   const fieldNameMapping: Record<string, keyof WeeklyReport> = {
     [ANALYSIS_FIELD_TYPES.weeklyTasks]: "weeklyTasks",
@@ -98,6 +118,120 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
       }
     };
   }, [form, regenerateAnalysis, existingReport, latestReport]);
+
+  // リスク有無変更時のハンドラー
+  const handleRiskChange = useCallback((value: string, onChange: (value: string) => void) => {
+    const currentRiskSummary = form.getValues("riskSummary");
+    const currentRiskCountermeasures = form.getValues("riskCountermeasures");
+    const hasRiskContent = (currentRiskSummary?.trim() || "") !== "" || 
+                          (currentRiskCountermeasures?.trim() || "") !== "";
+
+    if (value === "no" && hasRiskContent) {
+      // 「なし」選択時にリスク内容がある場合は確認ダイアログを表示
+      setPendingRiskValue(value);
+      setShowRiskClearDialog(true);
+    } else {
+      // 「あり」選択時または内容がない場合は直接変更
+      onChange(value);
+    }
+  }, [form]);
+
+  // リスク削除確認ダイアログのハンドラー
+  const handleRiskClearConfirm = useCallback(() => {
+    if (pendingRiskValue) {
+      // リスク関連フィールドをクリア
+      form.setValue("riskSummary", "");
+      form.setValue("riskCountermeasures", "");
+      
+      // 「なし」に変更
+      form.setValue("newRisks", pendingRiskValue);
+      
+      // AI分析結果もクリア
+      clearAnalysis(ANALYSIS_FIELD_TYPES.riskCountermeasures);
+    }
+    
+    setShowRiskClearDialog(false);
+    setPendingRiskValue(null);
+  }, [pendingRiskValue, form, clearAnalysis]);
+
+  const handleRiskClearCancel = useCallback(() => {
+    setShowRiskClearDialog(false);
+    setPendingRiskValue(null);
+  }, []);
+
+  // 遅延有無変更時のハンドラー
+  const handleDelayChange = useCallback((value: string, onChange: (value: string) => void) => {
+    const currentDelayDetails = form.getValues("delayDetails");
+    const hasDelayContent = (currentDelayDetails?.trim() || "") !== "";
+
+    if (value === "no" && hasDelayContent) {
+      // 「なし」選択時に遅延内容がある場合は確認ダイアログを表示
+      setPendingDelayValue(value);
+      setShowDelayClearDialog(true);
+    } else {
+      // 「あり」選択時または内容がない場合は直接変更
+      onChange(value);
+    }
+  }, [form]);
+
+  // 遅延削除確認ダイアログのハンドラー
+  const handleDelayClearConfirm = useCallback(() => {
+    if (pendingDelayValue) {
+      // 遅延関連フィールドをクリア
+      form.setValue("delayDetails", "");
+      
+      // 「なし」に変更
+      form.setValue("delayIssues", pendingDelayValue);
+      
+      // AI分析結果もクリア
+      clearAnalysis(ANALYSIS_FIELD_TYPES.delayDetails);
+    }
+    
+    setShowDelayClearDialog(false);
+    setPendingDelayValue(null);
+  }, [pendingDelayValue, form, clearAnalysis]);
+
+  const handleDelayClearCancel = useCallback(() => {
+    setShowDelayClearDialog(false);
+    setPendingDelayValue(null);
+  }, []);
+
+  // 変更有無変更時のハンドラー
+  const handleChangeChange = useCallback((value: string, onChange: (value: string) => void) => {
+    const currentChangeDetails = form.getValues("changeDetails");
+    const hasChangeContent = (currentChangeDetails?.trim() || "") !== "";
+
+    if (value === "no" && hasChangeContent) {
+      // 「なし」選択時に変更内容がある場合は確認ダイアログを表示
+      setPendingChangeValue(value);
+      setShowChangeClearDialog(true);
+    } else {
+      // 「あり」選択時または内容がない場合は直接変更
+      onChange(value);
+    }
+  }, [form]);
+
+  // 変更削除確認ダイアログのハンドラー
+  const handleChangeClearConfirm = useCallback(() => {
+    if (pendingChangeValue) {
+      // 変更関連フィールドをクリア
+      form.setValue("changeDetails", "");
+      
+      // 「なし」に変更
+      form.setValue("changes", pendingChangeValue);
+      
+      // AI分析結果もクリア
+      clearAnalysis(ANALYSIS_FIELD_TYPES.changeDetails);
+    }
+    
+    setShowChangeClearDialog(false);
+    setPendingChangeValue(null);
+  }, [pendingChangeValue, form, clearAnalysis]);
+
+  const handleChangeClearCancel = useCallback(() => {
+    setShowChangeClearDialog(false);
+    setPendingChangeValue(null);
+  }, []);
 
   return (
     <>
@@ -247,7 +381,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 </FormLabel>
                 <FormControl>
                   <RadioGroup
-                    onValueChange={field.onChange}
+                    onValueChange={(value) => handleDelayChange(value, field.onChange)}
                     defaultValue={field.value}
                     className="flex gap-4"
                   >
@@ -374,7 +508,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 </FormLabel>
                 <FormControl>
                   <RadioGroup
-                    onValueChange={field.onChange}
+                    onValueChange={(value) => handleRiskChange(value, field.onChange)}
                     defaultValue={field.value}
                     className="flex gap-4"
                   >
@@ -644,7 +778,7 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
                 <FormLabel className="required">変更の有無</FormLabel>
                 <FormControl>
                   <RadioGroup
-                    onValueChange={field.onChange}
+                    onValueChange={(value) => handleChangeChange(value, field.onChange)}
                     defaultValue={field.value}
                     className="flex gap-4"
                   >
@@ -1306,6 +1440,69 @@ export function TaskDetailsSection({ latestReport, existingReport, aiAnalysis }:
           )}
         </div>
       </div>
+
+      {/* リスク削除確認ダイアログ */}
+      <AlertDialog open={showRiskClearDialog} onOpenChange={setShowRiskClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>リスク内容の削除確認</AlertDialogTitle>
+            <AlertDialogDescription>
+              「新たなリスクの有無」を「なし」に変更すると、入力済みのリスクの概要と対策の内容が削除されます。
+              削除してもよろしいですか？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleRiskClearCancel}>
+              キャンセル
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleRiskClearConfirm}>
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 遅延削除確認ダイアログ */}
+      <AlertDialog open={showDelayClearDialog} onOpenChange={setShowDelayClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>遅延内容の削除確認</AlertDialogTitle>
+            <AlertDialogDescription>
+              「進捗遅延・問題点の有無」を「なし」に変更すると、入力済みの遅延・問題点の詳細内容が削除されます。
+              削除してもよろしいですか？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDelayClearCancel}>
+              キャンセル
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelayClearConfirm}>
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 変更削除確認ダイアログ */}
+      <AlertDialog open={showChangeClearDialog} onOpenChange={setShowChangeClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>変更内容の削除確認</AlertDialogTitle>
+            <AlertDialogDescription>
+              「変更の有無」を「なし」に変更すると、入力済みの変更内容の詳細が削除されます。
+              削除してもよろしいですか？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleChangeClearCancel}>
+              キャンセル
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleChangeClearConfirm}>
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

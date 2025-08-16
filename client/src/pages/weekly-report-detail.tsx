@@ -551,15 +551,15 @@ export default function WeeklyReportDetail() {
               <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 pb-2 border-b">1. 基本情報</h2>
               <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
                 <div>
+                  <p className="text-xs sm:text-sm text-muted-foreground">担当現場名</p>
+                  <p className="text-xs sm:text-sm">{report.projectName} - {report.caseName}</p>
+                </div>
+                <div>
                   <p className="text-xs sm:text-sm text-muted-foreground">報告期間</p>
                   <p className="text-xs sm:text-sm">
                     {new Date(report.reportPeriodStart).toLocaleDateString()} ～{" "}
                     {new Date(report.reportPeriodEnd).toLocaleDateString()}
                   </p>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">担当現場名</p>
-                  <p className="text-xs sm:text-sm">{report.projectName} - {report.caseName}</p>
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm text-muted-foreground">報告者名</p>

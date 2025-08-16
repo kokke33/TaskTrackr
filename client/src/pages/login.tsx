@@ -103,6 +103,7 @@ export default function Login() {
       <Card className="w-full max-w-md mx-4">
         <CardContent className="pt-6">
           <h1 className="text-2xl font-bold text-center mb-6">週次報告システム</h1>
+          <p className="text-red-500 text-center text-sm mt-2">新規の方は下部の新規ユーザー登録をお願いします。</p>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
